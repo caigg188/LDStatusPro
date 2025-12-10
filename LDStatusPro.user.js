@@ -445,13 +445,10 @@
 
             if (this.isActive) {
                 if (timeSinceLastActivity > CONFIG.READING_IDLE_THRESHOLD) {
-                    // 用户变为不活跃，累计这个会话的时间
+                    // 用户变为不活跃，保存这个会话的时间
+                    // 注意：不在这里累计，在saveReadingTime里处理
                     this.isActive = false;
-                    const sessionSeconds = (this.lastActivityTime - this.sessionStartTime) / 1000;
-                    if (sessionSeconds > 0) {
-                        this.accumulatedTime += sessionSeconds;
-                    }
-                    console.log(`[LDStatus Pro] 用户不活跃，本会话累计 ${Math.round(sessionSeconds)}秒，总累计 ${Math.round(this.accumulatedTime)}秒`);
+                    console.log(`[LDStatus Pro] 用户不活跃，准备保存阅读时间`);
                 }
             } else {
                 // 如果用户重新活跃，重置会话
@@ -469,19 +466,12 @@
                 if (document.hidden) {
                     // 页面隐藏，立即保存当前时间
                     this.saveReadingTime();
-                    // 累计当前活跃会话
-                    if (this.isActive) {
-                        const sessionSeconds = (Date.now() - this.sessionStartTime) / 1000;
-                        if (sessionSeconds > 0) {
-                            this.accumulatedTime += sessionSeconds;
-                        }
-                    }
+                    // 不再活跃
                     this.isActive = false;
                     console.log('[LDStatus Pro] 页面隐藏，暂停计时');
                 } else {
                     // 页面恢复可见，准备继续计时
                     this.lastActivityTime = Date.now();
-                    this.sessionStartTime = Date.now();
                     this.isActive = true;
                     console.log('[LDStatus Pro] 页面可见，恢复计时');
                 }
@@ -489,13 +479,6 @@
 
             // 页面卸载前保存
             window.addEventListener('beforeunload', () => {
-                // 累计最后的活跃时间
-                if (this.isActive) {
-                    const sessionSeconds = (Date.now() - this.sessionStartTime) / 1000;
-                    if (sessionSeconds > 0) {
-                        this.accumulatedTime += sessionSeconds;
-                    }
-                }
                 this.saveReadingTime();
             });
         }
@@ -540,28 +523,29 @@
                 };
             }
 
-            // 计算从上次保存到现在的累计时间（包括已累计的和当前活跃会话）
-            let timeToAdd = 0;
+            // 计算需要新增的时间：从上次保存到现在
+            let timeToAddSeconds = 0;
             
-            // 1. 已经累计的不活跃时间
-            if (this.accumulatedTime > 0) {
-                timeToAdd += this.accumulatedTime;
-            }
+            // 只计算从上次保存到现在的时间，避免重复
+            const timeSinceLastSave = (now - this.lastSaveTime) / 1000;
             
-            // 2. 当前活跃会话的时间（如果正在活跃）
-            if (this.isActive) {
-                const currentSessionSeconds = (now - this.sessionStartTime) / 1000;
-                if (currentSessionSeconds > 0) {
-                    timeToAdd += currentSessionSeconds;
+            if (timeSinceLastSave > 0) {
+                // 检查用户在这段时间内是否活跃
+                const timeSinceLastActivity = now - this.lastActivityTime;
+                
+                if (timeSinceLastActivity <= CONFIG.READING_IDLE_THRESHOLD) {
+                    // 用户仍然活跃，统计这段时间
+                    timeToAddSeconds = timeSinceLastSave;
+                } else {
+                    // 用户已不活跃，只统计到用户不活跃为止的时间
+                    // 即上次活动时间到上次保存时间之间的时间
+                    const timeSinceLastActivityAtLastSave = (now - this.lastActivityTime) - CONFIG.READING_IDLE_THRESHOLD;
+                    timeToAddSeconds = Math.max(0, timeSinceLastSave - timeSinceLastActivityAtLastSave);
                 }
             }
-
-            // 3. 减去上次保存时已经累计的时间（避免重复计算）
-            const lastSaveMinutes = todayData.lastSaveTime ? 
-                (this.lastSaveTime - todayData.lastSaveTime) / 1000 / 60 : 0;
             
             // 将秒数转换为分钟
-            const timeToAddMinutes = timeToAdd / 60;
+            const timeToAddMinutes = timeToAddSeconds / 60;
             
             // 只有在有新增时间时才更新（大于0.1分钟，即6秒）
             if (timeToAddMinutes > 0.1) {
@@ -586,8 +570,7 @@
 
                 Utils.set('readingTime', stored);
                 
-                // 重置计时器
-                this.accumulatedTime = 0;
+                // 更新保存时间
                 this.lastSaveTime = now;
                 
                 console.log(`[LDStatus Pro] 已保存阅读时间: +${timeToAddMinutes.toFixed(2)}分钟，今日总计: ${todayData.totalMinutes.toFixed(2)}分钟`);
@@ -615,43 +598,32 @@
 
             const todayKey = Utils.getTodayKey();
             const stored = Utils.get('readingTime', null);
+            const now = Date.now();
 
-            if (!stored || !stored.dailyData || !stored.dailyData[todayKey]) {
-                // 如果没有保存数据，返回当前会话时间
-                let currentTime = 0;
-                
-                // 已累计的时间
-                if (this.accumulatedTime > 0) {
-                    currentTime += this.accumulatedTime;
-                }
-                
-                // 当前活跃会话的时间
-                if (this.isActive) {
-                    const sessionSeconds = (Date.now() - this.sessionStartTime) / 1000;
-                    if (sessionSeconds > 0) {
-                        currentTime += sessionSeconds;
-                    }
-                }
-                
-                return currentTime / 60;
+            // 获取已保存的时间
+            let savedMinutes = 0;
+            if (stored && stored.dailyData && stored.dailyData[todayKey]) {
+                savedMinutes = stored.dailyData[todayKey].totalMinutes || 0;
             }
 
-            // 返回已保存的时间
-            const storedMinutes = stored.dailyData[todayKey].totalMinutes || 0;
-            
-            // 加上当前会话中未保存的时间
+            // 计算未保存的时间（从上次保存到现在）
             let unsavedMinutes = 0;
-            if (this.accumulatedTime > 0) {
-                unsavedMinutes += this.accumulatedTime / 60;
-            }
-            if (this.isActive) {
-                const sessionSeconds = (Date.now() - this.sessionStartTime) / 1000;
-                if (sessionSeconds > 0) {
-                    unsavedMinutes += sessionSeconds / 60;
+            if (this.lastSaveTime) {
+                const timeSinceLastSave = (now - this.lastSaveTime) / 1000;
+                const timeSinceLastActivity = now - this.lastActivityTime;
+                
+                if (timeSinceLastActivity <= CONFIG.READING_IDLE_THRESHOLD) {
+                    // 用户仍然活跃，统计这段时间
+                    unsavedMinutes = timeSinceLastSave / 60;
+                } else {
+                    // 用户已不活跃，只统计到用户不活跃为止的时间
+                    const timeSinceLastActivityAtLastSave = (now - this.lastActivityTime) - CONFIG.READING_IDLE_THRESHOLD;
+                    const activeSeconds = Math.max(0, timeSinceLastSave - timeSinceLastActivityAtLastSave);
+                    unsavedMinutes = activeSeconds / 60;
                 }
             }
 
-            return storedMinutes + unsavedMinutes;
+            return savedMinutes + Math.max(0, unsavedMinutes);
         }
 
         // 获取指定日期的阅读时间
@@ -2143,11 +2115,11 @@
         startReadingTimeUpdate() {
             if (this.readingUpdateInterval) return;
 
-            // 每10秒更新一次阅读时间显示
+            // 每秒更新一次阅读时间显示，以获得更平滑的体验
             this.readingUpdateInterval = setInterval(() => {
                 this.currentReadingTime = readingTracker.getTodayReadingTime();
                 this.updateReadingCard(this.currentReadingTime);
-            }, 10000);
+            }, 1000);
         }
 
         fetch() {
