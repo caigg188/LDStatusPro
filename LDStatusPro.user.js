@@ -362,6 +362,7 @@
             this.lastActivityTime = Date.now();
             this.sessionStartTime = Date.now();
             this.accumulatedTime = 0;  // 本次会话累计的秒数
+            this.lastSaveTime = Date.now();  // 上次保存的时间戳
             this.trackingInterval = null;
             this.saveInterval = null;
             this.initialized = false;
@@ -444,18 +445,20 @@
 
             if (this.isActive) {
                 if (timeSinceLastActivity > CONFIG.READING_IDLE_THRESHOLD) {
-                    // 用户变为不活跃
+                    // 用户变为不活跃，累计这个会话的时间
                     this.isActive = false;
-                    // 累计活跃时间
-                    const activeTime = (this.lastActivityTime - this.sessionStartTime) / 1000;
-                    if (activeTime > 0) {
-                        this.accumulatedTime += activeTime;
+                    const sessionSeconds = (this.lastActivityTime - this.sessionStartTime) / 1000;
+                    if (sessionSeconds > 0) {
+                        this.accumulatedTime += sessionSeconds;
                     }
-                    console.log(`[LDStatus Pro] 用户不活跃，已累计 ${Math.round(this.accumulatedTime)} 秒`);
-                } else {
-                    // 用户仍然活跃，累计时间
-                    const activeTime = (now - this.sessionStartTime) / 1000;
-                    // 不直接累加到 accumulatedTime，而是在保存时计算
+                    console.log(`[LDStatus Pro] 用户不活跃，本会话累计 ${Math.round(sessionSeconds)}秒，总累计 ${Math.round(this.accumulatedTime)}秒`);
+                }
+            } else {
+                // 如果用户重新活跃，重置会话
+                if (timeSinceLastActivity < CONFIG.READING_IDLE_THRESHOLD) {
+                    this.isActive = true;
+                    this.sessionStartTime = now;
+                    console.log('[LDStatus Pro] 用户重新活跃，开始新会话');
                 }
             }
         }
@@ -464,12 +467,19 @@
         handleVisibilityChange() {
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) {
-                    // 页面隐藏，保存当前时间
+                    // 页面隐藏，立即保存当前时间
                     this.saveReadingTime();
+                    // 累计当前活跃会话
+                    if (this.isActive) {
+                        const sessionSeconds = (Date.now() - this.sessionStartTime) / 1000;
+                        if (sessionSeconds > 0) {
+                            this.accumulatedTime += sessionSeconds;
+                        }
+                    }
                     this.isActive = false;
                     console.log('[LDStatus Pro] 页面隐藏，暂停计时');
                 } else {
-                    // 页面恢复可见
+                    // 页面恢复可见，准备继续计时
                     this.lastActivityTime = Date.now();
                     this.sessionStartTime = Date.now();
                     this.isActive = true;
@@ -479,6 +489,13 @@
 
             // 页面卸载前保存
             window.addEventListener('beforeunload', () => {
+                // 累计最后的活跃时间
+                if (this.isActive) {
+                    const sessionSeconds = (Date.now() - this.sessionStartTime) / 1000;
+                    if (sessionSeconds > 0) {
+                        this.accumulatedTime += sessionSeconds;
+                    }
+                }
                 this.saveReadingTime();
             });
         }
@@ -499,9 +516,8 @@
             if (!user) return;
 
             const todayKey = Utils.getTodayKey();
-            const sessionSeconds = this.getCurrentSessionTime();
-            const sessionMinutes = sessionSeconds / 60;
-
+            const now = Date.now();
+            
             // 获取存储的数据
             let stored = Utils.get('readingTime', null);
 
@@ -518,20 +534,50 @@
             if (!todayData) {
                 todayData = {
                     totalMinutes: 0,
-                    lastActive: Date.now(),
-                    sessions: []
+                    lastActive: now,
+                    sessions: [],
+                    lastSaveTime: now
                 };
             }
 
-            // 更新今日数据
-            // 计算新增的时间（从上次保存到现在）
-            const previousSessionMinutes = todayData.currentSessionMinutes || 0;
-            const newMinutes = sessionMinutes - previousSessionMinutes;
+            // 计算从上次保存到现在的累计时间（包括已累计的和当前活跃会话）
+            let timeToAdd = 0;
+            
+            // 1. 已经累计的不活跃时间
+            if (this.accumulatedTime > 0) {
+                timeToAdd += this.accumulatedTime;
+            }
+            
+            // 2. 当前活跃会话的时间（如果正在活跃）
+            if (this.isActive) {
+                const currentSessionSeconds = (now - this.sessionStartTime) / 1000;
+                if (currentSessionSeconds > 0) {
+                    timeToAdd += currentSessionSeconds;
+                }
+            }
 
-            if (newMinutes > 0) {
-                todayData.totalMinutes += newMinutes;
-                todayData.lastActive = Date.now();
-                todayData.currentSessionMinutes = sessionMinutes;
+            // 3. 减去上次保存时已经累计的时间（避免重复计算）
+            const lastSaveMinutes = todayData.lastSaveTime ? 
+                (this.lastSaveTime - todayData.lastSaveTime) / 1000 / 60 : 0;
+            
+            // 将秒数转换为分钟
+            const timeToAddMinutes = timeToAdd / 60;
+            
+            // 只有在有新增时间时才更新（大于0.1分钟，即6秒）
+            if (timeToAddMinutes > 0.1) {
+                todayData.totalMinutes += timeToAddMinutes;
+                todayData.lastActive = now;
+                todayData.lastSaveTime = now;
+                
+                // 记录会话
+                if (!todayData.sessions) {
+                    todayData.sessions = [];
+                }
+                todayData.sessions.push({
+                    saveTime: now,
+                    addedMinutes: timeToAddMinutes,
+                    totalMinutes: todayData.totalMinutes
+                });
 
                 stored.dailyData[todayKey] = todayData;
 
@@ -539,6 +585,12 @@
                 this.cleanOldData(stored);
 
                 Utils.set('readingTime', stored);
+                
+                // 重置计时器
+                this.accumulatedTime = 0;
+                this.lastSaveTime = now;
+                
+                console.log(`[LDStatus Pro] 已保存阅读时间: +${timeToAddMinutes.toFixed(2)}分钟，今日总计: ${todayData.totalMinutes.toFixed(2)}分钟`);
             }
         }
 
@@ -565,16 +617,41 @@
             const stored = Utils.get('readingTime', null);
 
             if (!stored || !stored.dailyData || !stored.dailyData[todayKey]) {
-                // 返回当前会话时间
-                return this.getCurrentSessionTime() / 60;
+                // 如果没有保存数据，返回当前会话时间
+                let currentTime = 0;
+                
+                // 已累计的时间
+                if (this.accumulatedTime > 0) {
+                    currentTime += this.accumulatedTime;
+                }
+                
+                // 当前活跃会话的时间
+                if (this.isActive) {
+                    const sessionSeconds = (Date.now() - this.sessionStartTime) / 1000;
+                    if (sessionSeconds > 0) {
+                        currentTime += sessionSeconds;
+                    }
+                }
+                
+                return currentTime / 60;
             }
 
-            // 返回存储的时间 + 当前会话中未保存的时间
+            // 返回已保存的时间
             const storedMinutes = stored.dailyData[todayKey].totalMinutes || 0;
-            const currentSessionMinutes = stored.dailyData[todayKey].currentSessionMinutes || 0;
-            const unsavedMinutes = (this.getCurrentSessionTime() / 60) - currentSessionMinutes;
+            
+            // 加上当前会话中未保存的时间
+            let unsavedMinutes = 0;
+            if (this.accumulatedTime > 0) {
+                unsavedMinutes += this.accumulatedTime / 60;
+            }
+            if (this.isActive) {
+                const sessionSeconds = (Date.now() - this.sessionStartTime) / 1000;
+                if (sessionSeconds > 0) {
+                    unsavedMinutes += sessionSeconds / 60;
+                }
+            }
 
-            return storedMinutes + Math.max(0, unsavedMinutes);
+            return storedMinutes + unsavedMinutes;
         }
 
         // 获取指定日期的阅读时间
