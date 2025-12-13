@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         LDStatus Pro
 // @namespace    http://tampermonkey.net/
-// @version      2.8.8
-// @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计
+// @version      3.0.1
+// @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计。Linux.do 站点支持排行榜和云同步功能
 // @author       JackLiii
 // @license      MIT
 // @match        https://linux.do/*
@@ -18,6 +18,8 @@
 // @connect      idcflare.com
 // @connect      github.com
 // @connect      raw.githubusercontent.com
+// @connect      ldstatus-pro-api.jackcai711.workers.dev
+// @connect      *.workers.dev
 // @updateURL    https://raw.githubusercontent.com/caigg188/LDStatusPro/main/LDStatusPro.user.js
 // @downloadURL  https://raw.githubusercontent.com/caigg188/LDStatusPro/main/LDStatusPro.user.js
 // @icon         https://linux.do/uploads/default/optimized/4X/6/a/6/6a6affc7b1ce8140279e959d32671304db06d5ab_2_180x180.png
@@ -27,71 +29,69 @@
     'use strict';
 
     // ==================== 网站配置 ====================
-    const SITE_CONFIG = {
+    const SITE_CONFIGS = {
         'linux.do': {
             name: 'Linux.do',
             icon: 'https://linux.do/uploads/default/optimized/4X/6/a/6/6a6affc7b1ce8140279e959d32671304db06d5ab_2_180x180.png',
             apiUrl: 'https://connect.linux.do',
-            colorPrimary: '#6366f1',
-            colorSecondary: '#0ea5e9'
+            supportsLeaderboard: true
         },
         'idcflare.com': {
             name: 'IDCFlare',
             icon: 'https://idcflare.com/uploads/default/optimized/1X/8746f94a48ddc8140e8c7a52084742f38d3f5085_2_180x180.png',
             apiUrl: 'https://connect.idcflare.com',
-            colorPrimary: '#f97316',
-            colorSecondary: '#d97706'
+            supportsLeaderboard: false
         }
     };
 
-    const detectCurrentSite = () => {
+    const CURRENT_SITE = (() => {
         const hostname = window.location.hostname;
-        for (const [domain, config] of Object.entries(SITE_CONFIG)) {
-            if (hostname === domain || hostname.endsWith('.' + domain)) {
-                return { domain, ...config };
+        for (const [domain, config] of Object.entries(SITE_CONFIGS)) {
+            if (hostname === domain || hostname.endsWith(`.${domain}`)) {
+                return { domain, prefix: domain.replace('.', '_'), ...config };
             }
         }
         return null;
-    };
+    })();
 
-    const CURRENT_SITE = detectCurrentSite();
     if (!CURRENT_SITE) {
-        console.warn('[LDStatus Pro] 不支持的网站，脚本将不运行');
+        console.warn('[LDStatus Pro] 不支持的网站');
         return;
     }
 
-    // ==================== 配置常量 ====================
+    // ==================== 常量配置 ====================
     const CONFIG = {
-        STORAGE_KEYS: {
-            position: 'ldsp_position',
-            collapsed: 'ldsp_collapsed',
-            theme: 'ldsp_theme',
-            history: 'ldsp_history',
-            milestones: 'ldsp_milestones',
-            lastNotify: 'ldsp_last_notify',
-            lastVisit: 'ldsp_last_visit',
-            trendTab: 'ldsp_trend_tab',
-            todayData: 'ldsp_today_data',
-            userAvatar: 'ldsp_user_avatar',
-            readingTime: 'ldsp_reading_time',
-            todayReadingStart: 'ldsp_today_reading_start',
-            currentUser: 'ldsp_current_user',
-            userDataMap: 'ldsp_user_data_map',
-            density: 'ldsp_density'
+        // 时间间隔（毫秒）
+        INTERVALS: {
+            REFRESH: 300000,           // 数据刷新间隔
+            READING_TRACK: 10000,      // 阅读追踪间隔
+            READING_SAVE: 30000,       // 阅读保存间隔
+            READING_IDLE: 60000,       // 空闲阈值
+            STORAGE_DEBOUNCE: 1000,    // 存储防抖
+            READING_UPDATE: 1000,      // 阅读时间UI更新
+            LEADERBOARD_SYNC: 600000,  // 排行榜同步（10分钟）
+            CLOUD_UPLOAD: 1800000,     // 云同步上传（30分钟）
+            CLOUD_DOWNLOAD: 21600000,  // 云同步下载（6小时）
+            CLOUD_CHECK: 300000        // 云同步检查（5分钟）
         },
-        SITE_PREFIX: CURRENT_SITE.domain.replace('.', '_'),
-        USER_SPECIFIC_KEYS: new Set([
-            'history', 'milestones', 'lastVisit', 'todayData',
-            'userAvatar', 'readingTime', 'todayReadingStart'
-        ]),
-        REFRESH_INTERVAL: 300000,
-        MAX_HISTORY_DAYS: 365,
-        READING_TRACK_INTERVAL: 10000,
-        READING_IDLE_THRESHOLD: 60000,
-        READING_SAVE_INTERVAL: 30000,
-        STORAGE_DEBOUNCE: 1000,
-        NETWORK_RETRY_COUNT: 3,
-        NETWORK_RETRY_DELAY: 1000,
+        // 缓存配置
+        CACHE: {
+            MAX_HISTORY_DAYS: 365,
+            LRU_SIZE: 50,
+            VALUE_TTL: 5000,
+            SCREEN_TTL: 100,
+            YEAR_DATA_TTL: 5000,
+            HISTORY_TTL: 1000,
+            LEADERBOARD_DAILY_TTL: 300000,    // 日榜缓存5分钟
+            LEADERBOARD_PERIOD_TTL: 86400000  // 周/月榜缓存1天
+        },
+        // 网络配置
+        NETWORK: {
+            RETRY_COUNT: 3,
+            RETRY_DELAY: 1000,
+            TIMEOUT: 15000
+        },
+        // 里程碑配置
         MILESTONES: {
             '浏览话题': [100, 500, 1000, 2000, 5000],
             '已读帖子': [500, 1000, 5000, 10000, 20000],
@@ -99,23 +99,26 @@
             '送出赞': [50, 100, 500, 1000, 2000],
             '回复': [10, 50, 100, 500, 1000]
         },
+        // 趋势字段配置
         TREND_FIELDS: [
-            { key: '浏览话题', searchKey: '浏览的话题', label: '浏览话题' },
-            { key: '已读帖子', searchKey: '已读帖子', label: '已读帖子' },
-            { key: '点赞', searchKey: '送出赞', label: '点赞' },
-            { key: '回复', searchKey: '回复', label: '回复' },
-            { key: '获赞', searchKey: '获赞', label: '获赞' }
+            { key: '浏览话题', search: '浏览的话题', label: '浏览话题' },
+            { key: '已读帖子', search: '已读帖子', label: '已读帖子' },
+            { key: '点赞', search: '送出赞', label: '点赞' },
+            { key: '回复', search: '回复', label: '回复' },
+            { key: '获赞', search: '获赞', label: '获赞' }
         ],
+        // 阅读等级配置
         READING_LEVELS: [
-            { min: 0, label: '刚起步', icon: '🌱', color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.15)' },
-            { min: 30, label: '热身中', icon: '📖', color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.15)' },
-            { min: 90, label: '渐入佳境', icon: '📚', color: '#34d399', bg: 'rgba(52, 211, 153, 0.15)' },
-            { min: 180, label: '沉浸阅读', icon: '🔥', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)' },
-            { min: 300, label: '深度学习', icon: '⚡', color: '#f97316', bg: 'rgba(249, 115, 22, 0.15)' },
-            { min: 450, label: 'LD达人', icon: '🏆', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.15)' },
-            { min: 600, label: '超级水怪', icon: '👑', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.15)' }
+            { min: 0, label: '刚起步', icon: '🌱', color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
+            { min: 30, label: '热身中', icon: '📖', color: '#60a5fa', bg: 'rgba(96,165,250,0.15)' },
+            { min: 90, label: '渐入佳境', icon: '📚', color: '#34d399', bg: 'rgba(52,211,153,0.15)' },
+            { min: 180, label: '沉浸阅读', icon: '🔥', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
+            { min: 300, label: '深度学习', icon: '⚡', color: '#f97316', bg: 'rgba(249,115,22,0.15)' },
+            { min: 450, label: 'LD达人', icon: '🏆', color: '#a855f7', bg: 'rgba(168,85,247,0.15)' },
+            { min: 600, label: '超级水怪', icon: '👑', color: '#ec4899', bg: 'rgba(236,72,153,0.15)' }
         ],
-        NAME_REPLACEMENTS: [
+        // 名称替换映射
+        NAME_MAP: new Map([
             ['已读帖子（所有时间）', '已读帖子'],
             ['浏览的话题（所有时间）', '浏览话题'],
             ['获赞：点赞用户数量', '点赞用户'],
@@ -126,66 +129,91 @@
             ['回复数量', '回复'],
             ['被举报的帖子（过去 6 个月）', '被举报帖子'],
             ['发起举报的用户（过去 6 个月）', '发起举报']
-        ],
-        WEEK_DAY_LABELS: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
-        MONTH_NAMES: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+        ]),
+        // 存储键
+        STORAGE_KEYS: {
+            position: 'position', collapsed: 'collapsed', theme: 'theme',
+            trendTab: 'trend_tab', history: 'history', milestones: 'milestones',
+            lastNotify: 'last_notify', lastVisit: 'last_visit', todayData: 'today_data',
+            userAvatar: 'user_avatar', readingTime: 'reading_time', currentUser: 'current_user',
+            lastCloudSync: 'last_cloud_sync', lastDownloadSync: 'last_download_sync',
+            lastUploadHash: 'last_upload_hash', leaderboardToken: 'leaderboard_token',
+            leaderboardUser: 'leaderboard_user', leaderboardJoined: 'leaderboard_joined',
+            leaderboardTab: 'leaderboard_tab'
+        },
+        // 用户特定的存储键
+        USER_KEYS: new Set(['history', 'milestones', 'lastVisit', 'todayData', 'userAvatar', 'readingTime']),
+        // 周和月名称
+        WEEKDAYS: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
+        MONTHS: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+        // API地址
+        LEADERBOARD_API: 'https://ldstatus-pro-api.jackcai711.workers.dev'
     };
 
-    // 预编译正则表达式
-    const REVERSE_PATTERN = /被举报|发起举报|禁言|封禁/;
+    // 预编译正则
+    const PATTERNS = {
+        REVERSE: /被举报|发起举报|禁言|封禁/,
+        USERNAME: /\/u\/([^/]+)/,
+        TRUST_LEVEL: /(.*) - 信任级别 (\d+)/,
+        VERSION: /@version\s+([\d.]+)/,
+        AVATAR_SIZE: /\/\d+\//,
+        NUMBER: /(\d+)/
+    };
 
     // ==================== 工具函数 ====================
     const Utils = {
-        // 缓存简化名称的映射
         _nameCache: new Map(),
 
+        // 版本比较
         compareVersion(v1, v2) {
-            const p1 = v1.split('.').map(Number);
-            const p2 = v2.split('.').map(Number);
+            const [p1, p2] = [v1, v2].map(v => v.split('.').map(Number));
             const len = Math.max(p1.length, p2.length);
             for (let i = 0; i < len; i++) {
-                const a = p1[i] || 0, b = p2[i] || 0;
-                if (a !== b) return a > b ? 1 : -1;
+                const diff = (p1[i] || 0) - (p2[i] || 0);
+                if (diff !== 0) return diff > 0 ? 1 : -1;
             }
             return 0;
         },
 
+        // 简化名称
         simplifyName(name) {
-            if (this._nameCache.has(name)) {
-                return this._nameCache.get(name);
-            }
-            let result = name;
-            for (const [from, to] of CONFIG.NAME_REPLACEMENTS) {
-                if (result.includes(from.split('（')[0])) {
-                    result = result.replace(from, to);
-                    break;
+            if (this._nameCache.has(name)) return this._nameCache.get(name);
+            let result = CONFIG.NAME_MAP.get(name);
+            if (!result) {
+                for (const [from, to] of CONFIG.NAME_MAP) {
+                    if (name.includes(from.split('（')[0])) {
+                        result = name.replace(from, to);
+                        break;
+                    }
                 }
             }
+            result = result || name;
             this._nameCache.set(name, result);
             return result;
         },
 
+        // 格式化日期
         formatDate(ts, format = 'short') {
             const d = new Date(ts);
-            const month = d.getMonth() + 1;
-            const day = d.getDate();
-            if (format === 'short') return `${month}/${day}`;
+            const [m, day] = [d.getMonth() + 1, d.getDate()];
+            if (format === 'short') return `${m}/${day}`;
             if (format === 'time') return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-            return `${month}月${day}日`;
+            return `${m}月${day}日`;
         },
 
-        getTodayKey() {
-            return new Date().toDateString();
-        },
+        // 获取今日键
+        getTodayKey: () => new Date().toDateString(),
 
+        // 格式化阅读时间
         formatReadingTime(minutes) {
             if (minutes < 1) return '< 1分钟';
             if (minutes < 60) return `${Math.round(minutes)}分钟`;
-            const hours = Math.floor(minutes / 60);
-            const mins = Math.round(minutes % 60);
-            return mins > 0 ? `${hours}小时${mins}分` : `${hours}小时`;
+            const h = Math.floor(minutes / 60);
+            const m = Math.round(minutes % 60);
+            return m > 0 ? `${h}小时${m}分` : `${h}小时`;
         },
 
+        // 获取阅读等级
         getReadingLevel(minutes) {
             const levels = CONFIG.READING_LEVELS;
             for (let i = levels.length - 1; i >= 0; i--) {
@@ -194,6 +222,7 @@
             return levels[0];
         },
 
+        // 获取热力图等级
         getHeatmapLevel(minutes) {
             if (minutes < 1) return 0;
             if (minutes <= 30) return 1;
@@ -202,98 +231,79 @@
             return 4;
         },
 
+        // 重排需求项（将举报相关项移到禁言前）
         reorderRequirements(reqs) {
-            const reportItems = [];
-            const otherItems = [];
-
-            for (const r of reqs) {
-                if (r.name.includes('被举报') || r.name.includes('发起举报')) {
-                    reportItems.push(r);
-                } else {
-                    otherItems.push(r);
-                }
-            }
-
-            const banIndex = otherItems.findIndex(r => r.name.includes('禁言'));
-            if (banIndex >= 0) {
-                otherItems.splice(banIndex, 0, ...reportItems);
-            } else {
-                otherItems.push(...reportItems);
-            }
-
-            return otherItems;
+            const reports = [], others = [];
+            reqs.forEach(r => {
+                (r.name.includes('被举报') || r.name.includes('发起举报') ? reports : others).push(r);
+            });
+            const banIdx = others.findIndex(r => r.name.includes('禁言'));
+            if (banIdx >= 0) others.splice(banIdx, 0, ...reports);
+            else others.push(...reports);
+            return others;
         },
 
-        debounce(func, wait) {
-            let timeout;
+        // 防抖
+        debounce(fn, wait) {
+            let timer;
             return function(...args) {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(this, args), wait);
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), wait);
             };
         },
 
-        throttle(func, limit) {
-            let inThrottle;
+        // 节流
+        throttle(fn, limit) {
+            let throttled = false;
             return function(...args) {
-                if (!inThrottle) {
-                    func.apply(this, args);
-                    inThrottle = true;
-                    setTimeout(() => inThrottle = false, limit);
+                if (!throttled) {
+                    fn.apply(this, args);
+                    throttled = true;
+                    setTimeout(() => throttled = false, limit);
                 }
             };
         },
 
-        // 创建DOM片段
-        createFragment(html) {
-            const template = document.createElement('template');
-            template.innerHTML = html;
-            return template.content;
-        },
-
-        // 安全设置innerHTML
-        setHTML(element, html) {
-            element.innerHTML = html;
+        // 生成简单哈希
+        simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash |= 0;
+            }
+            return hash.toString(36);
         }
     };
 
-    // ==================== 屏幕尺寸检测 ====================
-    const ScreenUtils = {
+    // ==================== 屏幕工具 ====================
+    const Screen = {
         _cache: null,
         _cacheTime: 0,
-        _cacheDuration: 100,
 
         getSize() {
             const now = Date.now();
-            if (this._cache && (now - this._cacheTime) < this._cacheDuration) {
+            if (this._cache && (now - this._cacheTime) < CONFIG.CACHE.SCREEN_TTL) {
                 return this._cache;
             }
-
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-            let size;
-            if (width < 1400 || height < 800) size = 'small';
-            else if (width < 1920) size = 'medium';
-            else size = 'large';
-
-            this._cache = size;
+            const { innerWidth: w, innerHeight: h } = window;
+            this._cache = (w < 1400 || h < 800) ? 'small' : w < 1920 ? 'medium' : 'large';
             this._cacheTime = now;
-            return size;
+            return this._cache;
         },
 
-        getPanelConfig() {
-            const size = this.getSize();
+        getConfig() {
             const configs = {
-                small: { width: 280, maxHeight: Math.min(window.innerHeight - 100, 450), fontSize: 11, padding: 10, avatarSize: 38, ringSize: 70 },
-                medium: { width: 300, maxHeight: Math.min(window.innerHeight - 100, 520), fontSize: 12, padding: 12, avatarSize: 42, ringSize: 76 },
+                small: { width: 280, maxHeight: Math.min(innerHeight - 100, 450), fontSize: 11, padding: 10, avatarSize: 38, ringSize: 70 },
+                medium: { width: 300, maxHeight: Math.min(innerHeight - 100, 520), fontSize: 12, padding: 12, avatarSize: 42, ringSize: 76 },
                 large: { width: 320, maxHeight: 580, fontSize: 12, padding: 14, avatarSize: 46, ringSize: 80 }
             };
-            return configs[size] || configs.large;
+            return configs[this.getSize()];
         }
     };
 
     // ==================== LRU 缓存 ====================
     class LRUCache {
-        constructor(maxSize = 50) {
+        constructor(maxSize = CONFIG.CACHE.LRU_SIZE) {
             this.maxSize = maxSize;
             this.cache = new Map();
         }
@@ -307,159 +317,143 @@
         }
 
         set(key, value) {
-            if (this.cache.has(key)) {
-                this.cache.delete(key);
-            } else if (this.cache.size >= this.maxSize) {
-                const firstKey = this.cache.keys().next().value;
-                this.cache.delete(firstKey);
+            this.cache.has(key) && this.cache.delete(key);
+            if (this.cache.size >= this.maxSize) {
+                this.cache.delete(this.cache.keys().next().value);
             }
             this.cache.set(key, value);
         }
 
-        has(key) {
-            return this.cache.has(key);
-        }
-
-        clear() {
-            this.cache.clear();
-        }
+        has(key) { return this.cache.has(key); }
+        clear() { this.cache.clear(); }
     }
 
     // ==================== 存储管理器 ====================
-    class StorageManager {
+    class Storage {
         constructor() {
-            this.pendingWrites = new Map();
-            this.writeTimer = null;
-            this._currentUser = null;
+            this._pending = new Map();
+            this._timer = null;
+            this._user = null;
             this._keyCache = new Map();
             this._valueCache = new Map();
             this._valueCacheTime = new Map();
-            this._cacheTTL = 5000;
         }
 
-        getCurrentUser() {
-            if (this._currentUser) return this._currentUser;
-
-            const userLink = document.querySelector('.current-user a[href^="/u/"]');
-            if (userLink) {
-                const match = userLink.getAttribute('href').match(/\/u\/([^/]+)/);
+        // 获取当前用户
+        getUser() {
+            if (this._user) return this._user;
+            const link = document.querySelector('.current-user a[href^="/u/"]');
+            if (link) {
+                const match = link.getAttribute('href').match(PATTERNS.USERNAME);
                 if (match) {
-                    this._currentUser = match[1];
-                    this._setRaw(`${CONFIG.SITE_PREFIX}_${CONFIG.STORAGE_KEYS.currentUser}`, this._currentUser);
-                    return this._currentUser;
+                    this._user = match[1];
+                    GM_setValue(this._globalKey('currentUser'), this._user);
+                    return this._user;
                 }
             }
-
-            this._currentUser = this._getRaw(`${CONFIG.SITE_PREFIX}_${CONFIG.STORAGE_KEYS.currentUser}`, null);
-            return this._currentUser;
+            return this._user = GM_getValue(this._globalKey('currentUser'), null);
         }
 
-        setCurrentUser(username) {
-            this._currentUser = username;
-            this._setRaw(`${CONFIG.SITE_PREFIX}_${CONFIG.STORAGE_KEYS.currentUser}`, username);
-        }
-
-        _getRaw(key, defaultValue) {
-            return GM_getValue(key, defaultValue);
-        }
-
-        _setRaw(key, value) {
-            GM_setValue(key, value);
-        }
-
-        getUserKey(key) {
-            const cacheKey = `${key}_${this._currentUser || ''}`;
-            if (this._keyCache.has(cacheKey)) {
-                return this._keyCache.get(cacheKey);
+        setUser(username) {
+            if (this._user !== username) {
+                this._user = username;
+                this._keyCache.clear();  // 用户变化时清除 key 缓存
+                GM_setValue(this._globalKey('currentUser'), username);
             }
+        }
 
-            const user = this.getCurrentUser();
-            const baseKey = CONFIG.STORAGE_KEYS[key];
-            const sitePrefix = `${CONFIG.SITE_PREFIX}_`;
-            let result;
+        // 生成全局键
+        _globalKey(key) {
+            return `ldsp_${CURRENT_SITE.prefix}_${CONFIG.STORAGE_KEYS[key] || key}`;
+        }
 
-            if (user && CONFIG.USER_SPECIFIC_KEYS.has(key)) {
-                result = `${sitePrefix}${baseKey}_${user}`;
-            } else {
-                result = `${sitePrefix}${baseKey}`;
-            }
-
+        // 生成用户键
+        _userKey(key) {
+            const cacheKey = `${key}_${this._user || ''}`;
+            if (this._keyCache.has(cacheKey)) return this._keyCache.get(cacheKey);
+            
+            const base = CONFIG.STORAGE_KEYS[key] || key;
+            const user = this.getUser();
+            const result = user && CONFIG.USER_KEYS.has(key) 
+                ? `ldsp_${CURRENT_SITE.prefix}_${base}_${user}`
+                : `ldsp_${CURRENT_SITE.prefix}_${base}`;
+            
             this._keyCache.set(cacheKey, result);
             return result;
         }
 
+        // 获取用户数据
         get(key, defaultValue = null) {
-            const storageKey = this.getUserKey(key);
+            const storageKey = this._userKey(key);
             const now = Date.now();
-
+            
             if (this._valueCache.has(storageKey)) {
                 const cacheTime = this._valueCacheTime.get(storageKey);
-                if ((now - cacheTime) < this._cacheTTL) {
+                if ((now - cacheTime) < CONFIG.CACHE.VALUE_TTL) {
                     return this._valueCache.get(storageKey);
                 }
             }
-
-            const value = this._getRaw(storageKey, defaultValue);
+            
+            const value = GM_getValue(storageKey, defaultValue);
             this._valueCache.set(storageKey, value);
             this._valueCacheTime.set(storageKey, now);
             return value;
         }
 
+        // 设置用户数据（带防抖）
         set(key, value) {
-            const storageKey = this.getUserKey(key);
+            const storageKey = this._userKey(key);
             this._valueCache.set(storageKey, value);
             this._valueCacheTime.set(storageKey, Date.now());
-            this.pendingWrites.set(storageKey, value);
-            this.scheduleWrite();
+            this._pending.set(storageKey, value);
+            this._scheduleWrite();
         }
 
-        setImmediate(key, value) {
-            const storageKey = this.getUserKey(key);
+        // 立即设置用户数据
+        setNow(key, value) {
+            const storageKey = this._userKey(key);
             this._valueCache.set(storageKey, value);
             this._valueCacheTime.set(storageKey, Date.now());
-            this._setRaw(storageKey, value);
+            GM_setValue(storageKey, value);
         }
 
+        // 获取全局数据
         getGlobal(key, defaultValue = null) {
-            const storageKey = `${CONFIG.SITE_PREFIX}_${CONFIG.STORAGE_KEYS[key]}`;
-            return this._getRaw(storageKey, defaultValue);
+            return GM_getValue(this._globalKey(key), defaultValue);
         }
 
+        // 设置全局数据（带防抖）
         setGlobal(key, value) {
-            const storageKey = `${CONFIG.SITE_PREFIX}_${CONFIG.STORAGE_KEYS[key]}`;
-            this.pendingWrites.set(storageKey, value);
-            this.scheduleWrite();
+            this._pending.set(this._globalKey(key), value);
+            this._scheduleWrite();
         }
 
-        setGlobalImmediate(key, value) {
-            const storageKey = `${CONFIG.SITE_PREFIX}_${CONFIG.STORAGE_KEYS[key]}`;
-            this._setRaw(storageKey, value);
+        // 立即设置全局数据
+        setGlobalNow(key, value) {
+            GM_setValue(this._globalKey(key), value);
         }
 
-        scheduleWrite() {
-            if (this.writeTimer) return;
-            this.writeTimer = setTimeout(() => {
+        // 调度写入
+        _scheduleWrite() {
+            if (this._timer) return;
+            this._timer = setTimeout(() => {
                 this.flush();
-                this.writeTimer = null;
-            }, CONFIG.STORAGE_DEBOUNCE);
+                this._timer = null;
+            }, CONFIG.INTERVALS.STORAGE_DEBOUNCE);
         }
 
+        // 刷新所有待写入数据
         flush() {
-            if (this.pendingWrites.size === 0) return;
-
-            this.pendingWrites.forEach((value, key) => {
-                try {
-                    this._setRaw(key, value);
-                } catch (e) {
-                    console.error('[StorageManager] Write error:', key, e);
-                }
+            this._pending.forEach((value, key) => {
+                try { GM_setValue(key, value); } catch (e) { console.error('[Storage]', key, e); }
             });
-            this.pendingWrites.clear();
+            this._pending.clear();
         }
 
+        // 清除缓存
         invalidateCache(key) {
             if (key) {
-                const storageKey = this.getUserKey(key);
+                const storageKey = this._userKey(key);
                 this._valueCache.delete(storageKey);
                 this._valueCacheTime.delete(storageKey);
             } else {
@@ -468,96 +462,86 @@
             }
         }
 
-        migrateOldData(username) {
-            const migrationFlag = `ldsp_migrated_v3_${username}`;
-            if (this._getRaw(migrationFlag, false)) return;
+        // 迁移旧数据
+        migrate(username) {
+            const flag = `ldsp_migrated_v3_${username}`;
+            if (GM_getValue(flag, false)) return;
 
-            CONFIG.USER_SPECIFIC_KEYS.forEach(key => {
+            CONFIG.USER_KEYS.forEach(key => {
                 const oldKey = CONFIG.STORAGE_KEYS[key];
-                const newKey = `${CONFIG.SITE_PREFIX}_${oldKey}_${username}`;
-                const oldData = this._getRaw(oldKey, null);
-                if (oldData !== null && this._getRaw(newKey, null) === null) {
-                    this._setRaw(newKey, oldData);
+                const newKey = `ldsp_${CURRENT_SITE.prefix}_${oldKey}_${username}`;
+                const oldData = GM_getValue(oldKey, null);
+                if (oldData !== null && GM_getValue(newKey, null) === null) {
+                    GM_setValue(newKey, oldData);
                 }
             });
 
-            this.migrateReadingTimeData(username);
-            this._setRaw(migrationFlag, true);
+            this._migrateReadingTime(username);
+            GM_setValue(flag, true);
         }
 
-        migrateReadingTimeData(username) {
-            const readingKey = `${CONFIG.SITE_PREFIX}_${CONFIG.STORAGE_KEYS.readingTime}_${username}`;
-            const oldData = this._getRaw(readingKey, null);
+        // 迁移阅读时间数据
+        _migrateReadingTime(username) {
+            const key = `ldsp_${CURRENT_SITE.prefix}_reading_time_${username}`;
+            const data = GM_getValue(key, null);
+            if (!data || typeof data !== 'object') return;
 
-            if (!oldData || typeof oldData !== 'object') return;
-
-            if (oldData.date && oldData.minutes !== undefined && !oldData.dailyData) {
-                const newData = {
+            if (data.date && data.minutes !== undefined && !data.dailyData) {
+                GM_setValue(key, {
                     version: 3,
-                    dailyData: {
-                        [oldData.date]: {
-                            totalMinutes: oldData.minutes || 0,
-                            lastActive: oldData.lastActive || Date.now(),
-                            sessions: []
-                        }
-                    },
+                    dailyData: { [data.date]: { totalMinutes: data.minutes || 0, lastActive: data.lastActive || Date.now(), sessions: [] } },
                     monthlyCache: {},
                     yearlyCache: {}
-                };
-                this._setRaw(readingKey, newData);
-            } else if (oldData.version === 2) {
-                oldData.version = 3;
-                oldData.monthlyCache = oldData.monthlyCache || {};
-                oldData.yearlyCache = oldData.yearlyCache || {};
-
-                if (oldData.dailyData) {
-                    Object.keys(oldData.dailyData).forEach(dateKey => {
+                });
+            } else if (data.version === 2) {
+                data.version = 3;
+                data.monthlyCache = data.monthlyCache || {};
+                data.yearlyCache = data.yearlyCache || {};
+                if (data.dailyData) {
+                    Object.entries(data.dailyData).forEach(([dateKey, dayData]) => {
                         try {
-                            const date = new Date(dateKey);
-                            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                            const yearKey = `${date.getFullYear()}`;
-                            const minutes = oldData.dailyData[dateKey].totalMinutes || 0;
-
-                            oldData.monthlyCache[monthKey] = (oldData.monthlyCache[monthKey] || 0) + minutes;
-                            oldData.yearlyCache[yearKey] = (oldData.yearlyCache[yearKey] || 0) + minutes;
+                            const d = new Date(dateKey);
+                            const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                            const yearKey = `${d.getFullYear()}`;
+                            const minutes = dayData.totalMinutes || 0;
+                            data.monthlyCache[monthKey] = (data.monthlyCache[monthKey] || 0) + minutes;
+                            data.yearlyCache[yearKey] = (data.yearlyCache[yearKey] || 0) + minutes;
                         } catch (e) {}
                     });
                 }
-                this._setRaw(readingKey, oldData);
+                GM_setValue(key, data);
             }
         }
     }
 
     // ==================== 网络管理器 ====================
-    class NetworkManager {
+    class Network {
         constructor() {
-            this._pendingRequests = new Map();
+            this._pending = new Map();
         }
 
         async fetch(url, options = {}) {
-            const { maxRetries = CONFIG.NETWORK_RETRY_COUNT, timeout = 15000 } = options;
-
-            if (this._pendingRequests.has(url)) {
-                return this._pendingRequests.get(url);
-            }
-
-            const promise = this._fetchWithRetry(url, maxRetries, timeout);
-            this._pendingRequests.set(url, promise);
-
+            if (this._pending.has(url)) return this._pending.get(url);
+            
+            const promise = this._fetchWithRetry(url, options);
+            this._pending.set(url, promise);
+            
             try {
                 return await promise;
             } finally {
-                this._pendingRequests.delete(url);
+                this._pending.delete(url);
             }
         }
 
-        async _fetchWithRetry(url, maxRetries, timeout) {
-            for (let attempt = 0; attempt < maxRetries; attempt++) {
+        async _fetchWithRetry(url, options) {
+            const { maxRetries = CONFIG.NETWORK.RETRY_COUNT, timeout = CONFIG.NETWORK.TIMEOUT } = options;
+            
+            for (let i = 0; i < maxRetries; i++) {
                 try {
                     return await this._doFetch(url, timeout);
-                } catch (error) {
-                    if (attempt === maxRetries - 1) throw error;
-                    await this._sleep(CONFIG.NETWORK_RETRY_DELAY * Math.pow(2, attempt));
+                } catch (e) {
+                    if (i === maxRetries - 1) throw e;
+                    await new Promise(r => setTimeout(r, CONFIG.NETWORK.RETRY_DELAY * Math.pow(2, i)));
                 }
             }
         }
@@ -568,21 +552,41 @@
                     method: 'GET',
                     url,
                     timeout,
-                    onload: res => {
-                        if (res.status >= 200 && res.status < 300) {
-                            resolve(res.responseText);
-                        } else {
-                            reject(new Error(`HTTP ${res.status}: ${res.statusText}`));
-                        }
-                    },
+                    onload: res => res.status >= 200 && res.status < 300 
+                        ? resolve(res.responseText) 
+                        : reject(new Error(`HTTP ${res.status}`)),
                     onerror: () => reject(new Error('Network error')),
-                    ontimeout: () => reject(new Error('Request timeout'))
+                    ontimeout: () => reject(new Error('Timeout'))
                 });
             });
         }
 
-        _sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
+        // API 请求（带认证）
+        async api(endpoint, options = {}) {
+            return new Promise((resolve, reject) => {
+                GM_xmlhttpRequest({
+                    method: options.method || 'GET',
+                    url: `${CONFIG.LEADERBOARD_API}${endpoint}`,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(options.token ? { 'Authorization': `Bearer ${options.token}` } : {})
+                    },
+                    data: options.body ? JSON.stringify(options.body) : undefined,
+                    timeout: CONFIG.NETWORK.TIMEOUT,
+                    onload: res => {
+                        try {
+                            const data = JSON.parse(res.responseText);
+                            res.status >= 200 && res.status < 300 
+                                ? resolve(data) 
+                                : reject(new Error(data.error || `HTTP ${res.status}`));
+                        } catch (e) {
+                            reject(new Error('Parse error'));
+                        }
+                    },
+                    onerror: () => reject(new Error('Network error')),
+                    ontimeout: () => reject(new Error('Timeout'))
+                });
+            });
         }
     }
 
@@ -590,24 +594,22 @@
     class HistoryManager {
         constructor(storage) {
             this.storage = storage;
-            this.cache = new LRUCache(50);
-            this._historyCache = null;
-            this._historyCacheTime = 0;
+            this.cache = new LRUCache();
+            this._history = null;
+            this._historyTime = 0;
         }
 
         getHistory() {
             const now = Date.now();
-            if (this._historyCache && (now - this._historyCacheTime) < 1000) {
-                return this._historyCache;
+            if (this._history && (now - this._historyTime) < CONFIG.CACHE.HISTORY_TTL) {
+                return this._history;
             }
-
+            
             const history = this.storage.get('history', []);
-            const cutoff = now - CONFIG.MAX_HISTORY_DAYS * 86400000;
-            const filtered = history.filter(h => h.ts > cutoff);
-
-            this._historyCache = filtered;
-            this._historyCacheTime = now;
-            return filtered;
+            const cutoff = now - CONFIG.CACHE.MAX_HISTORY_DAYS * 86400000;
+            this._history = history.filter(h => h.ts > cutoff);
+            this._historyTime = now;
+            return this._history;
         }
 
         addHistory(data, readingTime = 0) {
@@ -617,459 +619,372 @@
             const record = { ts: now, data, readingTime };
 
             const idx = history.findIndex(h => new Date(h.ts).toDateString() === today);
-            if (idx >= 0) {
-                history[idx] = record;
-            } else {
-                history.push(record);
-            }
+            idx >= 0 ? history[idx] = record : history.push(record);
 
             this.storage.set('history', history);
-            this._historyCache = history;
-            this._historyCacheTime = now;
+            this._history = history;
+            this._historyTime = now;
             this.cache.clear();
             return history;
         }
 
-        aggregateDailyIncrements(history, reqs, maxDays) {
+        // 聚合每日增量
+        aggregateDaily(history, reqs, maxDays) {
             const cacheKey = `daily_${maxDays}_${history.length}`;
             if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
 
-            const historyByDay = new Map();
+            const byDay = new Map();
             history.forEach(h => {
                 const day = new Date(h.ts).toDateString();
-                if (!historyByDay.has(day)) historyByDay.set(day, []);
-                historyByDay.get(day).push(h);
+                byDay.has(day) ? byDay.get(day).push(h) : byDay.set(day, [h]);
             });
 
-            const sortedDays = Array.from(historyByDay.keys()).sort((a, b) =>
-                new Date(a).getTime() - new Date(b).getTime()
-            );
-
-            const dayMap = new Map();
+            const sortedDays = [...byDay.keys()].sort((a, b) => new Date(a) - new Date(b));
+            const result = new Map();
             let prevData = null;
 
             sortedDays.forEach(day => {
-                const dayRecords = historyByDay.get(day);
-                const latestRecord = dayRecords[dayRecords.length - 1];
+                const latest = byDay.get(day).at(-1);
                 const dayData = {};
-
-                reqs.forEach(req => {
-                    const currentVal = latestRecord.data[req.name] || 0;
-                    const prevVal = prevData ? (prevData[req.name] || 0) : 0;
-                    dayData[req.name] = currentVal - prevVal;
+                reqs.forEach(r => {
+                    dayData[r.name] = (latest.data[r.name] || 0) - (prevData?.[r.name] || 0);
                 });
-
-                dayMap.set(day, dayData);
-                prevData = { ...latestRecord.data };
+                result.set(day, dayData);
+                prevData = { ...latest.data };
             });
 
-            this.cache.set(cacheKey, dayMap);
-            return dayMap;
+            this.cache.set(cacheKey, result);
+            return result;
         }
 
-        aggregateWeeklyIncrements(history, reqs) {
+        // 聚合每周增量
+        aggregateWeekly(history, reqs) {
             const cacheKey = `weekly_${history.length}`;
             if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
 
             const now = new Date();
-            const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth();
-            const weeks = this._getWeeksInMonth(currentYear, currentMonth);
-            const weekMap = new Map();
-            const historyByWeek = new Map();
-
-            weeks.forEach((week, idx) => historyByWeek.set(idx, []));
+            const [year, month] = [now.getFullYear(), now.getMonth()];
+            const weeks = this._getWeeksInMonth(year, month);
+            const result = new Map();
+            const byWeek = new Map(weeks.map((_, i) => [i, []]));
 
             history.forEach(h => {
-                const date = new Date(h.ts);
-                if (date.getFullYear() === currentYear && date.getMonth() === currentMonth) {
-                    weeks.forEach((week, idx) => {
-                        if (date >= week.start && date <= week.end) {
-                            historyByWeek.get(idx).push(h);
-                        }
+                const d = new Date(h.ts);
+                if (d.getFullYear() === year && d.getMonth() === month) {
+                    weeks.forEach((week, i) => {
+                        if (d >= week.start && d <= week.end) byWeek.get(i).push(h);
                     });
                 }
             });
 
             let prevData = null;
-            const lastMonthRecords = history.filter(h => {
-                const date = new Date(h.ts);
-                return date < new Date(currentYear, currentMonth, 1);
-            });
+            const lastMonth = history.filter(h => new Date(h.ts) < new Date(year, month, 1));
+            if (lastMonth.length) prevData = { ...lastMonth.at(-1).data };
 
-            if (lastMonthRecords.length > 0) {
-                prevData = { ...lastMonthRecords[lastMonthRecords.length - 1].data };
-            }
-
-            weeks.forEach((week, idx) => {
-                const weekRecords = historyByWeek.get(idx);
+            weeks.forEach((week, i) => {
+                const records = byWeek.get(i);
                 const weekData = {};
-
-                if (weekRecords.length > 0) {
-                    const latestRecord = weekRecords[weekRecords.length - 1];
-                    reqs.forEach(req => {
-                        const currentVal = latestRecord.data[req.name] || 0;
-                        const prevVal = prevData ? (prevData[req.name] || 0) : 0;
-                        weekData[req.name] = currentVal - prevVal;
+                if (records.length) {
+                    const latest = records.at(-1);
+                    reqs.forEach(r => {
+                        weekData[r.name] = (latest.data[r.name] || 0) - (prevData?.[r.name] || 0);
                     });
-                    prevData = { ...latestRecord.data };
+                    prevData = { ...latest.data };
                 } else {
-                    reqs.forEach(req => weekData[req.name] = 0);
+                    reqs.forEach(r => weekData[r.name] = 0);
                 }
-
-                weekMap.set(idx, {
-                    weekNum: idx + 1,
-                    start: week.start,
-                    end: week.end,
-                    label: `第${idx + 1}周`,
-                    data: weekData
-                });
+                result.set(i, { weekNum: i + 1, start: week.start, end: week.end, label: `第${i + 1}周`, data: weekData });
             });
 
-            this.cache.set(cacheKey, weekMap);
-            return weekMap;
+            this.cache.set(cacheKey, result);
+            return result;
+        }
+
+        // 聚合每月增量
+        aggregateMonthly(history, reqs) {
+            const cacheKey = `monthly_${history.length}`;
+            if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
+
+            const byMonth = new Map();
+            history.forEach(h => {
+                const d = new Date(h.ts);
+                const key = new Date(d.getFullYear(), d.getMonth(), 1).toDateString();
+                byMonth.has(key) ? byMonth.get(key).push(h) : byMonth.set(key, [h]);
+            });
+
+            const sortedMonths = [...byMonth.keys()].sort((a, b) => new Date(a) - new Date(b));
+            const result = new Map();
+            let prevData = null;
+
+            sortedMonths.forEach(month => {
+                const latest = byMonth.get(month).at(-1);
+                const monthData = {};
+                reqs.forEach(r => {
+                    monthData[r.name] = (latest.data[r.name] || 0) - (prevData?.[r.name] || 0);
+                });
+                result.set(month, monthData);
+                prevData = { ...latest.data };
+            });
+
+            this.cache.set(cacheKey, result);
+            return result;
         }
 
         _getWeeksInMonth(year, month) {
             const weeks = [];
-            const firstDay = new Date(year, month, 1);
             const lastDay = new Date(year, month + 1, 0);
-            let weekStart = new Date(firstDay);
-            let weekNum = 1;
-
-            while (weekStart <= lastDay) {
-                let weekEnd = new Date(weekStart);
-                weekEnd.setDate(weekEnd.getDate() + 6);
-                if (weekEnd > lastDay) weekEnd = new Date(lastDay);
-
-                weeks.push({ start: new Date(weekStart), end: weekEnd, weekNum: weekNum++ });
-                weekStart = new Date(weekEnd);
-                weekStart.setDate(weekStart.getDate() + 1);
+            let start = new Date(year, month, 1);
+            
+            while (start <= lastDay) {
+                let end = new Date(start);
+                end.setDate(end.getDate() + 6);
+                if (end > lastDay) end = new Date(lastDay);
+                weeks.push({ start: new Date(start), end });
+                start = new Date(end);
+                start.setDate(start.getDate() + 1);
             }
-
             return weeks;
-        }
-
-        aggregateMonthlyIncrements(history, reqs) {
-            const cacheKey = `monthly_${history.length}`;
-            if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
-
-            const historyByMonth = new Map();
-            history.forEach(h => {
-                const date = new Date(h.ts);
-                const monthKey = new Date(date.getFullYear(), date.getMonth(), 1).toDateString();
-                if (!historyByMonth.has(monthKey)) historyByMonth.set(monthKey, []);
-                historyByMonth.get(monthKey).push(h);
-            });
-
-            const sortedMonths = Array.from(historyByMonth.keys()).sort((a, b) =>
-                new Date(a).getTime() - new Date(b).getTime()
-            );
-
-            const monthMap = new Map();
-            let prevData = null;
-
-            sortedMonths.forEach(month => {
-                const monthRecords = historyByMonth.get(month);
-                const latestRecord = monthRecords[monthRecords.length - 1];
-                const monthData = {};
-
-                reqs.forEach(req => {
-                    const currentVal = latestRecord.data[req.name] || 0;
-                    const prevVal = prevData ? (prevData[req.name] || 0) : 0;
-                    monthData[req.name] = currentVal - prevVal;
-                });
-
-                monthMap.set(month, monthData);
-                prevData = { ...latestRecord.data };
-            });
-
-            this.cache.set(cacheKey, monthMap);
-            return monthMap;
         }
     }
 
     // ==================== 阅读时间追踪器 ====================
-    class ReadingTimeTracker {
+    class ReadingTracker {
         constructor(storage) {
             this.storage = storage;
             this.isActive = true;
-            this.lastActivityTime = Date.now();
-            this.sessionStartTime = Date.now();
-            this.lastSaveTime = Date.now();
-            this.trackingInterval = null;
-            this.saveInterval = null;
-            this.initialized = false;
-            this.boundHandler = null;
-            this.yearDataCache = null;
-            this.yearDataCacheTime = 0;
+            this.lastActivity = Date.now();
+            this.lastSave = Date.now();
+            this._intervals = [];
+            this._initialized = false;
+            this._yearCache = null;
+            this._yearCacheTime = 0;
         }
 
         init(username) {
-            if (this.initialized) return;
-            this.storage.migrateOldData(username);
-            this._bindActivityListeners();
+            if (this._initialized) return;
+            this.storage.migrate(username);
+            this._bindEvents();
             this._startTracking();
-            this._handleVisibilityChange();
-            this.initialized = true;
+            this._initialized = true;
         }
 
-        _bindActivityListeners() {
-            this.boundHandler = Utils.throttle(() => this._recordActivity(), 1000);
-            const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
-            events.forEach(event => {
-                document.addEventListener(event, this.boundHandler, { passive: true });
+        _bindEvents() {
+            const handler = Utils.throttle(() => this._onActivity(), 1000);
+            ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'].forEach(e => {
+                document.addEventListener(e, handler, { passive: true });
             });
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    this.save();
+                    this.isActive = false;
+                } else {
+                    this.lastActivity = Date.now();
+                    this.isActive = true;
+                }
+            });
+
+            window.addEventListener('beforeunload', () => this.save());
         }
 
-        _recordActivity() {
+        _onActivity() {
             const now = Date.now();
-            if (!this.isActive) {
-                this.isActive = true;
-                this.sessionStartTime = now;
-            }
-            this.lastActivityTime = now;
+            if (!this.isActive) this.isActive = true;
+            this.lastActivity = now;
         }
 
         _startTracking() {
-            this.trackingInterval = setInterval(() => {
-                const now = Date.now();
-                const timeSinceLastActivity = now - this.lastActivityTime;
-                if (this.isActive && timeSinceLastActivity > CONFIG.READING_IDLE_THRESHOLD) {
-                    this.isActive = false;
-                } else if (!this.isActive && timeSinceLastActivity < CONFIG.READING_IDLE_THRESHOLD) {
-                    this.isActive = true;
-                    this.sessionStartTime = now;
-                }
-            }, CONFIG.READING_TRACK_INTERVAL);
-
-            this.saveInterval = setInterval(() => this.saveReadingTime(), CONFIG.READING_SAVE_INTERVAL);
+            this._intervals.push(
+                setInterval(() => {
+                    const idle = Date.now() - this.lastActivity;
+                    if (this.isActive && idle > CONFIG.INTERVALS.READING_IDLE) {
+                        this.isActive = false;
+                    } else if (!this.isActive && idle < CONFIG.INTERVALS.READING_IDLE) {
+                        this.isActive = true;
+                    }
+                }, CONFIG.INTERVALS.READING_TRACK),
+                setInterval(() => this.save(), CONFIG.INTERVALS.READING_SAVE)
+            );
         }
 
-        _handleVisibilityChange() {
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) {
-                    this.saveReadingTime();
-                    this.isActive = false;
-                } else {
-                    this.lastActivityTime = Date.now();
-                    this.isActive = true;
-                }
-            });
-
-            window.addEventListener('beforeunload', () => this.saveReadingTime());
-        }
-
-        saveReadingTime() {
-            const user = this.storage.getCurrentUser();
-            if (!user) return;
+        save() {
+            if (!this.storage.getUser()) return;
 
             const todayKey = Utils.getTodayKey();
             const now = Date.now();
             let stored = this.storage.get('readingTime', null);
 
-            if (!stored || typeof stored !== 'object' || !stored.dailyData) {
+            if (!stored?.dailyData) {
                 stored = { version: 3, dailyData: {}, monthlyCache: {}, yearlyCache: {} };
             }
 
-            let todayData = stored.dailyData[todayKey] || { totalMinutes: 0, lastActive: now, sessions: [], lastSaveTime: now };
-            const timeSinceLastSave = (now - this.lastSaveTime) / 1000;
-            let timeToAddSeconds = 0;
-
-            if (timeSinceLastSave > 0) {
-                const timeSinceLastActivity = now - this.lastActivityTime;
-                if (timeSinceLastActivity <= CONFIG.READING_IDLE_THRESHOLD) {
-                    timeToAddSeconds = timeSinceLastSave;
-                } else {
-                    timeToAddSeconds = Math.max(0, timeSinceLastSave - (timeSinceLastActivity - CONFIG.READING_IDLE_THRESHOLD) / 1000);
-                }
+            let today = stored.dailyData[todayKey] || { totalMinutes: 0, lastActive: now, sessions: [] };
+            const elapsed = (now - this.lastSave) / 1000;
+            const idle = now - this.lastActivity;
+            
+            let toAdd = 0;
+            if (elapsed > 0) {
+                toAdd = idle <= CONFIG.INTERVALS.READING_IDLE 
+                    ? elapsed 
+                    : Math.max(0, elapsed - (idle - CONFIG.INTERVALS.READING_IDLE) / 1000);
             }
 
-            const timeToAddMinutes = timeToAddSeconds / 60;
+            const minutes = toAdd / 60;
+            if (minutes > 0.1) {
+                today.totalMinutes += minutes;
+                today.lastActive = now;
+                today.sessions = (today.sessions || []).slice(-20); // 限制会话数量
+                today.sessions.push({ time: now, added: minutes });
 
-            if (timeToAddMinutes > 0.1) {
-                todayData.totalMinutes += timeToAddMinutes;
-                todayData.lastActive = now;
-                todayData.lastSaveTime = now;
-                todayData.sessions = todayData.sessions || [];
-                todayData.sessions.push({ saveTime: now, addedMinutes: timeToAddMinutes, totalMinutes: todayData.totalMinutes });
-
-                stored.dailyData[todayKey] = todayData;
-                this._updateReadingCache(stored, todayKey, timeToAddMinutes);
-                this._cleanOldData(stored);
+                stored.dailyData[todayKey] = today;
+                this._updateCache(stored, todayKey, minutes);
+                this._cleanOld(stored);
                 this.storage.set('readingTime', stored);
-                this.lastSaveTime = now;
-                this.yearDataCache = null;
+                this.lastSave = now;
+                this._yearCache = null;
             }
         }
 
-        _updateReadingCache(stored, dateKey, minutesAdded) {
-            stored.monthlyCache = stored.monthlyCache || {};
-            stored.yearlyCache = stored.yearlyCache || {};
-
+        _updateCache(stored, dateKey, minutes) {
             try {
-                const date = new Date(dateKey);
-                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                const yearKey = `${date.getFullYear()}`;
-
-                stored.monthlyCache[monthKey] = (stored.monthlyCache[monthKey] || 0) + minutesAdded;
-                stored.yearlyCache[yearKey] = (stored.yearlyCache[yearKey] || 0) + minutesAdded;
+                const d = new Date(dateKey);
+                const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                const yearKey = `${d.getFullYear()}`;
+                stored.monthlyCache[monthKey] = (stored.monthlyCache[monthKey] || 0) + minutes;
+                stored.yearlyCache[yearKey] = (stored.yearlyCache[yearKey] || 0) + minutes;
             } catch (e) {}
         }
 
-        _cleanOldData(stored) {
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - CONFIG.MAX_HISTORY_DAYS);
+        _cleanOld(stored) {
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - CONFIG.CACHE.MAX_HISTORY_DAYS);
 
-            Object.keys(stored.dailyData).forEach(dateKey => {
-                if (new Date(dateKey) < cutoffDate) delete stored.dailyData[dateKey];
+            Object.keys(stored.dailyData).forEach(key => {
+                if (new Date(key) < cutoff) delete stored.dailyData[key];
             });
 
-            if (stored.monthlyCache) {
-                Object.keys(stored.monthlyCache).forEach(monthKey => {
-                    try {
-                        const [year, month] = monthKey.split('-');
-                        if (new Date(parseInt(year), parseInt(month) - 1, 1) < cutoffDate) {
-                            delete stored.monthlyCache[monthKey];
-                        }
-                    } catch (e) {}
-                });
-            }
+            Object.keys(stored.monthlyCache || {}).forEach(key => {
+                const [y, m] = key.split('-');
+                if (new Date(+y, +m - 1, 1) < cutoff) delete stored.monthlyCache[key];
+            });
         }
 
-        getTodayReadingTime() {
-            const user = this.storage.getCurrentUser();
-            if (!user) return 0;
-
-            const todayKey = Utils.getTodayKey();
+        getTodayTime() {
+            if (!this.storage.getUser()) return 0;
+            
             const stored = this.storage.get('readingTime', null);
+            const saved = stored?.dailyData?.[Utils.getTodayKey()]?.totalMinutes || 0;
+            
             const now = Date.now();
-
-            let savedMinutes = stored?.dailyData?.[todayKey]?.totalMinutes || 0;
-            let unsavedMinutes = 0;
-
-            if (this.lastSaveTime) {
-                const timeSinceLastSave = (now - this.lastSaveTime) / 1000;
-                const timeSinceLastActivity = now - this.lastActivityTime;
-
-                if (timeSinceLastActivity <= CONFIG.READING_IDLE_THRESHOLD) {
-                    unsavedMinutes = timeSinceLastSave / 60;
-                } else {
-                    unsavedMinutes = Math.max(0, timeSinceLastSave - (timeSinceLastActivity - CONFIG.READING_IDLE_THRESHOLD) / 1000) / 60;
-                }
+            const elapsed = (now - this.lastSave) / 1000;
+            const idle = now - this.lastActivity;
+            
+            let unsaved = 0;
+            if (idle <= CONFIG.INTERVALS.READING_IDLE) {
+                unsaved = elapsed / 60;
+            } else {
+                unsaved = Math.max(0, elapsed - (idle - CONFIG.INTERVALS.READING_IDLE) / 1000) / 60;
             }
 
-            return savedMinutes + Math.max(0, unsavedMinutes);
+            return saved + Math.max(0, unsaved);
         }
 
-        getReadingTimeForDate(dateKey) {
-            const stored = this.storage.get('readingTime', null);
-            return stored?.dailyData?.[dateKey]?.totalMinutes || 0;
+        getTimeForDate(dateKey) {
+            return this.storage.get('readingTime', null)?.dailyData?.[dateKey]?.totalMinutes || 0;
         }
 
-        getReadingTimeHistory(days = 7) {
+        getWeekHistory() {
             const result = [];
             const now = new Date();
-
-            for (let i = days - 1; i >= 0; i--) {
-                const date = new Date(now);
-                date.setDate(date.getDate() - i);
-                const dateKey = date.toDateString();
-                const isToday = i === 0;
-
+            
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(now);
+                d.setDate(d.getDate() - i);
+                const key = d.toDateString();
                 result.push({
-                    date: dateKey,
-                    label: Utils.formatDate(date.getTime()),
-                    dayName: CONFIG.WEEK_DAY_LABELS[date.getDay()],
-                    minutes: isToday ? this.getTodayReadingTime() : this.getReadingTimeForDate(dateKey),
-                    isToday
+                    date: key,
+                    label: Utils.formatDate(d.getTime()),
+                    day: CONFIG.WEEKDAYS[d.getDay()],
+                    minutes: i === 0 ? this.getTodayTime() : this.getTimeForDate(key),
+                    isToday: i === 0
                 });
             }
-
             return result;
         }
 
         getYearData() {
             const now = Date.now();
-            if (this.yearDataCache && (now - this.yearDataCacheTime) < 5000) {
-                return this.yearDataCache;
+            if (this._yearCache && (now - this._yearCacheTime) < CONFIG.CACHE.YEAR_DATA_TTL) {
+                return this._yearCache;
             }
 
             const today = new Date();
-            const currentYear = today.getFullYear();
+            const year = today.getFullYear();
             const stored = this.storage.get('readingTime', null);
-            const dailyData = stored?.dailyData || {};
+            const daily = stored?.dailyData || {};
+            const result = new Map();
 
-            const dateMap = new Map();
-            Object.keys(dailyData).forEach(dateKey => {
-                const date = new Date(dateKey);
-                if (date.getFullYear() === currentYear) {
-                    dateMap.set(dateKey, dailyData[dateKey].totalMinutes || 0);
+            Object.entries(daily).forEach(([key, data]) => {
+                if (new Date(key).getFullYear() === year) {
+                    result.set(key, data.totalMinutes || 0);
                 }
             });
+            result.set(Utils.getTodayKey(), this.getTodayTime());
 
-            dateMap.set(Utils.getTodayKey(), this.getTodayReadingTime());
-
-            this.yearDataCache = dateMap;
-            this.yearDataCacheTime = now;
-            return dateMap;
+            this._yearCache = result;
+            this._yearCacheTime = now;
+            return result;
         }
 
-        getTotalReadingTime() {
+        getTotalTime() {
             const stored = this.storage.get('readingTime', null);
-            if (!stored?.dailyData) return this.getTodayReadingTime();
+            if (!stored?.dailyData) return this.getTodayTime();
 
-            let total = 0;
             const todayKey = Utils.getTodayKey();
-
-            Object.keys(stored.dailyData).forEach(dateKey => {
-                total += dateKey === todayKey ? this.getTodayReadingTime() : (stored.dailyData[dateKey].totalMinutes || 0);
+            let total = 0;
+            Object.entries(stored.dailyData).forEach(([key, data]) => {
+                total += key === todayKey ? this.getTodayTime() : (data.totalMinutes || 0);
             });
-
             return total;
         }
 
         destroy() {
-            if (this.boundHandler) {
-                const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
-                events.forEach(event => document.removeEventListener(event, this.boundHandler));
-            }
-            if (this.trackingInterval) clearInterval(this.trackingInterval);
-            if (this.saveInterval) clearInterval(this.saveInterval);
-            this.saveReadingTime();
+            this._intervals.forEach(clearInterval);
+            this.save();
         }
     }
 
     // ==================== 通知管理器 ====================
-    class NotificationManager {
+    class Notifier {
         constructor(storage) {
             this.storage = storage;
         }
 
-        check(requirements) {
+        check(reqs) {
             const achieved = this.storage.get('milestones', {});
             const newMilestones = [];
 
-            requirements.forEach(req => {
-                for (const [key, thresholds] of Object.entries(CONFIG.MILESTONES)) {
-                    if (req.name.includes(key)) {
+            reqs.forEach(r => {
+                Object.entries(CONFIG.MILESTONES).forEach(([key, thresholds]) => {
+                    if (r.name.includes(key)) {
                         thresholds.forEach(t => {
                             const k = `${key}_${t}`;
-                            if (req.currentValue >= t && !achieved[k]) {
+                            if (r.currentValue >= t && !achieved[k]) {
                                 newMilestones.push({ name: key, threshold: t });
                                 achieved[k] = true;
                             }
                         });
                     }
-                }
-                const k = `req_${req.name}`;
-                if (req.isSuccess && !achieved[k]) {
-                    newMilestones.push({ name: req.name, type: 'req' });
-                    achieved[k] = true;
+                });
+
+                const reqKey = `req_${r.name}`;
+                if (r.isSuccess && !achieved[reqKey]) {
+                    newMilestones.push({ name: r.name, type: 'req' });
+                    achieved[reqKey] = true;
                 }
             });
 
-            if (newMilestones.length > 0) {
+            if (newMilestones.length) {
                 this.storage.set('milestones', achieved);
                 this._notify(newMilestones);
             }
@@ -1078,543 +993,880 @@
         _notify(milestones) {
             const last = this.storage.get('lastNotify', 0);
             if (Date.now() - last < 60000) return;
+            
             this.storage.set('lastNotify', Date.now());
-
-            const msg = milestones.slice(0, 3).map(m =>
+            const msg = milestones.slice(0, 3).map(m => 
                 m.type === 'req' ? `✅ ${m.name}` : `🏆 ${m.name} → ${m.threshold}`
             ).join('\n');
 
-            if (typeof GM_notification !== 'undefined') {
-                GM_notification({ title: '🎉 达成里程碑！', text: msg, timeout: 5000 });
+            typeof GM_notification !== 'undefined' && GM_notification({
+                title: '🎉 达成里程碑！',
+                text: msg,
+                timeout: 5000
+            });
+        }
+    }
+
+    // ==================== OAuth 管理器 ====================
+    class OAuthManager {
+        constructor(storage, network) {
+            this.storage = storage;
+            this.network = network;
+        }
+
+        getToken() { return this.storage.getGlobal('leaderboardToken', null); }
+        setToken(token) { this.storage.setGlobalNow('leaderboardToken', token); }
+        
+        getUserInfo() { return this.storage.getGlobal('leaderboardUser', null); }
+        setUserInfo(user) { this.storage.setGlobalNow('leaderboardUser', user); }
+        
+        isLoggedIn() { return !!(this.getToken() && this.getUserInfo()); }
+        
+        isJoined() { return this.storage.getGlobal('leaderboardJoined', false); }
+        setJoined(v) { this.storage.setGlobalNow('leaderboardJoined', v); }
+
+        async login() {
+            const authWindow = window.open('about:blank', 'oauth_login', 'width=600,height=700');
+            if (!authWindow) throw new Error('弹窗被拦截');
+
+            return new Promise((resolve, reject) => {
+                this.network.api('/api/auth/init').then(result => {
+                    if (result.success && result.data?.auth_url) {
+                        authWindow.location.href = result.data.auth_url;
+                        this._listenCallback(authWindow, resolve, reject);
+                    } else {
+                        authWindow.close();
+                        reject(new Error(result.error?.message || '获取授权链接失败'));
+                    }
+                }).catch(e => {
+                    authWindow.close();
+                    reject(e);
+                });
+            });
+        }
+
+        _listenCallback(win, resolve, reject) {
+            const check = setInterval(() => {
+                if (win.closed) {
+                    clearInterval(check);
+                    setTimeout(() => {
+                        this.isLoggedIn() ? resolve(this.getUserInfo()) : reject(new Error('登录已取消'));
+                    }, 500);
+                }
+            }, 500);
+
+            const handler = (e) => {
+                if (e.data?.type === 'ldsp_oauth_callback') {
+                    clearInterval(check);
+                    window.removeEventListener('message', handler);
+                    
+                    if (e.data.success) {
+                        this.setToken(e.data.token);
+                        this.setUserInfo(e.data.user);
+                        this.setJoined(e.data.isJoined);
+                        win.closed || win.close();
+                        resolve(e.data.user);
+                    } else {
+                        reject(new Error(e.data.error || '登录失败'));
+                    }
+                }
+            };
+            window.addEventListener('message', handler);
+
+            setTimeout(() => {
+                clearInterval(check);
+                window.removeEventListener('message', handler);
+                this.isLoggedIn() || reject(new Error('登录超时'));
+            }, 120000);
+        }
+
+        logout() {
+            this.setToken(null);
+            this.setUserInfo(null);
+            this.setJoined(false);
+        }
+
+        async api(endpoint, options = {}) {
+            return this.network.api(endpoint, { ...options, token: this.getToken() });
+        }
+    }
+
+    // ==================== 排行榜管理器 ====================
+    class LeaderboardManager {
+        constructor(oauth, readingTracker) {
+            this.oauth = oauth;
+            this.tracker = readingTracker;
+            this.cache = new Map();
+            this._syncTimer = null;
+            this._lastSync = 0;
+        }
+
+        async getLeaderboard(type = 'daily') {
+            const key = `lb_${type}`;
+            const cached = this.cache.get(key);
+            const now = Date.now();
+            const ttl = type === 'daily' ? CONFIG.CACHE.LEADERBOARD_DAILY_TTL : CONFIG.CACHE.LEADERBOARD_PERIOD_TTL;
+
+            if (cached && (now - cached.time) < ttl) return cached.data;
+
+            try {
+                const result = await this.oauth.api(`/api/leaderboard/${type}`);
+                if (result.success) {
+                    const data = {
+                        rankings: result.data.rankings || [],
+                        period: result.data.period,
+                        myRank: result.data.myRank
+                    };
+                    this.cache.set(key, { data, time: now });
+                    return data;
+                }
+                throw new Error(result.error || '获取排行榜失败');
+            } catch (e) {
+                if (cached) return cached.data;
+                throw e;
             }
+        }
+
+        async join() {
+            const result = await this.oauth.api('/api/user/register', { method: 'POST' });
+            if (result.success) {
+                this.oauth.setJoined(true);
+                return true;
+            }
+            throw new Error(result.error || '加入失败');
+        }
+
+        async quit() {
+            const result = await this.oauth.api('/api/user/quit', { method: 'POST' });
+            if (result.success) {
+                this.oauth.setJoined(false);
+                return true;
+            }
+            throw new Error(result.error || '退出失败');
+        }
+
+        async syncReadingTime() {
+            if (!this.oauth.isLoggedIn() || !this.oauth.isJoined()) return;
+            if (Date.now() - this._lastSync < 60000) return;
+
+            try {
+                const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+                await this.oauth.api('/api/reading/sync', {
+                    method: 'POST',
+                    body: { 
+                        date: today,
+                        minutes: this.tracker.getTodayTime(),
+                        client_timestamp: Date.now()
+                    }
+                });
+                this._lastSync = Date.now();
+            } catch (e) {
+                console.warn('[Leaderboard] Sync failed:', e.message || e);
+            }
+        }
+
+        startSync() {
+            if (this._syncTimer) return;
+            this.syncReadingTime();
+            this._syncTimer = setInterval(() => this.syncReadingTime(), CONFIG.INTERVALS.LEADERBOARD_SYNC);
+        }
+
+        stopSync() {
+            this._syncTimer && clearInterval(this._syncTimer);
+            this._syncTimer = null;
+        }
+
+        clearCache() { this.cache.clear(); }
+        
+        destroy() {
+            this.stopSync();
+            this.clearCache();
+        }
+    }
+
+    // ==================== 云同步管理器 ====================
+    class CloudSyncManager {
+        constructor(storage, oauth, tracker) {
+            this.storage = storage;
+            this.oauth = oauth;
+            this.tracker = tracker;
+            this._timer = null;
+            this._syncing = false;
+            this._lastUpload = storage.getGlobal('lastCloudSync', 0);
+            this._lastDownload = storage.getGlobal('lastDownloadSync', 0);
+            this._lastHash = storage.getGlobal('lastUploadHash', '');
+            this._onSyncStateChange = null;  // 同步状态变化回调
+        }
+
+        // 设置同步状态变化回调
+        setSyncStateCallback(callback) {
+            this._onSyncStateChange = callback;
+        }
+
+        // 更新同步状态
+        _setSyncing(syncing) {
+            this._syncing = syncing;
+            this._onSyncStateChange?.(syncing);
+        }
+
+        // 获取同步状态
+        isSyncing() {
+            return this._syncing;
+        }
+
+        _getDataHash() {
+            const data = this.storage.get('readingTime', null);
+            if (!data?.dailyData) return '';
+            const days = Object.keys(data.dailyData).length;
+            const total = Object.values(data.dailyData).reduce((s, d) => s + (d.totalMinutes || 0), 0);
+            return `${days}:${Math.round(total)}`;
+        }
+
+        async download() {
+            if (!this.oauth.isLoggedIn()) return null;
+
+            try {
+                const result = await this.oauth.api('/api/reading/history?days=365');
+                console.log('[CloudSync] Download result:', result);
+                if (!result.success) return null;
+
+                const cloud = result.data.dailyData || {};
+                console.log('[CloudSync] Cloud data days:', Object.keys(cloud).length, 'keys:', Object.keys(cloud).slice(0, 3));
+                let local = this.storage.get('readingTime', null);
+                console.log('[CloudSync] Local data:', local ? Object.keys(local.dailyData || {}).length + ' days' : 'null');
+
+                if (!local?.dailyData) {
+                    local = { version: 3, dailyData: cloud, monthlyCache: {}, yearlyCache: {} };
+                    this._rebuildCache(local);
+                    this.storage.setNow('readingTime', local);
+                    console.log('[CloudSync] Stored cloud data to local, days:', Object.keys(cloud).length);
+                    return { merged: Object.keys(cloud).length, source: 'cloud' };
+                }
+
+                let merged = 0;
+                Object.entries(cloud).forEach(([key, cloudDay]) => {
+                    const localMinutes = local.dailyData[key]?.totalMinutes || 0;
+                    const cloudMinutes = cloudDay.totalMinutes || 0;
+                    if (cloudMinutes > localMinutes) {
+                        local.dailyData[key] = {
+                            totalMinutes: cloudMinutes,
+                            lastActive: cloudDay.lastActive || Date.now(),
+                            sessions: local.dailyData[key]?.sessions || []
+                        };
+                        merged++;
+                    }
+                });
+
+                if (merged > 0) {
+                    this._rebuildCache(local);
+                    this.storage.setNow('readingTime', local);
+                }
+                return { merged, source: 'merge' };
+            } catch (e) {
+                console.error('[CloudSync] Download failed:', e);
+                return null;
+            }
+        }
+
+        async upload() {
+            if (!this.oauth.isLoggedIn() || this._syncing) return null;
+
+            try {
+                this._setSyncing(true);
+                const local = this.storage.get('readingTime', null);
+                if (!local?.dailyData) {
+                    this._setSyncing(false);
+                    return null;
+                }
+
+                const result = await this.oauth.api('/api/reading/sync-full', {
+                    method: 'POST',
+                    body: { dailyData: local.dailyData, lastSyncTime: Date.now() }
+                });
+
+                if (result.success) {
+                    this._lastUpload = Date.now();
+                    this.storage.setGlobalNow('lastCloudSync', this._lastUpload);
+                    return result.data;
+                }
+                throw new Error(result.error || '上传失败');
+            } catch (e) {
+                console.error('[CloudSync] Upload failed:', e);
+                return null;
+            } finally {
+                this._setSyncing(false);
+            }
+        }
+
+        async onPageLoad() {
+            if (!this.oauth.isLoggedIn()) return;
+
+            const now = Date.now();
+            const local = this.storage.get('readingTime', null);
+            const hasLocal = local?.dailyData && Object.keys(local.dailyData).length > 0;
+            const isNew = !hasLocal || this._lastDownload === 0;
+            console.log('[CloudSync] onPageLoad - hasLocal:', hasLocal, 'isNew:', isNew, '_lastDownload:', this._lastDownload);
+
+            // 下载检查
+            if (isNew || (now - this._lastDownload) > CONFIG.INTERVALS.CLOUD_DOWNLOAD) {
+                console.log('[CloudSync] Starting download...');
+                const result = await this.download();
+                console.log('[CloudSync] Download result:', result);
+                if (result) {
+                    this._lastDownload = now;
+                    this.storage.setGlobalNow('lastDownloadSync', now);
+                    if (isNew && result.merged > 0) this.tracker._yearCache = null;
+                }
+            }
+
+            // 上传检查
+            const hash = this._getDataHash();
+            if (hash && hash !== this._lastHash) {
+                const result = await this.upload();
+                if (result) {
+                    this._lastHash = hash;
+                    this.storage.setGlobalNow('lastUploadHash', hash);
+                }
+            }
+
+            this._startPeriodicSync();
+        }
+
+        async fullSync() {
+            if (this._syncing) return;
+            
+            try {
+                this._setSyncing(true);
+                
+                console.log('[CloudSync] fullSync - starting download...');
+                const downloadResult = await this.download();
+                console.log('[CloudSync] fullSync - download result:', downloadResult);
+                this._lastDownload = Date.now();
+                this.storage.setGlobalNow('lastDownloadSync', this._lastDownload);
+
+                console.log('[CloudSync] fullSync - starting upload...');
+                // upload 内部不会重复设置 syncing 因为已经是 true
+                const local = this.storage.get('readingTime', null);
+                if (local?.dailyData) {
+                    const result = await this.oauth.api('/api/reading/sync-full', {
+                        method: 'POST',
+                        body: { dailyData: local.dailyData, lastSyncTime: Date.now() }
+                    });
+                    console.log('[CloudSync] fullSync - upload result:', result);
+                    if (result.success) {
+                        this._lastUpload = Date.now();
+                        this.storage.setGlobalNow('lastCloudSync', this._lastUpload);
+                    }
+                }
+                this._lastHash = this._getDataHash();
+                this.storage.setGlobalNow('lastUploadHash', this._lastHash);
+
+                this._startPeriodicSync();
+            } finally {
+                this._setSyncing(false);
+            }
+        }
+
+        _startPeriodicSync() {
+            if (this._timer) return;
+            this._timer = setInterval(async () => {
+                if (!this.oauth.isLoggedIn()) return;
+
+                const now = Date.now();
+                const hash = this._getDataHash();
+
+                if (hash !== this._lastHash && (now - this._lastUpload) > CONFIG.INTERVALS.CLOUD_UPLOAD) {
+                    const result = await this.upload();
+                    if (result) {
+                        this._lastHash = hash;
+                        this.storage.setGlobalNow('lastUploadHash', hash);
+                    }
+                }
+
+                if ((now - this._lastDownload) > CONFIG.INTERVALS.CLOUD_DOWNLOAD) {
+                    const result = await this.download();
+                    if (result) {
+                        this._lastDownload = now;
+                        this.storage.setGlobalNow('lastDownloadSync', now);
+                    }
+                }
+            }, CONFIG.INTERVALS.CLOUD_CHECK);
+        }
+
+        _rebuildCache(data) {
+            data.monthlyCache = {};
+            data.yearlyCache = {};
+            Object.entries(data.dailyData).forEach(([key, day]) => {
+                try {
+                    const d = new Date(key);
+                    if (isNaN(d.getTime())) return;
+                    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    const yearKey = `${d.getFullYear()}`;
+                    const minutes = day.totalMinutes || 0;
+                    data.monthlyCache[monthKey] = (data.monthlyCache[monthKey] || 0) + minutes;
+                    data.yearlyCache[yearKey] = (data.yearlyCache[yearKey] || 0) + minutes;
+                } catch (e) {}
+            });
+        }
+
+        destroy() {
+            this._timer && clearInterval(this._timer);
+            this._timer = null;
         }
     }
 
     // ==================== 样式管理器 ====================
-    const StyleManager = {
+    const Styles = {
         _injected: false,
 
         inject() {
             if (this._injected) return;
-
-            const config = ScreenUtils.getPanelConfig();
+            const cfg = Screen.getConfig();
             const style = document.createElement('style');
             style.id = 'ldsp-styles';
-            style.textContent = this._generateCSS(config);
+            style.textContent = this._css(cfg);
             document.head.appendChild(style);
             this._injected = true;
         },
 
-        _generateCSS(config) {
+        _css(c) {
             return `
-            #ldsp-panel {
-                --duration-fast: 150ms;
-                --duration-normal: 250ms;
-                --duration-slow: 400ms;
-                --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-                --ease-in-out-circ: cubic-bezier(0.85, 0, 0.15, 1);
-                --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-                --bg-base: #0f0f1a;
-                --bg-card: #1a1a2e;
-                --bg-card-hover: #252542;
-                --bg-elevated: #16213e;
-                --bg-input: #0f0f1a;
-                --text-primary: #eaeaea;
-                --text-secondary: #a0a0b0;
-                --text-muted: #6a6a7a;
-                --accent-primary: #7c3aed;
-                --accent-primary-hover: #8b5cf6;
-                --accent-secondary: #06b6d4;
-                --accent-gradient: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
-                --color-success-500: #22c55e;
-                --color-success-600: #16a34a;
-                --color-danger-500: #ef4444;
-                --color-danger-600: #dc2626;
-                --success: var(--color-success-500);
-                --success-bg: rgba(34, 197, 94, 0.15);
-                --success-border: rgba(34, 197, 94, 0.3);
-                --danger: var(--color-danger-500);
-                --danger-bg: rgba(239, 68, 68, 0.15);
-                --danger-border: rgba(239, 68, 68, 0.3);
-                --warning: #f59e0b;
-                --info: #3b82f6;
-                --border-subtle: rgba(255, 255, 255, 0.06);
-                --border-default: rgba(255, 255, 255, 0.1);
-                --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-                --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
-                --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
-                --radius-sm: 6px;
-                --radius-md: 10px;
-                --radius-lg: 14px;
-                --panel-width: ${config.width}px;
-                --panel-max-height: ${config.maxHeight}px;
-                --panel-font-size: ${config.fontSize}px;
-                --panel-padding: ${config.padding}px;
-                --avatar-size: ${config.avatarSize}px;
-                --ring-size: ${config.ringSize}px;
-                position: fixed;
-                left: 12px;
-                top: 80px;
-                width: var(--panel-width);
-                background: var(--bg-base);
-                border-radius: var(--radius-lg);
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
-                font-size: var(--panel-font-size);
-                color: var(--text-primary);
-                box-shadow: var(--shadow-lg);
-                z-index: 99999;
-                overflow: hidden;
-                border: 1px solid var(--border-subtle);
-                transform-origin: left center;
-            }
-            #ldsp-panel, #ldsp-panel *, #ldsp-panel *::before, #ldsp-panel *::after {
-                transition-property: background-color, background, color, border-color, box-shadow, opacity, transform;
-                transition-duration: var(--duration-normal);
-                transition-timing-function: ease-out;
-            }
-            #ldsp-panel.no-transition, #ldsp-panel.no-transition *, #ldsp-panel.no-transition *::before, #ldsp-panel.no-transition *::after {
-                transition: none !important;
-            }
-            #ldsp-panel.animating {
-                transition: width var(--duration-slow) var(--ease-out-expo), height var(--duration-slow) var(--ease-out-expo), border-radius var(--duration-normal) var(--ease-in-out-circ), left var(--duration-slow) var(--ease-out-expo), top var(--duration-slow) var(--ease-out-expo);
-            }
-            #ldsp-panel.light {
-                --bg-base: #ffffff;
-                --bg-card: #f8fafc;
-                --bg-card-hover: #f1f5f9;
-                --bg-elevated: #ffffff;
-                --bg-input: #f1f5f9;
-                --text-primary: #1e293b;
-                --text-secondary: #64748b;
-                --text-muted: #94a3b8;
-                --accent-primary: #6366f1;
-                --accent-primary-hover: #4f46e5;
-                --accent-secondary: #0ea5e9;
-                --accent-gradient: linear-gradient(135deg, #6366f1 0%, #0ea5e9 100%);
-                --success: var(--color-success-600);
-                --success-bg: rgba(22, 163, 74, 0.1);
-                --success-border: rgba(22, 163, 74, 0.2);
-                --danger: var(--color-danger-600);
-                --danger-bg: rgba(220, 38, 38, 0.1);
-                --danger-border: rgba(220, 38, 38, 0.2);
-                --border-subtle: rgba(0, 0, 0, 0.04);
-                --border-default: rgba(0, 0, 0, 0.08);
-                --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-                --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.1);
-                --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.12);
-            }
-            #ldsp-panel.collapsed {
-                width: 44px !important;
-                height: 44px !important;
-                border-radius: var(--radius-md);
-                cursor: move;
-                background: var(--accent-gradient);
-                border: none;
-            }
-            #ldsp-panel.collapsed.animating { animation: collapse-bounce var(--duration-slow) var(--ease-spring); }
-            @keyframes collapse-bounce { 0% { transform: scale(1); } 50% { transform: scale(0.95); } 100% { transform: scale(1); } }
-            #ldsp-panel.collapsed .ldsp-header { padding: 0; justify-content: center; height: 44px; background: transparent; }
-            #ldsp-panel.collapsed .ldsp-header-info, #ldsp-panel.collapsed .ldsp-header-btns > button:not(.ldsp-btn-toggle), #ldsp-panel.collapsed .ldsp-body { display: none !important; }
-            #ldsp-panel.collapsed .ldsp-btn-toggle { width: 44px; height: 44px; font-size: 18px; background: transparent; border-radius: var(--radius-md); cursor: pointer; }
-            #ldsp-panel.collapsed .ldsp-btn-toggle:hover { background: rgba(255, 255, 255, 0.1); }
-            #ldsp-panel.expand-left { transform-origin: right center; }
-            #ldsp-panel.expand-right { transform-origin: left center; }
-            .ldsp-header { display: flex; align-items: center; justify-content: space-between; padding: var(--panel-padding); background: var(--accent-gradient); cursor: move; user-select: none; }
-            .ldsp-header-info { display: flex; align-items: center; gap: 8px; }
-            .ldsp-site-icon { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.1); }
-            .ldsp-title { font-weight: 700; font-size: 13px; color: #fff; letter-spacing: 0.3px; }
-            .ldsp-version { font-size: 9px; color: rgba(255, 255, 255, 0.8); background: rgba(255, 255, 255, 0.2); padding: 2px 5px; border-radius: 6px; font-weight: 500; }
-            .ldsp-header-btns { display: flex; gap: 4px; }
-            .ldsp-header-btns button { width: 26px; height: 26px; border: none; background: rgba(255, 255, 255, 0.15); color: #fff; border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
-            .ldsp-header-btns button:hover { background: rgba(255, 255, 255, 0.25); transform: translateY(-1px); }
-            .ldsp-header-btns button:active { transform: translateY(0); }
-            .ldsp-header-btns button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-            .ldsp-header-btns button:disabled:hover { background: rgba(255, 255, 255, 0.15); transform: none; }
-            .ldsp-header-btns button::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(255,255,255,0.3) 0%, transparent 70%); transform: scale(0); opacity: 0; }
-            .ldsp-header-btns button:active::after { animation: ripple 0.4s ease-out; }
-            @keyframes ripple { 0% { transform: scale(0); opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
-            .ldsp-header-btns button:focus-visible, .ldsp-tab:focus-visible, .ldsp-subtab:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.5); outline-offset: 2px; }
-            .ldsp-body { background: var(--bg-base); }
-            .ldsp-user { display: flex; align-items: center; gap: 10px; padding: var(--panel-padding); background: var(--bg-card); border-bottom: 1px solid var(--border-subtle); }
-            .ldsp-avatar { width: var(--avatar-size); height: var(--avatar-size); border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-primary); flex-shrink: 0; background: var(--bg-elevated); }
-            .ldsp-avatar:hover { transform: scale(1.05); border-color: var(--accent-secondary); }
-            .ldsp-avatar-placeholder { width: var(--avatar-size); height: var(--avatar-size); border-radius: 50%; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; flex-shrink: 0; }
-            .ldsp-user-info { flex: 1; min-width: 0; }
-            .ldsp-user-name { font-weight: 600; font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .ldsp-user-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
-            .ldsp-user-level { font-size: 9px; font-weight: 700; color: #fff; background: var(--accent-gradient); padding: 2px 6px; border-radius: 10px; letter-spacing: 0.3px; }
-            .ldsp-user-status { font-size: 9px; color: var(--text-muted); }
-            .ldsp-reading-card { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 10px; border-radius: var(--radius-md); min-width: 70px; position: relative; overflow: hidden; }
-            .ldsp-reading-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0.1; }
-            .ldsp-reading-card:hover::before { opacity: 0.2; }
-            .ldsp-reading-icon { font-size: 18px; margin-bottom: 2px; animation: ldsp-bounce 2s ease-in-out infinite; }
-            @keyframes ldsp-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-            .ldsp-reading-time { font-size: 12px; font-weight: 800; letter-spacing: -0.3px; }
-            .ldsp-reading-label { font-size: 8px; opacity: 0.8; margin-top: 1px; }
-            .ldsp-reading-card.level-high .ldsp-reading-icon { animation: ldsp-fire 0.5s ease-in-out infinite; }
-            @keyframes ldsp-fire { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-            .ldsp-reading-card.level-max .ldsp-reading-icon { animation: ldsp-crown 1s ease-in-out infinite; }
-            @keyframes ldsp-crown { 0%, 100% { transform: rotate(-5deg) scale(1); } 50% { transform: rotate(5deg) scale(1.15); } }
-            .ldsp-status { display: flex; align-items: center; gap: 6px; padding: 8px var(--panel-padding); font-size: 11px; font-weight: 500; background: var(--bg-card); border-bottom: 1px solid var(--border-subtle); }
-            .ldsp-status.success { color: var(--success); background: var(--success-bg); }
-            .ldsp-status.fail { color: var(--danger); background: var(--danger-bg); }
-            .ldsp-tabs { display: flex; padding: 8px 10px; gap: 6px; background: var(--bg-base); border-bottom: 1px solid var(--border-subtle); }
-            .ldsp-tab { flex: 1; padding: 6px 10px; border: none; background: var(--bg-card); color: var(--text-secondary); border-radius: var(--radius-sm); cursor: pointer; font-size: 11px; font-weight: 600; }
-            .ldsp-tab:hover { background: var(--bg-card-hover); color: var(--text-primary); }
-            .ldsp-tab.active { background: var(--accent-primary); color: #fff; }
-            .ldsp-content { max-height: calc(var(--panel-max-height) - 180px); overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--border-default) transparent; }
-            .ldsp-content::-webkit-scrollbar { width: 5px; }
-            .ldsp-content::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
-            .ldsp-content::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
-            .ldsp-panel-section { display: none; padding: 8px; }
-            .ldsp-panel-section.active { display: block; animation: section-enter var(--duration-normal) var(--ease-out-expo); }
-            @keyframes section-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-            .ldsp-progress-ring { display: flex; justify-content: center; padding: 10px; background: var(--bg-card); border-radius: var(--radius-md); margin-bottom: 8px; }
-            .ldsp-ring-wrap { position: relative; width: var(--ring-size); height: var(--ring-size); }
-            .ldsp-ring-wrap svg { transform: rotate(-90deg); width: 100%; height: 100%; }
-            .ldsp-ring-bg { fill: none; stroke: var(--bg-elevated); stroke-width: 6; }
-            .ldsp-ring-fill { fill: none; stroke: url(#ldsp-gradient); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 0.8s var(--ease-out-expo); }
-            .ldsp-ring-fill.animate { animation: ring-fill-animation 1.2s var(--ease-out-expo) forwards; }
-            @keyframes ring-fill-animation { from { stroke-dashoffset: var(--ring-circumference); filter: brightness(1); } 50% { filter: brightness(1.3) drop-shadow(0 0 8px var(--accent-primary)); } to { stroke-dashoffset: var(--ring-target-offset); filter: brightness(1); } }
-            .ldsp-ring-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-            .ldsp-ring-value { font-size: 18px; font-weight: 800; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-            .ldsp-ring-value.animate { animation: ring-value-animation 0.8s var(--ease-out-expo) 0.4s forwards; opacity: 0; }
-            @keyframes ring-value-animation { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
-            .ldsp-ring-label { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
-            .ldsp-item { display: flex; align-items: center; padding: 6px 8px; margin-bottom: 4px; background: var(--bg-card); border-radius: var(--radius-sm); border-left: 3px solid var(--border-default); position: relative; overflow: hidden; animation: item-enter var(--duration-normal) var(--ease-out-expo) backwards; }
-            .ldsp-item:nth-child(1) { animation-delay: 0ms; }
-            .ldsp-item:nth-child(2) { animation-delay: 30ms; }
-            .ldsp-item:nth-child(3) { animation-delay: 60ms; }
-            .ldsp-item:nth-child(4) { animation-delay: 90ms; }
-            .ldsp-item:nth-child(5) { animation-delay: 120ms; }
-            .ldsp-item:nth-child(6) { animation-delay: 150ms; }
-            .ldsp-item:nth-child(7) { animation-delay: 180ms; }
-            .ldsp-item:nth-child(8) { animation-delay: 210ms; }
-            .ldsp-item:nth-child(9) { animation-delay: 240ms; }
-            .ldsp-item:nth-child(10) { animation-delay: 270ms; }
-            .ldsp-item:nth-child(11) { animation-delay: 300ms; }
-            .ldsp-item:nth-child(12) { animation-delay: 330ms; }
-            @keyframes item-enter { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
-            .ldsp-item::before { content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 3px; background: var(--accent-primary); transform: scaleY(0); }
-            .ldsp-item:hover { background: var(--bg-card-hover); transform: translateX(3px); }
-            .ldsp-item:hover::before { transform: scaleY(1); }
-            .ldsp-item:last-child { margin-bottom: 0; }
-            .ldsp-item.success { border-left-color: var(--success); background: var(--success-bg); }
-            .ldsp-item.fail { border-left-color: var(--danger); background: var(--danger-bg); }
-            .ldsp-item-icon { font-size: 11px; margin-right: 6px; opacity: 0.9; }
-            .ldsp-item-name { flex: 1; font-size: 10px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .ldsp-item.success .ldsp-item-name { color: var(--success); }
-            .ldsp-item.fail .ldsp-item-name { color: var(--text-secondary); }
-            .ldsp-item-values { display: flex; align-items: center; gap: 2px; font-size: 11px; font-weight: 700; margin-left: 6px; }
-            .ldsp-item-current { color: var(--text-primary); }
-            .ldsp-item-current.updating { animation: value-update 0.6s var(--ease-out-expo); }
-            @keyframes value-update { 0% { transform: scale(1); background: transparent; } 30% { transform: scale(1.2); background: var(--accent-primary); color: white; border-radius: 4px; } 100% { transform: scale(1); background: transparent; } }
-            .ldsp-item.success .ldsp-item-current { color: var(--success); }
-            .ldsp-item.fail .ldsp-item-current { color: var(--danger); }
-            .ldsp-item-sep { color: var(--text-muted); font-weight: 400; }
-            .ldsp-item-required { color: var(--text-muted); font-weight: 500; }
-            .ldsp-item-change { font-size: 9px; padding: 1px 4px; border-radius: 4px; font-weight: 700; margin-left: 4px; animation: change-pop var(--duration-normal) var(--ease-spring); }
-            @keyframes change-pop { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-            .ldsp-item-change.up { background: var(--success-bg); color: var(--success); }
-            .ldsp-item-change.down { background: var(--danger-bg); color: var(--danger); }
-            .ldsp-subtabs { display: flex; gap: 4px; padding: 0 0 10px 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scrollbar-color: var(--border-default) transparent; }
-            .ldsp-subtabs::-webkit-scrollbar { height: 3px; }
-            .ldsp-subtabs::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 2px; }
-            .ldsp-subtab { padding: 5px 10px; border: 1px solid var(--border-default); background: var(--bg-card); color: var(--text-secondary); border-radius: var(--radius-sm); cursor: pointer; font-size: 10px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
-            .ldsp-subtab:hover { border-color: var(--accent-primary); color: var(--accent-primary); background: var(--bg-card-hover); }
-            .ldsp-subtab.active { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
-            .ldsp-chart { background: var(--bg-card); border-radius: var(--radius-md); padding: 10px; margin-bottom: 8px; }
-            .ldsp-chart:last-child { margin-bottom: 0; }
-            .ldsp-chart-title { font-size: 11px; font-weight: 700; margin-bottom: 10px; color: var(--text-primary); display: flex; align-items: center; gap: 5px; }
-            .ldsp-chart-subtitle { font-size: 9px; color: var(--text-muted); font-weight: 500; margin-left: auto; }
-            .ldsp-spark-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-            .ldsp-spark-row:last-child { margin-bottom: 0; }
-            .ldsp-spark-label { width: 55px; font-size: 9px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-            .ldsp-spark-bars { flex: 1; display: flex; align-items: flex-end; gap: 2px; height: 22px; }
-            .ldsp-spark-bar { flex: 1; background: var(--accent-primary); border-radius: 2px 2px 0 0; min-height: 2px; opacity: 0.4; position: relative; }
-            .ldsp-spark-bar:last-child { opacity: 1; }
-            .ldsp-spark-bar:hover { opacity: 1; transform: scaleY(1.1); }
-            .ldsp-spark-bar::after { content: attr(data-value); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); font-size: 8px; color: var(--text-primary); background: var(--bg-elevated); padding: 2px 3px; border-radius: 2px; opacity: 0; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-sm); }
-            .ldsp-spark-bar:hover::after { opacity: 1; }
-            .ldsp-spark-val { font-size: 10px; font-weight: 700; color: var(--text-primary); min-width: 30px; text-align: right; }
-            .ldsp-date-labels { display: flex; justify-content: space-between; padding: 6px 0 0 60px; margin-right: 35px; }
-            .ldsp-date-label { font-size: 8px; color: var(--text-muted); text-align: center; }
-            .ldsp-changes { margin-top: 6px; }
-            .ldsp-change-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border-subtle); }
-            .ldsp-change-row:last-child { border-bottom: none; }
-            .ldsp-change-name { font-size: 10px; color: var(--text-secondary); }
-            .ldsp-change-val { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
-            .ldsp-change-val.up { background: var(--success-bg); color: var(--success); }
-            .ldsp-change-val.down { background: var(--danger-bg); color: var(--danger); }
-            .ldsp-change-val.neutral { background: var(--bg-elevated); color: var(--text-muted); }
-            .ldsp-reading-stats { background: var(--bg-card); border-radius: var(--radius-md); padding: 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
-            .ldsp-reading-stats-icon { font-size: 28px; flex-shrink: 0; }
-            .ldsp-reading-stats-info { flex: 1; }
-            .ldsp-reading-stats-value { font-size: 16px; font-weight: 800; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-            .ldsp-reading-stats-label { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
-            .ldsp-reading-stats-badge { padding: 3px 8px; border-radius: 10px; font-size: 9px; font-weight: 700; }
-            .ldsp-tracking-indicator { display: flex; align-items: center; gap: 5px; padding: 5px 8px; background: var(--bg-card); border-radius: var(--radius-sm); margin-bottom: 8px; font-size: 9px; color: var(--text-muted); }
-            .ldsp-tracking-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: ldsp-pulse 2s ease-in-out infinite; }
-            @keyframes ldsp-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.9); } }
-            .ldsp-tracking-indicator.paused .ldsp-tracking-dot { background: var(--warning); animation: none; }
-            .ldsp-reading-progress { background: var(--bg-card); border-radius: var(--radius-md); padding: 10px; margin-bottom: 8px; }
-            .ldsp-reading-progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-            .ldsp-reading-progress-title { font-size: 10px; color: var(--text-secondary); font-weight: 600; }
-            .ldsp-reading-progress-value { font-size: 11px; font-weight: 700; color: var(--text-primary); }
-            .ldsp-reading-progress-bar { height: 6px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; }
-            .ldsp-reading-progress-fill { height: 100%; border-radius: 3px; }
-            .ldsp-reading-week { display: flex; justify-content: space-between; align-items: flex-end; height: 50px; padding: 0 2px; margin: 10px 0 6px; gap: 2px; }
-            .ldsp-reading-day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
-            .ldsp-reading-day-bar { width: 100%; max-width: 16px; background: linear-gradient(to top, #7c3aed, #06b6d4); border-radius: 2px 2px 0 0; min-height: 2px; cursor: pointer; position: relative; }
-            .ldsp-reading-day-bar:hover { transform: scaleX(1.15); opacity: 0.9; }
-            .ldsp-reading-day-bar::after { content: attr(data-time); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--bg-elevated); color: var(--text-primary); padding: 2px 4px; border-radius: 2px; font-size: 7px; font-weight: 600; white-space: nowrap; opacity: 0; pointer-events: none; box-shadow: var(--shadow-sm); margin-bottom: 3px; }
-            .ldsp-reading-day-bar:hover::after { opacity: 1; }
-            .ldsp-reading-day-label { font-size: 7px; color: var(--text-muted); line-height: 1; }
-            .ldsp-today-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 8px; }
-            .ldsp-today-stat { background: var(--bg-card); border-radius: var(--radius-sm); padding: 8px; text-align: center; }
-            .ldsp-today-stat-value { font-size: 16px; font-weight: 800; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-            .ldsp-today-stat-label { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
-            .ldsp-time-info { font-size: 9px; color: var(--text-muted); text-align: center; padding: 6px; background: var(--bg-card); border-radius: var(--radius-sm); margin-bottom: 8px; }
-            .ldsp-time-info span { color: var(--accent-primary); font-weight: 600; }
-            .ldsp-year-heatmap-container { padding: 8px 12px 8px 0; overflow-x: hidden; overflow-y: auto; max-height: 300px; }
-            .ldsp-year-heatmap-wrapper { display: flex; flex-direction: column; gap: 2px; width: 100%; padding-right: 4px; }
-            .ldsp-year-heatmap-month-row { display: flex; align-items: center; gap: 4px; width: 100%; position: relative; }
-            .ldsp-year-month-label { width: 26px; font-size: 7px; font-weight: 600; color: var(--text-muted); text-align: right; flex-shrink: 0; line-height: 1; position: absolute; left: 0; top: 50%; transform: translateY(-50%); }
-            .ldsp-year-heatmap-cells { display: grid; grid-template-columns: repeat(14, minmax(8px, 1fr)); gap: 3px; width: 100%; align-items: center; margin-left: 30px; }
-            .ldsp-year-heatmap-cell { width: 100%; aspect-ratio: 1; border-radius: 2px; background: var(--bg-card); border: 0.5px solid var(--border-subtle); cursor: pointer; position: relative; }
-            .ldsp-year-heatmap-cell:hover { transform: scale(1.5); box-shadow: 0 0 6px rgba(124, 58, 237, 0.4); border-color: var(--accent-primary); z-index: 10; }
-            .ldsp-year-heatmap-cell.level-0 { background: rgba(124, 58, 237, 0.08); border-color: rgba(124, 58, 237, 0.15); }
-            .ldsp-year-heatmap-cell.level-1 { background: rgba(124, 58, 237, 0.25); border-color: rgba(124, 58, 237, 0.35); }
-            .ldsp-year-heatmap-cell.level-2 { background: rgba(124, 58, 237, 0.45); border-color: rgba(124, 58, 237, 0.55); }
-            .ldsp-year-heatmap-cell.level-3 { background: rgba(124, 58, 237, 0.65); border-color: rgba(124, 58, 237, 0.75); }
-            .ldsp-year-heatmap-cell.level-4 { background: var(--accent-primary); border-color: var(--accent-primary); }
-            .ldsp-year-heatmap-cell.empty { background: transparent; border-color: transparent; cursor: default; }
-            .ldsp-year-heatmap-cell.empty:hover { transform: none; box-shadow: none; }
-            .ldsp-year-heatmap-tooltip { position: absolute; left: 50%; transform: translateX(-50%); background: var(--bg-elevated); color: var(--text-primary); padding: 4px 7px; border-radius: 2px; font-size: 7px; white-space: nowrap; opacity: 0; pointer-events: none; border: 1px solid var(--border-default); z-index: 1000; line-height: 1.2; }
-            .ldsp-year-heatmap-cell:hover .ldsp-year-heatmap-tooltip { opacity: 1; }
-            .ldsp-year-heatmap-cell .ldsp-year-heatmap-tooltip { bottom: 100%; margin-bottom: 2px; }
-            .ldsp-year-heatmap-month-row:nth-child(-n+3) .ldsp-year-heatmap-tooltip { bottom: auto; top: 100%; margin-top: 2px; margin-bottom: 0; }
-            .ldsp-year-heatmap-cell:nth-child(13) .ldsp-year-heatmap-tooltip, .ldsp-year-heatmap-cell:nth-child(14) .ldsp-year-heatmap-tooltip { left: auto; right: 0; transform: translateX(0); }
-            .ldsp-heatmap-legend { display: flex; align-items: center; gap: 4px; justify-content: center; font-size: 7px; color: var(--text-muted); padding: 4px 0; }
-            .ldsp-heatmap-legend-cell { width: 7px; height: 7px; border-radius: 1px; border: 0.5px solid var(--border-subtle); }
-            .ldsp-empty, .ldsp-loading { text-align: center; padding: 24px 14px; color: var(--text-muted); }
-            .ldsp-empty-icon { font-size: 32px; margin-bottom: 8px; }
-            .ldsp-empty-text { font-size: 11px; line-height: 1.6; }
-            .ldsp-spinner { width: 24px; height: 24px; border: 3px solid var(--border-default); border-top-color: var(--accent-primary); border-radius: 50%; animation: ldsp-spin 0.8s linear infinite; margin: 0 auto 8px; }
-            @keyframes ldsp-spin { to { transform: rotate(360deg); } }
-            .ldsp-mini-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; color: var(--text-muted); }
-            .ldsp-mini-spinner { width: 28px; height: 28px; border: 3px solid var(--border-default); border-top-color: var(--accent-primary); border-radius: 50%; animation: ldsp-spin 0.8s linear infinite; margin-bottom: 12px; }
-            .ldsp-mini-loader-text { font-size: 10px; color: var(--text-muted); }
-            .ldsp-toast { position: absolute; bottom: -50px; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--accent-gradient); color: #fff; padding: 8px 14px; border-radius: var(--radius-md); font-size: 11px; font-weight: 600; box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4); opacity: 0; white-space: nowrap; display: flex; align-items: center; gap: 6px; z-index: 100000; }
-            .ldsp-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-            .ldsp-no-change { text-align: center; padding: 14px; color: var(--text-muted); font-size: 10px; }
-            @media (prefers-reduced-motion: reduce) { #ldsp-panel, #ldsp-panel * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
-            @media (prefers-contrast: high) { #ldsp-panel { --border-subtle: rgba(255, 255, 255, 0.3); --border-default: rgba(255, 255, 255, 0.5); } .ldsp-item { border-left-width: 4px; } }
-            @media (max-height: 700px) { #ldsp-panel { top: 60px; } .ldsp-content { max-height: calc(100vh - 240px); } }
-            @media (max-width: 1200px) { #ldsp-panel { left: 8px; } }
-            `;
+#ldsp-panel{--dur-fast:150ms;--dur:250ms;--dur-slow:400ms;--ease:cubic-bezier(.16,1,.3,1);--ease-circ:cubic-bezier(.85,0,.15,1);--ease-spring:cubic-bezier(.34,1.56,.64,1);--bg:#0f0f1a;--bg-card:#1a1a2e;--bg-hover:#252542;--bg-el:#16213e;--txt:#eaeaea;--txt-sec:#a0a0b0;--txt-mut:#6a6a7a;--accent:#7c3aed;--accent2:#06b6d4;--grad:linear-gradient(135deg,#7c3aed,#06b6d4);--ok:#22c55e;--ok-bg:rgba(34,197,94,.15);--err:#ef4444;--err-bg:rgba(239,68,68,.15);--warn:#f59e0b;--border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.1);--shadow:0 16px 48px rgba(0,0,0,.5);--r-sm:6px;--r-md:10px;--r-lg:14px;--w:${c.width}px;--h:${c.maxHeight}px;--fs:${c.fontSize}px;--pd:${c.padding}px;--av:${c.avatarSize}px;--ring:${c.ringSize}px;position:fixed;left:12px;top:80px;width:var(--w);background:var(--bg);border-radius:var(--r-lg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;font-size:var(--fs);color:var(--txt);box-shadow:var(--shadow);z-index:99999;overflow:hidden;border:1px solid var(--border)}
+#ldsp-panel,#ldsp-panel *{transition:background-color var(--dur),color var(--dur),border-color var(--dur),opacity var(--dur),transform var(--dur)}
+#ldsp-panel.no-trans,#ldsp-panel.no-trans *{transition:none!important}
+#ldsp-panel.anim{transition:width var(--dur-slow) var(--ease),height var(--dur-slow) var(--ease),left var(--dur-slow) var(--ease),top var(--dur-slow) var(--ease)}
+#ldsp-panel.light{--bg:#fff;--bg-card:#f8fafc;--bg-hover:#f1f5f9;--bg-el:#fff;--txt:#1e293b;--txt-sec:#64748b;--txt-mut:#94a3b8;--accent:#6366f1;--accent2:#0ea5e9;--ok:#16a34a;--ok-bg:rgba(22,163,74,.1);--err:#dc2626;--err-bg:rgba(220,38,38,.1);--border:rgba(0,0,0,.04);--border2:rgba(0,0,0,.08);--shadow:0 16px 48px rgba(0,0,0,.12)}
+#ldsp-panel.collapsed{width:44px!important;height:44px!important;border-radius:var(--r-md);cursor:move;background:var(--grad);border:none}
+#ldsp-panel.collapsed .ldsp-hdr{padding:0;justify-content:center;height:44px;background:0 0}
+#ldsp-panel.collapsed .ldsp-hdr-info,#ldsp-panel.collapsed .ldsp-hdr-btns>button:not(.ldsp-toggle),#ldsp-panel.collapsed .ldsp-body{display:none!important}
+#ldsp-panel.collapsed .ldsp-toggle{width:44px;height:44px;font-size:18px;background:0 0}
+.ldsp-hdr{display:flex;align-items:center;justify-content:space-between;padding:var(--pd);background:var(--grad);cursor:move;user-select:none}
+.ldsp-hdr-info{display:flex;align-items:center;gap:8px}
+.ldsp-site-icon{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.3)}
+.ldsp-title{font-weight:700;font-size:13px;color:#fff}
+.ldsp-ver{font-size:9px;color:rgba(255,255,255,.8);background:rgba(255,255,255,.2);padding:2px 5px;border-radius:6px}
+.ldsp-hdr-btns{display:flex;gap:4px}
+.ldsp-hdr-btns button{width:26px;height:26px;border:none;background:rgba(255,255,255,.15);color:#fff;border-radius:var(--r-sm);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+.ldsp-hdr-btns button:hover{background:rgba(255,255,255,.25);transform:translateY(-1px)}
+.ldsp-hdr-btns button:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.ldsp-body{background:var(--bg)}
+.ldsp-user{display:flex;align-items:center;gap:10px;padding:var(--pd);background:var(--bg-card);border-bottom:1px solid var(--border)}
+.ldsp-avatar{width:var(--av);height:var(--av);border-radius:50%;border:2px solid var(--accent);flex-shrink:0;background:var(--bg-el)}
+.ldsp-avatar:hover{transform:scale(1.05);border-color:var(--accent2)}
+.ldsp-avatar-ph{width:var(--av);height:var(--av);border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex-shrink:0}
+.ldsp-user-info{flex:1;min-width:0}
+.ldsp-user-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ldsp-user.not-logged .ldsp-avatar,.ldsp-user.not-logged .ldsp-avatar-ph{border:2px dashed var(--warn);cursor:pointer}
+.ldsp-user.not-logged .ldsp-user-name{color:var(--warn);cursor:pointer}
+.ldsp-login-hint{font-size:8px;color:var(--warn);margin-left:4px;animation:blink 1.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+.ldsp-user-meta{display:flex;align-items:center;gap:6px;margin-top:3px}
+.ldsp-user-lv{font-size:9px;font-weight:700;color:#fff;background:var(--grad);padding:2px 6px;border-radius:10px}
+.ldsp-user-st{font-size:9px;color:var(--txt-mut)}
+.ldsp-reading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 10px;border-radius:var(--r-md);min-width:70px}
+.ldsp-reading-icon{font-size:18px;margin-bottom:2px;animation:bounce 2s ease-in-out infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.ldsp-reading-time{font-size:12px;font-weight:800}
+.ldsp-reading-label{font-size:8px;opacity:.8;margin-top:1px}
+.ldsp-reading.hi .ldsp-reading-icon{animation:fire .5s ease-in-out infinite}
+@keyframes fire{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.ldsp-reading.max .ldsp-reading-icon{animation:crown 1s ease-in-out infinite}
+@keyframes crown{0%,100%{transform:rotate(-5deg) scale(1)}50%{transform:rotate(5deg) scale(1.15)}}
+.ldsp-status{display:flex;align-items:center;gap:6px;padding:8px var(--pd);font-size:11px;font-weight:500;background:var(--bg-card);border-bottom:1px solid var(--border)}
+.ldsp-status.ok{color:var(--ok);background:var(--ok-bg)}
+.ldsp-status.fail{color:var(--err);background:var(--err-bg)}
+.ldsp-tabs{display:flex;padding:8px 10px;gap:6px;background:var(--bg);border-bottom:1px solid var(--border)}
+.ldsp-tab{flex:1;padding:6px 10px;border:none;background:var(--bg-card);color:var(--txt-sec);border-radius:var(--r-sm);cursor:pointer;font-size:11px;font-weight:600}
+.ldsp-tab:hover{background:var(--bg-hover);color:var(--txt)}
+.ldsp-tab.active{background:var(--accent);color:#fff}
+.ldsp-content{max-height:calc(var(--h) - 180px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
+.ldsp-content::-webkit-scrollbar{width:5px}
+.ldsp-content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+.ldsp-section{display:none;padding:8px}
+.ldsp-section.active{display:block;animation:enter var(--dur) var(--ease)}
+@keyframes enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.ldsp-ring{display:flex;justify-content:center;padding:10px;background:var(--bg-card);border-radius:var(--r-md);margin-bottom:8px}
+.ldsp-ring-wrap{position:relative;width:var(--ring);height:var(--ring)}
+.ldsp-ring-wrap svg{transform:rotate(-90deg);width:100%;height:100%}
+.ldsp-ring-bg{fill:none;stroke:var(--bg-el);stroke-width:6}
+.ldsp-ring-fill{fill:none;stroke:url(#ldsp-grad);stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .8s var(--ease)}
+.ldsp-ring-fill.anim{animation:ring 1.2s var(--ease) forwards}
+@keyframes ring{from{stroke-dashoffset:var(--circ)}50%{filter:brightness(1.3) drop-shadow(0 0 8px var(--accent))}to{stroke-dashoffset:var(--off)}}
+.ldsp-ring-txt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.ldsp-ring-val{font-size:18px;font-weight:800;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.ldsp-ring-val.anim{animation:val .8s var(--ease) .4s forwards;opacity:0}
+@keyframes val{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+.ldsp-ring-lbl{font-size:9px;color:var(--txt-mut);margin-top:2px}
+.ldsp-item{display:flex;align-items:center;padding:6px 8px;margin-bottom:4px;background:var(--bg-card);border-radius:var(--r-sm);border-left:3px solid var(--border2);animation:item var(--dur) var(--ease) backwards}
+.ldsp-item:nth-child(1){animation-delay:0ms}.ldsp-item:nth-child(2){animation-delay:30ms}.ldsp-item:nth-child(3){animation-delay:60ms}.ldsp-item:nth-child(4){animation-delay:90ms}.ldsp-item:nth-child(5){animation-delay:120ms}.ldsp-item:nth-child(6){animation-delay:150ms}.ldsp-item:nth-child(7){animation-delay:180ms}.ldsp-item:nth-child(8){animation-delay:210ms}.ldsp-item:nth-child(9){animation-delay:240ms}.ldsp-item:nth-child(10){animation-delay:270ms}.ldsp-item:nth-child(11){animation-delay:300ms}.ldsp-item:nth-child(12){animation-delay:330ms}
+@keyframes item{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+.ldsp-item:hover{background:var(--bg-hover);transform:translateX(3px)}
+.ldsp-item.ok{border-left-color:var(--ok);background:var(--ok-bg)}
+.ldsp-item.fail{border-left-color:var(--err);background:var(--err-bg)}
+.ldsp-item-icon{font-size:11px;margin-right:6px;opacity:.9}
+.ldsp-item-name{flex:1;font-size:10px;color:var(--txt-sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ldsp-item.ok .ldsp-item-name{color:var(--ok)}
+.ldsp-item-vals{display:flex;align-items:center;gap:2px;font-size:11px;font-weight:700;margin-left:6px}
+.ldsp-item-cur{color:var(--txt)}
+.ldsp-item-cur.upd{animation:upd .6s var(--ease)}
+@keyframes upd{0%{transform:scale(1)}30%{transform:scale(1.2);background:var(--accent);color:#fff;border-radius:4px}100%{transform:scale(1)}}
+.ldsp-item.ok .ldsp-item-cur{color:var(--ok)}
+.ldsp-item.fail .ldsp-item-cur{color:var(--err)}
+.ldsp-item-sep{color:var(--txt-mut);font-weight:400}
+.ldsp-item-req{color:var(--txt-mut);font-weight:500}
+.ldsp-item-chg{font-size:9px;padding:1px 4px;border-radius:4px;font-weight:700;margin-left:4px;animation:pop var(--dur) var(--ease-spring)}
+@keyframes pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.ldsp-item-chg.up{background:var(--ok-bg);color:var(--ok)}
+.ldsp-item-chg.down{background:var(--err-bg);color:var(--err)}
+.ldsp-subtabs{display:flex;gap:4px;padding:0 0 10px;overflow-x:auto;scrollbar-width:thin}
+.ldsp-subtab{padding:5px 10px;border:1px solid var(--border2);background:var(--bg-card);color:var(--txt-sec);border-radius:var(--r-sm);cursor:pointer;font-size:10px;font-weight:600;white-space:nowrap;flex-shrink:0}
+.ldsp-subtab:hover{border-color:var(--accent);color:var(--accent)}
+.ldsp-subtab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.ldsp-chart{background:var(--bg-card);border-radius:var(--r-md);padding:10px;margin-bottom:8px}
+.ldsp-chart:last-child{margin-bottom:0}
+.ldsp-chart-title{font-size:11px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:5px}
+.ldsp-chart-sub{font-size:9px;color:var(--txt-mut);font-weight:500;margin-left:auto}
+.ldsp-spark-row{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.ldsp-spark-row:last-child{margin-bottom:0}
+.ldsp-spark-lbl{width:55px;font-size:9px;color:var(--txt-sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.ldsp-spark-bars{flex:1;display:flex;align-items:flex-end;gap:2px;height:22px}
+.ldsp-spark-bar{flex:1;background:var(--accent);border-radius:2px 2px 0 0;min-height:2px;opacity:.4;position:relative}
+.ldsp-spark-bar:last-child{opacity:1}
+.ldsp-spark-bar:hover{opacity:1;transform:scaleY(1.1)}
+.ldsp-spark-bar::after{content:attr(data-v);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-size:8px;background:var(--bg-el);padding:2px 3px;border-radius:2px;opacity:0;white-space:nowrap;pointer-events:none}
+.ldsp-spark-bar:hover::after{opacity:1}
+.ldsp-spark-val{font-size:10px;font-weight:700;min-width:30px;text-align:right}
+.ldsp-date-labels{display:flex;justify-content:space-between;padding:6px 0 0 60px;margin-right:35px}
+.ldsp-date-lbl{font-size:8px;color:var(--txt-mut);text-align:center}
+.ldsp-changes{margin-top:6px}
+.ldsp-chg-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
+.ldsp-chg-row:last-child{border-bottom:none}
+.ldsp-chg-name{font-size:10px;color:var(--txt-sec)}
+.ldsp-chg-val{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px}
+.ldsp-chg-val.up{background:var(--ok-bg);color:var(--ok)}
+.ldsp-chg-val.down{background:var(--err-bg);color:var(--err)}
+.ldsp-chg-val.neu{background:var(--bg-el);color:var(--txt-mut)}
+.ldsp-rd-stats{background:var(--bg-card);border-radius:var(--r-md);padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.ldsp-rd-stats-icon{font-size:28px;flex-shrink:0}
+.ldsp-rd-stats-info{flex:1}
+.ldsp-rd-stats-val{font-size:16px;font-weight:800;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.ldsp-rd-stats-lbl{font-size:10px;color:var(--txt-mut);margin-top:2px}
+.ldsp-rd-stats-badge{padding:3px 8px;border-radius:10px;font-size:9px;font-weight:700}
+.ldsp-track{display:flex;align-items:center;gap:5px;padding:5px 8px;background:var(--bg-card);border-radius:var(--r-sm);margin-bottom:8px;font-size:9px;color:var(--txt-mut)}
+.ldsp-track-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.9)}}
+.ldsp-rd-prog{background:var(--bg-card);border-radius:var(--r-md);padding:10px;margin-bottom:8px}
+.ldsp-rd-prog-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.ldsp-rd-prog-title{font-size:10px;color:var(--txt-sec);font-weight:600}
+.ldsp-rd-prog-val{font-size:11px;font-weight:700}
+.ldsp-rd-prog-bar{height:6px;background:var(--bg-el);border-radius:3px;overflow:hidden}
+.ldsp-rd-prog-fill{height:100%;border-radius:3px}
+.ldsp-rd-week{display:flex;justify-content:space-between;align-items:flex-end;height:50px;padding:0 2px;margin:10px 0 6px;gap:2px}
+.ldsp-rd-day{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+.ldsp-rd-day-bar{width:100%;max-width:16px;background:linear-gradient(to top,#7c3aed,#06b6d4);border-radius:2px 2px 0 0;min-height:2px;cursor:pointer;position:relative}
+.ldsp-rd-day-bar:hover{transform:scaleX(1.15);opacity:.9}
+.ldsp-rd-day-bar::after{content:attr(data-t);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--bg-el);padding:2px 4px;border-radius:2px;font-size:7px;font-weight:600;white-space:nowrap;opacity:0;pointer-events:none;margin-bottom:3px}
+.ldsp-rd-day-bar:hover::after{opacity:1}
+.ldsp-rd-day-lbl{font-size:7px;color:var(--txt-mut);line-height:1}
+.ldsp-today-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:8px}
+.ldsp-today-stat{background:var(--bg-card);border-radius:var(--r-sm);padding:8px;text-align:center}
+.ldsp-today-stat-val{font-size:16px;font-weight:800;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.ldsp-today-stat-lbl{font-size:9px;color:var(--txt-mut);margin-top:2px}
+.ldsp-time-info{font-size:9px;color:var(--txt-mut);text-align:center;padding:6px;background:var(--bg-card);border-radius:var(--r-sm);margin-bottom:8px}
+.ldsp-time-info span{color:var(--accent);font-weight:600}
+.ldsp-year-heatmap{padding:8px 12px 8px 0;overflow-x:hidden;overflow-y:auto;max-height:300px}
+.ldsp-year-wrap{display:flex;flex-direction:column;gap:2px;width:100%;padding-right:4px}
+.ldsp-year-row{display:flex;align-items:center;gap:4px;width:100%;position:relative}
+.ldsp-year-month{width:26px;font-size:7px;font-weight:600;color:var(--txt-mut);text-align:right;flex-shrink:0;line-height:1;position:absolute;left:0;top:50%;transform:translateY(-50%)}
+.ldsp-year-cells{display:grid;grid-template-columns:repeat(14,minmax(8px,1fr));gap:3px;width:100%;align-items:center;margin-left:30px}
+.ldsp-year-cell{width:100%;aspect-ratio:1;border-radius:2px;background:var(--bg-card);border:.5px solid var(--border);cursor:pointer;position:relative}
+.ldsp-year-cell:hover{transform:scale(1.5);box-shadow:0 0 6px rgba(124,58,237,.4);border-color:var(--accent);z-index:10}
+.ldsp-year-cell.l0{background:rgba(124,58,237,.08);border-color:rgba(124,58,237,.15)}
+.ldsp-year-cell.l1{background:rgba(124,58,237,.25);border-color:rgba(124,58,237,.35)}
+.ldsp-year-cell.l2{background:rgba(124,58,237,.45);border-color:rgba(124,58,237,.55)}
+.ldsp-year-cell.l3{background:rgba(124,58,237,.65);border-color:rgba(124,58,237,.75)}
+.ldsp-year-cell.l4{background:var(--accent);border-color:var(--accent)}
+.ldsp-year-cell.empty{background:0 0;border-color:transparent;cursor:default}
+.ldsp-year-cell.empty:hover{transform:none;box-shadow:none}
+.ldsp-year-tip{position:absolute;left:50%;transform:translateX(-50%);background:var(--bg-el);padding:4px 7px;border-radius:2px;font-size:7px;white-space:nowrap;opacity:0;pointer-events:none;border:1px solid var(--border2);z-index:1000;line-height:1.2}
+.ldsp-year-cell:hover .ldsp-year-tip{opacity:1}
+.ldsp-year-cell .ldsp-year-tip{bottom:100%;margin-bottom:2px}
+.ldsp-year-row:nth-child(-n+3) .ldsp-year-tip{bottom:auto;top:100%;margin-top:2px;margin-bottom:0}
+.ldsp-year-cell:nth-child(13) .ldsp-year-tip,.ldsp-year-cell:nth-child(14) .ldsp-year-tip{left:auto;right:0;transform:translateX(0)}
+.ldsp-heatmap-legend{display:flex;align-items:center;gap:4px;justify-content:center;font-size:7px;color:var(--txt-mut);padding:4px 0}
+.ldsp-heatmap-legend-cell{width:7px;height:7px;border-radius:1px;border:.5px solid var(--border)}
+.ldsp-empty,.ldsp-loading{text-align:center;padding:24px 14px;color:var(--txt-mut)}
+.ldsp-empty-icon{font-size:32px;margin-bottom:8px}
+.ldsp-empty-txt{font-size:11px;line-height:1.6}
+.ldsp-spinner{width:24px;height:24px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ldsp-mini-loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;color:var(--txt-mut)}
+.ldsp-mini-spin{width:28px;height:28px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}
+.ldsp-mini-txt{font-size:10px}
+.ldsp-toast{position:absolute;bottom:-50px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--grad);color:#fff;padding:8px 14px;border-radius:var(--r-md);font-size:11px;font-weight:600;box-shadow:0 4px 20px rgba(124,58,237,.4);opacity:0;white-space:nowrap;display:flex;align-items:center;gap:6px;z-index:100000}
+.ldsp-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.ldsp-modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:100001;opacity:0;transition:opacity var(--dur)}
+.ldsp-modal-overlay.show{opacity:1}
+.ldsp-modal{background:var(--bg-card);border-radius:var(--r-lg);padding:20px;max-width:320px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.5);transform:scale(.9) translateY(20px);transition:transform var(--dur) var(--ease-spring)}
+.ldsp-modal-overlay.show .ldsp-modal{transform:scale(1) translateY(0)}
+.ldsp-modal-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.ldsp-modal-icon{font-size:24px}
+.ldsp-modal-title{font-size:16px;font-weight:700}
+.ldsp-modal-body{font-size:12px;color:var(--txt-sec);line-height:1.6;margin-bottom:16px}
+.ldsp-modal-body p{margin:0 0 8px}
+.ldsp-modal-body ul{margin:8px 0;padding-left:20px}
+.ldsp-modal-body li{margin:4px 0}
+.ldsp-modal-body strong{color:var(--accent)}
+.ldsp-modal-footer{display:flex;gap:10px}
+.ldsp-modal-btn{flex:1;padding:10px 16px;border:none;border-radius:var(--r-md);font-size:12px;font-weight:600;cursor:pointer}
+.ldsp-modal-btn.primary{background:var(--grad);color:#fff}
+.ldsp-modal-btn.primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(124,58,237,.4)}
+.ldsp-modal-btn.secondary{background:var(--bg-el);color:var(--txt-sec);border:1px solid var(--border2)}
+.ldsp-modal-note{margin-top:12px;font-size:10px;color:var(--txt-mut);text-align:center}
+.ldsp-no-chg{text-align:center;padding:14px;color:var(--txt-mut);font-size:10px}
+.ldsp-lb-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg-card);border-radius:var(--r-md);margin-bottom:8px}
+.ldsp-lb-status{display:flex;align-items:center;gap:8px}
+.ldsp-lb-dot{width:8px;height:8px;border-radius:50%;background:var(--txt-mut)}
+.ldsp-lb-dot.joined{background:var(--ok)}
+.ldsp-lb-btn{padding:5px 10px;border:none;border-radius:var(--r-sm);font-size:10px;font-weight:600;cursor:pointer}
+.ldsp-lb-btn.primary{background:var(--grad);color:#fff}
+.ldsp-lb-btn.primary:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(124,58,237,.4)}
+.ldsp-lb-btn.secondary{background:var(--bg-el);color:var(--txt-sec);border:1px solid var(--border2)}
+.ldsp-lb-btn.danger{background:var(--err-bg);color:var(--err);border:1px solid rgba(239,68,68,.3)}
+.ldsp-lb-btn.danger:hover{background:var(--err);color:#fff}
+.ldsp-lb-btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+.ldsp-rank-list{display:flex;flex-direction:column;gap:4px}
+.ldsp-rank-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-card);border-radius:var(--r-sm);animation:item var(--dur) var(--ease) backwards}
+.ldsp-rank-item:hover{background:var(--bg-hover);transform:translateX(3px)}
+.ldsp-rank-item.t1{background:linear-gradient(135deg,rgba(255,215,0,.15),rgba(255,215,0,.05));border:1px solid rgba(255,215,0,.3)}
+.ldsp-rank-item.t2{background:linear-gradient(135deg,rgba(192,192,192,.15),rgba(192,192,192,.05));border:1px solid rgba(192,192,192,.3)}
+.ldsp-rank-item.t3{background:linear-gradient(135deg,rgba(205,127,50,.15),rgba(205,127,50,.05));border:1px solid rgba(205,127,50,.3)}
+.ldsp-rank-item.me{border-left:3px solid var(--accent)}
+.ldsp-rank-num{width:24px;height:24px;border-radius:50%;background:var(--bg-el);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--txt-sec);flex-shrink:0}
+.ldsp-rank-item.t1 .ldsp-rank-num{background:linear-gradient(135deg,#ffd700,#ffb700);color:#fff;font-size:12px}
+.ldsp-rank-item.t2 .ldsp-rank-num{background:linear-gradient(135deg,#c0c0c0,#a0a0a0);color:#fff}
+.ldsp-rank-item.t3 .ldsp-rank-num{background:linear-gradient(135deg,#cd7f32,#b5651d);color:#fff}
+.ldsp-rank-avatar{width:28px;height:28px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;background:var(--bg-el)}
+.ldsp-rank-item.t1 .ldsp-rank-avatar{border-color:#ffd700}
+.ldsp-rank-item.t2 .ldsp-rank-avatar{border-color:#c0c0c0}
+.ldsp-rank-item.t3 .ldsp-rank-avatar{border-color:#cd7f32}
+.ldsp-rank-info{flex:1;min-width:0}
+.ldsp-rank-name{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ldsp-rank-time{font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap}
+.ldsp-rank-item.t1 .ldsp-rank-time{color:#ffd700}
+.ldsp-rank-item.t2 .ldsp-rank-time{color:#c0c0c0}
+.ldsp-rank-item.t3 .ldsp-rank-time{color:#cd7f32}
+.ldsp-lb-empty{text-align:center;padding:30px 20px;color:var(--txt-mut)}
+.ldsp-lb-empty-icon{font-size:40px;margin-bottom:10px}
+.ldsp-lb-empty-txt{font-size:11px;line-height:1.6}
+.ldsp-lb-login{text-align:center;padding:30px 20px}
+.ldsp-lb-login-icon{font-size:48px;margin-bottom:12px}
+.ldsp-lb-login-title{font-size:13px;font-weight:600;margin-bottom:6px}
+.ldsp-lb-login-desc{font-size:10px;color:var(--txt-mut);margin-bottom:16px;line-height:1.5}
+.ldsp-lb-period{font-size:9px;color:var(--txt-mut);text-align:center;padding:6px;background:var(--bg-card);border-radius:var(--r-sm);margin-bottom:8px;display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap}
+.ldsp-lb-period span{color:var(--accent);font-weight:600}
+.ldsp-lb-period .ldsp-update-rule{font-size:8px;opacity:.8}
+.ldsp-my-rank{display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--grad);border-radius:var(--r-md);margin-bottom:8px;color:#fff}
+.ldsp-my-rank-lbl{font-size:10px;opacity:.9}
+.ldsp-my-rank-val{font-size:16px;font-weight:800}
+.ldsp-my-rank-time{font-size:11px;opacity:.9}
+.ldsp-join-prompt{background:var(--bg-card);border-radius:var(--r-md);padding:16px;text-align:center;margin-bottom:8px}
+.ldsp-join-prompt-icon{font-size:36px;margin-bottom:8px}
+.ldsp-join-prompt-title{font-size:12px;font-weight:600;margin-bottom:4px}
+.ldsp-join-prompt-desc{font-size:10px;color:var(--txt-mut);line-height:1.5;margin-bottom:12px}
+.ldsp-privacy-note{font-size:8px;color:var(--txt-mut);margin-top:8px;display:flex;align-items:center;justify-content:center;gap:4px}
+@media (prefers-reduced-motion:reduce){#ldsp-panel,#ldsp-panel *{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+@media (max-height:700px){#ldsp-panel{top:60px}.ldsp-content{max-height:calc(100vh - 240px)}}
+@media (max-width:1200px){#ldsp-panel{left:8px}}`;
         }
     };
 
     // ==================== 面板渲染器 ====================
-    class PanelRenderer {
+    class Renderer {
         constructor(panel) {
             this.panel = panel;
             this.prevValues = new Map();
             this.lastPct = -1;
-            this._htmlCache = new Map();
         }
 
+        // 渲染用户信息
         renderUser(name, level, isOK, reqs) {
             const done = reqs.filter(r => r.isSuccess).length;
             const $ = this.panel.$;
             $.userName.textContent = name;
             $.userLevel.textContent = `Lv ${level}`;
             $.userStatus.textContent = `${done}/${reqs.length} 完成`;
-            $.status.className = `ldsp-status ${isOK ? 'success' : 'fail'}`;
+            $.status.className = `ldsp-status ${isOK ? 'ok' : 'fail'}`;
             $.status.innerHTML = `<span>${isOK ? '✅' : '⏳'}</span><span>${isOK ? '已' : '未'}满足升级要求</span>`;
         }
 
+        // 渲染需求列表
         renderReqs(reqs) {
             const done = reqs.filter(r => r.isSuccess).length;
             const pct = Math.round(done / reqs.length * 100);
-            const config = ScreenUtils.getPanelConfig();
-            const ringSize = config.ringSize;
-            const ringRadius = (ringSize / 2) - 8;
-            const circumference = 2 * Math.PI * ringRadius;
-            const targetOffset = circumference * (1 - pct / 100);
-
-            const shouldAnimate = this.lastPct === -1 || this.lastPct !== pct || this.panel.shouldAnimateRing;
+            const cfg = Screen.getConfig();
+            const r = (cfg.ringSize / 2) - 8;
+            const circ = 2 * Math.PI * r;
+            const off = circ * (1 - pct / 100);
+            const anim = this.lastPct === -1 || this.lastPct !== pct || this.panel.animRing;
             this.lastPct = pct;
-            this.panel.shouldAnimateRing = false;
+            this.panel.animRing = false;
 
-            const parts = [`
-                <div class="ldsp-progress-ring">
-                    <div class="ldsp-ring-wrap">
-                        <svg width="${ringSize}" height="${ringSize}" viewBox="0 0 ${ringSize} ${ringSize}">
-                            <defs><linearGradient id="ldsp-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#7c3aed"/><stop offset="100%" style="stop-color:#06b6d4"/></linearGradient></defs>
-                            <circle class="ldsp-ring-bg" cx="${ringSize/2}" cy="${ringSize/2}" r="${ringRadius}"/>
-                            <circle class="ldsp-ring-fill ${shouldAnimate ? 'animate' : ''}" cx="${ringSize/2}" cy="${ringSize/2}" r="${ringRadius}" stroke-dasharray="${circumference}" stroke-dashoffset="${shouldAnimate ? circumference : targetOffset}" style="--ring-circumference: ${circumference}; --ring-target-offset: ${targetOffset};"/>
-                        </svg>
-                        <div class="ldsp-ring-text"><div class="ldsp-ring-value ${shouldAnimate ? 'animate' : ''}">${pct}%</div><div class="ldsp-ring-label">完成度</div></div>
-                    </div>
-                </div>
-            `];
+            let html = `<div class="ldsp-ring"><div class="ldsp-ring-wrap">
+                <svg width="${cfg.ringSize}" height="${cfg.ringSize}" viewBox="0 0 ${cfg.ringSize} ${cfg.ringSize}">
+                    <defs><linearGradient id="ldsp-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#7c3aed"/><stop offset="100%" style="stop-color:#06b6d4"/></linearGradient></defs>
+                    <circle class="ldsp-ring-bg" cx="${cfg.ringSize/2}" cy="${cfg.ringSize/2}" r="${r}"/>
+                    <circle class="ldsp-ring-fill${anim ? ' anim' : ''}" cx="${cfg.ringSize/2}" cy="${cfg.ringSize/2}" r="${r}" stroke-dasharray="${circ}" stroke-dashoffset="${anim ? circ : off}" style="--circ:${circ};--off:${off}"/>
+                </svg>
+                <div class="ldsp-ring-txt"><div class="ldsp-ring-val${anim ? ' anim' : ''}">${pct}%</div><div class="ldsp-ring-lbl">完成度</div></div>
+            </div></div>`;
 
             for (const r of reqs) {
                 const name = Utils.simplifyName(r.name);
-                const icon = r.isSuccess ? '✓' : '○';
-                const changeHtml = r.change !== 0 ? `<span class="ldsp-item-change ${r.change > 0 ? 'up' : 'down'}">${r.change > 0 ? '+' : ''}${r.change}</span>` : '';
-                const prevValue = this.prevValues.get(r.name);
-                const updateClass = prevValue !== undefined && prevValue !== r.currentValue ? ' updating' : '';
-
-                parts.push(`
-                    <div class="ldsp-item ${r.isSuccess ? 'success' : 'fail'}">
-                        <span class="ldsp-item-icon">${icon}</span>
-                        <span class="ldsp-item-name">${name}</span>
-                        <div class="ldsp-item-values">
-                            <span class="ldsp-item-current${updateClass}">${r.currentValue}</span>
-                            <span class="ldsp-item-sep">/</span>
-                            <span class="ldsp-item-required">${r.requiredValue}</span>
-                        </div>
-                        ${changeHtml}
+                const prev = this.prevValues.get(r.name);
+                const upd = prev !== undefined && prev !== r.currentValue;
+                html += `<div class="ldsp-item ${r.isSuccess ? 'ok' : 'fail'}">
+                    <span class="ldsp-item-icon">${r.isSuccess ? '✓' : '○'}</span>
+                    <span class="ldsp-item-name">${name}</span>
+                    <div class="ldsp-item-vals">
+                        <span class="ldsp-item-cur${upd ? ' upd' : ''}">${r.currentValue}</span>
+                        <span class="ldsp-item-sep">/</span>
+                        <span class="ldsp-item-req">${r.requiredValue}</span>
                     </div>
-                `);
+                    ${r.change ? `<span class="ldsp-item-chg ${r.change > 0 ? 'up' : 'down'}">${r.change > 0 ? '+' : ''}${r.change}</span>` : ''}
+                </div>`;
                 this.prevValues.set(r.name, r.currentValue);
             }
 
-            this.panel.$.reqs.innerHTML = parts.join('');
+            this.panel.$.reqs.innerHTML = html;
         }
 
-        renderReadingCard(minutes) {
-            const level = Utils.getReadingLevel(minutes);
-            const timeStr = Utils.formatReadingTime(minutes);
+        // 渲染阅读卡片
+        renderReading(minutes) {
+            const lv = Utils.getReadingLevel(minutes);
             const $ = this.panel.$;
-
-            $.readingIcon.textContent = level.icon;
-            $.readingTime.textContent = timeStr;
-            $.readingLabel.textContent = level.label;
-            $.readingCard.style.cssText = `background: ${level.bg}; color: ${level.color};`;
-            $.readingTime.style.color = level.color;
-            $.readingLabel.style.color = level.color;
-
-            $.readingCard.classList.remove('level-high', 'level-max');
-            if (minutes >= 450) $.readingCard.classList.add('level-max');
-            else if (minutes >= 180) $.readingCard.classList.add('level-high');
+            $.readingIcon.textContent = lv.icon;
+            $.readingTime.textContent = Utils.formatReadingTime(minutes);
+            $.readingLabel.textContent = lv.label;
+            $.reading.style.cssText = `background:${lv.bg};color:${lv.color}`;
+            $.readingTime.style.color = lv.color;
+            $.readingLabel.style.color = lv.color;
+            $.reading.classList.toggle('hi', minutes >= 180 && minutes < 450);
+            $.reading.classList.toggle('max', minutes >= 450);
         }
 
+        // 渲染头像
         renderAvatar(url) {
-            const container = this.panel.$.user.querySelector('.ldsp-avatar-placeholder, .ldsp-avatar');
-            if (!container) return;
-
+            const el = this.panel.$.user.querySelector('.ldsp-avatar-ph, .ldsp-avatar');
+            if (!el) return;
             const img = document.createElement('img');
             img.className = 'ldsp-avatar';
             img.src = url;
             img.alt = 'Avatar';
             img.onerror = () => {
-                const placeholder = document.createElement('div');
-                placeholder.className = 'ldsp-avatar-placeholder';
-                placeholder.textContent = '👤';
-                img.replaceWith(placeholder);
+                const ph = document.createElement('div');
+                ph.className = 'ldsp-avatar-ph';
+                ph.textContent = '👤';
+                img.replaceWith(ph);
             };
-            container.replaceWith(img);
+            el.replaceWith(img);
         }
 
-        renderTrends(history, reqs, currentReadingTime, currentTab) {
+        // 渲染趋势标签页
+        renderTrends(currentTab) {
+            const tabs = [
+                { id: 'today', icon: '☀️', label: '今日' },
+                { id: 'week', icon: '📅', label: '本周' },
+                { id: 'month', icon: '📊', label: '本月' },
+                { id: 'year', icon: '📈', label: '本年' },
+                { id: 'all', icon: '🌐', label: '全部' }
+            ];
             this.panel.$.trends.innerHTML = `
-                <div class="ldsp-subtabs" role="tablist">
-                    ${['today', 'week', 'month', 'year', 'all'].map(tab => {
-                        const icons = { today: '☀️', week: '📅', month: '📊', year: '📈', all: '🌐' };
-                        const labels = { today: '今日', week: '本周', month: '本月', year: '本年', all: '全部' };
-                        return `<div class="ldsp-subtab ${currentTab === tab ? 'active' : ''}" data-trend="${tab}" role="tab" aria-selected="${currentTab === tab}">${icons[tab]} ${labels[tab]}</div>`;
-                    }).join('')}
-                </div>
-                <div class="ldsp-trend-content" role="tabpanel"></div>
-            `;
+                <div class="ldsp-subtabs">${tabs.map(t => 
+                    `<div class="ldsp-subtab${currentTab === t.id ? ' active' : ''}" data-tab="${t.id}">${t.icon} ${t.label}</div>`
+                ).join('')}</div>
+                <div class="ldsp-trend-content"></div>`;
         }
 
+        // 获取趋势字段
         getTrendFields(reqs) {
-            return CONFIG.TREND_FIELDS.map(field => {
-                const req = reqs.find(r => r.name.includes(field.searchKey));
-                return req ? { ...field, req, name: req.name } : null;
+            return CONFIG.TREND_FIELDS.map(f => {
+                const req = reqs.find(r => r.name.includes(f.search));
+                return req ? { ...f, req, name: req.name } : null;
             }).filter(Boolean);
         }
 
-        renderTodayTrend(reqs, currentReadingTime, todayData) {
+        // 渲染今日趋势
+        renderTodayTrend(reqs, readingTime, todayData) {
             if (!todayData) {
-                return `<div class="ldsp-empty"><div class="ldsp-empty-icon">☀️</div><div class="ldsp-empty-text">今日首次访问<br>数据将从现在开始统计</div></div>`;
+                return `<div class="ldsp-empty"><div class="ldsp-empty-icon">☀️</div><div class="ldsp-empty-txt">今日首次访问<br>数据将从现在开始统计</div></div>`;
             }
 
             const now = new Date();
-            const startTime = new Date(todayData.startTs);
-            const startTimeStr = `${startTime.getHours()}:${String(startTime.getMinutes()).padStart(2, '0')}`;
-            const currentTimeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-            const level = Utils.getReadingLevel(currentReadingTime);
-            const progressPct = Math.min(currentReadingTime / 600 * 100, 100);
+            const start = new Date(todayData.startTs);
+            const startStr = `${start.getHours()}:${String(start.getMinutes()).padStart(2, '0')}`;
+            const nowStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+            const lv = Utils.getReadingLevel(readingTime);
+            const pct = Math.min(readingTime / 600 * 100, 100);
 
-            const changeList = [];
-            for (const r of reqs) {
-                const startVal = todayData.startData[r.name] || 0;
-                const diff = r.currentValue - startVal;
-                if (diff !== 0) changeList.push({ name: Utils.simplifyName(r.name), diff, current: r.currentValue });
-            }
+            const changes = reqs.map(r => ({
+                name: Utils.simplifyName(r.name),
+                diff: r.currentValue - (todayData.startData[r.name] || 0)
+            })).filter(c => c.diff !== 0).sort((a, b) => b.diff - a.diff);
 
-            const posChanges = changeList.filter(c => c.diff > 0).length;
-            const negChanges = changeList.filter(c => c.diff < 0).length;
+            const pos = changes.filter(c => c.diff > 0).length;
+            const neg = changes.filter(c => c.diff < 0).length;
 
-            let changesHtml = '';
-            if (changeList.length > 0) {
-                changesHtml = `<div class="ldsp-chart"><div class="ldsp-chart-title">📊 今日变化明细</div><div class="ldsp-changes">`;
-                changeList.sort((a, b) => b.diff - a.diff).forEach(c => {
-                    changesHtml += `<div class="ldsp-change-row"><span class="ldsp-change-name">${c.name}</span><span class="ldsp-change-val ${c.diff > 0 ? 'up' : 'down'}">${c.diff > 0 ? '+' : ''}${c.diff}</span></div>`;
-                });
-                changesHtml += `</div></div>`;
-            } else {
-                changesHtml = `<div class="ldsp-no-change">今日暂无数据变化</div>`;
-            }
+            let changeHtml = changes.length > 0
+                ? `<div class="ldsp-chart"><div class="ldsp-chart-title">📊 今日变化明细</div><div class="ldsp-changes">${
+                    changes.map(c => `<div class="ldsp-chg-row"><span class="ldsp-chg-name">${c.name}</span><span class="ldsp-chg-val ${c.diff > 0 ? 'up' : 'down'}">${c.diff > 0 ? '+' : ''}${c.diff}</span></div>`).join('')
+                }</div></div>`
+                : `<div class="ldsp-no-chg">今日暂无数据变化</div>`;
 
             return `
-                <div class="ldsp-time-info">今日 00:00 ~ ${currentTimeStr} (首次记录于 ${startTimeStr})</div>
-                <div class="ldsp-tracking-indicator"><div class="ldsp-tracking-dot"></div><span>阅读时间追踪中...</span></div>
-                <div class="ldsp-reading-stats">
-                    <div class="ldsp-reading-stats-icon">${level.icon}</div>
-                    <div class="ldsp-reading-stats-info"><div class="ldsp-reading-stats-value">${Utils.formatReadingTime(currentReadingTime)}</div><div class="ldsp-reading-stats-label">今日累计阅读</div></div>
-                    <div class="ldsp-reading-stats-badge" style="background: ${level.bg}; color: ${level.color};">${level.label}</div>
+                <div class="ldsp-time-info">今日 00:00 ~ ${nowStr} (首次记录于 ${startStr})</div>
+                <div class="ldsp-track"><div class="ldsp-track-dot"></div><span>阅读时间追踪中...</span></div>
+                <div class="ldsp-rd-stats">
+                    <div class="ldsp-rd-stats-icon">${lv.icon}</div>
+                    <div class="ldsp-rd-stats-info"><div class="ldsp-rd-stats-val">${Utils.formatReadingTime(readingTime)}</div><div class="ldsp-rd-stats-lbl">今日累计阅读</div></div>
+                    <div class="ldsp-rd-stats-badge" style="background:${lv.bg};color:${lv.color}">${lv.label}</div>
                 </div>
-                <div class="ldsp-reading-progress">
-                    <div class="ldsp-reading-progress-header"><span class="ldsp-reading-progress-title">📖 阅读目标 (10小时)</span><span class="ldsp-reading-progress-value">${Math.round(progressPct)}%</span></div>
-                    <div class="ldsp-reading-progress-bar"><div class="ldsp-reading-progress-fill" style="width: ${progressPct}%; background: ${level.bg.replace('0.15', '1')};"></div></div>
+                <div class="ldsp-rd-prog">
+                    <div class="ldsp-rd-prog-hdr"><span class="ldsp-rd-prog-title">📖 阅读目标 (10小时)</span><span class="ldsp-rd-prog-val">${Math.round(pct)}%</span></div>
+                    <div class="ldsp-rd-prog-bar"><div class="ldsp-rd-prog-fill" style="width:${pct}%;background:${lv.bg.replace('0.15', '1')}"></div></div>
                 </div>
                 <div class="ldsp-today-stats">
-                    <div class="ldsp-today-stat"><div class="ldsp-today-stat-value">${posChanges}</div><div class="ldsp-today-stat-label">📈 增长项</div></div>
-                    <div class="ldsp-today-stat"><div class="ldsp-today-stat-value">${negChanges}</div><div class="ldsp-today-stat-label">📉 下降项</div></div>
+                    <div class="ldsp-today-stat"><div class="ldsp-today-stat-val">${pos}</div><div class="ldsp-today-stat-lbl">📈 增长项</div></div>
+                    <div class="ldsp-today-stat"><div class="ldsp-today-stat-val">${neg}</div><div class="ldsp-today-stat-lbl">📉 下降项</div></div>
                 </div>
-                ${changesHtml}
-            `;
+                ${changeHtml}`;
         }
 
-        renderWeekTrend(history, reqs, historyManager, readingTracker) {
-            const weekAgo = Date.now() - 7 * 24 * 3600000;
+        // 渲染周趋势
+        renderWeekTrend(history, reqs, historyMgr, tracker) {
+            const weekAgo = Date.now() - 7 * 86400000;
             const recent = history.filter(h => h.ts > weekAgo);
-            if (recent.length < 1) return `<div class="ldsp-empty"><div class="ldsp-empty-icon">📅</div><div class="ldsp-empty-text">本周数据不足<br>每天访问积累数据</div></div>`;
+            if (recent.length < 1) {
+                return `<div class="ldsp-empty"><div class="ldsp-empty-icon">📅</div><div class="ldsp-empty-txt">本周数据不足<br>每天访问积累数据</div></div>`;
+            }
 
-            let html = this._renderReadingWeekChart(readingTracker);
-            const dailyAggregates = historyManager.aggregateDailyIncrements(recent, reqs, 7);
-            const trendFields = this.getTrendFields(reqs);
+            let html = this._renderWeekChart(tracker);
+            const daily = historyMgr.aggregateDaily(recent, reqs, 7);
+            const fields = this.getTrendFields(reqs);
             const trends = [];
 
-            for (const field of trendFields) {
-                const trendData = this._calculateDailyTrend(dailyAggregates, field.name, 7);
-                if (trendData.values.some(v => v > 0)) {
-                    trends.push({ label: field.label, ...trendData, current: field.req.currentValue });
+            for (const f of fields) {
+                const data = this._calcDailyTrend(daily, f.name, 7);
+                if (data.values.some(v => v > 0)) {
+                    trends.push({ label: f.label, ...data, current: f.req.currentValue });
                 }
             }
 
             if (trends.length > 0) {
-                html += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 本周每日增量<span class="ldsp-chart-subtitle">每日累积量</span></div>`;
+                html += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 本周每日增量<span class="ldsp-chart-sub">每日累积量</span></div>`;
                 html += this._renderSparkRows(trends);
                 if (trends[0].dates.length > 0) {
-                    html += `<div class="ldsp-date-labels">${trends[0].dates.map(d => `<span class="ldsp-date-label">${d}</span>`).join('')}</div>`;
+                    html += `<div class="ldsp-date-labels">${trends[0].dates.map(d => `<span class="ldsp-date-lbl">${d}</span>`).join('')}</div>`;
                 }
                 html += `</div>`;
             }
@@ -1622,28 +1874,31 @@
             return html;
         }
 
-        renderMonthTrend(history, reqs, historyManager, readingTracker) {
-            const monthAgo = Date.now() - 30 * 24 * 3600000;
+        // 渲染月趋势
+        renderMonthTrend(history, reqs, historyMgr, tracker) {
+            const monthAgo = Date.now() - 30 * 86400000;
             const recent = history.filter(h => h.ts > monthAgo);
-            if (recent.length < 2) return `<div class="ldsp-empty"><div class="ldsp-empty-icon">📊</div><div class="ldsp-empty-text">本月数据不足<br>请继续访问积累数据</div></div>`;
+            if (recent.length < 2) {
+                return `<div class="ldsp-empty"><div class="ldsp-empty-icon">📊</div><div class="ldsp-empty-txt">本月数据不足<br>请继续访问积累数据</div></div>`;
+            }
 
-            let html = this._renderReadingMonthChart(readingTracker);
-            const weeklyAggregates = historyManager.aggregateWeeklyIncrements(recent, reqs);
-            const trendFields = this.getTrendFields(reqs);
+            let html = this._renderMonthChart(tracker);
+            const weekly = historyMgr.aggregateWeekly(recent, reqs);
+            const fields = this.getTrendFields(reqs);
             const trends = [];
 
-            for (const field of trendFields) {
-                const trendData = this._calculateWeeklyTrend(weeklyAggregates, field.name);
-                if (trendData.values.length > 0) {
-                    trends.push({ label: field.label, ...trendData, current: field.req.currentValue });
+            for (const f of fields) {
+                const data = this._calcWeeklyTrend(weekly, f.name);
+                if (data.values.length > 0) {
+                    trends.push({ label: f.label, ...data, current: f.req.currentValue });
                 }
             }
 
             if (trends.length > 0) {
-                html += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 本月每周增量<span class="ldsp-chart-subtitle">每周累积量</span></div>`;
+                html += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 本月每周增量<span class="ldsp-chart-sub">每周累积量</span></div>`;
                 html += this._renderSparkRows(trends, true);
                 if (trends[0].labels?.length > 0) {
-                    html += `<div class="ldsp-date-labels" style="padding-left: 60px;">${trends[0].labels.map(l => `<span class="ldsp-date-label">${l}</span>`).join('')}</div>`;
+                    html += `<div class="ldsp-date-labels" style="padding-left:60px">${trends[0].labels.map(l => `<span class="ldsp-date-lbl">${l}</span>`).join('')}</div>`;
                 }
                 html += `</div>`;
             }
@@ -1651,29 +1906,32 @@
             return html;
         }
 
-        renderYearTrend(history, reqs, historyManager, readingTracker) {
-            const yearAgo = Date.now() - 365 * 24 * 3600000;
+        // 渲染年趋势
+        renderYearTrend(history, reqs, historyMgr, tracker) {
+            const yearAgo = Date.now() - 365 * 86400000;
             const recent = history.filter(h => h.ts > yearAgo);
-            if (recent.length < 2) return `<div class="ldsp-empty"><div class="ldsp-empty-icon">📈</div><div class="ldsp-empty-text">本年数据不足<br>请持续使用积累数据</div></div>`;
+            if (recent.length < 2) {
+                return `<div class="ldsp-empty"><div class="ldsp-empty-icon">📈</div><div class="ldsp-empty-txt">本年数据不足<br>请持续使用积累数据</div></div>`;
+            }
 
-            let html = this._renderReadingYearChart(readingTracker);
-            const monthlyAggregates = historyManager.aggregateMonthlyIncrements(recent, reqs);
-            const trendFields = this.getTrendFields(reqs);
+            let html = this._renderYearChart(tracker);
+            const monthly = historyMgr.aggregateMonthly(recent, reqs);
+            const fields = this.getTrendFields(reqs);
             const trends = [];
 
-            for (const field of trendFields) {
-                const trendData = this._calculateMonthlyTrend(monthlyAggregates, field.name);
-                if (trendData.values.some(v => v > 0)) {
-                    trends.push({ label: field.label, ...trendData, current: field.req.currentValue });
+            for (const f of fields) {
+                const data = this._calcMonthlyTrend(monthly, f.name);
+                if (data.values.some(v => v > 0)) {
+                    trends.push({ label: f.label, ...data, current: f.req.currentValue });
                 }
             }
 
             if (trends.length > 0) {
-                html += `<div class="ldsp-chart"><div class="ldsp-chart-title">📊 本年每月增量<span class="ldsp-chart-subtitle">每月累积量</span></div>`;
+                html += `<div class="ldsp-chart"><div class="ldsp-chart-title">📊 本年每月增量<span class="ldsp-chart-sub">每月累积量</span></div>`;
                 trends.forEach(t => {
                     const max = Math.max(...t.values, 1);
-                    const bars = t.values.map((v, i) => `<div class="ldsp-spark-bar" style="height:${Math.max(v / max * 16, 2)}px" data-value="${v}" title="${(i + 1)}月: ${v}"></div>`).join('');
-                    html += `<div class="ldsp-spark-row"><span class="ldsp-spark-label">${t.label}</span><div class="ldsp-spark-bars" style="max-width: 100%;">${bars}</div><span class="ldsp-spark-val">${t.current}</span></div>`;
+                    const bars = t.values.map((v, i) => `<div class="ldsp-spark-bar" style="height:${Math.max(v / max * 16, 2)}px" data-v="${v}" title="${i + 1}月: ${v}"></div>`).join('');
+                    html += `<div class="ldsp-spark-row"><span class="ldsp-spark-lbl">${t.label}</span><div class="ldsp-spark-bars" style="max-width:100%">${bars}</div><span class="ldsp-spark-val">${t.current}</span></div>`;
                 });
                 html += `</div>`;
             }
@@ -1681,42 +1939,37 @@
             return html;
         }
 
-        renderAllTrend(history, reqs, readingTracker) {
-            if (history.length < 2) return `<div class="ldsp-empty"><div class="ldsp-empty-icon">🌐</div><div class="ldsp-empty-text">全部历史数据<br>持续访问积累数据</div></div>`;
-
-            const oldest = history[0];
-            const newest = history[history.length - 1];
-            const totalDays = Math.ceil((Date.now() - oldest.ts) / 86400000);
-            const totalReadingTime = readingTracker.getTotalReadingTime();
-            const avgReadingTime = Math.round(totalReadingTime / Math.max(totalDays, 1));
-            const level = Utils.getReadingLevel(avgReadingTime);
-
-            let html = `<div class="ldsp-time-info">共记录 <span>${totalDays}</span> 天数据</div>`;
-
-            if (totalReadingTime > 0) {
-                html += `
-                    <div class="ldsp-reading-stats">
-                        <div class="ldsp-reading-stats-icon">📚</div>
-                        <div class="ldsp-reading-stats-info"><div class="ldsp-reading-stats-value">${Utils.formatReadingTime(totalReadingTime)}</div><div class="ldsp-reading-stats-label">累计阅读时间 · 日均 ${Utils.formatReadingTime(avgReadingTime)}</div></div>
-                        <div class="ldsp-reading-stats-badge" style="background: ${level.bg}; color: ${level.color};">${level.label}</div>
-                    </div>
-                `;
+        // 渲染全部趋势
+        renderAllTrend(history, reqs, tracker) {
+            if (history.length < 2) {
+                return `<div class="ldsp-empty"><div class="ldsp-empty-icon">🌐</div><div class="ldsp-empty-txt">全部历史数据<br>持续访问积累数据</div></div>`;
             }
 
-            const changes = [];
-            for (const r of reqs) {
-                const oldVal = oldest.data[r.name] || 0;
-                const newVal = newest.data[r.name] || 0;
-                const diff = newVal - oldVal;
-                if (diff !== 0) changes.push({ name: Utils.simplifyName(r.name), diff });
+            const oldest = history[0], newest = history.at(-1);
+            const days = Math.ceil((Date.now() - oldest.ts) / 86400000);
+            const total = tracker.getTotalTime();
+            const avg = Math.round(total / Math.max(days, 1));
+            const lv = Utils.getReadingLevel(avg);
+
+            let html = `<div class="ldsp-time-info">共记录 <span>${days}</span> 天数据</div>`;
+
+            if (total > 0) {
+                html += `<div class="ldsp-rd-stats">
+                    <div class="ldsp-rd-stats-icon">📚</div>
+                    <div class="ldsp-rd-stats-info"><div class="ldsp-rd-stats-val">${Utils.formatReadingTime(total)}</div><div class="ldsp-rd-stats-lbl">累计阅读时间 · 日均 ${Utils.formatReadingTime(avg)}</div></div>
+                    <div class="ldsp-rd-stats-badge" style="background:${lv.bg};color:${lv.color}">${lv.label}</div>
+                </div>`;
             }
+
+            const changes = reqs.map(r => ({
+                name: Utils.simplifyName(r.name),
+                diff: (newest.data[r.name] || 0) - (oldest.data[r.name] || 0)
+            })).filter(c => c.diff !== 0);
 
             if (changes.length > 0) {
-                html += `<div class="ldsp-chart"><div class="ldsp-chart-title">📊 累计变化</div><div class="ldsp-changes">`;
-                changes.forEach(c => {
-                    html += `<div class="ldsp-change-row"><span class="ldsp-change-name">${c.name}</span><span class="ldsp-change-val ${c.diff > 0 ? 'up' : 'down'}">${c.diff > 0 ? '+' : ''}${c.diff}</span></div>`;
-                });
-                html += `</div></div>`;
+                html += `<div class="ldsp-chart"><div class="ldsp-chart-title">📊 累计变化</div><div class="ldsp-changes">${
+                    changes.map(c => `<div class="ldsp-chg-row"><span class="ldsp-chg-name">${c.name}</span><span class="ldsp-chg-val ${c.diff > 0 ? 'up' : 'down'}">${c.diff > 0 ? '+' : ''}${c.diff}</span></div>`).join('')
+                }</div></div>`;
             }
 
             return html;
@@ -1727,212 +1980,157 @@
             for (const t of trends) {
                 const max = Math.max(...t.values, 1);
                 const bars = t.values.map((v, i) => {
-                    const height = Math.max(v / max * 20, 2);
-                    const opacity = isWeekly && i === t.values.length - 1 ? '1' : (isWeekly ? '0.6' : '');
-                    const style = opacity ? `height:${height}px; opacity:${opacity}` : `height:${height}px`;
-                    return `<div class="ldsp-spark-bar" style="${style}" data-value="${v}"></div>`;
+                    const h = Math.max(v / max * 20, 2);
+                    const op = isWeekly && i === t.values.length - 1 ? 1 : (isWeekly ? 0.6 : '');
+                    return `<div class="ldsp-spark-bar" style="height:${h}px${op ? `;opacity:${op}` : ''}" data-v="${v}"></div>`;
                 }).join('');
-                html += `<div class="ldsp-spark-row"><span class="ldsp-spark-label">${t.label}</span><div class="ldsp-spark-bars">${bars}</div><span class="ldsp-spark-val">${t.current}</span></div>`;
+                html += `<div class="ldsp-spark-row"><span class="ldsp-spark-lbl">${t.label}</span><div class="ldsp-spark-bars">${bars}</div><span class="ldsp-spark-val">${t.current}</span></div>`;
             }
             return html;
         }
 
-        _renderReadingWeekChart(readingTracker) {
-            const days = readingTracker.getReadingTimeHistory(7);
-            const maxTime = Math.max(...days.map(d => d.minutes), 60);
-            const totalWeekTime = days.reduce((sum, d) => sum + d.minutes, 0);
-            const avgTime = Math.round(totalWeekTime / 7);
+        _renderWeekChart(tracker) {
+            const days = tracker.getWeekHistory();
+            const max = Math.max(...days.map(d => d.minutes), 60);
+            const total = days.reduce((s, d) => s + d.minutes, 0);
+            const avg = Math.round(total / 7);
 
-            const barsHtml = days.map(d => {
-                const height = Math.max(d.minutes / maxTime * 45, 3);
-                const timeStr = Utils.formatReadingTime(d.minutes);
-                const dayIndex = new Date(d.date).getDay();
-                return `<div class="ldsp-reading-day"><div class="ldsp-reading-day-bar" style="height:${height}px; opacity:${d.isToday ? '1' : '0.7'}" data-time="${timeStr}"></div><span class="ldsp-reading-day-label">${CONFIG.WEEK_DAY_LABELS[dayIndex]}</span></div>`;
+            const bars = days.map(d => {
+                const h = Math.max(d.minutes / max * 45, 3);
+                return `<div class="ldsp-rd-day"><div class="ldsp-rd-day-bar" style="height:${h}px;opacity:${d.isToday ? 1 : 0.7}" data-t="${Utils.formatReadingTime(d.minutes)}"></div><span class="ldsp-rd-day-lbl">${d.day}</span></div>`;
             }).join('');
 
-            return `
-                <div class="ldsp-chart">
-                    <div class="ldsp-chart-title">⏱️ 7天阅读时间<span class="ldsp-chart-subtitle">共 ${Utils.formatReadingTime(totalWeekTime)} · 日均 ${Utils.formatReadingTime(avgTime)}</span></div>
-                    <div class="ldsp-reading-week">${barsHtml}</div>
-                </div>
-            `;
+            return `<div class="ldsp-chart"><div class="ldsp-chart-title">⏱️ 7天阅读时间<span class="ldsp-chart-sub">共 ${Utils.formatReadingTime(total)} · 日均 ${Utils.formatReadingTime(avg)}</span></div><div class="ldsp-rd-week">${bars}</div></div>`;
         }
 
-        _renderReadingMonthChart(readingTracker) {
+        _renderMonthChart(tracker) {
             const today = new Date();
-            const year = today.getFullYear();
-            const month = today.getMonth();
-            const currentDay = today.getDate();
+            const [year, month, currentDay] = [today.getFullYear(), today.getMonth(), today.getDate()];
             const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-            let maxTime = 1;
-            let totalMonthTime = 0;
+            let max = 1, total = 0;
             const days = [];
 
-            for (let day = 1; day <= daysInMonth; day++) {
-                const date = new Date(year, month, day);
-                const dateKey = date.toDateString();
-                const isToday = day === currentDay;
-                const isFuture = day > currentDay;
-                const minutes = isFuture ? 0 : (isToday ? readingTracker.getTodayReadingTime() : readingTracker.getReadingTimeForDate(dateKey));
-
-                if (!isFuture) {
-                    maxTime = Math.max(maxTime, minutes);
-                    totalMonthTime += minutes;
-                }
-                days.push({ day, minutes: Math.max(minutes, 0), isToday, isFuture });
+            for (let d = 1; d <= daysInMonth; d++) {
+                const key = new Date(year, month, d).toDateString();
+                const isToday = d === currentDay;
+                const isFuture = d > currentDay;
+                const mins = isFuture ? 0 : (isToday ? tracker.getTodayTime() : tracker.getTimeForDate(key));
+                if (!isFuture) { max = Math.max(max, mins); total += mins; }
+                days.push({ d, mins: Math.max(mins, 0), isToday, isFuture });
             }
 
-            const avgTime = currentDay > 0 ? Math.round(totalMonthTime / currentDay) : 0;
-
-            const barsHtml = days.map(d => {
-                const height = maxTime > 0 ? (d.minutes > 0 ? Math.max(d.minutes / maxTime * 45, 2) : 1) : 1;
-                const timeStr = d.isFuture ? '0分钟 (未到)' : Utils.formatReadingTime(d.minutes);
-                const opacity = d.isFuture ? '0.35' : (d.isToday ? '1' : '0.75');
-                return `<div class="ldsp-reading-day" style="margin: 0 1px; flex: 1; min-width: 2px;"><div class="ldsp-reading-day-bar" style="height:${height}px; opacity:${opacity}; background:var(--accent-secondary); width:100%; border-radius:3px 3px 0 0;" data-time="${d.day}日: ${timeStr}"></div><div class="ldsp-reading-day-label" style="margin-top:3px;">${d.day}</div></div>`;
+            const avg = currentDay > 0 ? Math.round(total / currentDay) : 0;
+            const bars = days.map(day => {
+                const h = max > 0 ? (day.mins > 0 ? Math.max(day.mins / max * 45, 2) : 1) : 1;
+                const op = day.isFuture ? 0.35 : (day.isToday ? 1 : 0.75);
+                const timeStr = day.isFuture ? '0分钟 (未到)' : Utils.formatReadingTime(day.mins);
+                return `<div class="ldsp-rd-day" style="margin:0 1px;flex:1;min-width:2px"><div class="ldsp-rd-day-bar" style="height:${h}px;opacity:${op};background:var(--accent2);width:100%;border-radius:3px 3px 0 0" data-t="${day.d}日: ${timeStr}"></div><div class="ldsp-rd-day-lbl" style="margin-top:3px">${day.d}</div></div>`;
             }).join('');
 
-            return `
-                <div class="ldsp-chart">
-                    <div class="ldsp-chart-title">⏱️ 本月阅读时间<span class="ldsp-chart-subtitle">共 ${Utils.formatReadingTime(totalMonthTime)} · 日均 ${Utils.formatReadingTime(avgTime)}</span></div>
-                    <div class="ldsp-reading-week" style="height:100px; align-items: flex-end; gap:1px;">${barsHtml}</div>
-                </div>
-            `;
+            return `<div class="ldsp-chart"><div class="ldsp-chart-title">⏱️ 本月阅读时间<span class="ldsp-chart-sub">共 ${Utils.formatReadingTime(total)} · 日均 ${Utils.formatReadingTime(avg)}</span></div><div class="ldsp-rd-week" style="height:100px;align-items:flex-end;gap:1px">${bars}</div></div>`;
         }
 
-        _renderReadingYearChart(readingTracker) {
+        _renderYearChart(tracker) {
             const today = new Date();
-            const currentYear = today.getFullYear();
-            const yearData = readingTracker.getYearData();
+            const year = today.getFullYear();
+            const data = tracker.getYearData();
 
-            const jan1 = new Date(currentYear, 0, 1);
-            const jan1Weekday = jan1.getDay();
-            const leadingBlanks = jan1Weekday === 0 ? 6 : (jan1Weekday - 1);
+            const jan1 = new Date(year, 0, 1);
+            const blanks = jan1.getDay() === 0 ? 6 : jan1.getDay() - 1;
 
-            let totalYearTime = 0;
-            yearData.forEach(minutes => totalYearTime += minutes);
+            let total = 0;
+            data.forEach(m => total += m);
 
-            const days = [];
-            for (let i = 0; i < leadingBlanks; i++) days.push({ isPlaceholder: true });
-
-            let currentDate = new Date(jan1);
-            while (currentDate <= today) {
-                const dateKey = currentDate.toDateString();
+            const days = Array(blanks).fill({ empty: true });
+            let d = new Date(jan1);
+            while (d <= today) {
                 days.push({
-                    date: new Date(currentDate),
-                    minutes: Math.max(yearData.get(dateKey) || 0, 0),
-                    month: currentDate.getMonth(),
-                    day: currentDate.getDate(),
-                    isPlaceholder: false
+                    date: new Date(d),
+                    mins: Math.max(data.get(d.toDateString()) || 0, 0),
+                    month: d.getMonth(),
+                    day: d.getDate()
                 });
-                currentDate.setDate(currentDate.getDate() + 1);
+                d.setDate(d.getDate() + 1);
             }
 
-            const DAYS_PER_ROW = 14;
-            const remainder = days.length % DAYS_PER_ROW;
-            if (remainder !== 0) {
-                for (let i = 0; i < DAYS_PER_ROW - remainder; i++) {
-                    days.push({ isPlaceholder: true });
-                }
-            }
+            const COLS = 14;
+            while (days.length % COLS) days.push({ empty: true });
 
             const rows = [];
-            for (let i = 0; i < days.length; i += DAYS_PER_ROW) {
-                rows.push(days.slice(i, i + DAYS_PER_ROW));
+            for (let i = 0; i < days.length; i += COLS) {
+                rows.push(days.slice(i, i + COLS));
             }
 
-            const monthRowInfo = new Map();
-            rows.forEach((rowDays, rowIndex) => {
-                rowDays.forEach(d => {
-                    if (!d.isPlaceholder) {
-                        const month = d.month;
-                        if (!monthRowInfo.has(month)) {
-                            monthRowInfo.set(month, { startRow: rowIndex, endRow: rowIndex });
-                        } else {
-                            monthRowInfo.get(month).endRow = rowIndex;
-                        }
+            const monthRows = new Map();
+            rows.forEach((r, i) => {
+                r.forEach(day => {
+                    if (!day.empty) {
+                        const m = day.month;
+                        if (!monthRows.has(m)) monthRows.set(m, { start: i, end: i });
+                        else monthRows.get(m).end = i;
                     }
                 });
             });
 
-            const monthLabelRows = new Map();
-            monthRowInfo.forEach((info, month) => {
-                const middleRow = Math.floor((info.startRow + info.endRow) / 2);
-                if (!monthLabelRows.has(middleRow)) {
-                    monthLabelRows.set(middleRow, CONFIG.MONTH_NAMES[month]);
-                }
+            const labels = new Map();
+            monthRows.forEach((info, m) => {
+                const mid = Math.floor((info.start + info.end) / 2);
+                if (!labels.has(mid)) labels.set(mid, CONFIG.MONTHS[m]);
             });
 
-            let html = `<div class="ldsp-chart"><div class="ldsp-chart-title">⏱️ 本年阅读时间<span class="ldsp-chart-subtitle">共 ${Utils.formatReadingTime(totalYearTime)}</span></div><div class="ldsp-year-heatmap-container"><div class="ldsp-year-heatmap-wrapper">`;
+            let html = `<div class="ldsp-chart"><div class="ldsp-chart-title">⏱️ 本年阅读时间<span class="ldsp-chart-sub">共 ${Utils.formatReadingTime(total)}</span></div><div class="ldsp-year-heatmap"><div class="ldsp-year-wrap">`;
 
-            rows.forEach((rowDays, rowIndex) => {
-                const monthLabel = monthLabelRows.get(rowIndex) || '';
-                html += `<div class="ldsp-year-heatmap-month-row"><span class="ldsp-year-month-label">${monthLabel}</span><div class="ldsp-year-heatmap-cells">`;
-
-                rowDays.forEach(d => {
-                    if (d.isPlaceholder) {
-                        html += `<div class="ldsp-year-heatmap-cell empty"></div>`;
+            rows.forEach((row, i) => {
+                const lbl = labels.get(i) || '';
+                html += `<div class="ldsp-year-row"><span class="ldsp-year-month">${lbl}</span><div class="ldsp-year-cells">`;
+                row.forEach(day => {
+                    if (day.empty) {
+                        html += `<div class="ldsp-year-cell empty"></div>`;
                     } else {
-                        const level = Utils.getHeatmapLevel(d.minutes);
-                        const dateStr = `${d.month + 1}/${d.day}`;
-                        const timeStr = Utils.formatReadingTime(d.minutes);
-                        html += `<div class="ldsp-year-heatmap-cell level-${level}"><div class="ldsp-year-heatmap-tooltip">${dateStr}<br>${timeStr}</div></div>`;
+                        const lv = Utils.getHeatmapLevel(day.mins);
+                        html += `<div class="ldsp-year-cell l${lv}"><div class="ldsp-year-tip">${day.month + 1}/${day.day}<br>${Utils.formatReadingTime(day.mins)}</div></div>`;
                     }
                 });
-
                 html += `</div></div>`;
             });
 
-            html += `</div><div class="ldsp-heatmap-legend" style="margin-top:6px;"><span style="font-size:7px;">&lt;1分</span><div class="ldsp-heatmap-legend-cell" style="background: rgba(124, 58, 237, 0.08);"></div><div class="ldsp-heatmap-legend-cell" style="background: rgba(124, 58, 237, 0.25);"></div><div class="ldsp-heatmap-legend-cell" style="background: rgba(124, 58, 237, 0.45);"></div><div class="ldsp-heatmap-legend-cell" style="background: rgba(124, 58, 237, 0.65);"></div><div class="ldsp-heatmap-legend-cell" style="background: var(--accent-primary);"></div><span style="font-size:7px;">&gt;3小时</span></div></div></div>`;
+            html += `</div><div class="ldsp-heatmap-legend"><span>&lt;1分</span>`;
+            for (let i = 0; i <= 4; i++) html += `<div class="ldsp-heatmap-legend-cell" style="background:${i === 0 ? 'rgba(124,58,237,.08)' : i === 4 ? 'var(--accent)' : `rgba(124,58,237,${0.1 + i * 0.15})`}"></div>`;
+            html += `<span>&gt;3小时</span></div></div></div>`;
 
             return html;
         }
 
-        _calculateDailyTrend(dailyAggregates, name, maxDays) {
-            const sortedDays = Array.from(dailyAggregates.keys()).sort((a, b) => new Date(a).getTime() - new Date(b).getTime()).slice(-maxDays);
-            const values = [];
-            const dates = [];
-
-            sortedDays.forEach(day => {
-                dates.push(Utils.formatDate(new Date(day).getTime(), 'short'));
-                values.push(Math.max(dailyAggregates.get(day)[name] || 0, 0));
-            });
-
-            return { values, dates };
+        _calcDailyTrend(daily, name, maxDays) {
+            const sorted = [...daily.keys()].sort((a, b) => new Date(a) - new Date(b)).slice(-maxDays);
+            return {
+                values: sorted.map(d => Math.max(daily.get(d)[name] || 0, 0)),
+                dates: sorted.map(d => Utils.formatDate(new Date(d).getTime(), 'short'))
+            };
         }
 
-        _calculateWeeklyTrend(weeklyAggregates, name) {
-            const sortedWeeks = Array.from(weeklyAggregates.keys()).sort((a, b) => a - b);
-            const values = [];
-            const labels = [];
-
-            sortedWeeks.forEach(weekIdx => {
-                const weekData = weeklyAggregates.get(weekIdx);
-                labels.push(weekData.label);
-                values.push(Math.max(weekData.data[name] || 0, 0));
-            });
-
-            return { values, labels };
+        _calcWeeklyTrend(weekly, name) {
+            const sorted = [...weekly.keys()].sort((a, b) => a - b);
+            return {
+                values: sorted.map(i => Math.max(weekly.get(i).data[name] || 0, 0)),
+                labels: sorted.map(i => weekly.get(i).label)
+            };
         }
 
-        _calculateMonthlyTrend(monthlyAggregates, name) {
-            const sortedMonths = Array.from(monthlyAggregates.keys()).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-            const values = [];
-            const dates = [];
-
-            sortedMonths.forEach(month => {
-                const date = new Date(month);
-                dates.push((date.getMonth() + 1) + '月');
-                values.push(Math.max(monthlyAggregates.get(month)[name] || 0, 0));
-            });
-
-            return { values, dates };
+        _calcMonthlyTrend(monthly, name) {
+            const sorted = [...monthly.keys()].sort((a, b) => new Date(a) - new Date(b));
+            return {
+                values: sorted.map(m => Math.max(monthly.get(m)[name] || 0, 0)),
+                dates: sorted.map(m => `${new Date(m).getMonth() + 1}月`)
+            };
         }
 
-        showToast(message) {
+        // Toast 提示
+        showToast(msg) {
             const toast = document.createElement('div');
             toast.className = 'ldsp-toast';
-            toast.innerHTML = message;
+            toast.innerHTML = msg;
             this.panel.el.appendChild(toast);
             requestAnimationFrame(() => toast.classList.add('show'));
             setTimeout(() => {
@@ -1940,64 +2138,190 @@
                 setTimeout(() => toast.remove(), 300);
             }, 4000);
         }
+
+        // 登录提示模态框
+        showLoginPrompt(isUpgrade = false) {
+            const overlay = document.createElement('div');
+            overlay.className = 'ldsp-modal-overlay';
+            overlay.innerHTML = `
+                <div class="ldsp-modal">
+                    <div class="ldsp-modal-hdr"><span class="ldsp-modal-icon">${isUpgrade ? '🎉' : '👋'}</span><span class="ldsp-modal-title">${isUpgrade ? '升级到 v3.0' : '欢迎使用 LDStatus Pro'}</span></div>
+                    <div class="ldsp-modal-body">
+                        ${isUpgrade ? `<p>v3.0 版本新增了 <strong>云同步</strong> 功能！</p><p>登录后，你的阅读数据将自动同步到云端，支持跨浏览器、跨设备访问。</p>` : `<p>登录 Linux.do 账号后可以：</p><ul><li>☁️ 阅读数据云端同步</li><li>🔄 跨浏览器/设备同步</li><li>🏆 查看/加入阅读排行榜</li></ul>`}
+                    </div>
+                    <div class="ldsp-modal-footer">
+                        <button class="ldsp-modal-btn primary" id="ldsp-modal-login">🚀 立即登录</button>
+                        <button class="ldsp-modal-btn secondary" id="ldsp-modal-skip">稍后再说</button>
+                    </div>
+                    <div class="ldsp-modal-note">登录仅用于云同步，不登录也可正常使用本地功能</div>
+                </div>`;
+            this.panel.el.appendChild(overlay);
+            requestAnimationFrame(() => overlay.classList.add('show'));
+            return overlay;
+        }
+
+        // 渲染排行榜
+        renderLeaderboard(tab, isLoggedIn, isJoined) {
+            const tabs = [
+                { id: 'daily', label: '📅 日榜' },
+                { id: 'weekly', label: '📊 周榜' },
+                { id: 'monthly', label: '📈 月榜' }
+            ];
+            this.panel.$.leaderboard.innerHTML = `
+                <div class="ldsp-subtabs">${tabs.map(t => 
+                    `<div class="ldsp-subtab${tab === t.id ? ' active' : ''}" data-lb="${t.id}">${t.label}</div>`
+                ).join('')}</div>
+                <div class="ldsp-lb-content"></div>`;
+        }
+
+        renderLeaderboardLogin() {
+            return `<div class="ldsp-lb-login">
+                <div class="ldsp-lb-login-icon">🔐</div>
+                <div class="ldsp-lb-login-title">需要登录</div>
+                <div class="ldsp-lb-login-desc">登录后可以：<br>☁️ 阅读数据云端同步<br>🏆 查看/加入排行榜</div>
+                <button class="ldsp-lb-btn primary" id="ldsp-lb-login">🚀 立即登录</button>
+                <div class="ldsp-privacy-note"><span>🔒</span><span>仅获取基本信息，用于数据同步</span></div>
+            </div>`;
+        }
+
+        renderLeaderboardJoin() {
+            return `<div class="ldsp-join-prompt">
+                <div class="ldsp-join-prompt-icon">🏆</div>
+                <div class="ldsp-join-prompt-title">加入阅读排行榜</div>
+                <div class="ldsp-join-prompt-desc">加入后可以查看排行榜，你的阅读时间将与其他用户一起展示<br>这是完全可选的，随时可以退出</div>
+                <button class="ldsp-lb-btn primary" id="ldsp-lb-join">✨ 加入排行榜</button>
+                <div class="ldsp-privacy-note"><span>🔒</span><span>仅展示用户名和阅读时间</span></div>
+            </div>`;
+        }
+
+        renderLeaderboardData(data, userId, isJoined, type = 'daily') {
+            const rules = { daily: '每 5 分钟更新', weekly: '每 24 小时更新', monthly: '每 24 小时更新' };
+
+            if (!data?.rankings?.length) {
+                return `<div class="ldsp-lb-empty"><div class="ldsp-lb-empty-icon">📭</div><div class="ldsp-lb-empty-txt">暂无排行数据<br>成为第一个上榜的人吧！</div></div>`;
+            }
+
+            let html = `<div class="ldsp-lb-period">${data.period ? `📅 统计周期: <span>${data.period}</span>` : ''}<span class="ldsp-update-rule">🔄 ${rules[type]}</span></div>`;
+
+            if (data.myRank && isJoined) {
+                html += `<div class="ldsp-my-rank"><div><div class="ldsp-my-rank-lbl">我的排名</div><div class="ldsp-my-rank-val">#${data.myRank.rank}</div></div><div class="ldsp-my-rank-time">${Utils.formatReadingTime(data.myRank.minutes)}</div></div>`;
+            }
+
+            html += '<div class="ldsp-rank-list">';
+            data.rankings.forEach((user, i) => {
+                const rank = i + 1;
+                const isMe = userId && user.userId === userId;
+                const cls = [rank <= 3 ? `t${rank}` : '', isMe ? 'me' : ''].filter(Boolean).join(' ');
+                const icon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+                const avatar = user.avatar ? (user.avatar.startsWith('http') ? user.avatar : `https://linux.do${user.avatar}`) : '';
+
+                html += `<div class="ldsp-rank-item ${cls}" style="animation-delay:${i * 30}ms">
+                    <div class="ldsp-rank-num">${rank <= 3 ? icon : rank}</div>
+                    ${avatar ? `<img class="ldsp-rank-avatar" src="${avatar}" alt="${user.username}" onerror="this.style.display='none'">` : '<div class="ldsp-rank-avatar" style="display:flex;align-items:center;justify-content:center;font-size:12px">👤</div>'}
+                    <div class="ldsp-rank-info"><div class="ldsp-rank-name">${user.username}${isMe ? ' (我)' : ''}</div></div>
+                    <div class="ldsp-rank-time">${Utils.formatReadingTime(user.minutes)}</div>
+                </div>`;
+            });
+            html += '</div>';
+
+            if (isJoined) {
+                html += `<div style="margin-top:12px;text-align:center"><button class="ldsp-lb-btn danger" id="ldsp-lb-quit" style="font-size:9px;padding:4px 8px">退出排行榜</button></div>`;
+            }
+
+            return html;
+        }
+
+        renderLeaderboardLoading() {
+            return `<div class="ldsp-mini-loader"><div class="ldsp-mini-spin"></div><div class="ldsp-mini-txt">加载排行榜...</div></div>`;
+        }
+
+        renderLeaderboardError(msg) {
+            return `<div class="ldsp-lb-empty"><div class="ldsp-lb-empty-icon">❌</div><div class="ldsp-lb-empty-txt">${msg}</div><button class="ldsp-lb-btn secondary" id="ldsp-lb-retry" style="margin-top:12px">🔄 重试</button></div>`;
+        }
     }
 
     // ==================== 主面板类 ====================
     class Panel {
         constructor() {
-            this.storage = new StorageManager();
-            this.network = new NetworkManager();
-            this.historyManager = new HistoryManager(this.storage);
-            this.readingTracker = new ReadingTimeTracker(this.storage);
-            this.notifier = new NotificationManager(this.storage);
+            // 初始化管理器
+            this.storage = new Storage();
+            this.network = new Network();
+            this.historyMgr = new HistoryManager(this.storage);
+            this.tracker = new ReadingTracker(this.storage);
+            this.notifier = new Notifier(this.storage);
 
-            this.prevReqs = [];
-            let trendTab = this.storage.getGlobal('trendTab', 'today');
-            if (trendTab === 'last' || trendTab === '7d') {
-                trendTab = 'today';
-                this.storage.setGlobal('trendTab', trendTab);
+            // 排行榜相关（仅 linux.do）
+            this.hasLeaderboard = CURRENT_SITE.supportsLeaderboard;
+            if (this.hasLeaderboard) {
+                this.oauth = new OAuthManager(this.storage, this.network);
+                this.leaderboard = new LeaderboardManager(this.oauth, this.tracker);
+                this.cloudSync = new CloudSyncManager(this.storage, this.oauth, this.tracker);
+                this.lbTab = this.storage.getGlobal('leaderboardTab', 'daily');
             }
-            this.currentTrendTab = trendTab;
-            this.userAvatar = this.storage.get('userAvatar', null);
-            this.currentReadingTime = 0;
-            this.currentUsername = null;
-            this.readingUpdateInterval = null;
-            this.panelConfig = ScreenUtils.getPanelConfig();
-            this.shouldAnimateRing = true;
+
+            // 状态变量
+            this.prevReqs = [];
+            this.trendTab = this.storage.getGlobal('trendTab', 'today');
+            if (['last', '7d'].includes(this.trendTab)) {
+                this.trendTab = 'today';
+                this.storage.setGlobal('trendTab', 'today');
+            }
+            this.avatar = this.storage.get('userAvatar', null);
+            this.readingTime = 0;
+            this.username = null;
+            this.animRing = true;
             this.cachedHistory = [];
             this.cachedReqs = [];
-            this.isLoading = false;
+            this.loading = false;
+            this._readingTimer = null;
 
-            StyleManager.inject();
+            // 初始化UI
+            Styles.inject();
             this._createPanel();
-            this.renderer = new PanelRenderer(this);
+            this.renderer = new Renderer(this);
             this._bindEvents();
             this._restore();
             this._fetchAvatar();
             this.fetch();
 
-            window.addEventListener('resize', Utils.debounce(() => this._handleResize(), 250));
-            setInterval(() => this.fetch(), CONFIG.REFRESH_INTERVAL);
-        }
+            // 云同步初始化
+            if (this.hasLeaderboard) {
+                // 注册同步状态回调，更新顶部按钮状态
+                this.cloudSync.setSyncStateCallback(syncing => {
+                    if (this.$.btnCloudSync) {
+                        this.$.btnCloudSync.disabled = syncing;
+                        this.$.btnCloudSync.textContent = syncing ? '⏳' : '☁️';
+                        this.$.btnCloudSync.title = syncing ? '同步中...' : '云同步';
+                    }
+                });
 
-        _handleResize() {
-            this.panelConfig = ScreenUtils.getPanelConfig();
-            const p = this.panelConfig;
-            this.el.style.setProperty('--panel-width', `${p.width}px`);
-            this.el.style.setProperty('--panel-max-height', `${p.maxHeight}px`);
-            this.el.style.setProperty('--panel-font-size', `${p.fontSize}px`);
-            this.el.style.setProperty('--panel-padding', `${p.padding}px`);
-            this.el.style.setProperty('--avatar-size', `${p.avatarSize}px`);
-            this.el.style.setProperty('--ring-size', `${p.ringSize}px`);
-            this._updateExpandDirection();
-        }
+                if (this.oauth.isLoggedIn()) {
+                    // 确保 storage 使用正确的用户名（从 OAuth 用户信息同步）
+                    const oauthUser = this.oauth.getUserInfo();
+                    console.log('[CloudSync] OAuth user:', oauthUser?.username);
+                    console.log('[CloudSync] Storage user before:', this.storage.getUser());
+                    if (oauthUser?.username) {
+                        const currentUser = this.storage.getUser();
+                        if (currentUser !== oauthUser.username) {
+                            console.log('[CloudSync] User mismatch, syncing:', currentUser, '->', oauthUser.username);
+                            this.storage.setUser(oauthUser.username);
+                            this.storage.invalidateCache();  // 清除缓存确保使用新 key
+                            this.storage.migrate(oauthUser.username);
+                        }
+                    }
+                    console.log('[CloudSync] Storage user after:', this.storage.getUser());
+                    this.cloudSync.onPageLoad();
+                    this._syncPrefs();
+                    if (this.oauth.isJoined()) this.leaderboard.startSync();
+                    this._updateLoginUI();
+                } else {
+                    this._checkLoginPrompt();
+                }
+            }
 
-        _updateExpandDirection() {
-            const rect = this.el.getBoundingClientRect();
-            const panelCenter = rect.left + rect.width / 2;
-            const windowCenter = window.innerWidth / 2;
-            this.el.classList.toggle('expand-left', panelCenter > windowCenter);
-            this.el.classList.toggle('expand-right', panelCenter <= windowCenter);
+            // 事件监听
+            window.addEventListener('resize', Utils.debounce(() => this._onResize(), 250));
+            setInterval(() => this.fetch(), CONFIG.INTERVALS.REFRESH);
         }
 
         _createPanel() {
@@ -2007,272 +2331,280 @@
             this.el.setAttribute('aria-label', `${CURRENT_SITE.name} 信任级别面板`);
 
             this.el.innerHTML = `
-                <div class="ldsp-header">
-                    <div class="ldsp-header-info">
-                        <img class="ldsp-site-icon" src="${CURRENT_SITE.icon}" alt="${CURRENT_SITE.name}" />
+                <div class="ldsp-hdr">
+                    <div class="ldsp-hdr-info">
+                        <img class="ldsp-site-icon" src="${CURRENT_SITE.icon}" alt="${CURRENT_SITE.name}">
                         <span class="ldsp-title">${CURRENT_SITE.name}</span>
-                        <span class="ldsp-version">v${GM_info.script.version}</span>
+                        <span class="ldsp-ver">v${GM_info.script.version}</span>
                     </div>
-                    <div class="ldsp-header-btns">
-                        <button class="ldsp-btn-update" title="检查更新" aria-label="检查更新">🔍</button>
-                        <button class="ldsp-btn-refresh" title="刷新数据" aria-label="刷新数据">🔄</button>
-                        <button class="ldsp-btn-theme" title="切换主题" aria-label="切换主题">🌓</button>
-                        <button class="ldsp-btn-toggle" title="折叠" aria-label="折叠面板" aria-expanded="true">◀</button>
+                    <div class="ldsp-hdr-btns">
+                        <button class="ldsp-cloud-sync" title="云同步" style="display:none">☁️</button>
+                        <button class="ldsp-update" title="检查更新">🔍</button>
+                        <button class="ldsp-refresh" title="刷新数据">🔄</button>
+                        <button class="ldsp-theme" title="切换主题">🌓</button>
+                        <button class="ldsp-toggle" title="折叠">◀</button>
                     </div>
                 </div>
                 <div class="ldsp-body">
                     <div class="ldsp-user">
-                        <div class="ldsp-avatar-placeholder">👤</div>
-                        <div class="ldsp-user-info"><div class="ldsp-user-name">加载中...</div><div class="ldsp-user-meta"><span class="ldsp-user-level">Lv ?</span><span class="ldsp-user-status">--</span></div></div>
-                        <div class="ldsp-reading-card"><span class="ldsp-reading-icon">🌱</span><span class="ldsp-reading-time">--</span><span class="ldsp-reading-label">今日阅读</span></div>
+                        <div class="ldsp-avatar-ph">👤</div>
+                        <div class="ldsp-user-info">
+                            <div class="ldsp-user-name">加载中...</div>
+                            <div class="ldsp-user-meta">
+                                <span class="ldsp-user-lv">Lv ?</span>
+                                <span class="ldsp-user-st">--</span>
+                            </div>
+                        </div>
+                        <div class="ldsp-reading">
+                            <span class="ldsp-reading-icon">🌱</span>
+                            <span class="ldsp-reading-time">--</span>
+                            <span class="ldsp-reading-label">今日阅读</span>
+                        </div>
                     </div>
-                    <div class="ldsp-status" role="status"><span>⏳</span><span>获取数据中...</span></div>
-                    <div class="ldsp-tabs" role="tablist">
-                        <button class="ldsp-tab active" data-tab="reqs" role="tab" aria-selected="true" tabindex="0">📋 要求</button>
-                        <button class="ldsp-tab" data-tab="trends" role="tab" aria-selected="false" tabindex="-1">📈 趋势</button>
+                    <div class="ldsp-status"><span>⏳</span><span>获取数据中...</span></div>
+                    <div class="ldsp-tabs">
+                        <button class="ldsp-tab active" data-tab="reqs">📋 要求</button>
+                        <button class="ldsp-tab" data-tab="trends">📈 趋势</button>
+                        ${this.hasLeaderboard ? '<button class="ldsp-tab" data-tab="leaderboard">🏆 排行</button>' : ''}
                     </div>
                     <div class="ldsp-content">
-                        <div id="ldsp-reqs" class="ldsp-panel-section active" role="tabpanel"><div class="ldsp-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div></div>
-                        <div id="ldsp-trends" class="ldsp-panel-section" role="tabpanel"><div class="ldsp-empty"><div class="ldsp-empty-icon">📊</div><div class="ldsp-empty-text">暂无历史数据</div></div></div>
+                        <div id="ldsp-reqs" class="ldsp-section active"><div class="ldsp-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div></div>
+                        <div id="ldsp-trends" class="ldsp-section"><div class="ldsp-empty"><div class="ldsp-empty-icon">📊</div><div class="ldsp-empty-txt">暂无历史数据</div></div></div>
+                        ${this.hasLeaderboard ? '<div id="ldsp-leaderboard" class="ldsp-section"><div class="ldsp-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div></div>' : ''}
                     </div>
-                </div>
-            `;
+                </div>`;
+
             document.body.appendChild(this.el);
 
             this.$ = {
-                header: this.el.querySelector('.ldsp-header'),
+                header: this.el.querySelector('.ldsp-hdr'),
                 user: this.el.querySelector('.ldsp-user'),
                 userName: this.el.querySelector('.ldsp-user-name'),
-                userLevel: this.el.querySelector('.ldsp-user-level'),
-                userStatus: this.el.querySelector('.ldsp-user-status'),
-                readingCard: this.el.querySelector('.ldsp-reading-card'),
+                userLevel: this.el.querySelector('.ldsp-user-lv'),
+                userStatus: this.el.querySelector('.ldsp-user-st'),
+                reading: this.el.querySelector('.ldsp-reading'),
                 readingIcon: this.el.querySelector('.ldsp-reading-icon'),
                 readingTime: this.el.querySelector('.ldsp-reading-time'),
                 readingLabel: this.el.querySelector('.ldsp-reading-label'),
                 status: this.el.querySelector('.ldsp-status'),
                 tabs: this.el.querySelectorAll('.ldsp-tab'),
-                sections: this.el.querySelectorAll('.ldsp-panel-section'),
+                sections: this.el.querySelectorAll('.ldsp-section'),
                 reqs: this.el.querySelector('#ldsp-reqs'),
                 trends: this.el.querySelector('#ldsp-trends'),
-                btnToggle: this.el.querySelector('.ldsp-btn-toggle'),
-                btnRefresh: this.el.querySelector('.ldsp-btn-refresh'),
-                btnTheme: this.el.querySelector('.ldsp-btn-theme'),
-                btnUpdate: this.el.querySelector('.ldsp-btn-update')
+                leaderboard: this.el.querySelector('#ldsp-leaderboard'),
+                btnToggle: this.el.querySelector('.ldsp-toggle'),
+                btnRefresh: this.el.querySelector('.ldsp-refresh'),
+                btnTheme: this.el.querySelector('.ldsp-theme'),
+                btnUpdate: this.el.querySelector('.ldsp-update'),
+                btnCloudSync: this.el.querySelector('.ldsp-cloud-sync')
             };
         }
 
         _bindEvents() {
-            let dragging = false, ox, oy, hasMoved = false;
-            let startX = 0, startY = 0;
-            const DRAG_THRESHOLD = 5;
+            // 拖拽
+            let dragging = false, ox, oy, moved = false, sx, sy;
+            const THRESHOLD = 5;
 
-            const startDrag = (e) => {
+            const startDrag = e => {
                 if (!this.el.classList.contains('collapsed') && e.target.closest('button')) return;
                 dragging = true;
-                hasMoved = false;
+                moved = false;
                 ox = e.clientX - this.el.offsetLeft;
                 oy = e.clientY - this.el.offsetTop;
-                startX = e.clientX;
-                startY = e.clientY;
-                this.el.classList.add('no-transition');
+                sx = e.clientX;
+                sy = e.clientY;
+                this.el.classList.add('no-trans');
                 e.preventDefault();
             };
 
-            const updateDrag = (e) => {
+            const updateDrag = e => {
                 if (!dragging) return;
-
-                const dx = Math.abs(e.clientX - startX);
-                const dy = Math.abs(e.clientY - startY);
-                if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
-                    hasMoved = true;
-                }
-
-                const x = Math.max(0, Math.min(e.clientX - ox, innerWidth - this.el.offsetWidth));
-                const y = Math.max(0, Math.min(e.clientY - oy, innerHeight - this.el.offsetHeight));
-                this.el.style.left = x + 'px';
-                this.el.style.top = y + 'px';
+                if (Math.abs(e.clientX - sx) > THRESHOLD || Math.abs(e.clientY - sy) > THRESHOLD) moved = true;
+                this.el.style.left = Math.max(0, Math.min(e.clientX - ox, innerWidth - this.el.offsetWidth)) + 'px';
+                this.el.style.top = Math.max(0, Math.min(e.clientY - oy, innerHeight - this.el.offsetHeight)) + 'px';
             };
 
             const endDrag = () => {
                 if (!dragging) return;
                 dragging = false;
-                this.el.classList.remove('no-transition');
-                this.storage.setGlobalImmediate('position', { left: this.el.style.left, top: this.el.style.top });
-                this._updateExpandDirection();
+                this.el.classList.remove('no-trans');
+                this.storage.setGlobalNow('position', { left: this.el.style.left, top: this.el.style.top });
+                this._updateExpandDir();
             };
 
-            this.$.header.addEventListener('mousedown', (e) => {
-                if (!this.el.classList.contains('collapsed')) startDrag(e);
-            });
-
-            this.el.addEventListener('mousedown', (e) => {
-                if (this.el.classList.contains('collapsed')) startDrag(e);
-            });
-
+            this.$.header.addEventListener('mousedown', e => !this.el.classList.contains('collapsed') && startDrag(e));
+            this.el.addEventListener('mousedown', e => this.el.classList.contains('collapsed') && startDrag(e));
             document.addEventListener('mousemove', updateDrag);
             document.addEventListener('mouseup', endDrag);
 
-            this.$.btnToggle.addEventListener('click', (e) => {
+            // 按钮事件
+            this.$.btnToggle.addEventListener('click', e => {
                 e.stopPropagation();
-                if (hasMoved) { hasMoved = false; return; }
+                if (moved) { moved = false; return; }
                 this._toggle();
             });
 
             this.$.btnRefresh.addEventListener('click', () => {
-                if (this.isLoading) return;
-                this.shouldAnimateRing = true;
+                if (this.loading) return;
+                this.animRing = true;
                 this.fetch();
             });
 
             this.$.btnTheme.addEventListener('click', () => this._switchTheme());
             this.$.btnUpdate.addEventListener('click', () => this._checkUpdate());
+            
+            // 云同步按钮（状态由 CloudSyncManager 的回调自动管理）
+            this.$.btnCloudSync?.addEventListener('click', async () => {
+                if (!this.hasLeaderboard || !this.oauth?.isLoggedIn()) return;
+                if (this.cloudSync.isSyncing()) return;  // 正在同步中，忽略点击
+                try {
+                    await this.cloudSync.fullSync();
+                    this.renderer.showToast('✅ 数据同步完成');
+                    this.renderer.renderReading(this.tracker.getTodayTime());
+                } catch (e) {
+                    this.renderer.showToast(`❌ 同步失败: ${e.message || e}`);
+                }
+            });
 
-            this.$.tabs.forEach((tab, index) => {
+            // 标签页切换
+            this.$.tabs.forEach((tab, i) => {
                 tab.addEventListener('click', () => {
-                    this.$.tabs.forEach(t => {
-                        t.classList.remove('active');
-                        t.setAttribute('aria-selected', 'false');
-                        t.setAttribute('tabindex', '-1');
-                    });
+                    this.$.tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
                     this.$.sections.forEach(s => s.classList.remove('active'));
                     tab.classList.add('active');
                     tab.setAttribute('aria-selected', 'true');
-                    tab.setAttribute('tabindex', '0');
                     this.el.querySelector(`#ldsp-${tab.dataset.tab}`).classList.add('active');
 
                     if (tab.dataset.tab === 'reqs') {
-                        this.shouldAnimateRing = true;
-                        if (this.cachedReqs.length > 0) this.renderer.renderReqs(this.cachedReqs);
+                        this.animRing = true;
+                        this.cachedReqs.length && this.renderer.renderReqs(this.cachedReqs);
+                    } else if (tab.dataset.tab === 'leaderboard') {
+                        this._renderLeaderboard();
                     }
                 });
 
-                tab.addEventListener('keydown', (e) => {
-                    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                tab.addEventListener('keydown', e => {
+                    if (['ArrowRight', 'ArrowLeft'].includes(e.key)) {
                         e.preventDefault();
-                        const newIndex = e.key === 'ArrowRight' ? (index + 1) % this.$.tabs.length : (index - 1 + this.$.tabs.length) % this.$.tabs.length;
-                        this.$.tabs[newIndex].click();
-                        this.$.tabs[newIndex].focus();
+                        const next = e.key === 'ArrowRight' ? (i + 1) % this.$.tabs.length : (i - 1 + this.$.tabs.length) % this.$.tabs.length;
+                        this.$.tabs[next].click();
+                        this.$.tabs[next].focus();
                     }
                 });
             });
         }
 
-
         _restore() {
             const pos = this.storage.getGlobal('position');
-            if (pos) {
-                this.el.style.left = pos.left;
-                this.el.style.top = pos.top;
-            }
+            if (pos) { this.el.style.left = pos.left; this.el.style.top = pos.top; }
 
-            const isCollapsed = this.storage.getGlobal('collapsed', false);
-            if (isCollapsed) {
+            if (this.storage.getGlobal('collapsed', false)) {
                 this.el.classList.add('collapsed');
                 this.$.btnToggle.textContent = '▶';
-                this.$.btnToggle.setAttribute('aria-expanded', 'false');
-                this.$.btnToggle.setAttribute('aria-label', '展开面板');
             }
 
             const theme = this.storage.getGlobal('theme', 'dark');
             if (theme === 'light') this.el.classList.add('light');
             this.$.btnTheme.textContent = theme === 'dark' ? '🌓' : '☀️';
 
-            requestAnimationFrame(() => this._updateExpandDirection());
+            requestAnimationFrame(() => this._updateExpandDir());
+        }
+
+        _updateExpandDir() {
+            const rect = this.el.getBoundingClientRect();
+            const center = rect.left + rect.width / 2;
+            this.el.classList.toggle('expand-left', center > innerWidth / 2);
+            this.el.classList.toggle('expand-right', center <= innerWidth / 2);
+        }
+
+        _onResize() {
+            const cfg = Screen.getConfig();
+            ['width', 'maxHeight', 'fontSize', 'padding', 'avatarSize', 'ringSize'].forEach((k, i) => {
+                const props = ['--w', '--h', '--fs', '--pd', '--av', '--ring'];
+                this.el.style.setProperty(props[i], `${cfg[k]}px`);
+            });
+            this._updateExpandDir();
         }
 
         _toggle() {
-            const isCollapsing = !this.el.classList.contains('collapsed');
+            const collapsing = !this.el.classList.contains('collapsed');
             const rect = this.el.getBoundingClientRect();
+            const cfg = Screen.getConfig();
 
-            this.el.classList.add('animating');
+            this.el.classList.add('anim');
 
-            if (isCollapsing) {
-                if (this.el.classList.contains('expand-left')) {
-                    this.el.style.left = (rect.right - 44) + 'px';
-                }
+            if (collapsing) {
+                if (this.el.classList.contains('expand-left')) this.el.style.left = (rect.right - 44) + 'px';
                 this.$.btnToggle.textContent = '▶';
-                this.$.btnToggle.setAttribute('aria-expanded', 'false');
-                this.$.btnToggle.setAttribute('aria-label', '展开面板');
             } else {
-                this._updateExpandDirection();
-                if (this.el.classList.contains('expand-left')) {
-                    this.el.style.left = Math.max(0, rect.left - (this.panelConfig.width - 44)) + 'px';
-                }
+                this._updateExpandDir();
+                if (this.el.classList.contains('expand-left')) this.el.style.left = Math.max(0, rect.left - (cfg.width - 44)) + 'px';
                 this.$.btnToggle.textContent = '◀';
-                this.$.btnToggle.setAttribute('aria-expanded', 'true');
-                this.$.btnToggle.setAttribute('aria-label', '折叠面板');
-                this.shouldAnimateRing = true;
-                if (this.cachedReqs.length > 0) {
-                    setTimeout(() => this.renderer.renderReqs(this.cachedReqs), 100);
-                }
+                this.animRing = true;
+                this.cachedReqs.length && setTimeout(() => this.renderer.renderReqs(this.cachedReqs), 100);
             }
 
             this.el.classList.toggle('collapsed');
-            this.storage.setGlobalImmediate('collapsed', isCollapsing);
+            this.storage.setGlobalNow('collapsed', collapsing);
 
             setTimeout(() => {
-                this.el.classList.remove('animating');
-                this.storage.setGlobalImmediate('position', { left: this.el.style.left, top: this.el.style.top });
+                this.el.classList.remove('anim');
+                this.storage.setGlobalNow('position', { left: this.el.style.left, top: this.el.style.top });
             }, 400);
         }
 
         _switchTheme() {
-            const isLight = this.el.classList.toggle('light');
-            this.$.btnTheme.textContent = isLight ? '☀️' : '🌓';
-            this.storage.setGlobalImmediate('theme', isLight ? 'light' : 'dark');
+            const light = this.el.classList.toggle('light');
+            this.$.btnTheme.textContent = light ? '☀️' : '🌓';
+            this.storage.setGlobalNow('theme', light ? 'light' : 'dark');
         }
 
         _fetchAvatar() {
-            const avatarEl = document.querySelector('.current-user img.avatar');
-            if (avatarEl) {
-                this._updateAvatar(avatarEl.src);
-                return;
-            }
-            if (this.userAvatar) this.renderer.renderAvatar(this.userAvatar);
+            const el = document.querySelector('.current-user img.avatar');
+            if (el) { this._updateAvatar(el.src); return; }
+            this.avatar && this.renderer.renderAvatar(this.avatar);
         }
 
         _updateAvatar(url) {
             if (!url) return;
             if (url.startsWith('/')) url = `https://${CURRENT_SITE.domain}${url}`;
-            url = url.replace(/\/\d+\//, '/128/');
-            this.userAvatar = url;
+            url = url.replace(PATTERNS.AVATAR_SIZE, '/128/');
+            this.avatar = url;
             this.storage.set('userAvatar', url);
             this.renderer.renderAvatar(url);
         }
 
-        _startReadingTimeUpdate() {
-            if (this.readingUpdateInterval) return;
-            this.readingUpdateInterval = setInterval(() => {
-                this.currentReadingTime = this.readingTracker.getTodayReadingTime();
-                this.renderer.renderReadingCard(this.currentReadingTime);
-            }, 1000);
+        _startReadingUpdate() {
+            if (this._readingTimer) return;
+            this._readingTimer = setInterval(() => {
+                this.readingTime = this.tracker.getTodayTime();
+                this.renderer.renderReading(this.readingTime);
+            }, CONFIG.INTERVALS.READING_UPDATE);
         }
 
-        _setLoadingState(loading) {
-            this.isLoading = loading;
-            if (this.$.btnRefresh) {
-                this.$.btnRefresh.disabled = loading;
-                this.$.btnRefresh.style.animation = loading ? 'ldsp-spin 1s linear infinite' : '';
-            }
+        _setLoading(v) {
+            this.loading = v;
+            this.$.btnRefresh.disabled = v;
+            this.$.btnRefresh.style.animation = v ? 'spin 1s linear infinite' : '';
         }
 
         async fetch() {
-            if (this.isLoading) return;
-            this._setLoadingState(true);
+            if (this.loading) return;
+            this._setLoading(true);
             this.$.reqs.innerHTML = `<div class="ldsp-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>`;
 
             try {
                 const html = await this.network.fetch(CURRENT_SITE.apiUrl);
                 this._parse(html);
-            } catch (error) {
-                this._showError(error.message || '网络错误');
+            } catch (e) {
+                this._showError(e.message || '网络错误');
             } finally {
-                this._setLoadingState(false);
+                this._setLoading(false);
             }
         }
 
         _showError(msg) {
-            this.$.reqs.innerHTML = `<div class="ldsp-empty"><div class="ldsp-empty-icon">❌</div><div class="ldsp-empty-text">${msg}</div></div>`;
+            this.$.reqs.innerHTML = `<div class="ldsp-empty"><div class="ldsp-empty-icon">❌</div><div class="ldsp-empty-txt">${msg}</div></div>`;
         }
 
         _parse(html) {
@@ -2282,133 +2614,124 @@
             if (!section) return this._showError('未找到数据，请登录');
 
             const heading = section.querySelector('h2').textContent;
-            const [, username, level] = heading.match(/(.*) - 信任级别 (\d+)/) || ['', '未知', '?'];
+            const match = heading.match(PATTERNS.TRUST_LEVEL) || ['', '未知', '?'];
+            const [, username, level] = match;
 
             if (username && username !== '未知') {
-                this.storage.setCurrentUser(username);
-                this.currentUsername = username;
-                this.readingTracker.init(username);
-                this._startReadingTimeUpdate();
+                this.storage.setUser(username);
+                this.username = username;
+                this.tracker.init(username);
+                this._startReadingUpdate();
             }
 
             const avatarEl = doc.querySelector('img[src*="avatar"]');
             if (avatarEl) this._updateAvatar(avatarEl.src);
 
-            this.currentReadingTime = this.readingTracker.getTodayReadingTime();
-            this.renderer.renderReadingCard(this.currentReadingTime);
+            this.readingTime = this.tracker.getTodayTime();
+            this.renderer.renderReading(this.readingTime);
 
             const rows = section.querySelectorAll('table tr');
-            const requirements = [];
+            const reqs = [];
 
             for (let i = 1; i < rows.length; i++) {
                 const cells = rows[i].querySelectorAll('td');
                 if (cells.length < 3) continue;
 
                 const name = cells[0].textContent.trim();
-                const currentMatch = cells[1].textContent.match(/(\d+)/);
-                const requiredMatch = cells[2].textContent.match(/(\d+)/);
-                const currentValue = currentMatch ? +currentMatch[1] : 0;
-                const requiredValue = requiredMatch ? +requiredMatch[1] : 0;
+                const curMatch = cells[1].textContent.match(PATTERNS.NUMBER);
+                const reqMatch = cells[2].textContent.match(PATTERNS.NUMBER);
+                const currentValue = curMatch ? +curMatch[1] : 0;
+                const requiredValue = reqMatch ? +reqMatch[1] : 0;
                 const isSuccess = cells[1].classList.contains('text-green-500');
-
                 const prev = this.prevReqs.find(p => p.name === name);
-                const change = prev ? currentValue - prev.currentValue : 0;
 
-                requirements.push({
-                    name,
-                    currentValue,
-                    requiredValue,
-                    isSuccess,
-                    change,
-                    isReverse: REVERSE_PATTERN.test(name)
+                reqs.push({
+                    name, currentValue, requiredValue, isSuccess,
+                    change: prev ? currentValue - prev.currentValue : 0,
+                    isReverse: PATTERNS.REVERSE.test(name)
                 });
             }
 
-            const reorderedReqs = Utils.reorderRequirements(requirements);
+            const orderedReqs = Utils.reorderRequirements(reqs);
             const isOK = !section.querySelector('p.text-red-500');
 
-            this.notifier.check(reorderedReqs);
+            this.notifier.check(orderedReqs);
 
             const histData = {};
-            reorderedReqs.forEach(r => histData[r.name] = r.currentValue);
-            const history = this.historyManager.addHistory(histData, this.currentReadingTime);
+            orderedReqs.forEach(r => histData[r.name] = r.currentValue);
+            const history = this.historyMgr.addHistory(histData, this.readingTime);
 
             const todayData = this._getTodayData();
-            this._setTodayData(histData, this.currentReadingTime, !todayData);
+            this._setTodayData(histData, !todayData);
 
-            this.renderer.renderUser(username, level, isOK, reorderedReqs);
-            this.renderer.renderReqs(reorderedReqs);
+            this.renderer.renderUser(username, level, isOK, orderedReqs);
+            this.renderer.renderReqs(orderedReqs);
 
             this.cachedHistory = history;
-            this.cachedReqs = reorderedReqs;
+            this.cachedReqs = orderedReqs;
 
-            this._renderTrends(history, reorderedReqs, this.currentReadingTime);
-            this._setLastVisitData(histData, this.currentReadingTime);
-            this.prevReqs = reorderedReqs;
+            this._renderTrends(history, orderedReqs);
+            this._setLastVisit(histData);
+            this.prevReqs = orderedReqs;
         }
 
         _getTodayData() {
             const stored = this.storage.get('todayData', null);
-            return stored && stored.date === Utils.getTodayKey() ? stored : null;
+            return stored?.date === Utils.getTodayKey() ? stored : null;
         }
 
-        _setTodayData(data, readingTime = 0, isStart = false) {
+        _setTodayData(data, isStart = false) {
             const today = Utils.getTodayKey();
             const existing = this._getTodayData();
             const now = Date.now();
 
-            if (isStart || !existing) {
-                this.storage.set('todayData', { date: today, startData: data, startTs: now, startReadingTime: readingTime, currentData: data, currentTs: now, currentReadingTime: readingTime });
-            } else {
-                this.storage.set('todayData', { ...existing, currentData: data, currentTs: now, currentReadingTime: readingTime });
-            }
+            this.storage.set('todayData', isStart || !existing
+                ? { date: today, startData: data, startTs: now, currentData: data, currentTs: now }
+                : { ...existing, currentData: data, currentTs: now }
+            );
         }
 
-        _setLastVisitData(data, readingTime = 0) {
-            this.storage.set('lastVisit', { ts: Date.now(), data, readingTime });
+        _setLastVisit(data) {
+            this.storage.set('lastVisit', { ts: Date.now(), data });
         }
 
-        _renderTrends(history, reqs, currentReadingTime) {
-            this.renderer.renderTrends(history, reqs, currentReadingTime, this.currentTrendTab);
+        _renderTrends(history, reqs) {
+            this.renderer.renderTrends(this.trendTab);
 
             this.$.trends.querySelectorAll('.ldsp-subtab').forEach(tab => {
                 tab.addEventListener('click', () => {
-                    this.currentTrendTab = tab.dataset.trend;
-                    this.storage.setGlobal('trendTab', this.currentTrendTab);
-                    this.$.trends.querySelectorAll('.ldsp-subtab').forEach(t => {
-                        t.classList.remove('active');
-                        t.setAttribute('aria-selected', 'false');
-                    });
+                    this.trendTab = tab.dataset.tab;
+                    this.storage.setGlobal('trendTab', this.trendTab);
+                    this.$.trends.querySelectorAll('.ldsp-subtab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    tab.setAttribute('aria-selected', 'true');
-                    this._renderTrendContent(history, reqs, currentReadingTime);
+                    this._renderTrendContent(history, reqs);
                 });
             });
 
-            this._renderTrendContent(history, reqs, currentReadingTime);
+            this._renderTrendContent(history, reqs);
         }
 
-        _renderTrendContent(history, reqs, currentReadingTime) {
+        _renderTrendContent(history, reqs) {
             const container = this.$.trends.querySelector('.ldsp-trend-content');
 
-            if (this.currentTrendTab === 'year') {
-                container.innerHTML = `<div class="ldsp-mini-loader"><div class="ldsp-mini-spinner"></div><div class="ldsp-mini-loader-text">加载数据中...</div></div>`;
+            if (this.trendTab === 'year') {
+                container.innerHTML = `<div class="ldsp-mini-loader"><div class="ldsp-mini-spin"></div><div class="ldsp-mini-txt">加载数据中...</div></div>`;
                 requestAnimationFrame(() => {
                     setTimeout(() => {
-                        container.innerHTML = this.renderer.renderYearTrend(history, reqs, this.historyManager, this.readingTracker);
+                        container.innerHTML = this.renderer.renderYearTrend(history, reqs, this.historyMgr, this.tracker);
                     }, 50);
                 });
                 return;
             }
 
-            const renderFns = {
-                today: () => this.renderer.renderTodayTrend(reqs, currentReadingTime, this._getTodayData()),
-                week: () => this.renderer.renderWeekTrend(history, reqs, this.historyManager, this.readingTracker),
-                month: () => this.renderer.renderMonthTrend(history, reqs, this.historyManager, this.readingTracker),
-                all: () => this.renderer.renderAllTrend(history, reqs, this.readingTracker)
+            const fns = {
+                today: () => this.renderer.renderTodayTrend(reqs, this.readingTime, this._getTodayData()),
+                week: () => this.renderer.renderWeekTrend(history, reqs, this.historyMgr, this.tracker),
+                month: () => this.renderer.renderMonthTrend(history, reqs, this.historyMgr, this.tracker),
+                all: () => this.renderer.renderAllTrend(history, reqs, this.tracker)
             };
 
-            container.innerHTML = renderFns[this.currentTrendTab]?.() || '';
+            container.innerHTML = fns[this.trendTab]?.() || '';
         }
 
         async _checkUpdate() {
@@ -2417,7 +2740,7 @@
 
             try {
                 const text = await this.network.fetch(url, { maxRetries: 1 });
-                const match = text.match(/@version\s+([\d.]+)/);
+                const match = text.match(PATTERNS.VERSION);
                 if (match) {
                     const remote = match[1];
                     if (Utils.compareVersion(remote, GM_info.script.version) > 0) {
@@ -2426,19 +2749,252 @@
                         this.$.btnUpdate.onclick = () => window.open(url);
                     } else {
                         this.$.btnUpdate.textContent = '✅';
-                        setTimeout(() => { this.$.btnUpdate.textContent = '🔍'; }, 2000);
+                        setTimeout(() => this.$.btnUpdate.textContent = '🔍', 2000);
                     }
                 }
             } catch (e) {
                 this.$.btnUpdate.textContent = '❌';
-                setTimeout(() => { this.$.btnUpdate.textContent = '🔍'; }, 2000);
+                setTimeout(() => this.$.btnUpdate.textContent = '🔍', 2000);
+            }
+        }
+
+        // ========== 登录相关 ==========
+
+        _updateLoginUI() {
+            if (!this.hasLeaderboard) return;
+            const logged = this.oauth.isLoggedIn();
+            this.$.user.classList.toggle('not-logged', !logged);
+
+            // 显示/隐藏云同步按钮
+            if (this.$.btnCloudSync) {
+                this.$.btnCloudSync.style.display = logged ? '' : 'none';
+            }
+
+            if (!logged) {
+                const hint = this.$.userName.querySelector('.ldsp-login-hint');
+                if (!hint) {
+                    const span = document.createElement('span');
+                    span.className = 'ldsp-login-hint';
+                    span.textContent = '点击登录';
+                    this.$.userName.appendChild(span);
+                }
+                this._bindUserLogin();
+            } else {
+                this.$.userName.querySelector('.ldsp-login-hint')?.remove();
+            }
+        }
+
+        _bindUserLogin() {
+            if (this._userLoginBound) return;
+            this._userLoginBound = true;
+
+            const handle = async e => {
+                if (!this.oauth.isLoggedIn() && this.$.user.classList.contains('not-logged')) {
+                    e.stopPropagation();
+                    await this._doLogin();
+                }
+            };
+
+            this.$.user.querySelector('.ldsp-avatar, .ldsp-avatar-ph')?.addEventListener('click', handle);
+            this.$.userName.addEventListener('click', handle);
+        }
+
+        async _doLogin() {
+            try {
+                this.renderer.showToast('⏳ 正在打开登录窗口...');
+                const user = await this.oauth.login();
+                this.renderer.showToast('✅ 登录成功');
+                // 同步用户名到 storage，确保云同步使用正确的用户键
+                if (user?.username) {
+                    this.storage.setUser(user.username);
+                    this.storage.invalidateCache();  // 清除缓存确保使用新 key
+                    this.storage.migrate(user.username);
+                }
+                this._updateLoginUI();
+                await this._syncPrefs();
+                this.cloudSync.fullSync().catch(e => console.warn('[CloudSync]', e));
+            } catch (e) {
+                this.renderer.showToast(`❌ ${e.message}`);
+            }
+        }
+
+        _checkLoginPrompt() {
+            const KEY = 'ldsp_login_prompt_version';
+            const VER = '3.0';
+            if (this.storage.getGlobal(KEY, null) === VER) {
+                this._updateLoginUI();
+                return;
+            }
+
+            const hasData = this.storage.get('readingTime', null);
+            const isUpgrade = hasData && Object.keys(hasData.dailyData || {}).length > 0;
+
+            setTimeout(() => {
+                const overlay = this.renderer.showLoginPrompt(isUpgrade);
+                this._bindLoginPrompt(overlay, KEY, VER);
+            }, 1500);
+        }
+
+        _bindLoginPrompt(overlay, key, ver) {
+            const close = (skipped = false) => {
+                overlay.classList.remove('show');
+                setTimeout(() => overlay.remove(), 300);
+                this.storage.setGlobalNow(key, ver);
+                skipped && this._updateLoginUI();
+            };
+
+            overlay.querySelector('#ldsp-modal-login')?.addEventListener('click', async function() {
+                this.disabled = true;
+                this.textContent = '⏳ 登录中...';
+                try {
+                    const user = await this.oauth.login();
+                    this.renderer.showToast('✅ 登录成功');
+                    // 同步用户名到 storage，确保云同步使用正确的用户键
+                    if (user?.username) {
+                        this.storage.setUser(user.username);
+                        this.storage.invalidateCache();  // 清除缓存确保使用新 key
+                        this.storage.migrate(user.username);
+                    }
+                    close(false);
+                    this._updateLoginUI();
+                    await this._syncPrefs();
+                    this.cloudSync.fullSync().catch(e => console.warn('[CloudSync]', e));
+                } catch (e) {
+                    this.renderer.showToast(`❌ ${e.message}`);
+                    this.disabled = false;
+                    this.textContent = '🚀 立即登录';
+                }
+            }.bind(this));
+
+            overlay.querySelector('#ldsp-modal-skip')?.addEventListener('click', () => close(true));
+            overlay.addEventListener('click', e => e.target === overlay && close(true));
+        }
+
+        async _syncPrefs() {
+            if (!this.hasLeaderboard || !this.oauth.isLoggedIn()) return;
+            try {
+                const result = await this.oauth.api('/api/user/status');
+                if (result.success && result.data) {
+                    this.oauth.setJoined(result.data.isJoined || false);
+                    if (this.oauth.isJoined()) this.leaderboard.startSync();
+                }
+            } catch (e) {
+                console.warn('[Prefs]', e);
+            }
+        }
+
+        // ========== 排行榜 ==========
+
+        async _renderLeaderboard() {
+            if (!this.hasLeaderboard || !this.$.leaderboard) return;
+
+            const logged = this.oauth.isLoggedIn();
+            const joined = this.oauth.isJoined();
+
+            this.renderer.renderLeaderboard(this.lbTab, logged, joined);
+
+            this.$.leaderboard.querySelectorAll('.ldsp-subtab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    this.lbTab = tab.dataset.lb;
+                    this.storage.setGlobal('leaderboardTab', this.lbTab);
+                    this.$.leaderboard.querySelectorAll('.ldsp-subtab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    this._renderLeaderboardContent();
+                });
+            });
+
+            await this._renderLeaderboardContent();
+        }
+
+        async _renderLeaderboardContent() {
+            if (!this.hasLeaderboard) return;
+
+            const container = this.$.leaderboard.querySelector('.ldsp-lb-content');
+            if (!container) return;
+
+            const logged = this.oauth.isLoggedIn();
+            const joined = this.oauth.isJoined();
+
+            if (!logged) {
+                container.innerHTML = this.renderer.renderLeaderboardLogin();
+                container.querySelector('#ldsp-lb-login')?.addEventListener('click', async function() {
+                    this.disabled = true;
+                    this.textContent = '⏳ 登录中...';
+                    try {
+                        await this.oauth.login();
+                        this.renderer.showToast('✅ 登录成功');
+                        this._updateLoginUI();
+                        await this._syncPrefs();
+                        this.cloudSync.fullSync().catch(e => console.warn('[CloudSync]', e));
+                        await this._renderLeaderboardContent();
+                    } catch (e) {
+                        this.renderer.showToast(`❌ ${e.message}`);
+                        this.disabled = false;
+                        this.textContent = '🚀 立即登录';
+                    }
+                }.bind(this));
+                return;
+            }
+
+            if (!joined) {
+                container.innerHTML = this.renderer.renderLeaderboardJoin();
+                container.querySelector('#ldsp-lb-join')?.addEventListener('click', async function() {
+                    this.disabled = true;
+                    this.textContent = '⏳ 加入中...';
+                    try {
+                        await this.leaderboard.join();
+                        this.leaderboard.startSync();
+                        this.renderer.showToast('✅ 已成功加入排行榜');
+                        await this._renderLeaderboardContent();
+                    } catch (e) {
+                        this.renderer.showToast(`❌ ${e.message}`);
+                        this.disabled = false;
+                        this.textContent = '✨ 加入排行榜';
+                    }
+                }.bind(this));
+                return;
+            }
+
+            container.innerHTML = this.renderer.renderLeaderboardLoading();
+
+            try {
+                const data = await this.leaderboard.getLeaderboard(this.lbTab);
+                const user = this.oauth.getUserInfo();
+                container.innerHTML = this.renderer.renderLeaderboardData(data, user?.id, joined, this.lbTab);
+
+                // 退出排行榜按钮
+                container.querySelector('#ldsp-lb-quit')?.addEventListener('click', async function() {
+                    if (!confirm('确定要退出排行榜吗？')) return;
+                    this.disabled = true;
+                    this.textContent = '退出中...';
+                    try {
+                        await this.leaderboard.quit();
+                        this.leaderboard.stopSync();
+                        this.renderer.showToast('✅ 已退出排行榜');
+                        await this._renderLeaderboardContent();
+                    } catch (e) {
+                        this.renderer.showToast(`❌ ${e.message}`);
+                        this.disabled = false;
+                        this.textContent = '退出排行榜';
+                    }
+                }.bind(this));
+            } catch (e) {
+                container.innerHTML = this.renderer.renderLeaderboardError(e.message || '加载失败');
+                container.querySelector('#ldsp-lb-retry')?.addEventListener('click', () => {
+                    this.leaderboard.clearCache();
+                    this._renderLeaderboardContent();
+                });
             }
         }
 
         destroy() {
-            this.readingTracker.destroy();
+            this.tracker.destroy();
+            if (this.hasLeaderboard) {
+                this.leaderboard.destroy();
+                this.cloudSync.destroy();
+            }
             this.storage.flush();
-            if (this.readingUpdateInterval) clearInterval(this.readingUpdateInterval);
+            this._readingTimer && clearInterval(this._readingTimer);
             this.el.remove();
         }
     }
