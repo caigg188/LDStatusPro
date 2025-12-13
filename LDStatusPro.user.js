@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         LDStatus Pro
 // @namespace    http://tampermonkey.net/
-// @version      3.0.4
+// @version      3.1.1
 // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计。Linux.do 站点支持排行榜和云同步功能
 // @author       JackLiii
 // @license      MIT
@@ -1462,6 +1462,165 @@
             });
         }
 
+        // ==================== 升级要求历史同步 (trust_level >= 2) ====================
+
+        /**
+         * 设置 HistoryManager 引用（用于升级要求同步）
+         */
+        setHistoryManager(historyMgr) {
+            this._historyMgr = historyMgr;
+            this._reqLastUpload = this.storage.getGlobal('lastReqSync', 0);
+            this._reqLastDownload = this.storage.getGlobal('lastReqDownload', 0);
+        }
+
+        /**
+         * 获取升级要求历史数据的 hash
+         */
+        _getReqHash() {
+            if (!this._historyMgr) return '';
+            const history = this._historyMgr.getHistory();
+            if (!history.length) return '';
+            return `${history.length}:${history[history.length - 1].ts}`;
+        }
+
+        /**
+         * 下载升级要求历史数据
+         */
+        async downloadRequirements() {
+            if (!this.oauth.isLoggedIn() || !this._historyMgr) return null;
+
+            try {
+                const result = await this.oauth.api('/api/requirements/history?days=100');
+                console.log('[CloudSync] Requirements download result:', result);
+                
+                if (!result.success) {
+                    // 权限不足（trust_level < 2）是正常情况，不报错
+                    if (result.error?.code === 'INSUFFICIENT_TRUST_LEVEL') {
+                        console.log('[CloudSync] Requirements sync requires trust_level >= 2');
+                        return null;
+                    }
+                    return null;
+                }
+
+                const cloudHistory = result.data.history || [];
+                if (!cloudHistory.length) return { merged: 0, source: 'empty' };
+
+                let localHistory = this._historyMgr.getHistory();
+                const localByDay = new Map();
+                localHistory.forEach(h => {
+                    const day = new Date(h.ts).toDateString();
+                    localByDay.set(day, h);
+                });
+
+                let merged = 0;
+                cloudHistory.forEach(cloudRecord => {
+                    const day = new Date(cloudRecord.ts).toDateString();
+                    const localRecord = localByDay.get(day);
+
+                    if (!localRecord) {
+                        // 本地没有，添加云端数据
+                        localHistory.push(cloudRecord);
+                        merged++;
+                    } else {
+                        // 本地有，合并数据（取每个字段的较大值）
+                        let changed = false;
+                        for (const [key, cloudValue] of Object.entries(cloudRecord.data)) {
+                            if (typeof cloudValue === 'number') {
+                                const localValue = localRecord.data[key] || 0;
+                                if (cloudValue > localValue) {
+                                    localRecord.data[key] = cloudValue;
+                                    changed = true;
+                                }
+                            }
+                        }
+                        if (cloudRecord.readingTime > (localRecord.readingTime || 0)) {
+                            localRecord.readingTime = cloudRecord.readingTime;
+                            changed = true;
+                        }
+                        if (changed) merged++;
+                    }
+                });
+
+                if (merged > 0) {
+                    // 按时间排序
+                    localHistory.sort((a, b) => a.ts - b.ts);
+                    this.storage.set('history', localHistory);
+                    this._historyMgr._history = localHistory;
+                    this._historyMgr._historyTime = Date.now();
+                    this._historyMgr.cache.clear();
+                }
+
+                return { merged, source: 'merge' };
+            } catch (e) {
+                console.error('[CloudSync] Requirements download failed:', e);
+                return null;
+            }
+        }
+
+        /**
+         * 上传升级要求历史数据
+         */
+        async uploadRequirements() {
+            if (!this.oauth.isLoggedIn() || !this._historyMgr || this._syncing) return null;
+
+            try {
+                const history = this._historyMgr.getHistory();
+                if (!history.length) return null;
+
+                const result = await this.oauth.api('/api/requirements/sync-full', {
+                    method: 'POST',
+                    body: { history, lastSyncTime: Date.now() }
+                });
+
+                if (result.success) {
+                    this._reqLastUpload = Date.now();
+                    this.storage.setGlobalNow('lastReqSync', this._reqLastUpload);
+                    console.log('[CloudSync] Requirements uploaded:', result.data);
+                    return result.data;
+                }
+                
+                // 权限不足是正常情况
+                if (result.error?.code === 'INSUFFICIENT_TRUST_LEVEL') {
+                    console.log('[CloudSync] Requirements sync requires trust_level >= 2');
+                    return null;
+                }
+                
+                throw new Error(result.error?.message || '上传失败');
+            } catch (e) {
+                console.error('[CloudSync] Requirements upload failed:', e);
+                return null;
+            }
+        }
+
+        /**
+         * 页面加载时同步升级要求数据
+         */
+        async syncRequirementsOnLoad() {
+            if (!this.oauth.isLoggedIn() || !this._historyMgr) return;
+
+            const now = Date.now();
+            const SYNC_INTERVAL = 30 * 60 * 1000; // 30 分钟同步一次
+
+            // 下载检查
+            if (this._reqLastDownload === 0 || (now - this._reqLastDownload) > SYNC_INTERVAL) {
+                const result = await this.downloadRequirements();
+                if (result) {
+                    this._reqLastDownload = now;
+                    this.storage.setGlobalNow('lastReqDownload', now);
+                }
+            }
+
+            // 上传检查
+            const hash = this._getReqHash();
+            const lastHash = this.storage.getGlobal('lastReqHash', '');
+            if (hash && hash !== lastHash) {
+                const result = await this.uploadRequirements();
+                if (result) {
+                    this.storage.setGlobalNow('lastReqHash', hash);
+                }
+            }
+        }
+
         destroy() {
             this._timer && clearInterval(this._timer);
             this._timer = null;
@@ -1516,10 +1675,13 @@
 .ldsp-update-bubble-btn:disabled{opacity:.7;cursor:not-allowed;transform:none}
 .ldsp-body{background:var(--bg)}
 .ldsp-user{display:flex;align-items:center;gap:10px;padding:var(--pd);background:var(--bg-card);border-bottom:1px solid var(--border)}
-.ldsp-avatar{width:var(--av);height:var(--av);border-radius:50%;border:2px solid var(--accent);flex-shrink:0;background:var(--bg-el)}
+.ldsp-avatar{width:var(--av);height:var(--av);border-radius:50%;border:2px solid var(--accent);flex-shrink:0;background:var(--bg-el);position:relative}
 .ldsp-avatar:hover{transform:scale(1.1);border-color:var(--accent);box-shadow:0 0 8px var(--accent);cursor:pointer}
-.ldsp-avatar-ph{width:var(--av);height:var(--av);border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex-shrink:0;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.ldsp-avatar-ph{width:var(--av);height:var(--av);border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex-shrink:0;cursor:pointer;transition:transform .2s,box-shadow .2s;position:relative}
 .ldsp-avatar-ph:hover{transform:scale(1.1);box-shadow:0 0 8px var(--accent)}
+.ldsp-avatar-wrap{position:relative;flex-shrink:0}
+.ldsp-avatar-wrap::after{content:'查看';position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);background:var(--bg-el);color:var(--txt-sec);padding:2px 6px;border-radius:4px;font-size:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s;border:1px solid var(--border)}
+.ldsp-avatar-wrap:hover::after{opacity:1}
 .ldsp-user-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .ldsp-user-display-name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
 .ldsp-user-handle{font-size:11px;color:var(--txt-mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1843,7 +2005,9 @@
 
         // 渲染头像
         renderAvatar(url) {
-            const el = this.panel.$.user.querySelector('.ldsp-avatar-ph, .ldsp-avatar');
+            const wrap = this.panel.$.user.querySelector('.ldsp-avatar-wrap');
+            if (!wrap) return;
+            const el = wrap.querySelector('.ldsp-avatar-ph, .ldsp-avatar');
             if (!el) return;
             const img = document.createElement('img');
             img.className = 'ldsp-avatar';
@@ -2281,7 +2445,18 @@
         }
 
         renderLeaderboardData(data, userId, isJoined, type = 'daily') {
-            const rules = { daily: '每 5 分钟更新', weekly: '每 24 小时更新', monthly: '每 24 小时更新' };
+            // 从 CONFIG.CACHE 动态读取更新频率并格式化
+            const formatInterval = (ms) => {
+                const mins = Math.round(ms / 60000);
+                if (mins < 60) return `每 ${mins} 分钟更新`;
+                const hours = Math.round(mins / 60);
+                return `每 ${hours} 小时更新`;
+            };
+            const rules = {
+                daily: formatInterval(CONFIG.CACHE.LEADERBOARD_DAILY_TTL),
+                weekly: formatInterval(CONFIG.CACHE.LEADERBOARD_WEEKLY_TTL),
+                monthly: formatInterval(CONFIG.CACHE.LEADERBOARD_MONTHLY_TTL)
+            };
 
             if (!data?.rankings?.length) {
                 return `<div class="ldsp-lb-empty"><div class="ldsp-lb-empty-icon">📭</div><div class="ldsp-lb-empty-txt">暂无排行数据<br>成为第一个上榜的人吧！</div></div>`;
@@ -2346,6 +2521,7 @@
                 this.oauth = new OAuthManager(this.storage, this.network);
                 this.leaderboard = new LeaderboardManager(this.oauth, this.tracker);
                 this.cloudSync = new CloudSyncManager(this.storage, this.oauth, this.tracker);
+                this.cloudSync.setHistoryManager(this.historyMgr);  // 设置历史管理器引用
                 this.lbTab = this.storage.getGlobal('leaderboardTab', 'daily');
             }
 
@@ -2403,6 +2579,7 @@
                     }
                     console.log('[CloudSync] Storage user after:', this.storage.getUser());
                     this.cloudSync.onPageLoad();
+                    this.cloudSync.syncRequirementsOnLoad();  // 同步升级要求数据（trust_level >= 2）
                     this._syncPrefs();
                     if (this.oauth.isJoined()) this.leaderboard.startSync();
                     this._updateLoginUI();
@@ -2449,7 +2626,7 @@
                 </div>
                 <div class="ldsp-body">
                     <div class="ldsp-user">
-                        <div class="ldsp-avatar-ph">👤</div>
+                        <div class="ldsp-avatar-wrap"><div class="ldsp-avatar-ph">👤</div></div>
                         <div class="ldsp-user-info">
                             <div class="ldsp-user-display-name">加载中...</div>
                             <div class="ldsp-user-handle"></div>
@@ -2563,7 +2740,7 @@
             
             // 彩蛋：点击头像打开GitHub仓库
             this.$.user.addEventListener('click', e => {
-                if (e.target.closest('.ldsp-avatar, .ldsp-avatar-ph')) {
+                if (e.target.closest('.ldsp-avatar-wrap')) {
                     window.open('https://github.com/caigg188/LDStatusPro', '_blank');
                 }
             });
@@ -2823,10 +3000,23 @@
             orderedReqs.forEach(r => histData[r.name] = r.currentValue);
             const history = this.historyMgr.addHistory(histData, this.readingTime);
 
+            // 触发升级要求数据上传（trust_level >= 2 时异步上传）
+            if (this.hasLeaderboard && this.cloudSync && this.oauth?.isLoggedIn()) {
+                this.cloudSync.uploadRequirements().catch(() => {});
+            }
+
             const todayData = this._getTodayData();
             this._setTodayData(histData, !todayData);
 
-            this.renderer.renderUser(username, level, isOK, orderedReqs);
+            // 如果已登录，优先使用 OAuth 用户信息中的 name
+            let displayName = null;
+            if (this.hasLeaderboard && this.oauth?.isLoggedIn()) {
+                const oauthUser = this.oauth.getUserInfo();
+                if (oauthUser?.name && oauthUser.name !== oauthUser.username) {
+                    displayName = oauthUser.name;
+                }
+            }
+            this.renderer.renderUser(username, level, isOK, orderedReqs, displayName);
             this.renderer.renderReqs(orderedReqs);
 
             this.cachedHistory = history;
@@ -3032,7 +3222,7 @@
                 }
             };
 
-            this.$.user.querySelector('.ldsp-avatar, .ldsp-avatar-ph')?.addEventListener('click', handle);
+            this.$.user.querySelector('.ldsp-avatar-wrap')?.addEventListener('click', handle);
             this.$.userDisplayName.addEventListener('click', handle);
         }
 
@@ -3106,9 +3296,10 @@
                 skipped && this._updateLoginUI();
             };
 
-            overlay.querySelector('#ldsp-modal-login')?.addEventListener('click', async function() {
-                this.disabled = true;
-                this.textContent = '⏳ 登录中...';
+            const loginBtn = overlay.querySelector('#ldsp-modal-login');
+            loginBtn?.addEventListener('click', async () => {
+                loginBtn.disabled = true;
+                loginBtn.textContent = '⏳ 登录中...';
                 try {
                     const user = await this.oauth.login();
                     this.renderer.showToast('✅ 登录成功');
@@ -3124,10 +3315,10 @@
                     this.cloudSync.fullSync().catch(e => console.warn('[CloudSync]', e));
                 } catch (e) {
                     this.renderer.showToast(`❌ ${e.message}`);
-                    this.disabled = false;
-                    this.textContent = '🚀 立即登录';
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = '🚀 立即登录';
                 }
-            }.bind(this));
+            });
 
             overlay.querySelector('#ldsp-modal-skip')?.addEventListener('click', () => close(true));
             overlay.addEventListener('click', e => e.target === overlay && close(true));
