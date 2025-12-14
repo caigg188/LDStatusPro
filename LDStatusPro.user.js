@@ -3903,13 +3903,32 @@
          */
         async _loadAnnouncement() {
             try {
-                const response = await fetch(`${CONFIG.LEADERBOARD_API}/api/config/announcement`);
-                if (!response.ok) return;
+                const result = await new Promise((resolve, reject) => {
+                    GM_xmlhttpRequest({
+                        method: 'GET',
+                        url: `${CONFIG.LEADERBOARD_API}/api/config/announcement`,
+                        headers: { 'Content-Type': 'application/json' },
+                        timeout: 10000,
+                        onload: res => {
+                            if (res.status >= 200 && res.status < 300) {
+                                try {
+                                    resolve(JSON.parse(res.responseText));
+                                } catch (e) {
+                                    reject(new Error('Parse error'));
+                                }
+                            } else {
+                                reject(new Error(`HTTP ${res.status}`));
+                            }
+                        },
+                        onerror: () => reject(new Error('Network error')),
+                        ontimeout: () => reject(new Error('Timeout'))
+                    });
+                });
                 
-                const result = await response.json();
                 if (!result.success || !result.data) return;
                 
-                const announcement = result.data;
+                // 处理可能的双重嵌套: result.data.data 或 result.data
+                const announcement = result.data.data || result.data;
                 if (!announcement.enabled || !announcement.content) {
                     return;
                 }
@@ -3924,7 +3943,7 @@
                 // 显示公告
                 this._showAnnouncement(announcement);
             } catch (e) {
-                console.warn('[Announcement] Load failed:', e);
+                console.warn('[Announcement] Load failed:', e.message);
             }
         }
 
