@@ -3028,7 +3028,7 @@
                 });
 
                 if (ticket.has_new_reply) {
-                    this.oauth.api(`/api/tickets/${ticketId}/read`, { method: 'POST' }).catch(() => {});
+                    // 获取工单详情时已自动标记已读，只需更新本地状态
                     this._checkUnread();
                     const t = this.tickets.find(x => x.id == ticketId);
                     if (t) t.has_new_reply = false;
