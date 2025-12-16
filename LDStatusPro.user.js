@@ -68,7 +68,7 @@
             READING_SAVE: 30000,       // 阅读保存间隔
             READING_IDLE: 60000,       // 空闲阈值
             STORAGE_DEBOUNCE: 1000,    // 存储防抖
-            READING_UPDATE: 1000,      // 阅读时间UI更新
+            READING_UPDATE: 2000,      // 阅读时间UI更新（2秒，减少更新频率避免动画闪烁）
             LEADERBOARD_SYNC: 900000,  // 排行榜同步（15分钟，原10分钟）
             CLOUD_UPLOAD: 3600000,     // 云同步上传（60分钟，原30分钟）
             CLOUD_DOWNLOAD: 43200000,  // 云同步下载（12小时，原6小时）
@@ -2261,7 +2261,7 @@
 .ldsp-hdr-text{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;flex:1;overflow:hidden}
 .ldsp-title{font-weight:800;font-size:15px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;letter-spacing:-.02em;text-shadow:0 1px 2px rgba(0,0,0,.2)}
 .ldsp-ver{font-size:11px;color:rgba(255,255,255,.6);line-height:1.3;display:flex;flex-wrap:wrap;align-items:center;gap:3px 6px}
-.ldsp-app-name{font-size:12px;font-weight:700;background:linear-gradient(90deg,#a8c0f8,#7a9eef,#7cc9bc,#7a9eef,#a8c0f8);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:gradient-shift 4s ease infinite}
+.ldsp-app-name{font-size:12px;font-weight:700;background:linear-gradient(90deg,#a8c0f8,#7a9eef,#7cc9bc,#7a9eef,#a8c0f8);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:gradient-shift 6s ease infinite;will-change:background-position}
 @keyframes gradient-shift{0%{background-position:0% center}50%{background-position:100% center}100%{background-position:0% center}}
 .ldsp-ver-num{background:rgba(255,255,255,.2);padding:2px 8px;border-radius:10px;color:#fff;font-weight:600;font-size:9px;backdrop-filter:blur(4px)}
 .ldsp-site-ver{font-size:10px;color:#fff;text-align:center;font-weight:700;background:rgba(0,0,0,.25);padding:2px 7px;border-radius:6px;letter-spacing:.02em}
@@ -2271,10 +2271,10 @@
 .ldsp-hdr-btns button:active{transform:translateY(0) scale(.95)}
 .ldsp-hdr-btns button:focus{outline:none}
 .ldsp-hdr-btns button:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
-.ldsp-hdr-btns button.has-update{background:linear-gradient(135deg,var(--ok),var(--ok-light));animation:pulse-update 2s ease-in-out infinite;position:relative;box-shadow:0 0 15px rgba(16,185,129,.4)}
-.ldsp-hdr-btns button.has-update::after{content:'';position:absolute;top:-3px;right:-3px;width:10px;height:10px;background:var(--err);border-radius:50%;border:2px solid rgba(0,0,0,.2);animation:pulse-dot 1.5s ease infinite}
-@keyframes pulse-update{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-@keyframes pulse-dot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.2);opacity:.7}}
+.ldsp-hdr-btns button.has-update{background:linear-gradient(135deg,var(--ok),var(--ok-light));animation:pulse-update 3s ease-in-out infinite;position:relative;box-shadow:0 0 15px rgba(16,185,129,.4)}
+.ldsp-hdr-btns button.has-update::after{content:'';position:absolute;top:-3px;right:-3px;width:10px;height:10px;background:var(--err);border-radius:50%;border:2px solid rgba(0,0,0,.2);animation:pulse-dot 2.5s ease infinite}
+@keyframes pulse-update{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes pulse-dot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:.8}}
 .ldsp-update-bubble{position:absolute;top:52px;left:50%;transform:translateX(-50%) translateY(-10px);background:var(--bg-card);border:1px solid var(--border-accent);border-radius:var(--r-md);padding:16px 18px;text-align:center;z-index:100;box-shadow:var(--shadow-lg),var(--glow-accent);opacity:0;pointer-events:none;transition:all .3s var(--ease-spring);max-width:calc(100% - 24px);width:220px;backdrop-filter:blur(16px)}
 .ldsp-update-bubble::before{content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%) rotate(45deg);width:12px;height:12px;background:var(--bg-card);border-left:1px solid var(--border-accent);border-top:1px solid var(--border-accent)}
 .ldsp-update-bubble.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
@@ -2315,36 +2315,36 @@
 .ldsp-user-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .ldsp-user-display-name{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;letter-spacing:-.01em;background:linear-gradient(135deg,var(--txt) 0%,var(--txt-sec) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .ldsp-user-handle{font-size:12px;color:var(--txt-mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
-.ldsp-user.not-logged .ldsp-avatar,.ldsp-user.not-logged .ldsp-avatar-ph{border:2px dashed var(--warn);animation:pulse-border 2s ease infinite}
-@keyframes pulse-border{0%,100%{border-color:var(--warn)}50%{border-color:rgba(245,158,11,.4)}}
+.ldsp-user.not-logged .ldsp-avatar,.ldsp-user.not-logged .ldsp-avatar-ph{border:2px dashed var(--warn);animation:pulse-border 3s ease infinite}
+@keyframes pulse-border{0%,100%{border-color:var(--warn)}50%{border-color:rgba(245,158,11,.5)}}
 @keyframes pulse-border-red{0%,100%{border-color:#ef4444}50%{border-color:rgba(239,68,68,.4)}}
 .ldsp-user.not-logged .ldsp-user-display-name{color:var(--warn);-webkit-text-fill-color:var(--warn)}
-.ldsp-login-hint{font-size:9px;color:var(--warn);margin-left:4px;animation:blink 1.5s ease-in-out infinite;background:var(--warn-bg);padding:2px 6px;border-radius:8px;font-weight:500}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.6}}
+.ldsp-login-hint{font-size:9px;color:var(--warn);margin-left:4px;animation:blink 2.5s ease-in-out infinite;background:var(--warn-bg);padding:2px 6px;border-radius:8px;font-weight:500}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.7}}
 .ldsp-user-meta{display:flex;align-items:center;gap:8px;margin-top:3px}
 
 .ldsp-reading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 12px;border-radius:var(--r-md);min-width:70px;position:relative;overflow:visible;border:1px solid var(--border);transition:all .2s var(--ease)}
 .ldsp-reading::before{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.05) 0%,transparent 100%);pointer-events:none}
-.ldsp-reading-icon{font-size:20px;margin-bottom:3px;animation:bounce 2.5s ease-in-out infinite;filter:drop-shadow(0 2px 4px rgba(0,0,0,.2))}
-@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.ldsp-reading-icon{font-size:20px;margin-bottom:3px;animation:bounce 3s ease-in-out infinite;filter:drop-shadow(0 2px 4px rgba(0,0,0,.2));will-change:transform}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 .ldsp-reading-time{font-size:13px;font-weight:800;letter-spacing:-.02em}
 .ldsp-reading-label{font-size:9px;opacity:.85;margin-top:2px;font-weight:600;letter-spacing:.02em}
 .ldsp-reading{--rc:#94a3b8}
 .ldsp-reading::after{content:'未活动 已停止记录';position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--err);white-space:nowrap;font-weight:600;letter-spacing:.02em;opacity:.8}
-.ldsp-reading.tracking{animation:reading-glow 2s ease-in-out infinite}
+.ldsp-reading.tracking{animation:reading-glow 3.5s ease-in-out infinite;will-change:box-shadow}
 .ldsp-reading.tracking::after{content:'阅读时间记录中...';color:var(--rc);opacity:1}
 @keyframes reading-glow{0%,100%{box-shadow:0 0 8px color-mix(in srgb,var(--rc) 40%,transparent),0 0 16px color-mix(in srgb,var(--rc) 20%,transparent),0 0 24px color-mix(in srgb,var(--rc) 10%,transparent)}50%{box-shadow:0 0 16px color-mix(in srgb,var(--rc) 60%,transparent),0 0 32px color-mix(in srgb,var(--rc) 35%,transparent),0 0 48px color-mix(in srgb,var(--rc) 15%,transparent)}}
 .ldsp-reading-ripple{position:absolute;inset:-2px;border-radius:inherit;pointer-events:none;z-index:-1;opacity:0}
 .ldsp-reading.tracking .ldsp-reading-ripple{opacity:1}
-.ldsp-reading.tracking .ldsp-reading-ripple::before,.ldsp-reading.tracking .ldsp-reading-ripple::after{content:'';position:absolute;inset:0;border-radius:inherit;border:2px solid var(--rc);opacity:.6;animation:ripple-expand 2.5s ease-out infinite}
-.ldsp-reading.tracking .ldsp-reading-ripple::after{animation-delay:1.25s}
-@keyframes ripple-expand{0%{transform:scale(1);opacity:.7;border-width:2px}100%{transform:scale(1.5);opacity:0;border-width:1px}}
+.ldsp-reading.tracking .ldsp-reading-ripple::before,.ldsp-reading.tracking .ldsp-reading-ripple::after{content:'';position:absolute;inset:0;border-radius:inherit;border:2px solid var(--rc);opacity:.5;animation:ripple-expand 4s ease-out infinite;will-change:transform,opacity}
+.ldsp-reading.tracking .ldsp-reading-ripple::after{animation-delay:2s}
+@keyframes ripple-expand{0%{transform:scale(1);opacity:.5;border-width:2px}100%{transform:scale(1.4);opacity:0;border-width:1px}}
 .ldsp-reading.hi{box-shadow:0 0 20px rgba(249,115,22,.2)}
-.ldsp-reading.hi .ldsp-reading-icon{animation:fire .6s ease-in-out infinite}
-@keyframes fire{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+.ldsp-reading.hi .ldsp-reading-icon{animation:fire 1.2s ease-in-out infinite;will-change:transform}
+@keyframes fire{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
 .ldsp-reading.max{box-shadow:0 0 25px rgba(236,72,153,.25)}
-.ldsp-reading.max .ldsp-reading-icon{animation:crown 1.2s ease-in-out infinite}
-@keyframes crown{0%,100%{transform:rotate(-8deg) scale(1)}50%{transform:rotate(8deg) scale(1.2)}}
+.ldsp-reading.max .ldsp-reading-icon{animation:crown 2s ease-in-out infinite;will-change:transform}
+@keyframes crown{0%,100%{transform:rotate(-5deg) scale(1)}50%{transform:rotate(5deg) scale(1.1)}}
 
 .ldsp-tabs{display:flex;padding:10px 12px;gap:8px;background:var(--bg);border-bottom:1px solid var(--border)}
 .ldsp-tab{flex:1;padding:8px 12px;border:none;background:var(--bg-card);color:var(--txt-sec);border-radius:var(--r-sm);font-size:11px;font-weight:600;transition:all .2s var(--ease);border:1px solid transparent}
@@ -2377,7 +2377,7 @@
 .ldsp-ring-val.anim{animation:val 1s var(--ease-spring) .5s forwards;opacity:0}
 @keyframes val{from{opacity:0;transform:scale(.6)}60%{transform:scale(1.1)}to{opacity:1;transform:scale(1)}}
 .ldsp-ring-lbl{font-size:9px;color:var(--txt-mut);margin-top:2px;font-weight:500}
-.ldsp-ring-lvl{font-size:12px;font-weight:700;margin-top:8px;padding:4px 14px;border-radius:12px;background-image:linear-gradient(90deg,#64748b 0%,#94a3b8 50%,#64748b 100%);background-size:200% 100%;background-position:0% 50%;color:#fff;box-shadow:0 2px 10px rgba(100,116,139,.35);letter-spacing:.03em;text-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform 2s ease;transform-style:preserve-3d;animation:lvl-shimmer 4s ease-in-out infinite}
+.ldsp-ring-lvl{font-size:12px;font-weight:700;margin-top:8px;padding:4px 14px;border-radius:12px;background-image:linear-gradient(90deg,#64748b 0%,#94a3b8 50%,#64748b 100%);background-size:200% 100%;background-position:0% 50%;color:#fff;box-shadow:0 2px 10px rgba(100,116,139,.35);letter-spacing:.03em;text-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform 2s ease;transform-style:preserve-3d;animation:lvl-shimmer 6s ease-in-out infinite;will-change:background-position}
 .ldsp-ring-lvl:hover{transform:rotateY(360deg);animation-play-state:paused}
 .ldsp-ring-lvl.lv1{background-image:linear-gradient(90deg,#64748b 0%,#94a3b8 50%,#64748b 100%);box-shadow:0 2px 10px rgba(100,116,139,.35);animation-duration:4s}
 .ldsp-ring-lvl.lv2{background-image:linear-gradient(90deg,#3b82f6 0%,#60a5fa 50%,#3b82f6 100%);box-shadow:0 2px 10px rgba(59,130,246,.4);animation-duration:3.5s}
@@ -2458,8 +2458,8 @@
 .ldsp-rd-stats-lbl{font-size:10px;color:var(--txt-mut);margin-top:3px;font-weight:500}
 .ldsp-rd-stats-badge{padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.1)}
 .ldsp-track{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-card);border-radius:var(--r-sm);margin-bottom:10px;font-size:10px;color:var(--txt-mut);border:1px solid var(--border);font-weight:500}
-.ldsp-track-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);animation:pulse 2s ease-in-out infinite;box-shadow:0 0 10px rgba(16,185,129,.4)}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1);box-shadow:0 0 10px rgba(16,185,129,.4)}50%{opacity:.6;transform:scale(.85);box-shadow:0 0 5px rgba(16,185,129,.2)}}
+.ldsp-track-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);animation:pulse 3s ease-in-out infinite;box-shadow:0 0 10px rgba(16,185,129,.4);will-change:opacity,transform}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);box-shadow:0 0 10px rgba(16,185,129,.4)}50%{opacity:.7;transform:scale(.9);box-shadow:0 0 5px rgba(16,185,129,.2)}}
 @keyframes gradient-shift{0%{background-position:0% center}50%{background-position:100% center}100%{background-position:0% center}}
 .ldsp-rd-prog{background:var(--bg-card);border-radius:var(--r-md);padding:12px;margin-bottom:10px;border:1px solid var(--border)}
 .ldsp-rd-prog-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
@@ -2511,10 +2511,10 @@
 .ldsp-empty,.ldsp-loading{text-align:center;padding:30px 16px;color:var(--txt-mut)}
 .ldsp-empty-icon{font-size:36px;margin-bottom:12px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.1))}
 .ldsp-empty-txt{font-size:12px;line-height:1.7;font-weight:500}
-.ldsp-spinner{width:28px;height:28px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}
+.ldsp-spinner{width:28px;height:28px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 10px;will-change:transform}
 @keyframes spin{to{transform:rotate(360deg)}}
 .ldsp-mini-loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;color:var(--txt-mut)}
-.ldsp-mini-spin{width:32px;height:32px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:14px}
+.ldsp-mini-spin{width:32px;height:32px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:14px;will-change:transform}
 .ldsp-mini-txt{font-size:11px;font-weight:500}
 .ldsp-toast{position:absolute;bottom:-55px;left:50%;transform:translateX(-50%) translateY(15px);background:var(--grad);color:#fff;padding:10px 18px;border-radius:20px;font-size:12px;font-weight:600;box-shadow:0 8px 30px rgba(107,140,239,.4);opacity:0;white-space:nowrap;display:flex;align-items:center;gap:8px;z-index:100000;transition:all .3s var(--ease-spring)}
 .ldsp-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -2592,7 +2592,7 @@
 .ldsp-lb-refresh{background:var(--bg-el);border:none;font-size:11px;padding:4px 8px;border-radius:6px;transition:all .2s var(--ease);opacity:.8}
 .ldsp-lb-refresh:hover{opacity:1;background:var(--bg-hover);transform:scale(1.05)}
 .ldsp-lb-refresh:active{transform:scale(.95)}
-.ldsp-lb-refresh.spinning{animation:ldsp-spin .8s linear infinite}
+.ldsp-lb-refresh.spinning{animation:ldsp-spin 1s linear infinite}
 .ldsp-lb-refresh:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
 @keyframes ldsp-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .ldsp-my-rank{display:flex;align-items:center;justify-content:space-between;padding:14px;background:var(--grad);border-radius:var(--r-md);margin-bottom:10px;color:#fff;position:relative;overflow:hidden;box-shadow:0 8px 25px rgba(107,140,239,.3)}
@@ -2608,7 +2608,7 @@
 .ldsp-join-prompt-title{font-size:14px;font-weight:700;margin-bottom:6px;letter-spacing:-.01em}
 .ldsp-join-prompt-desc{font-size:11px;color:var(--txt-mut);line-height:1.7;margin-bottom:16px;font-weight:500}
 .ldsp-privacy-note{font-size:9px;color:var(--txt-mut);margin-top:12px;display:flex;align-items:center;justify-content:center;gap:5px;font-weight:500}
-@media (prefers-reduced-motion:reduce){#ldsp-panel,#ldsp-panel *{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+@media (prefers-reduced-motion:reduce){#ldsp-panel,#ldsp-panel *{animation:none!important;transition:none!important}#ldsp-panel .ldsp-spinner,#ldsp-panel .ldsp-mini-spin,#ldsp-panel .ldsp-lb-refresh.spinning{animation:spin 1.5s linear infinite!important}}
 @media (min-width:1920px){#ldsp-panel{--w:340px;--fs:13px;--pd:16px;--av:50px;--ring:85px}}
 @media (max-height:700px){#ldsp-panel{top:60px}.ldsp-content{max-height:calc(100vh - 240px)}}
 @media (max-width:1200px){#ldsp-panel{right:10px;left:auto}}
@@ -2622,7 +2622,7 @@
 .ldsp-action-btn .ldsp-action-text{overflow:hidden;text-overflow:ellipsis}
 @media (max-width:320px){.ldsp-user-actions{flex-direction:column}.ldsp-action-btn{flex:1 1 100%;min-width:0}}
 .ldsp-ticket-btn{}
-.ldsp-ticket-btn .ldsp-ticket-badge{background:var(--err);color:#fff;font-size:8px;padding:2px 5px;border-radius:8px;margin-left:2px;font-weight:700;animation:pulse 2s ease infinite}
+.ldsp-ticket-btn .ldsp-ticket-badge{background:var(--err);color:#fff;font-size:8px;padding:2px 5px;border-radius:8px;margin-left:2px;font-weight:700;animation:pulse 3s ease infinite}
 .ldsp-ticket-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:var(--bg);border-radius:0 0 var(--r-lg) var(--r-lg);z-index:10;display:none;flex-direction:column;overflow:hidden}
 .ldsp-ticket-overlay.show{display:flex}
 .ldsp-ticket-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-card);border-bottom:1px solid var(--border);flex-shrink:0}
@@ -2640,7 +2640,7 @@
 .ldsp-ticket-list{display:flex;flex-direction:column;gap:8px}
 .ldsp-ticket-item{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:10px;cursor:pointer;transition:all .2s}
 .ldsp-ticket-item:hover{background:var(--bg-hover);transform:translateX(3px)}
-.ldsp-ticket-item.has-reply{border-left:3px solid #ef4444;animation:pulse-border-red 2s ease infinite;background:rgba(239,68,68,.05)}
+.ldsp-ticket-item.has-reply{border-left:3px solid #ef4444;animation:pulse-border-red 3s ease infinite;background:rgba(239,68,68,.05)}
 .ldsp-ticket-item-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
 .ldsp-ticket-item-type{font-size:10px;color:var(--txt-sec)}
 .ldsp-ticket-item-status{font-size:9px;padding:2px 5px;border-radius:4px}
@@ -2996,7 +2996,7 @@
                             ${replies.map(r => `
                                 <div class="ldsp-ticket-reply ${r.is_admin ? 'admin' : 'user'}">
                                     <div class="ldsp-ticket-reply-header">
-                                        <span class="ldsp-ticket-reply-author">${r.is_admin ? '👨‍💼 管理员' : '👤 我'}</span>
+                                        <span class="ldsp-ticket-reply-author">${r.is_admin ? '👨‍💼 ' + (r.admin_name || '管理员') : '👤 我'}</span>
                                         <span>${this._formatTime(r.created_at)}</span>
                                     </div>
                                     <div class="ldsp-ticket-reply-content">${Utils.sanitize(r.content, 2000)}</div>
@@ -3228,17 +3228,30 @@
             }
         }
 
-        // 渲染阅读卡片
+        // 渲染阅读卡片（带缓存，避免频繁更新导致动画闪烁）
         renderReading(minutes, isTracking = true) {
             const lv = Utils.getReadingLevel(minutes);
+            const timeStr = Utils.formatReadingTime(minutes);
             const $ = this.panel.$;
-            $.readingIcon.textContent = lv.icon;
-            $.readingTime.textContent = Utils.formatReadingTime(minutes);
-            $.readingLabel.textContent = lv.label;
-            // 设置背景色和--rc变量(用于波浪和追踪文字颜色)
-            $.reading.style.cssText = `background:${lv.bg};color:${lv.color};--rc:${lv.color}`;
-            $.readingTime.style.color = lv.color;
-            $.readingLabel.style.color = lv.color;
+            
+            // 缓存上次渲染的状态，避免不必要的 DOM 操作和样式更新
+            const cacheKey = `${lv.label}|${timeStr}|${isTracking}|${minutes >= 180}|${minutes >= 450}`;
+            if (this._readingCache === cacheKey) return;
+            this._readingCache = cacheKey;
+            
+            // 只更新变化的内容
+            if ($.readingIcon.textContent !== lv.icon) $.readingIcon.textContent = lv.icon;
+            if ($.readingTime.textContent !== timeStr) $.readingTime.textContent = timeStr;
+            if ($.readingLabel.textContent !== lv.label) $.readingLabel.textContent = lv.label;
+            
+            // 只在颜色变化时更新样式（避免重置动画）
+            if (this._readingColor !== lv.color) {
+                this._readingColor = lv.color;
+                $.reading.style.cssText = `background:${lv.bg};color:${lv.color};--rc:${lv.color}`;
+                $.readingTime.style.color = lv.color;
+                $.readingLabel.style.color = lv.color;
+            }
+            
             // tracking 类表示正在追踪，显示波浪效果和"阅读时间记录中..."
             $.reading.classList.toggle('tracking', isTracking);
             // hi 类表示阅读时间达到沉浸阅读(180-450分钟)
@@ -3954,7 +3967,7 @@
                                 </div>
                             </div>
                             <div class="ldsp-user-actions">
-                                <div class="ldsp-action-btn ldsp-ticket-btn" data-clickable title="工单反馈"><span class="ldsp-action-icon">🎫</span><span class="ldsp-action-text">反馈工单</span></div>
+                                <div class="ldsp-action-btn ldsp-ticket-btn" data-clickable title="工单系统"><span class="ldsp-action-icon">📪</span><span class="ldsp-action-text">工单系统</span></div>
                             </div>
                         </div>
                         <div class="ldsp-reading" data-clickable title="点击访问 LDStatus Pro 官网">
@@ -4096,8 +4109,22 @@
                     await this.cloudSync.fullSync();
                     this.renderer.showToast('✅ 数据同步完成');
                     this.renderer.renderReading(this.tracker.getTodayTime(), this.tracker.isActive);
+                    // 显示成功状态
+                    if (this.$.btnCloudSync) {
+                        this.$.btnCloudSync.textContent = '✅';
+                        setTimeout(() => {
+                            if (this.$.btnCloudSync) this.$.btnCloudSync.textContent = '☁️';
+                        }, 1000);
+                    }
                 } catch (e) {
                     this.renderer.showToast(`❌ 同步失败: ${e.message || e}`);
+                    // 显示失败状态
+                    if (this.$.btnCloudSync) {
+                        this.$.btnCloudSync.textContent = '❌';
+                        setTimeout(() => {
+                            if (this.$.btnCloudSync) this.$.btnCloudSync.textContent = '☁️';
+                        }, 10000);
+                    }
                 }
             });
 
