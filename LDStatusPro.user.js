@@ -584,13 +584,11 @@
                     const cached = GM_getValue(storageKey, null);
                     if (cached && Array.isArray(cached) && cached.length > 0) {
                         CONFIG.READING_LEVELS = cached;
-                        console.log('[ReadingLevels] Using cached config, levels:', cached.length);
                         return;
                     }
                 }
                 
                 // 需要从服务端获取
-                console.log('[ReadingLevels] Fetching from server...');
                 const response = await new Promise((resolve, reject) => {
                     GM_xmlhttpRequest({
                         method: 'GET',
@@ -618,21 +616,17 @@
                     CONFIG.READING_LEVELS = levels;
                     GM_setValue(storageKey, levels);
                     GM_setValue(timeKey, now);
-                    console.log('[ReadingLevels] Loaded from server, levels:', levels.length);
                 } else {
                     throw new Error('Invalid response format');
                 }
             } catch (e) {
-                console.warn('[ReadingLevels] Failed to load from server:', e.message);
                 // 尝试使用本地缓存（即使过期也比没有好）
                 const cached = GM_getValue(storageKey, null);
                 if (cached && Array.isArray(cached) && cached.length > 0) {
                     CONFIG.READING_LEVELS = cached;
-                    console.log('[ReadingLevels] Using expired cache, levels:', cached.length);
                 } else {
                     // 使用默认配置
                     CONFIG.READING_LEVELS = CONFIG.READING_LEVELS_DEFAULT;
-                    console.log('[ReadingLevels] Using default config');
                 }
             }
         }
@@ -1444,7 +1438,6 @@
                 
                 if (currentMinutes === lastSyncedMinutes) {
                     // 数据没变化，跳过同步
-                    console.log('[Leaderboard] Sync skipped - no change:', currentMinutes, 'min');
                     return;
                 }
                 
@@ -1480,11 +1473,6 @@
                             this._lastSync = 0;
                             this.syncReadingTime();
                         }, 35000);
-                    } else if (result.override) {
-                        // 服务器数据更大，更新本地记录
-                        console.log(`[Leaderboard] Server override: server=${serverAccepted}`);
-                    } else {
-                        console.log(`[Leaderboard] Sync success: ${serverAccepted} min`);
                     }
                 } else {
                     // 兼容旧版响应格式
@@ -1556,7 +1544,6 @@
         _recordFailure(type) {
             this._failureCount[type] = Math.min((this._failureCount[type] || 0) + 1, 6);
             this._lastFailure[type] = Date.now();
-            console.log(`[CloudSync] ${type} failure #${this._failureCount[type]}, next retry in ${this._getBackoffDelay(type)/1000}s`);
         }
         
         // 记录成功（重置失败计数）
@@ -1627,13 +1614,11 @@
             
             // 检查退避延迟
             if (!this._canRetry('reading')) {
-                console.log('[CloudSync] Download skipped - in backoff period');
                 return null;
             }
 
             try {
                 const result = await this.oauth.api('/api/reading/history?days=365');
-                console.log('[CloudSync] Download result:', result);
                 if (!result.success) {
                     this._recordFailure('reading');
                     return null;
@@ -1642,15 +1627,12 @@
                 this._recordSuccess('reading');
 
                 const cloud = result.data.dailyData || {};
-                console.log('[CloudSync] Cloud data days:', Object.keys(cloud).length, 'keys:', Object.keys(cloud).slice(0, 3));
                 let local = this.storage.get('readingTime', null);
-                console.log('[CloudSync] Local data:', local ? Object.keys(local.dailyData || {}).length + ' days' : 'null');
 
                 if (!local?.dailyData) {
                     local = { version: 3, dailyData: cloud, monthlyCache: {}, yearlyCache: {} };
                     this._rebuildCache(local);
                     this.storage.setNow('readingTime', local);
-                    console.log('[CloudSync] Stored cloud data to local, days:', Object.keys(cloud).length);
                     return { merged: Object.keys(cloud).length, source: 'cloud' };
                 }
 
@@ -1685,7 +1667,6 @@
             
             // 检查退避延迟
             if (!this._canRetry('reading')) {
-                console.log('[CloudSync] Upload skipped - in backoff period');
                 return null;
             }
 
@@ -1720,7 +1701,6 @@
                     return null;
                 }
 
-                console.log(`[CloudSync] Uploading ${Object.keys(recentData).length} days of data`);
                 const result = await this.oauth.api('/api/reading/sync-full', {
                     method: 'POST',
                     body: { dailyData: recentData, lastSyncTime: Date.now() }
@@ -1750,14 +1730,11 @@
             const local = this.storage.get('readingTime', null);
             const hasLocal = local?.dailyData && Object.keys(local.dailyData).length > 0;
             const isNew = !hasLocal || this._lastDownload === 0;
-            console.log('[CloudSync] onPageLoad - hasLocal:', hasLocal, 'isNew:', isNew, '_lastDownload:', this._lastDownload);
 
             // 串行执行同步请求，避免并发压力
             // 1. 下载检查（优先级最高）
             if (isNew || (now - this._lastDownload) > CONFIG.INTERVALS.CLOUD_DOWNLOAD) {
-                console.log('[CloudSync] Starting download...');
                 const result = await this.download();
-                console.log('[CloudSync] Download result:', result);
                 if (result) {
                     this._lastDownload = now;
                     this.storage.setGlobalNow('lastDownloadSync', now);
@@ -1785,13 +1762,10 @@
             try {
                 this._setSyncing(true);
                 
-                console.log('[CloudSync] fullSync - starting download...');
-                const downloadResult = await this.download();
-                console.log('[CloudSync] fullSync - download result:', downloadResult);
+                await this.download();
                 this._lastDownload = Date.now();
                 this.storage.setGlobalNow('lastDownloadSync', this._lastDownload);
 
-                console.log('[CloudSync] fullSync - starting upload...');
                 // upload 内部不会重复设置 syncing 因为已经是 true
                 const local = this.storage.get('readingTime', null);
                 if (local?.dailyData) {
@@ -1799,7 +1773,6 @@
                         method: 'POST',
                         body: { dailyData: local.dailyData, lastSyncTime: Date.now() }
                     });
-                    console.log('[CloudSync] fullSync - upload result:', result);
                     if (result.success) {
                         this._lastUpload = Date.now();
                         this.storage.setGlobalNow('lastCloudSync', this._lastUpload);
@@ -1895,24 +1868,20 @@
             // 检查 trust_level 缓存（如果已知不足，跳过请求）
             const cachedTrust = this._hasSufficientTrustLevel();
             if (cachedTrust === false) {
-                console.log('[CloudSync] Requirements skipped - cached trust_level < 2');
                 return null;
             }
             
             // 检查退避延迟
             if (!this._canRetry('requirements')) {
-                console.log('[CloudSync] Requirements download skipped - in backoff period');
                 return null;
             }
 
             try {
                 const result = await this.oauth.api('/api/requirements/history?days=100');
-                console.log('[CloudSync] Requirements download result:', result);
                 
                 if (!result.success) {
                     // 权限不足（trust_level < 2）是正常情况，缓存结果避免重复请求
                     if (result.error?.code === 'INSUFFICIENT_TRUST_LEVEL') {
-                        console.log('[CloudSync] Requirements sync requires trust_level >= 2');
                         this._updateTrustLevelCache(false);
                         return null;
                     }
@@ -1990,13 +1959,11 @@
             // 检查 trust_level 缓存
             const cachedTrust = this._hasSufficientTrustLevel();
             if (cachedTrust === false) {
-                console.log('[CloudSync] Requirements sync skipped - cached trust_level < 2');
                 return null;
             }
             
             // 检查退避延迟
             if (!this._canRetry('requirements')) {
-                console.log('[CloudSync] Requirements incremental sync skipped - in backoff period');
                 return null;
             }
 
@@ -2018,13 +1985,11 @@
                     this.storage.setGlobalNow('lastReqIncrementalSync', this._reqLastIncrementalSync);
                     this._updateTrustLevelCache(true);
                     this._recordSuccess('requirements');
-                    console.log('[CloudSync] Requirements incremental sync:', result.data);
                     return result.data;
                 }
                 
                 // 权限不足是正常情况，缓存结果
                 if (result.error?.code === 'INSUFFICIENT_TRUST_LEVEL') {
-                    console.log('[CloudSync] Requirements sync requires trust_level >= 2');
                     this._updateTrustLevelCache(false);
                     return null;
                 }
@@ -2047,13 +2012,11 @@
             // 检查 trust_level 缓存
             const cachedTrust = this._hasSufficientTrustLevel();
             if (cachedTrust === false) {
-                console.log('[CloudSync] Requirements full upload skipped - cached trust_level < 2');
                 return null;
             }
             
             // 检查退避延迟
             if (!this._canRetry('requirements')) {
-                console.log('[CloudSync] Requirements full upload skipped - in backoff period');
                 return null;
             }
 
@@ -2071,13 +2034,11 @@
                     this.storage.setGlobalNow('lastReqFullSync', this._reqLastFullSync);
                     this._updateTrustLevelCache(true);
                     this._recordSuccess('requirements');
-                    console.log('[CloudSync] Requirements full uploaded:', result.data);
                     return result.data;
                 }
                 
                 // 权限不足是正常情况，缓存结果
                 if (result.error?.code === 'INSUFFICIENT_TRUST_LEVEL') {
-                    console.log('[CloudSync] Requirements sync requires trust_level >= 2');
                     this._updateTrustLevelCache(false);
                     return null;
                 }
@@ -2119,7 +2080,6 @@
             // 检查 trust_level，如果已知不足则直接跳过（不发起任何请求）
             const hasTrust = this._hasSufficientTrustLevel();
             if (hasTrust === false) {
-                console.log('[CloudSync] Requirements sync skipped - trust_level < 2');
                 return;
             }
             
@@ -2128,7 +2088,6 @@
             const localHistory = this._historyMgr.getHistory();
             if (hasTrust === null) {
                 if (!localHistory || localHistory.length === 0) {
-                    console.log('[CloudSync] Requirements sync skipped - no local data and trust_level unknown');
                     return;
                 }
             }
@@ -2142,8 +2101,6 @@
             const needFullSync = isFirstTime || (now - (this._reqLastFullSync || 0)) > FULL_INTERVAL;
             
             if (needFullSync) {
-                console.log('[CloudSync] Requirements full sync needed:', isFirstTime ? 'first time' : 'interval exceeded');
-                
                 // 1. 先下载云端数据
                 const downloadResult = await this.downloadRequirements();
                 if (downloadResult) {
@@ -2155,7 +2112,6 @@
                     const localDays = localHistory.length;
                     
                     if (localDays > 0 && (isFirstTime || localDays > cloudDays)) {
-                        console.log('[CloudSync] Local has more data, uploading full history...');
                         const uploadResult = await this.uploadRequirementsFull();
                         if (uploadResult) {
                             this._reqLastFullSync = now;
@@ -2172,7 +2128,6 @@
             // ========== 增量同步：只同步当天数据 ==========
             const lastIncremental = this._reqLastIncrementalSync || 0;
             if ((now - lastIncremental) < INCREMENTAL_INTERVAL) {
-                console.log('[CloudSync] Requirements incremental sync skipped - within interval');
                 return;
             }
             
@@ -2181,12 +2136,7 @@
             const todayRecord = localHistory.find(h => new Date(h.ts).toDateString() === today);
             
             if (todayRecord) {
-                const result = await this.syncTodayRequirements(todayRecord);
-                if (result) {
-                    console.log('[CloudSync] Requirements incremental sync completed');
-                }
-            } else {
-                console.log('[CloudSync] No today record to sync');
+                await this.syncTodayRequirements(todayRecord);
             }
         }
 
@@ -2886,6 +2836,13 @@
                 ];
             }
             
+            // 不同类型的 placeholder 提示
+            const placeholders = {
+                'feature_request': '请详细描述您的功能建议...',
+                'bug_report': '请详细描述您遇到的问题，建议包含以下信息：\n\n• 浏览器及版本（如 Chrome 120）\n• 操作系统（如 Windows 11）\n• 问题复现步骤\n• 预期行为与实际行为'
+            };
+            const defaultPlaceholder = placeholders[this.ticketTypes[0]?.id] || placeholders['feature_request'];
+            
             body.innerHTML = `
                 <div class="ldsp-ticket-form">
                     <div class="ldsp-ticket-form-group">
@@ -2905,15 +2862,19 @@
                     </div>
                     <div class="ldsp-ticket-form-group">
                         <div class="ldsp-ticket-label">详细描述 <span style="color:var(--txt-mut);font-weight:400">(8-500字)</span></div>
-                        <textarea class="ldsp-ticket-textarea" placeholder="请详细描述您的问题或建议..." minlength="8" maxlength="500"></textarea>
+                        <textarea class="ldsp-ticket-textarea" placeholder="${defaultPlaceholder}" minlength="8" maxlength="500"></textarea>
                     </div>
                     <button class="ldsp-ticket-submit">提交工单</button>
                 </div>`;
 
+            const textarea = body.querySelector('.ldsp-ticket-textarea');
             body.querySelectorAll('.ldsp-ticket-type').forEach(type => {
                 type.addEventListener('click', () => {
                     body.querySelectorAll('.ldsp-ticket-type').forEach(t => t.classList.remove('selected'));
                     type.classList.add('selected');
+                    // 根据类型更新 placeholder
+                    const selectedType = type.dataset.type;
+                    textarea.placeholder = placeholders[selectedType] || placeholders['feature_request'];
                 });
             });
 
@@ -3880,12 +3841,9 @@
                 if (this.oauth.isLoggedIn()) {
                     // 确保 storage 使用正确的用户名（从 OAuth 用户信息同步）
                     const oauthUser = this.oauth.getUserInfo();
-                    console.log('[CloudSync] OAuth user:', oauthUser?.username);
-                    console.log('[CloudSync] Storage user before:', this.storage.getUser());
                     if (oauthUser?.username) {
                         const currentUser = this.storage.getUser();
                         if (currentUser !== oauthUser.username) {
-                            console.log('[CloudSync] User mismatch, syncing:', currentUser, '->', oauthUser.username);
                             this.storage.setUser(oauthUser.username);
                             this.storage.invalidateCache();  // 清除缓存确保使用新 key
                             this.storage.migrate(oauthUser.username);
@@ -3893,7 +3851,6 @@
                         // 使用 OAuth 用户信息更新界面（即使 connect API 失败也能显示用户信息）
                         this._updateUserInfoFromOAuth(oauthUser);
                     }
-                    console.log('[CloudSync] Storage user after:', this.storage.getUser());
                     // 串行化同步请求，避免并发压力
                     this.cloudSync.onPageLoad().then(() => {
                         // reading 同步完成后再同步 requirements
@@ -4175,7 +4132,6 @@
             
             // 监听 Token 过期事件，刷新 UI
             window.addEventListener('ldsp_token_expired', () => {
-                console.log('[LDStatus Pro] Token expired, refreshing UI');
                 this.renderer.showToast('⚠️ 登录已过期，请重新登录');
                 this._renderLeaderboard();
             });
@@ -4311,8 +4267,6 @@
             // 只有当等级变化时才更新
             if (currentLevel === connectLevel) return;
             
-            console.log(`[LDStatus Pro] Trust level change detected: ${currentLevel} -> ${connectLevel}`);
-            
             try {
                 // 更新服务端
                 const result = await this.cloudSync?.oauth?.api('/api/user/trust-level', {
@@ -4324,7 +4278,6 @@
                     // 更新本地缓存
                     const updatedUserInfo = { ...userInfo, trust_level: connectLevel };
                     this.oauth.setUserInfo(updatedUserInfo);
-                    console.log(`[LDStatus Pro] Trust level synced to server: ${connectLevel}`);
                 }
             } catch (e) {
                 console.warn('[LDStatus Pro] Failed to sync trust level:', e.message);
@@ -4447,13 +4400,11 @@
                             if (stats.time_read !== undefined) data['阅读时间'] = Math.round(stats.time_read / 60); // 秒转分钟
                             
                             if (Object.keys(data).length > 0) {
-                                console.log('[LDStatus Pro] Summary data from JSON API:', data);
                                 return data;
                             }
                         }
                     }
                 } catch (jsonErr) {
-                    console.warn('[LDStatus Pro] JSON API failed:', jsonErr.message);
                     // JSON API 失败，继续尝试 HTML 解析
                 }
                 
@@ -4904,7 +4855,6 @@
                 items = items.filter(item => !item.expiresAt || item.expiresAt > now);
                 
                 if (items.length === 0) {
-                    console.log('[Announcement] No valid announcements');
                     return;
                 }
                 
