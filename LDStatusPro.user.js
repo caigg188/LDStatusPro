@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         LDStatus Pro
 // @namespace    http://tampermonkey.net/
-// @version      3.4.8
+// @version      3.4.8.1
 // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统。两站点均支持排行榜和云同步功能
 // @author       JackLiii
 // @license      MIT
@@ -4571,27 +4571,10 @@
             this.$.reqs.innerHTML = `<div class="ldsp-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>`;
 
             try {
-                let html = null;
                 const url = CURRENT_SITE.apiUrl;
                 
-                // 方法1: 使用 GM_xmlhttpRequest（优先，可绕过跨域限制）
-                try {
-                    html = await this.network.fetch(url);
-                } catch (e) { /* GM fetch 失败，尝试 fallback */ }
-                
-                // 方法2: native fetch 作为 fallback
-                if (!html) {
-                    try {
-                        const resp = await fetch(url, { 
-                            credentials: 'include',
-                            mode: 'cors',
-                            headers: { 'Accept': 'text/html' }
-                        });
-                        if (resp.ok) {
-                            html = await resp.text();
-                        }
-                    } catch (e) { /* native fetch 失败 */ }
-                }
+                // 使用 network.fetch（包含 GM_xmlhttpRequest 绕过跨域，以及 fallback）
+                const html = await this.network.fetch(url);
                 
                 if (!html) {
                     throw new Error('无法获取数据');

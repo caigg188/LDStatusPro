@@ -1,3 +1,14 @@
+### v3.4.8.1 更新内容 🔧 CORS 错误修复
+
+**Bug 修复：**
+- 🔧 **修复 connect.linux.do 访问失败** - 修复升级要求获取时的 CORS 错误
+  - 问题：部分用户反馈获取升级要求时报 403 错误和 CORS 拒绝
+  - 原因：`RequirementsUI.fetch()` 中存在重复的 fallback 逻辑，且使用了 `mode: 'cors'`
+  - 修复：移除冗余的 native fetch fallback，统一使用 `network.fetch()` 的标准流程
+  - 效果：GM_xmlhttpRequest 正常绕过 CORS，不再触发无效的 native fetch
+
+---
+
 ### v3.4.8 更新内容 📱 移动端升级进度优化
 
 **移动端数据获取优化：**
