@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         LDStatus Pro
 // @namespace    http://tampermonkey.net/
-// @version      3.4.8.5
+// @version      3.4.8.6
 // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统。两站点均支持排行榜和云同步功能
 // @author       JackLiii
 // @license      MIT
@@ -1653,8 +1653,8 @@
                 if (!decoded.exp) return false; // 无过期时间则认为有效
                 
                 const now = Math.floor(Date.now() / 1000);
-                // 提前 5 分钟判断为过期，避免请求时刚好过期
-                return decoded.exp < (now + 300);
+                // 提前 10 分钟判断为过期，增加容错时间避免边界情况
+                return decoded.exp < (now + 600);
             } catch (e) {
                 console.error('[LDStatus Pro] Token parse error:', e);
                 return true; // 解析失败视为过期
@@ -1778,9 +1778,15 @@
         async api(endpoint, options = {}) {
             const { requireAuth = true, ...restOptions } = options;
             
-            // 需要登录的接口，先检查登录状态
-            if (requireAuth && !this.isLoggedIn()) {
-                throw Network.createError('Not logged in', 'NOT_LOGGED_IN');
+            // 需要登录的接口，先检查登录状态（包含 Token 过期检测）
+            if (requireAuth) {
+                const token = this.getToken();
+                // 无 Token 或 Token 已过期，直接返回错误
+                if (!token || this._isTokenExpired(token)) {
+                    // 清理过期状态
+                    if (token) this.logout();
+                    return { success: false, error: { code: 'NOT_LOGGED_IN', message: 'Not logged in or token expired' } };
+                }
             }
             
             try {
@@ -1822,7 +1828,6 @@
             const key = `lb_${type}`;
             const cached = this.cache.get(key);
             const now = Date.now();
-            // 根据类型使用不同的缓存时间
             const ttlMap = {
                 daily: CONFIG.CACHE.LEADERBOARD_DAILY_TTL,
                 weekly: CONFIG.CACHE.LEADERBOARD_WEEKLY_TTL,
@@ -1833,6 +1838,7 @@
             if (cached && (now - cached.time) < ttl) return cached.data;
 
             try {
+                // oauth.api() 内置登录检查，未登录时返回 { success: false }
                 const result = await this.oauth.api(`/api/leaderboard/${type}`);
                 if (result.success) {
                     const data = {
@@ -1898,7 +1904,12 @@
                 this.oauth.setJoined(true);
                 return true;
             }
-            throw new Error(result.error || '加入失败');
+            // 检测登录失效情况
+            const errCode = result.error?.code;
+            if (errCode === 'NOT_LOGGED_IN' || errCode === 'AUTH_EXPIRED' || errCode === 'INVALID_TOKEN') {
+                throw new Error('登录已失效，请重新登录');
+            }
+            throw new Error(result.error?.message || result.error || '加入失败');
         }
 
         async quit() {
@@ -1907,7 +1918,12 @@
                 this.oauth.setJoined(false);
                 return true;
             }
-            throw new Error(result.error || '退出失败');
+            // 检测登录失效情况
+            const errCode = result.error?.code;
+            if (errCode === 'NOT_LOGGED_IN' || errCode === 'AUTH_EXPIRED' || errCode === 'INVALID_TOKEN') {
+                throw new Error('登录已失效，请重新登录');
+            }
+            throw new Error(result.error?.message || result.error || '退出失败');
         }
 
         async syncReadingTime() {
@@ -1938,6 +1954,12 @@
                         client_timestamp: Date.now()
                     }
                 });
+                
+                // 登录失效或请求失败，不更新本地状态
+                if (!result?.success && !result?.server_minutes) {
+                    return;
+                }
+                
                 this._lastSync = Date.now();
                 
                 // v3.4.2 修复：渐进同步 - 处理服务器截断响应
@@ -2102,8 +2124,6 @@
         }
 
         async download() {
-            if (!this.oauth.isLoggedIn()) return null;
-            
             // 检查退避延迟
             if (!this._canRetry('reading')) {
                 return null;
@@ -2155,7 +2175,13 @@
         }
 
         async upload() {
+            // 前置检查：登录状态 + 同步状态 + 数据有效性
             if (!this.oauth.isLoggedIn() || this._syncing) return null;
+            
+            const local = this.storage.get('readingTime', null);
+            if (!local?.dailyData || Object.keys(local.dailyData).length === 0) {
+                return null;
+            }
             
             // 检查退避延迟
             if (!this._canRetry('reading')) {
@@ -2164,11 +2190,6 @@
 
             try {
                 this._setSyncing(true);
-                const local = this.storage.get('readingTime', null);
-                if (!local?.dailyData) {
-                    this._setSyncing(false);
-                    return null;
-                }
 
                 // 优化：只上传最近 90 天的数据，减少请求大小
                 const cutoffDate = new Date();
@@ -2249,7 +2270,8 @@
         }
 
         async fullSync() {
-            if (this._syncing) return;
+            // 前置登录检查
+            if (!this.oauth.isLoggedIn() || this._syncing) return;
             
             try {
                 this._setSyncing(true);
@@ -2258,16 +2280,33 @@
                 this._lastDownload = Date.now();
                 this.storage.setGlobalNow('lastDownloadSync', this._lastDownload);
 
-                // upload 内部不会重复设置 syncing 因为已经是 true
+                // 上传本地数据（只上传最近 90 天，减少请求大小）
                 const local = this.storage.get('readingTime', null);
-                if (local?.dailyData) {
-                    const result = await this.oauth.api('/api/reading/sync-full', {
-                        method: 'POST',
-                        body: { dailyData: local.dailyData, lastSyncTime: Date.now() }
-                    });
-                    if (result.success) {
-                        this._lastUpload = Date.now();
-                        this.storage.setGlobalNow('lastCloudSync', this._lastUpload);
+                if (local?.dailyData && Object.keys(local.dailyData).length > 0) {
+                    const cutoffDate = new Date();
+                    cutoffDate.setDate(cutoffDate.getDate() - 90);
+                    
+                    const recentData = {};
+                    let count = 0;
+                    for (const [key, value] of Object.entries(local.dailyData)) {
+                        try {
+                            const date = new Date(key);
+                            if (date >= cutoffDate && count < 100) {
+                                recentData[key] = value;
+                                count++;
+                            }
+                        } catch (e) {}
+                    }
+                    
+                    if (Object.keys(recentData).length > 0) {
+                        const result = await this.oauth.api('/api/reading/sync-full', {
+                            method: 'POST',
+                            body: { dailyData: recentData, lastSyncTime: Date.now() }
+                        });
+                        if (result?.success) {
+                            this._lastUpload = Date.now();
+                            this.storage.setGlobalNow('lastCloudSync', this._lastUpload);
+                        }
                     }
                 }
                 this._lastHash = this._getDataHash();
@@ -2357,7 +2396,9 @@
          * 下载升级要求历史数据
          */
         async downloadRequirements() {
+            // 前置检查：登录状态 + 只有领导者标签页执行
             if (!this.oauth.isLoggedIn() || !this._historyMgr) return null;
+            if (!TabLeader.isLeader()) return null;
             
             // 检查退避延迟
             if (!this._canRetry('requirements')) {
@@ -2365,7 +2406,8 @@
             }
 
             try {
-                const result = await this.oauth.api('/api/requirements/history?days=100');
+                // 减少请求数据量：从 100 天减少到 60 天
+                const result = await this.oauth.api('/api/requirements/history?days=60');
                 
                 if (!result.success) {
                     // 权限不足（trust_level < 2）是正常情况，缓存结果避免重复请求
@@ -2442,7 +2484,9 @@
          * @param {Object} todayRecord - 今天的历史记录 {ts, data, readingTime}
          */
         async syncTodayRequirements(todayRecord) {
+            // 前置检查：登录状态 + 数据有效性
             if (!this.oauth.isLoggedIn() || !this._historyMgr) return null;
+            if (!todayRecord?.data || Object.keys(todayRecord.data).length === 0) return null;
             
             // 检查退避延迟
             if (!this._canRetry('requirements')) {
@@ -2450,8 +2494,6 @@
             }
 
             try {
-                if (!todayRecord?.data) return null;
-                
                 const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
                 const result = await this.oauth.api('/api/requirements/sync', {
                     method: 'POST',
@@ -2489,7 +2531,11 @@
          * 全量上传升级要求历史数据（仅在需要时调用）
          */
         async uploadRequirementsFull() {
+            // 前置检查：登录状态 + 数据有效性
             if (!this.oauth.isLoggedIn() || !this._historyMgr || this._syncing) return null;
+            
+            const history = this._historyMgr.getHistory();
+            if (!history.length) return null;
             
             // 检查退避延迟
             if (!this._canRetry('requirements')) {
@@ -2497,12 +2543,12 @@
             }
 
             try {
-                const history = this._historyMgr.getHistory();
-                if (!history.length) return null;
-
+                // 限制上传数据量，最多 60 天
+                const recentHistory = history.slice(-60);
+                
                 const result = await this.oauth.api('/api/requirements/sync-full', {
                     method: 'POST',
-                    body: { history, lastSyncTime: Date.now() }
+                    body: { history: recentHistory, lastSyncTime: Date.now() }
                 });
 
                 if (result.success) {
@@ -2551,7 +2597,9 @@
          *    - 本地数据天数与云端不一致
          */
         async syncRequirementsOnLoad() {
+            // 前置检查：登录状态 + 只有领导者标签页执行
             if (!this.oauth.isLoggedIn() || !this._historyMgr) return;
+            if (!TabLeader.isLeader()) return;
 
             const now = Date.now();
             const localHistory = this._historyMgr.getHistory();
@@ -3221,17 +3269,16 @@
         }
 
         async _loadTicketTypes() {
+            const defaultTypes = [
+                { id: 'feature_request', label: '功能建议', icon: '💡' },
+                { id: 'bug_report', label: 'BUG反馈', icon: '📪' }
+            ];
             try {
-                const result = await this.oauth.api('/api/tickets/types');
-                const data = result.data?.data || result.data;
-                if (result.success && data?.types) {
-                    this.ticketTypes = data.types;
-                }
+                const result = await this.oauth?.api('/api/tickets/types');
+                const data = result?.data?.data || result?.data;
+                this.ticketTypes = (result?.success && data?.types) ? data.types : defaultTypes;
             } catch (e) {
-                this.ticketTypes = [
-                    { id: 'feature_request', label: '功能建议', icon: '💡' },
-                    { id: 'bug_report', label: 'BUG反馈', icon: '📪' }
-                ];
+                this.ticketTypes = defaultTypes;
             }
         }
 
@@ -3355,11 +3402,9 @@
 
         async _loadTickets() {
             try {
-                const result = await this.oauth.api('/api/tickets');
-                const data = result.data?.data || result.data;
-                if (result.success) {
-                    this.tickets = data?.tickets || [];
-                }
+                const result = await this.oauth?.api('/api/tickets');
+                const data = result?.data?.data || result?.data;
+                this.tickets = result?.success ? (data?.tickets || []) : [];
             } catch (e) {
                 this.tickets = [];
             }
@@ -3486,7 +3531,13 @@
                     this.overlay.querySelector('.ldsp-ticket-tab[data-tab="list"]')?.classList.add('active');
                     this._renderList();
                 } else {
-                    alert(result.error?.message || result.error || data?.error || '提交失败');
+                    // 检测登录失效情况
+                    const errCode = result.error?.code;
+                    if (errCode === 'NOT_LOGGED_IN' || errCode === 'AUTH_EXPIRED' || errCode === 'INVALID_TOKEN') {
+                        alert('登录已失效，请重新登录后再试');
+                    } else {
+                        alert(result.error?.message || result.error || data?.error || '提交失败');
+                    }
                 }
             } catch (e) {
                 alert('提交失败: ' + (e.message || '网络错误'));
@@ -3504,7 +3555,13 @@
 
             try {
                 const result = await this.oauth.api(`/api/tickets/${ticketId}`);
-                if (!result.success) throw new Error(result.error);
+                if (!result.success) {
+                    const errCode = result.error?.code;
+                    if (errCode === 'NOT_LOGGED_IN' || errCode === 'AUTH_EXPIRED' || errCode === 'INVALID_TOKEN') {
+                        throw new Error('登录已失效，请重新登录');
+                    }
+                    throw new Error(result.error?.message || result.error || '加载失败');
+                }
                 
                 const data = result.data?.data || result.data;
                 const ticket = data?.ticket || data;
@@ -3595,7 +3652,13 @@
                 if (result.success) {
                     this._showDetail(ticketId);
                 } else {
-                    alert(result.error || '发送失败');
+                    // 检测登录失效情况
+                    const errCode = result.error?.code;
+                    if (errCode === 'NOT_LOGGED_IN' || errCode === 'AUTH_EXPIRED' || errCode === 'INVALID_TOKEN') {
+                        alert('登录已失效，请重新登录后再试');
+                    } else {
+                        alert(result.error?.message || result.error || '发送失败');
+                    }
                 }
             } catch (e) {
                 alert('网络错误');
@@ -5014,7 +5077,8 @@
 
         // 更新信任等级到服务端和本地缓存
         async _updateTrustLevel(connectLevel) {
-            if (!this.oauth?.isLoggedIn()) return;
+            // 同时检查 oauth 和 cloudSync.oauth 的登录状态
+            if (!this.oauth?.isLoggedIn() || !this.cloudSync?.oauth?.isLoggedIn()) return;
             
             const userInfo = this.oauth.getUserInfo();
             // v3.4.7: 兼容 trust_level 和 trustLevel 两种命名格式
@@ -5024,10 +5088,10 @@
             if (currentLevel === connectLevel) return;
             
             try {
-                // 更新服务端
-                const result = await this.cloudSync?.oauth?.api('/api/user/trust-level', {
+                // 更新服务端（使用统一的 oauth 实例）
+                const result = await this.oauth.api('/api/user/trust-level', {
                     method: 'POST',
-                    body: JSON.stringify({ trust_level: connectLevel })
+                    body: { trust_level: connectLevel }
                 });
                 
                 if (result?.success) {
@@ -5119,6 +5183,9 @@
          * @returns {Array|null} - 升级要求数组或 null
          */
         async _fetchCloudRequirements() {
+            // 前置登录检查，避免无效请求
+            if (!this.cloudSync?.oauth?.isLoggedIn()) return null;
+            
             try {
                 // 获取最近一天的历史数据
                 const result = await this.cloudSync.oauth.api('/api/requirements/history?days=1');
