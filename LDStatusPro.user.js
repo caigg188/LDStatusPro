@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         LDStatus Pro
 // @namespace    http://tampermonkey.net/
-// @version      3.4.8.8
+// @version      3.4.8.9
 // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统。两站点均支持排行榜和云同步功能
 // @author       JackLiii
 // @license      MIT
@@ -1357,7 +1357,8 @@
                     this.save();
                     this.isActive = false;
                 } else {
-                    // 页面恢复可见时，重置活动时间
+                    // 页面恢复可见时，假定用户正在查看，恢复活动状态
+                    // 如果用户60秒内无任何操作，定时器会自动设为 inactive
                     this.lastActivity = Date.now();
                     this.isActive = true;
                 }
@@ -1402,17 +1403,20 @@
                         this.isActive = false;
                         this.lastActivity = now;
                         this.lastSave = now;
+                        lastCheckTime = now;
                         Logger.log('System resume detected, reset tracking state');
+                        return; // 跳过本次空闲检测，等待用户新活动
                     }
                     lastCheckTime = now;
                     
-                    // 正常的空闲检测逻辑
+                    // 空闲检测逻辑：只负责将 active 状态设为 false
+                    // isActive = true 只能通过用户活动事件触发（_onActivity）
                     const idle = now - this.lastActivity;
                     if (this.isActive && idle > CONFIG.INTERVALS.READING_IDLE) {
                         this.isActive = false;
-                    } else if (!this.isActive && idle < CONFIG.INTERVALS.READING_IDLE) {
-                        this.isActive = true;
                     }
+                    // 注意：不再自动将 isActive 设为 true
+                    // 用户必须有新活动才能恢复记录状态
                 }, CONFIG.INTERVALS.READING_TRACK),
                 setInterval(() => this.save(), CONFIG.INTERVALS.READING_SAVE)
             );
@@ -1590,15 +1594,25 @@
             // 清除计时定时器
             this._intervals.forEach(id => clearInterval(id));
             this._intervals = [];
+            this._tracking = false;
             
-            // 移除事件监听器
+            // 移除普通事件监听器
             if (this._activityHandler) {
-                ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(e => {
+                ['mousedown', 'keydown', 'click', 'touchstart', 'pointerdown'].forEach(e => {
                     document.removeEventListener(e, this._activityHandler, { passive: true, capture: false });
+                });
+            }
+            // 移除高频事件监听器
+            if (this._highFreqHandler) {
+                ['mousemove', 'scroll', 'wheel', 'touchmove', 'pointermove'].forEach(e => {
+                    document.removeEventListener(e, this._highFreqHandler, { passive: true, capture: false });
                 });
             }
             if (this._visibilityHandler) {
                 document.removeEventListener('visibilitychange', this._visibilityHandler);
+            }
+            if (this._focusHandler) {
+                window.removeEventListener('focus', this._focusHandler);
             }
             if (this._beforeUnloadHandler) {
                 window.removeEventListener('beforeunload', this._beforeUnloadHandler);
@@ -2200,6 +2214,8 @@
                     local = { version: 3, dailyData: cloud, monthlyCache: {}, yearlyCache: {} };
                     this._rebuildCache(local);
                     this.storage.setNow('readingTime', local);
+                    // 通知 UI 阅读数据已更新（新设备首次同步）
+                    EventBus.emit('reading:synced', { merged: Object.keys(cloud).length, source: 'cloud' });
                     return { merged: Object.keys(cloud).length, source: 'cloud' };
                 }
 
@@ -2220,6 +2236,8 @@
                 if (merged > 0) {
                     this._rebuildCache(local);
                     this.storage.setNow('readingTime', local);
+                    // 通知 UI 阅读数据已更新
+                    EventBus.emit('reading:synced', { merged, source: 'merge' });
                 }
                 return { merged, source: 'merge' };
             } catch (e) {
@@ -2746,7 +2764,7 @@
 
         _css(c) {
             return `
-#ldsp-panel{--dur-fast:120ms;--dur:200ms;--dur-slow:350ms;--ease:cubic-bezier(.22,1,.36,1);--ease-circ:cubic-bezier(.85,0,.15,1);--ease-spring:cubic-bezier(.175,.885,.32,1.275);--ease-out:cubic-bezier(0,.55,.45,1);--bg:#12131a;--bg-card:rgba(24,26,36,.92);--bg-hover:rgba(38,42,56,.95);--bg-el:rgba(32,35,48,.88);--bg-glass:rgba(255,255,255,.02);--txt:#e4e6ed;--txt-sec:#9499ad;--txt-mut:#5d6275;--accent:#6b8cef;--accent-light:#8aa4f4;--accent2:#5bb5a6;--accent2-light:#7cc9bc;--accent3:#e07a8d;--grad:linear-gradient(135deg,#5a7de0 0%,#4a6bc9 100%);--grad-accent:linear-gradient(135deg,#4a6bc9,#3d5aaa);--grad-warm:linear-gradient(135deg,#e07a8d,#c9606e);--grad-gold:linear-gradient(135deg,#d4a853 0%,#c49339 100%);--ok:#5bb5a6;--ok-light:#7cc9bc;--ok-bg:rgba(91,181,166,.12);--err:#e07a8d;--err-light:#ea9aa8;--err-bg:rgba(224,122,141,.12);--warn:#d4a853;--warn-bg:rgba(212,168,83,.12);--border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.1);--border-accent:rgba(107,140,239,.3);--shadow:0 20px 50px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.04);--shadow-lg:0 25px 70px rgba(0,0,0,.5),0 0 30px rgba(107,140,239,.06);--shadow-glow:0 0 20px rgba(107,140,239,.15);--glow-accent:0 0 15px rgba(107,140,239,.2);--scrollbar:rgba(140,150,175,.5);--scrollbar-hover:rgba(140,150,175,.7);--r-xs:4px;--r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:20px;--w:${c.width}px;--h:${c.maxHeight}px;--fs:${c.fontSize}px;--pd:${c.padding}px;--av:${c.avatarSize}px;--ring:${c.ringSize}px;display:flex;flex-direction:column;position:fixed;right:12px;top:80px;left:auto;width:var(--w);background:var(--bg);border-radius:var(--r-lg);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Noto Sans SC',sans-serif;font-size:var(--fs);color:var(--txt);box-shadow:var(--shadow);z-index:99999;overflow:hidden;border:1px solid var(--border);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+#ldsp-panel{--dur-fast:120ms;--dur:200ms;--dur-slow:350ms;--ease:cubic-bezier(.22,1,.36,1);--ease-circ:cubic-bezier(.85,0,.15,1);--ease-spring:cubic-bezier(.175,.885,.32,1.275);--ease-out:cubic-bezier(0,.55,.45,1);--bg:#12131a;--bg-card:rgba(24,26,36,.92);--bg-hover:rgba(38,42,56,.95);--bg-el:rgba(32,35,48,.88);--bg-glass:rgba(255,255,255,.02);--txt:#e4e6ed;--txt-sec:#9499ad;--txt-mut:#5d6275;--accent:#6b8cef;--accent-light:#8aa4f4;--accent2:#5bb5a6;--accent2-light:#7cc9bc;--accent3:#e07a8d;--grad:linear-gradient(135deg,#5a7de0 0%,#4a6bc9 100%);--grad-accent:linear-gradient(135deg,#4a6bc9,#3d5aaa);--grad-warm:linear-gradient(135deg,#e07a8d,#c9606e);--grad-gold:linear-gradient(135deg,#d4a853 0%,#c49339 100%);--ok:#5bb5a6;--ok-light:#7cc9bc;--ok-bg:rgba(91,181,166,.12);--err:#e07a8d;--err-light:#ea9aa8;--err-bg:rgba(224,122,141,.12);--warn:#d4a853;--warn-bg:rgba(212,168,83,.12);--border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.1);--border-accent:rgba(107,140,239,.3);--shadow:0 20px 50px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.04);--shadow-lg:0 25px 70px rgba(0,0,0,.5),0 0 30px rgba(107,140,239,.06);--shadow-glow:0 0 20px rgba(107,140,239,.15);--glow-accent:0 0 15px rgba(107,140,239,.2);--scrollbar:rgba(140,150,175,.5);--scrollbar-hover:rgba(140,150,175,.7);--r-xs:4px;--r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:20px;--w:${c.width}px;--h:${c.maxHeight}px;--fs:${c.fontSize}px;--pd:${c.padding}px;--av:${c.avatarSize}px;--ring:${c.ringSize}px;display:flex;flex-direction:column;position:fixed;left:12px;top:80px;right:auto;width:var(--w);background:var(--bg);border-radius:var(--r-lg);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Noto Sans SC',sans-serif;font-size:var(--fs);color:var(--txt);box-shadow:var(--shadow);z-index:99999;overflow:hidden;border:1px solid var(--border);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
 #ldsp-panel,#ldsp-panel *{transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease);user-select:none;-webkit-font-smoothing:antialiased}
 #ldsp-panel{transform:translateZ(0);backface-visibility:hidden}
 #ldsp-panel input,#ldsp-panel textarea{cursor:text;user-select:text}
@@ -3157,9 +3175,9 @@
 @media (prefers-reduced-motion:reduce){#ldsp-panel,#ldsp-panel *{animation:none!important;transition:none!important}#ldsp-panel .ldsp-spinner,#ldsp-panel .ldsp-mini-spin,#ldsp-panel .ldsp-lb-refresh.spinning{animation:spin 1.5s linear infinite!important}}
 @media (min-width:1920px){#ldsp-panel{--w:340px;--fs:13px;--pd:16px;--av:50px;--ring:85px}}
 @media (max-height:700px){#ldsp-panel{top:60px}.ldsp-content{max-height:calc(100vh - 240px)}}
-@media (max-width:1200px){#ldsp-panel{right:10px;left:auto}}
-@media (max-width:768px){#ldsp-panel{--w:280px;--fs:12px;--pd:11px;right:8px;left:auto;top:60px}#ldsp-panel.collapsed{width:42px!important;height:42px!important;border-radius:12px}#ldsp-panel.collapsed .ldsp-toggle{font-size:16px}#ldsp-panel.collapsed .ldsp-toggle-logo{width:22px;height:22px}.ldsp-hdr{padding:8px 10px;gap:6px;min-height:46px}.ldsp-hdr-info{gap:6px}.ldsp-hdr-text{gap:0}.ldsp-site-icon{width:22px;height:22px;border-radius:6px}.ldsp-site-ver{font-size:8px;padding:1px 4px}.ldsp-title{font-size:12px}.ldsp-ver{font-size:8px}.ldsp-app-name{font-size:9px}.ldsp-hdr-btns{gap:3px}.ldsp-hdr-btns button{width:24px;height:24px;font-size:11px}.ldsp-update-bubble{width:200px;padding:14px 16px}.ldsp-content{max-height:calc(100vh - 240px)}.ldsp-rank-item{padding:10px}.ldsp-rank-num{width:26px;height:26px}.ldsp-rank-avatar{width:30px;height:30px}.ldsp-learn-trust{font-size:9px}}
-@media (max-width:480px){#ldsp-panel{--w:260px;--av:36px;--ring:68px;right:6px;left:auto;top:55px;border-radius:var(--r-md);max-height:70vh}#ldsp-panel.collapsed{width:38px!important;height:38px!important;border-radius:10px;max-height:none}#ldsp-panel.collapsed .ldsp-toggle{font-size:14px}#ldsp-panel.collapsed .ldsp-toggle-logo{width:20px;height:20px}.ldsp-hdr{padding:6px 8px;gap:4px;min-height:40px}.ldsp-hdr-info{gap:4px}.ldsp-hdr-text{gap:0}.ldsp-site-icon{width:18px;height:18px;border-radius:5px}.ldsp-site-ver{font-size:7px;padding:1px 3px}.ldsp-site-wrap::after{display:none}.ldsp-title{font-size:10px}.ldsp-ver{font-size:7px}.ldsp-app-name{font-size:8px}.ldsp-hdr-btns{gap:2px}.ldsp-hdr-btns button{width:22px;height:22px;font-size:10px;border-radius:5px}.ldsp-user{padding:8px 8px 20px;gap:8px}.ldsp-reading::after{bottom:-12px;font-size:7px}.ldsp-user-actions{gap:4px}.ldsp-action-btn{padding:4px 6px;font-size:9px;flex:0 1 calc(50% - 2px)}.ldsp-action-btn:only-child{flex:0 1 auto}.ldsp-reading{min-width:60px;padding:5px 8px}.ldsp-reading-icon{font-size:16px}.ldsp-reading-time{font-size:10px}.ldsp-reading-label{font-size:7px}.ldsp-tabs{padding:8px 10px;gap:6px}.ldsp-tab{padding:6px 10px;font-size:10px;border-radius:var(--r-sm)}.ldsp-section{padding:8px}.ldsp-content{max-height:none}.ldsp-rank-item{padding:8px 10px}.ldsp-rank-num{width:24px;height:24px;font-size:10px;border-radius:8px}.ldsp-rank-avatar{width:28px;height:28px;border-radius:8px}.ldsp-rank-display-name,.ldsp-rank-name-only{font-size:11px}.ldsp-rank-time{font-size:12px}.ldsp-my-rank{padding:10px}.ldsp-my-rank-val{font-size:16px}.ldsp-subtab{padding:5px 10px;font-size:9px}.ldsp-learn-trust{font-size:8px}}
+@media (max-width:1200px){#ldsp-panel{left:10px;right:auto}}
+@media (max-width:768px){#ldsp-panel{--w:280px;--fs:12px;--pd:11px;left:8px;right:auto;top:60px}#ldsp-panel.collapsed{width:42px!important;height:42px!important;border-radius:12px}#ldsp-panel.collapsed .ldsp-toggle{font-size:16px}#ldsp-panel.collapsed .ldsp-toggle-logo{width:22px;height:22px}.ldsp-hdr{padding:8px 10px;gap:6px;min-height:46px}.ldsp-hdr-info{gap:6px}.ldsp-hdr-text{gap:0}.ldsp-site-icon{width:22px;height:22px;border-radius:6px}.ldsp-site-ver{font-size:8px;padding:1px 4px}.ldsp-title{font-size:12px}.ldsp-ver{font-size:8px}.ldsp-app-name{font-size:9px}.ldsp-hdr-btns{gap:3px}.ldsp-hdr-btns button{width:24px;height:24px;font-size:11px}.ldsp-update-bubble{width:200px;padding:14px 16px}.ldsp-content{max-height:calc(100vh - 240px)}.ldsp-rank-item{padding:10px}.ldsp-rank-num{width:26px;height:26px}.ldsp-rank-avatar{width:30px;height:30px}.ldsp-learn-trust{font-size:9px}}
+@media (max-width:480px){#ldsp-panel{--w:260px;--av:36px;--ring:68px;left:6px;right:auto;top:55px;border-radius:var(--r-md);max-height:70vh}#ldsp-panel.collapsed{width:38px!important;height:38px!important;border-radius:10px;max-height:none}#ldsp-panel.collapsed .ldsp-toggle{font-size:14px}#ldsp-panel.collapsed .ldsp-toggle-logo{width:20px;height:20px}.ldsp-hdr{padding:6px 8px;gap:4px;min-height:40px}.ldsp-hdr-info{gap:4px}.ldsp-hdr-text{gap:0}.ldsp-site-icon{width:18px;height:18px;border-radius:5px}.ldsp-site-ver{font-size:7px;padding:1px 3px}.ldsp-site-wrap::after{display:none}.ldsp-title{font-size:10px}.ldsp-ver{font-size:7px}.ldsp-app-name{font-size:8px}.ldsp-hdr-btns{gap:2px}.ldsp-hdr-btns button{width:22px;height:22px;font-size:10px;border-radius:5px}.ldsp-user{padding:8px 8px 20px;gap:8px}.ldsp-reading::after{bottom:-12px;font-size:7px}.ldsp-user-actions{gap:4px}.ldsp-action-btn{padding:4px 6px;font-size:9px;flex:0 1 calc(50% - 2px)}.ldsp-action-btn:only-child{flex:0 1 auto}.ldsp-reading{min-width:60px;padding:5px 8px}.ldsp-reading-icon{font-size:16px}.ldsp-reading-time{font-size:10px}.ldsp-reading-label{font-size:7px}.ldsp-tabs{padding:8px 10px;gap:6px}.ldsp-tab{padding:6px 10px;font-size:10px;border-radius:var(--r-sm)}.ldsp-section{padding:8px}.ldsp-content{max-height:none}.ldsp-rank-item{padding:8px 10px}.ldsp-rank-num{width:24px;height:24px;font-size:10px;border-radius:8px}.ldsp-rank-avatar{width:28px;height:28px;border-radius:8px}.ldsp-rank-display-name,.ldsp-rank-name-only{font-size:11px}.ldsp-rank-time{font-size:12px}.ldsp-my-rank{padding:10px}.ldsp-my-rank-val{font-size:16px}.ldsp-subtab{padding:5px 10px;font-size:9px}.ldsp-learn-trust{font-size:8px}}
 @media (max-height:500px){#ldsp-panel{top:40px}.ldsp-content{max-height:calc(100vh - 180px)}.ldsp-user{padding:8px 8px 18px}.ldsp-user-actions{display:none}.ldsp-tabs{padding:6px 8px}.ldsp-section{padding:6px}}
 .ldsp-action-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:linear-gradient(135deg,rgba(107,140,239,.08),rgba(90,125,224,.12));border:1px solid rgba(107,140,239,.2);border-radius:8px;font-size:10px;color:var(--accent);transition:background .15s,border-color .15s,transform .15s,box-shadow .15s;font-weight:600;white-space:nowrap;flex:0 1 calc(50% - 3px);min-width:60px;justify-content:center;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 @media (hover:hover){.ldsp-action-btn:hover{background:linear-gradient(135deg,rgba(107,140,239,.15),rgba(90,125,224,.2));border-color:var(--accent);box-shadow:0 4px 12px rgba(107,140,239,.18)}}
@@ -4634,6 +4652,23 @@
                 this.renderer?.showToast('⚠️ 登录已过期，请重新登录');
                 this._updateLoginUI();
             });
+            
+            // 订阅阅读数据同步完成事件
+            EventBus.on('reading:synced', ({ merged, source }) => {
+                Logger.log(`阅读数据已同步: ${merged} 天, 来源: ${source}`);
+                // 更新本地阅读时间变量
+                this.readingTime = this.tracker.getTodayTime();
+                // 清除年度缓存
+                this.tracker._yearCache = null;
+                // 检查当前是否在趋势页面（通过 DOM 查询）
+                const trendsActive = this.el?.querySelector('.ldsp-tab[data-tab="trends"].active');
+                if (trendsActive) {
+                    // 使用缓存的历史和要求数据重新渲染趋势页面
+                    this._renderTrends(this.cachedHistory || [], this.cachedReqs || []);
+                }
+                // 更新顶部阅读时间显示
+                this.renderer.renderReading(this.readingTime, this.tracker.isActive);
+            });
         }
         
         // 初始化定时任务
@@ -5036,7 +5071,45 @@
                 const props = ['--w', '--h', '--fs', '--pd', '--av', '--ring'];
                 this.el.style.setProperty(props[i], `${cfg[k]}px`);
             });
+            
+            // 检查面板是否超出视口边界，如果超出则调整位置
+            this._clampPosition();
             this._updateExpandDir();
+        }
+        
+        // 确保面板位置在视口内
+        _clampPosition() {
+            const rect = this.el.getBoundingClientRect();
+            const margin = 8; // 最小边距
+            let needUpdate = false;
+            
+            // 检查右边界
+            if (rect.right > innerWidth - margin) {
+                this.el.style.left = Math.max(margin, innerWidth - rect.width - margin) + 'px';
+                this.el.style.right = 'auto';
+                needUpdate = true;
+            }
+            // 检查左边界
+            if (rect.left < margin) {
+                this.el.style.left = margin + 'px';
+                this.el.style.right = 'auto';
+                needUpdate = true;
+            }
+            // 检查下边界
+            if (rect.bottom > innerHeight - margin) {
+                this.el.style.top = Math.max(margin, innerHeight - rect.height - margin) + 'px';
+                needUpdate = true;
+            }
+            // 检查上边界
+            if (rect.top < margin) {
+                this.el.style.top = margin + 'px';
+                needUpdate = true;
+            }
+            
+            // 如果位置有调整，保存新位置
+            if (needUpdate) {
+                this.storage.setGlobalNow('position', { left: this.el.style.left, top: this.el.style.top });
+            }
         }
 
         _toggle() {
@@ -5877,7 +5950,8 @@
             }
 
             const fns = {
-                today: () => this.renderer.renderTodayTrend(reqs, this.readingTime, this._getTodayData()),
+                // 使用 tracker.getTodayTime() 获取实时阅读时间，而不是缓存的 this.readingTime
+                today: () => this.renderer.renderTodayTrend(reqs, this.tracker.getTodayTime(), this._getTodayData()),
                 week: () => this.renderer.renderWeekTrend(history, reqs, this.historyMgr, this.tracker),
                 month: () => this.renderer.renderMonthTrend(history, reqs, this.historyMgr, this.tracker),
                 all: () => this.renderer.renderAllTrend(history, reqs, this.tracker)
