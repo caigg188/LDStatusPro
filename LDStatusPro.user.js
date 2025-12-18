@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         LDStatus Pro
 // @namespace    http://tampermonkey.net/
-// @version      3.4.8.7
+// @version      3.4.8.8
 // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统。两站点均支持排行榜和云同步功能
 // @author       JackLiii
 // @license      MIT
@@ -1334,13 +1334,21 @@
         }
 
         _bindEvents() {
-            // 使用节流的活动处理器（每秒最多触发一次）
+            // 使用节流的活动处理器
+            // 普通事件：每秒最多触发一次
             this._activityHandler = Utils.throttle(() => this._onActivity(), 1000);
+            // 高频事件（如 mousemove）：每 3 秒最多触发一次
+            this._highFreqHandler = Utils.throttle(() => this._onActivity(), 3000);
             
             // 监听用户活动事件
-            const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart'];
-            activityEvents.forEach(e => {
+            // 普通频率事件：点击、按键、触摸开始
+            ['mousedown', 'keydown', 'click', 'touchstart', 'pointerdown'].forEach(e => {
                 document.addEventListener(e, this._activityHandler, { passive: true, capture: false });
+            });
+            
+            // 高频事件：移动、滚动（使用更长的节流时间）
+            ['mousemove', 'scroll', 'wheel', 'touchmove', 'pointermove'].forEach(e => {
+                document.addEventListener(e, this._highFreqHandler, { passive: true, capture: false });
             });
 
             // 页面可见性变化
@@ -1349,11 +1357,19 @@
                     this.save();
                     this.isActive = false;
                 } else {
+                    // 页面恢复可见时，重置活动时间
                     this.lastActivity = Date.now();
                     this.isActive = true;
                 }
             };
             document.addEventListener('visibilitychange', this._visibilityHandler);
+            
+            // 窗口获得焦点时更新活动状态
+            this._focusHandler = () => {
+                this.lastActivity = Date.now();
+                // 不立即设为 active，让定时器检测决定
+            };
+            window.addEventListener('focus', this._focusHandler);
 
             // 页面卸载前保存
             this._beforeUnloadHandler = () => this.save();
@@ -1371,9 +1387,27 @@
             if (this._tracking) return;
             this._tracking = true;
             
+            // 用于检测系统休眠/恢复
+            let lastCheckTime = Date.now();
+            
             this._intervals.push(
                 setInterval(() => {
-                    const idle = Date.now() - this.lastActivity;
+                    const now = Date.now();
+                    const checkGap = now - lastCheckTime;
+                    
+                    // 检测系统休眠：如果两次检查间隔超过预期的 3 倍，说明可能休眠过
+                    // 例如：READING_TRACK=10秒，如果间隔超过 30 秒，说明系统暂停过
+                    if (checkGap > CONFIG.INTERVALS.READING_TRACK * 3) {
+                        // 系统刚从休眠恢复，重置状态避免累积错误时间
+                        this.isActive = false;
+                        this.lastActivity = now;
+                        this.lastSave = now;
+                        Logger.log('System resume detected, reset tracking state');
+                    }
+                    lastCheckTime = now;
+                    
+                    // 正常的空闲检测逻辑
+                    const idle = now - this.lastActivity;
                     if (this.isActive && idle > CONFIG.INTERVALS.READING_IDLE) {
                         this.isActive = false;
                     } else if (!this.isActive && idle < CONFIG.INTERVALS.READING_IDLE) {
@@ -1394,11 +1428,30 @@
             const elapsed = (now - this.lastSave) / 1000;
             const idle = now - this.lastActivity;
             
+            // 防护：检测异常数据
+            // 1. elapsed 为负数（系统时间被调整）
+            // 2. elapsed 过大（超过 2 分钟，可能是休眠恢复）
+            // 3. idle 为负数（系统时间被调整）
+            if (elapsed < 0 || elapsed > 120 || idle < 0) {
+                // 重置状态，不记录这段异常时间
+                this.lastSave = now;
+                this.lastActivity = now;
+                this.isActive = false;
+                return;
+            }
+            
             let toAdd = 0;
             if (elapsed > 0) {
+                // 计算有效的活动时间
+                // 如果用户一直活跃（idle <= 60秒），记录全部 elapsed 时间
+                // 如果用户空闲了，减去超出空闲阈值的部分
                 toAdd = idle <= CONFIG.INTERVALS.READING_IDLE 
                     ? elapsed 
                     : Math.max(0, elapsed - (idle - CONFIG.INTERVALS.READING_IDLE) / 1000);
+                
+                // 额外防护：单次保存不能超过保存间隔的 1.5 倍（正常约45秒）
+                const maxToAdd = CONFIG.INTERVALS.READING_SAVE / 1000 * 1.5;
+                toAdd = Math.min(toAdd, maxToAdd);
             }
             
             // 无论是否是领导者，都更新 lastSave（避免时间累积）
