@@ -19,6 +19,7 @@
     // @connect      idcflare.com
     // @connect      github.com
     // @connect      raw.githubusercontent.com
+    // @connect      https://ldstatus-pro-api.jackcai711.workers.dev
     // @connect      *.workers.dev
     // @updateURL    https://raw.githubusercontent.com/caigg188/LDStatusPro/main/LDStatusPro.user.js
     // @downloadURL  https://raw.githubusercontent.com/caigg188/LDStatusPro/main/LDStatusPro.user.js
