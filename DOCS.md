@@ -568,4 +568,25 @@ LDStatusPro 采用优雅的靛蓝色 + 青色配色方案：
 
 ---
 
-*最后更新：2025 年 12 月*
+## 技术文档
+
+如需了解更详细的技术实现，请参考以下文档：
+
+| 模块 | 文档位置 | 说明 |
+|:--|:--|:--|
+| **客户端** | [docs/technicaDocs/CLIENT.md](./docs/technicaDocs/CLIENT.md) | 油猴脚本架构、模块设计、API 调用 |
+| **后端** | [docs/technicaDocs/BACKEND.md](./docs/technicaDocs/BACKEND.md) | Workers 架构、API 路由、数据库设计、Cron 任务 |
+| **管理面板** | [docs/technicaDocs/ADMIN_PANEL.md](./docs/technicaDocs/ADMIN_PANEL.md) | Vue 3 架构、认证系统、权限管理、11 个页面功能 |
+| **官网** | [docs/technicaDocs/WEBSITE.md](./docs/technicaDocs/WEBSITE.md) | React 架构、动态内容、设计系统、动画 |
+
+### 快速入口
+
+- **后端 README**: [backend/README.md](./backend/README.md)
+- **管理面板 README**: [admin-panel/README.md](./admin-panel/README.md)
+- **官网 README**: [website/README.md](./website/README.md)
+- **API 文档**: [backend/docs/API.md](./backend/docs/API.md)
+- **数据库设计**: [backend/docs/DATABASE.md](./backend/docs/DATABASE.md)
+
+---
+
+*最后更新：2025 年 1 月*
