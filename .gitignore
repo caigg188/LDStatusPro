@@ -1,6 +1,8 @@
 Todo.md
 *.md
 !README.md
+!README_EN.md
+!README_TW.md
 !DOCS.md
 !update_log.md
 backend
