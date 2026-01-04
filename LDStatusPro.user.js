@@ -6578,15 +6578,25 @@
                 }
             }
 
-            async _toggleProductStatus(id, active) {
+            async _toggleProductStatus(id, active, product = null) {
                 try {
-                    // 下架使用 offline 接口，上架需要重新提交审核（这里简化处理）
+                    // 下架使用 offline 接口
                     if (!active) {
                         const resp = this._unwrapShopResponse(await this._shopRequest(`/api/shop/my-products/${id}/offline`, 'POST'));
                         return resp;
                     } else {
-                        // 上架商品 - 更新状态为 pending 等待审核
-                        const resp = this._unwrapShopResponse(await this._shopRequest(`/api/shop/my-products/${id}`, 'PUT', { status: 'pending' }));
+                        // 重新上架 - 发送商品当前数据触发后端状态更新
+                        // 后端会自动将 offline 状态改为 pending
+                        const data = product ? {
+                            name: product.name,
+                            categoryId: product.category_id,
+                            description: product.description,
+                            price: product.price,
+                            discount: product.discount,
+                            imageUrl: product.image_url || '',
+                            paymentLink: product.payment_link
+                        } : {};
+                        const resp = this._unwrapShopResponse(await this._shopRequest(`/api/shop/my-products/${id}`, 'PUT', data));
                         return resp;
                     }
                 } catch (e) {
@@ -6911,7 +6921,7 @@
                             const originalText = btn.textContent;
                             btn.textContent = '处理中...';
                             const isApproved = product.status === 'approved';
-                            const resp = await this._toggleProductStatus(id, !isApproved);
+                            const resp = await this._toggleProductStatus(id, !isApproved, product);
                             if (resp?.success) {
                                 this._renderShopMy();
                             } else {
