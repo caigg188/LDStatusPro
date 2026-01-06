@@ -3,9 +3,9 @@
   
   # 🚀 LDStatus Pro
 
-  > **Linux.do & IDCFlare Community Enhancement Tool** - Trust Level Tracking · Reading Time Stats · Cloud Sync · Leaderboard
+  > **Linux.do & IDCFlare Community Enhancement Tool** - Trust Level Tracking · Reading Stats · Cloud Sync · Leaderboard
 
-  ![Version](https://img.shields.io/badge/version-v3.5.2.8-blue)
+  ![Version](https://img.shields.io/badge/version-v3.5.4.6-blue)
   ![License](https://img.shields.io/badge/license-MIT-green)
   ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-✓-brightgreen)
   ![Multi-Site](https://img.shields.io/badge/Multi--Site-✓-brightgreen)
@@ -70,20 +70,22 @@
 <tr>
 <td>
 
-### 🎫 Feedback Tickets
-- **Quick Feedback** - One-click ticket submission
-- **Multiple Types** - Feature Request / Bug Report
-- **Two-way Communication** - User and admin replies
-- **Unread Notifications** - Red dot for new replies
+### 🍉 Thread Summarizer
+- **AI Thread Summary** - One-click summary, brief/detailed modes
+- **Follow-up Chat** - Continue asking based on summary
+- **Streaming Output** - Real-time AI response display
+- **History Records** - Save summaries, view/copy/delete
+- **Custom Prompts** - Personalize AI behavior
 
 </td>
 <td>
 
-### 📢 System Announcements
-- **Scrolling Banner** - Displayed at client top
-- **Multiple Types** - Notice / Warning / Good News
-- **Auto Rotation** - Multiple announcements cycle
-- **Expiry Control** - Auto hide when expired
+### 🍟 LDC Credits
+- **Balance View** - Show credit.linux.do balance
+- **Daily Estimate** - Estimate earnings based on L-site changes
+- **7-day Stats** - Weekly income/expense trend chart
+- **Transaction Records** - Filter by time/type
+- **❤️ Donation Support** - 2/5/10/50 LDC tiers
 
 </td>
 </tr>
@@ -96,39 +98,38 @@
 - **Reply Records** - View reply content and time
 - **Interactions** - View Discourse Reactions records
 - **Like History** - Review liked content
-- **🔍 Search** - Title/tag search, batch loading
+- **🔍 Search** - Title/tag search support
 
 </td>
 <td>
 
-### 🍉 Thread Summarizer 🆕
-- **AI Thread Summary** - One-click summary, brief/detailed modes
-- **Follow-up Chat** - Continue asking based on summary
-- **Streaming Output** - Real-time AI response display
-- **History Records** - Save summaries, view/copy/delete
-- **Custom Prompts** - Personalize AI behavior
+### 🏪 LD Store
+- **Exchange Hub** - Virtual items and services exchange platform
+- **CDK Auto Delivery** - Auto receive CDK after exchange
+- **Category Browse** - AI/Storage/VPS/Consulting/Subscriptions/SMS/Services/Shop
+- **Order Tracking** - View exchange records and status
+- **Merchant Portal** - Bind LDC account to publish listings
 
 </td>
 </tr>
 <tr>
 <td>
 
-### 🍟 LDC Credits
-- **Balance View** - Show credit.linux.do balance
-- **Daily Estimate** - Estimate earnings based on L-site changes
-- **7-day Stats** - Weekly income/expense trend chart
-- **Transaction Records** - Filter by time/type
-- **❤️ Donation Support** - 2/5/10/50 LDC tiers
-
-</td>
-<td>
-
-### 🔑 CDK Panel 🆕
+### 🔑 CDK Panel
 - **User Info** - Avatar, nickname, trust level, CDK score
 - **Claim Records** - View claimed CDK projects
 - **Project Details** - Name, description, remaining, requirements
 - **One-click Copy** - Quick copy CDK content
 - **Waterfall Loading** - Smooth data loading experience
+
+</td>
+<td>
+
+### 🎫 Feedback Tickets
+- **Quick Feedback** - One-click ticket submission
+- **Multiple Types** - Feature Request / Bug Report
+- **Two-way Communication** - User and admin replies
+- **Unread Notifications** - Red dot for new replies
 
 </td>
 </tr>
@@ -165,7 +166,7 @@
 
 ## 🎨 UI/UX Design
 
-### v3.3.0 New Visual Experience
+### New Visual Experience
 - 🎉 **100% Completion Celebration** - Confetti animation on progress complete
 - ✨ **Level Badge Animation** - 360° flip on hover + gradient flow
 - 🌈 **Level-specific Colors** - Lv1 Gray/Lv2 Blue/Lv3 Teal/Lv4 Gold-Orange-Red
@@ -185,7 +186,8 @@
 |---------|-------------|
 | ✅ **Local Storage** | Data stored in browser, no forced uploads |
 | ✅ **OAuth Authentication** | Secure login with official accounts |
-| ✅ **XSS Protection** | Full input validation front & back |
+| ✅ **XSS Protection** | Full input validation and escaping front & back |
+| ✅ **SQL Injection Protection** | Parameterized queries throughout |
 | ✅ **User Choice** | Cloud sync/leaderboard are opt-in |
 | ✅ **Easy Exit** | Can leave leaderboard or logout anytime |
 | ✅ **Data Isolation** | Multi-account/multi-site independent storage |
@@ -214,6 +216,7 @@
 - Visit [Linux.do](https://linux.do) or [IDCFlare](https://idcflare.com)
 - Panel appears automatically at bottom right
 - Login to enable cloud sync and leaderboard
+- Access "LD Store" from the LDC Credits panel
 
 ---
 
@@ -245,27 +248,28 @@ LDStatusPro/
 │   └── wrangler.toml     # Workers Config
 ├── admin-panel/          # Admin Panel (Vue.js)
 │   ├── src/              # Frontend Source
-│   ├── views/            # 11 Page Components
+│   ├── views/            # Page Components
 │   └── stores/           # Pinia State Management
 ├── website/              # Official Website (React + TypeScript)
 │   ├── src/              # Source Code
 │   └── hooks/            # Dynamic Data Hooks
 └── docs/                 # Project Documentation
-    └── technicaDocs/     # Technical Docs (4 modules)
+    └── technicaDocs/     # Technical Docs
 ```
 
 ### Tech Stack
-- **Client**: Native JavaScript, zero dependencies, 13000+ lines of code
+- **Client**: Native JavaScript, zero dependencies, 16000+ lines of code
 - **Backend**: Cloudflare Workers + D1 Database + R2 Storage
 - **Admin Panel**: Vue 3 + Pinia + Vue Router 4 + Tailwind CSS
 - **Website**: React 19 + TypeScript + Framer Motion + Tailwind CSS 4
 - **Auth**: OAuth 2.0 (Super Admin + Sub-admin dual authentication)
 
-### Backend Architecture (v3.6.x)
+### Backend Architecture
 - **Cache Layers**: HTTP Cache → D1 Cache → Memory Buffer → D1 Tables
 - **Data Buffer**: Smart batch writes, reduced DB pressure
 - **Cron Jobs**: Cron Triggers for pre-computed leaderboards
 - **Backup System**: R2 object storage, auto cleanup
+- **Security**: 429 rate limiting + IP blacklist + honeypot detection
 
 ### Performance Optimizations
 - LRU cache for historical data aggregation
@@ -273,54 +277,56 @@ LDStatusPro/
 - API response cache + request deduplication + data buffering
 - Async rendering to avoid UI blocking
 - Exponential backoff retry mechanism
-- Frontend local cache (5 minutes)
+- Global request queue to prevent 429
 
 ---
 
 ## 📋 Changelog
 
-### v3.5.2.8 🛡️ Request Optimization & Error Messages
+### v3.5.4.x 🏪 LD Store
 
-**⚡ Public API Request Optimization**
-- 🚦 **429 Rate Limit Cooldown** - After receiving 429, no new requests for 2 minutes
-- ⏱️ **Remaining Time Display** - Shows seconds remaining during cooldown
+**🏪 Virtual Item Exchange Hub**
+- 💳 **LDC Credit Exchange** - Exchange virtual items and services with LDC credits
+- 📦 **CDK Auto Delivery** - Auto receive CDK after exchange, one-click copy
+- 👤 **Merchant Portal** - Bind LDC account to publish exchange listings
+- 📋 **Order Tracking** - View exchange records and status
+- 🔑 **CDK Management** - Merchants can bulk add, view, copy CDK
 
-**💬 Error Message Improvements**
-- 🚫 **IP Ban Notice** - Friendly message when IP is banned
-- 📡 **Network Error Details** - Different messages for timeout, network error, server error
+**🛡️ Security Hardening**
+- 🔒 XSS Protection Enhanced - Fixed unescaped product names in dialogs
+- 🔐 CDK Race Condition Fixed - Atomic UPDATE to prevent overselling
+- 💉 SQL Injection Protection - Parameterized queries throughout
+
+**🎨 UI/UX Improvements**
+- 🖼️ Detail page optimization - 16:9 image ratio, larger description area
+- 📜 List scroll memory - Restores scroll position when returning to list
+- ⚠️ Rejection/delist reason display - Shows reasons in My Listings
 
 ---
 
-### v3.5.2.x 🔑 CDK Panel & Chat Follow-up
+### v3.5.2.x 🔑 CDK Panel & Request Optimization
 
 **🔑 New CDK Panel**
 - Integrated CDK panel on cdk.linux.do page
 - View user info, claim records, project details
 
-**🍉 Thread Summarizer Enhanced**
-- 💬 **Follow-up Chat** - Continue asking based on summary content
-- 💭 **Context Memory** - Support multi-round conversations
-- ⚡ **Streaming Output** - Real-time AI response display
-
-**🍟 LDC Credits Improvements**
-- 📊 **Daily Estimate** - Overview page shows estimated daily earnings
-- 🎨 **UI Redesign** - New gradient backgrounds, soft glow effects
+**⚡ Request Optimization**
+- 🚦 Global request queue - 300ms minimum interval to prevent 429
+- ⏱️ 429 rate limit cooldown - No new requests for 2 minutes
+- 💬 Error message improvements - Smart error type detection, friendly tips
 
 ---
 
-### v3.5.0.x 🎉 New Features
+### v3.5.0.x 🎉 Core Features
 
 **✨ Thread Summarizer**
-- 🍉 AI Thread Summary / 📜 History Records / ✏️ Custom Prompts
+- 🍉 AI Thread Summary / 📜 History Records / ✏️ Custom Prompts / 💬 Follow-up Chat
 
 **📋 My Activity**
 - 📖 Read / ⭐ Bookmarks / 💬 Replies / ❤️ Liked / 📝 My Topics / 🔍 Search
 
 **🍟 LDC Credits**
-- 💰 Balance / 📊 7-day Stats / ❤️ Donation Support
-
-**👥 Following & Followers**
-- 👀 Following List / 💖 Followers List
+- 💰 Balance / 📊 7-day Stats / 📈 Daily Estimate / ❤️ Donation Support
 
 [View Full Changelog](./update_log.md)
 
@@ -383,6 +389,16 @@ Some Firefox users may experience OAuth login failures due to privacy settings (
 - Cloud sync uses a **keep higher value** merge strategy
 - For the same day, keeps the higher value between local and cloud
 - No recorded reading time will be lost
+</details>
+
+<details>
+<summary><b>🏪 How to publish listings on LD Store?</b></summary>
+
+1. Open the LDC Credits panel, switch to "LD Store" tab
+2. Click "My Listings" → "Merchant Settings"
+3. Enter your LDC PID (get from credit.linux.do profile page)
+4. Configure notification URL (optional, for order callbacks)
+5. Save and start publishing exchange listings
 </details>
 
 ---
