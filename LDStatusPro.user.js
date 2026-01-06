@@ -8435,9 +8435,10 @@
                             <div class="ldsp-merchant-help-title">❓ 如何获取 LDC 收款凭证</div>
                             <div class="ldsp-merchant-help-content">
                                 <p>1. 访问 <a href="https://credit.linux.do/merchant" target="_blank" rel="noopener">LDC 集市</a></p>
-                                <p>2. 创建新应用或选择已有应用</p>
-                                <p>3. 在应用详情页获取 Client ID 和 Client Key</p>
-                                <p>4. 填写到上方配置表单并保存</p>
+                                <p>2. 创建新应用</p>
+                                <p>3. ⚠️回调地址填写：https://api.ldspro.qzz.io/api/shop/ldc/notify</p>
+                                <p>4. 在应用详情页获取 Client ID 和 Client Key</p>
+                                <p>5. 填写到上方配置表单并保存</p>
                             </div>
                         </div>
                     </div>
