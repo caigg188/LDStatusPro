@@ -1,4 +1,4 @@
-    // ==UserScript==
+ // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
     // @version      3.5.4.1
@@ -8,7 +8,7 @@
     // @match        https://linux.do/*
     // @match        https://idcflare.com/*
     // @match        https://cdk.linux.do/*
-    // @match        https://credit.linux.do/*
+    // @match        https://credit
     // @run-at       document-start
     // @grant        GM_xmlhttpRequest
     // @grant        GM_setValue    
@@ -8030,6 +8030,26 @@
                 });
             }
 
+            // 刷新订单支付状态（主动查询 LDC）
+            async _refreshOrderStatus(orderNo) {
+                return new Promise(resolve => {
+                    GM_xmlhttpRequest({
+                        method: 'POST',
+                        url: `${this._apiUrl}/api/shop/orders/${orderNo}/refresh`,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this._token}`
+                        },
+                        onload: r => {
+                            try { resolve(JSON.parse(r.responseText)); }
+                            catch { resolve({ success: false, error: '解析响应失败' }); }
+                        },
+                        onerror: () => resolve({ success: false, error: '网络错误' }),
+                        ontimeout: () => resolve({ success: false, error: '请求超时' })
+                    });
+                });
+            }
+
             // 手动发货 (卖家)
             async _deliverOrder(orderNo, content) {
                 return new Promise(resolve => {
@@ -8813,6 +8833,17 @@
                             ${order.paid_at ? `<div class="ldsp-order-detail-row"><span class="label">支付时间</span><span class="value">${new Date(order.paid_at).toLocaleString('zh-CN')}</span></div>` : ''}
                             ${order.delivered_at ? `<div class="ldsp-order-detail-row"><span class="label">发货时间</span><span class="value">${new Date(order.delivered_at).toLocaleString('zh-CN')}</span></div>` : ''}
                         </div>
+                        ${order.status === 'pending' && role === 'buyer' ? `
+                            <div class="ldsp-order-pending-notice" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:var(--r-md);padding:12px;margin-top:4px">
+                                <div style="font-size:11px;color:#f59e0b;font-weight:600;margin-bottom:8px">⏳ 等待支付</div>
+                                <div style="font-size:10px;color:var(--txt-sec);line-height:1.5;margin-bottom:10px">
+                                    如果您已完成支付但订单状态未更新，请点击"刷新状态"按钮手动查询支付结果。
+                                </div>
+                                <button class="ldsp-order-refresh-btn" data-order="${order.order_no}" style="padding:8px 16px;background:#f59e0b;color:#fff;border:none;border-radius:var(--r-sm);font-size:11px;font-weight:600;cursor:pointer">
+                                    🔄 刷新支付状态
+                                </button>
+                            </div>
+                        ` : ''}
                         ${order.status === 'delivered' && order.deliveryContent ? `
                             <div class="ldsp-order-cdk-section">
                                 <div class="ldsp-order-cdk-title">🎫 CDK 内容</div>
@@ -8836,6 +8867,35 @@
                 // 返回按钮
                 body.querySelector('.ldsp-order-back-btn')?.addEventListener('click', () => {
                     this._renderShopOrdersUI();
+                });
+
+                // 刷新支付状态按钮
+                body.querySelector('.ldsp-order-refresh-btn')?.addEventListener('click', async (e) => {
+                    const btn = e.target;
+                    const orderNo = btn.dataset.order;
+                    
+                    btn.disabled = true;
+                    btn.textContent = '⏳ 查询中...';
+                    
+                    const resp = await this._refreshOrderStatus(orderNo);
+                    
+                    if (resp?.success) {
+                        if (resp.data?.status === 'delivered') {
+                            alert('✅ 支付成功，已自动发货！');
+                            this._showOrderDetail(orderNo, true); // 刷新页面显示 CDK
+                        } else if (resp.data?.status === 'paid') {
+                            alert('✅ 支付成功，等待卖家发货');
+                            this._showOrderDetail(orderNo);
+                        } else {
+                            alert(`ℹ️ ${resp.data?.message || '订单尚未支付'}`);
+                            btn.disabled = false;
+                            btn.textContent = '🔄 刷新支付状态';
+                        }
+                    } else {
+                        alert(`❌ ${this._formatError(resp)}`);
+                        btn.disabled = false;
+                        btn.textContent = '🔄 刷新支付状态';
+                    }
                 });
 
                 // 复制按钮
