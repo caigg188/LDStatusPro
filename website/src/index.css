@@ -1,0 +1,257 @@
+@import "tailwindcss";
+
+/* ========== Tailwind v4 主题配置 ========== */
+@theme {
+  /* 背景色 */
+  --color-bg-primary: #0c0c14;
+  --color-bg-secondary: #1a1a24;
+  --color-bg-card: rgba(26, 26, 36, 0.6);
+  
+  /* 主色调（可通过 Tailwind 类使用，如 bg-primary） */
+  --color-primary-DEFAULT: #3b82f6;
+  --color-primary-light: #60a5fa;
+  
+  /* 强调色 */
+  --color-accent-green: #10b981;
+  --color-accent-purple: #8b5cf6;
+  --color-accent-pink: #ec4899;
+  --color-accent-orange: #f59e0b;
+  --color-accent-blue: #60a5fa;
+  
+  /* 文字色 */
+  --color-text-primary: #f3f4f6;
+  --color-text-secondary: #9ca3af;
+  --color-text-muted: #6b7280;
+  
+  /* 自定义动画 */
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-glow-pulse: glow-pulse 2s ease-in-out infinite;
+  --animate-gradient-shift: gradient-shift 5s ease infinite;
+  --animate-rotate-slow: rotate-slow 20s linear infinite;
+  --animate-shimmer: shimmer 2s linear infinite;
+}
+
+/* ========== 自定义 CSS 变量（非 Tailwind） ========== */
+:root {
+  /* 边框 - 使用 rgba 值 */
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-glow: rgba(59, 130, 246, 0.3);
+}
+
+/* ========== 基础样式 ========== */
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0c0c14;
+    color: #f3f4f6;
+    line-height: 1.6;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* 可交互元素保持正确的光标 */
+  a, button, [role="button"] {
+    cursor: pointer;
+  }
+
+  input[type="text"], input[type="email"], input[type="password"], textarea {
+    cursor: text;
+  }
+
+  input, select {
+    cursor: pointer;
+  }
+
+  /* ========== 滚动条美化 ========== */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0c0c14;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #60a5fa, #ec4899);
+  }
+
+  /* Firefox 滚动条 */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #8b5cf6 #0c0c14;
+  }
+
+  /* ========== 选中样式 ========== */
+  ::selection {
+    background: #3b82f6;
+    color: white;
+  }
+}
+
+/* ========== 组件样式 ========== */
+@layer components {
+  /* 玻璃效果基础类 */
+  .glass {
+    background: rgba(26, 26, 36, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-color);
+  }
+
+  .glass-hover:hover {
+    border-color: var(--border-glow);
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);
+  }
+
+  /* 渐变文字 */
+  .gradient-text {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-text-animated {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899, #3b82f6);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradient-shift 5s ease infinite;
+  }
+
+  /* 背景装饰 */
+  .bg-aurora {
+    background: 
+      radial-gradient(ellipse at 20% 30%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 70%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
+  }
+
+  /* 响应式容器与节(section) 辅助类 */
+  .container-center {
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .section {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+
+  /* 更细粒度的节内居中限制 */
+  .section-center {
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* 在小屏上减少间距，在大屏上增加 */
+  @media (max-width: 640px) {
+    .section { padding-top: 2rem; padding-bottom: 2rem; }
+    .container-center { padding-left: 0.75rem; padding-right: 0.75rem; }
+  }
+  @media (min-width: 1024px) {
+    .section { padding-top: 4rem; padding-bottom: 4rem; }
+    .container-center { padding-left: 1.5rem; padding-right: 1.5rem; }
+  }
+}
+
+/* ========== 工具类样式 ========== */
+@layer utilities {
+  /* 发光效果 */
+  .glow-blue {
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.3);
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.3);
+  }
+
+  .glow-pink {
+    box-shadow: 0 0 40px rgba(236, 72, 153, 0.3);
+  }
+
+  /* 隐藏滚动条 */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* 浮动动画 */
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  /* 渐变动画 */
+  .animate-gradient {
+    animation: gradient-shift 5s ease infinite;
+  }
+
+  /* 旋转动画 */
+  .animate-rotate-slow {
+    animation: rotate-slow 20s linear infinite;
+  }
+
+  /* 闪光动画 */
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+  }
+}
+
+/* ========== 动画关键帧 ========== */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes confetti {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100px) rotate(720deg); opacity: 0; }
+}
