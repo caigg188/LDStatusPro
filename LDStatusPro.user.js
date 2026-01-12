@@ -1,7 +1,7 @@
  // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.4.7
+    // @version      3.5.4.8
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -4382,9 +4382,11 @@
     .ldsp-shop-card-price{font-size:13px;font-weight:700;color:var(--accent);display:flex;align-items:baseline;gap:1px}
     .ldsp-shop-card-price span{font-size:8px;font-weight:500;color:var(--txt-mut)}
     .ldsp-shop-card-price.discounted{color:var(--ok)}
-    .ldsp-shop-card-original{font-size:8px;color:var(--txt-mut);text-decoration:line-through;margin-left:3px}
+    .ldsp-shop-card-original{font-size:8px;color:var(--txt-mut);text-decoration:line-through;margin-left:3px;opacity:.7}
+    .ldsp-shop-card-discount{position:absolute;top:5px;left:4px;min-width:34px;height:28px;padding:0 5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;background:linear-gradient(135deg,rgba(255,75,75,.88),rgba(235,60,60,.82));border-radius:14px;box-shadow:0 2px 6px rgba(235,60,60,.3);z-index:3;transform:rotate(-8deg);text-shadow:0 1px 1px rgba(0,0,0,.15);letter-spacing:-.2px}
+    .ldsp-shop-card-discount::before{content:'';position:absolute;inset:-3px;background:linear-gradient(135deg,rgba(255,90,90,.6),rgba(235,60,60,.45));border-radius:17px;clip-path:polygon(8% 35%,0% 50%,8% 65%,20% 85%,35% 95%,50% 100%,65% 95%,80% 85%,92% 65%,100% 50%,92% 35%,80% 15%,65% 5%,50% 0%,35% 5%,20% 15%);z-index:-1}
+    .ldsp-shop-card-discount::after{content:'';position:absolute;top:4px;left:7px;width:10px;height:5px;background:linear-gradient(180deg,rgba(255,255,255,.3),transparent);border-radius:50%;transform:rotate(-15deg)}
     .ldsp-shop-card-views{font-size:8px;color:var(--txt-mut)}
-    .ldsp-shop-card-discount{position:absolute;top:6px;right:6px;padding:2px 5px;background:linear-gradient(135deg,var(--err),#f43f5e);color:#fff;font-size:8px;font-weight:600;border-radius:3px;z-index:1}
     .ldsp-shop-card-status{position:absolute;top:6px;left:6px;padding:2px 6px;font-size:9px;font-weight:600;border-radius:4px}
     .ldsp-shop-card-status.active{background:rgba(34,197,94,.15);color:#22c55e}
     .ldsp-shop-card-status.inactive{background:rgba(239,68,68,.15);color:#ef4444}
@@ -4407,6 +4409,10 @@
     .ldsp-shop-detail-content{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px}
     .ldsp-shop-detail-name{font-size:15px;font-weight:700;color:var(--txt);margin-bottom:8px;line-height:1.4}
     .ldsp-shop-detail-desc{font-size:11px;color:var(--txt-sec);line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:100px;overflow-y:auto}
+    .ldsp-shop-detail-desc.store-desc{max-height:160px;font-size:12px;line-height:1.7;color:var(--txt);padding:10px 12px;background:var(--bg-el);border-radius:var(--r-sm);margin-top:8px}
+    .ldsp-shop-detail-store-owner{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--txt-sec);padding:6px 10px;background:linear-gradient(135deg,rgba(6,182,212,.08),rgba(8,145,178,.05));border:1px solid rgba(6,182,212,.15);border-radius:var(--r-sm);margin-bottom:4px}
+    .ldsp-shop-detail-store-owner span{font-weight:600;color:#06b6d4}
+    .ldsp-shop-detail.store-detail .ldsp-shop-detail-content{padding:14px 16px}
     .ldsp-shop-detail-price-row{display:flex;align-items:center;gap:6px;padding:10px 12px;background:linear-gradient(135deg,rgba(107,140,239,.1),rgba(139,92,246,.08));border:1px solid rgba(107,140,239,.2);border-radius:var(--r-md)}
     .ldsp-shop-detail-price{font-size:20px;font-weight:700;color:var(--accent)}
     .ldsp-shop-detail-price span{font-size:10px;font-weight:500;color:var(--txt-mut);margin-left:2px}
@@ -4475,6 +4481,12 @@
     /* Shop v2.0 CDK 类型标签和库存 */
     .ldsp-shop-card-type{position:absolute;top:0;right:0;padding:4px 8px;font-size:9px;font-weight:700;border-radius:0 var(--r-md) 0 8px;z-index:2;letter-spacing:.5px;text-transform:uppercase}
     .ldsp-shop-card-type.cdk{background:linear-gradient(135deg,#fbbf24 0%,#f59e0b 100%);color:#1c1917;box-shadow:0 2px 8px rgba(251,191,36,.4)}
+    .ldsp-shop-card-type.store{background:linear-gradient(135deg,#06b6d4 0%,#0891b2 100%);color:#fff;box-shadow:0 2px 8px rgba(6,182,212,.4)}
+    /* 小店特殊卡片样式 */
+    .ldsp-shop-card.store-card{border-color:rgba(6,182,212,.3)}
+    .ldsp-shop-card.store-card:hover{border-color:#06b6d4}
+    .ldsp-shop-card.store-card .ldsp-shop-card-footer{border-top:none;padding-top:0}
+    .ldsp-shop-card-store-owner{font-size:10px;color:var(--txt-sec);font-weight:500;display:flex;align-items:center;gap:2px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .ldsp-shop-card-stock{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:600;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2)}
     .ldsp-shop-card-stock .available{color:#22c55e;font-weight:700}
     .ldsp-shop-card-stock .divider{color:var(--txt-mut);font-weight:400}
@@ -4487,6 +4499,7 @@
     .ldsp-shop-card.out-of-stock::after{content:'已售罄';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:6px 16px;background:rgba(0,0,0,.7);color:#fff;font-size:12px;font-weight:700;border-radius:20px;z-index:5}
     .ldsp-shop-detail-type-badge{padding:4px 10px;font-size:10px;font-weight:700;border-radius:6px;margin-left:auto;letter-spacing:.5px}
     .ldsp-shop-detail-type-badge.cdk{background:linear-gradient(135deg,#fbbf24 0%,#f59e0b 100%);color:#1c1917;box-shadow:0 2px 6px rgba(251,191,36,.3)}
+    .ldsp-shop-detail-type-badge.store{background:linear-gradient(135deg,#06b6d4 0%,#0891b2 100%);color:#fff;box-shadow:0 2px 6px rgba(6,182,212,.3)}
     /* Shop v2.0 订单列表样式 */
     .ldsp-order-list{display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;min-height:0;padding:2px}
     .ldsp-order-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;cursor:pointer;transition:all .2s}
@@ -4643,7 +4656,7 @@
     .ldsp-merchant-config-header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
     .ldsp-merchant-help-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:14px}
     .ldsp-merchant-help-title{font-size:11px;font-weight:600;color:var(--txt-sec);margin-bottom:10px}
-    .ldsp-merchant-help-content{font-size:10px;color:var(--txt-mut);line-height:1.8}
+    .ldsp-merchant-help-content,.ldsp-merchant-help-content *{font-size:10px;color:var(--txt-mut);line-height:1.8;user-select:text!important;-webkit-user-select:text!important}
     .ldsp-merchant-help-content p{margin:0}
     .ldsp-merchant-help-content a{color:var(--accent);text-decoration:none}
     .ldsp-merchant-help-content a:hover{text-decoration:underline}
@@ -7505,7 +7518,7 @@
             }
             
             // 渲染单个商品卡片
-            // v2.0: 支持 product_type (link/cdk), stock, sold_count
+            // v2.0: 支持 product_type (link/cdk/store), stock, sold_count
             _renderShopCard(p, categories) {
                 const price = parseFloat(p.price) || 0;
                 const discount = parseFloat(p.discount) || 1;
@@ -7522,6 +7535,7 @@
                 // v2.0: 商品类型和库存
                 const productType = p.product_type || 'link';
                 const isCdk = productType === 'cdk';
+                const isStore = productType === 'store';
                 const stock = parseInt(p.stock) || 0;
                 const soldCount = parseInt(p.sold_count) || 0;
                 const availableStock = p.availableStock !== undefined ? p.availableStock : stock;
@@ -7531,6 +7545,27 @@
                 // CDK 库存显示：剩余/总计
                 const totalStock = isCdk ? (p.cdkStats?.total || stock) : 0;
                 const stockClass = isOutOfStock ? 'out' : isLowStock ? 'low' : '';
+                
+                // 小店类型使用独立卡片样式
+                if (isStore) {
+                    const storeOwner = p.seller_username || p.seller_name || '店主';
+                    return `<div class="ldsp-shop-card store-card" data-product-id="${p.id}">
+                        <div class="ldsp-shop-card-type store">友情小店</div>
+                        <div class="ldsp-shop-card-cover" style="${hasImg ? '' : `background:${bgColor}`}">
+                            ${hasImg ? `<img src="${Utils.escapeHtml(p.image_url)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="ldsp-shop-card-placeholder" style="display:none;background:${bgColor}">🏪</div>` : '🏪'}
+                        </div>
+                        <div class="ldsp-shop-card-body">
+                            <div class="ldsp-shop-card-name">${Utils.escapeHtml(p.name)}</div>
+                            <div class="ldsp-shop-card-meta">
+                                <span class="ldsp-shop-card-time">${updateTime}</span>
+                            </div>
+                            <div class="ldsp-shop-card-footer">
+                                <span class="ldsp-shop-card-store-owner">👤 ${Utils.escapeHtml(storeOwner)}</span>
+                                <div class="ldsp-shop-card-views">👁${p.view_count || 0}</div>
+                            </div>
+                        </div>
+                    </div>`;
+                }
                 
                 return `<div class="ldsp-shop-card${isOutOfStock ? ' out-of-stock' : ''}" data-product-id="${p.id}">
                     ${isCdk ? `<div class="ldsp-shop-card-type cdk">CDK</div>` : ''}
@@ -7848,7 +7883,7 @@
                         </div>
                         <div class="ldsp-shop-form-group">
                             <label class="ldsp-shop-form-label">物品描述 <span class="required">*</span></label>
-                            <textarea class="ldsp-shop-form-input ldsp-shop-form-textarea" id="shop-desc" placeholder="详细描述您的物品..." maxlength="2000">${Utils.escapeHtml(p.description || '')}</textarea>
+                            <textarea class="ldsp-shop-form-input ldsp-shop-form-textarea" id="shop-desc" placeholder="详细描述您的物品信息以及服务方式..." maxlength="1000">${Utils.escapeHtml(p.description || '')}</textarea>
                         </div>
                         <div class="ldsp-shop-form-row">
                             <div class="ldsp-shop-form-group">
@@ -8032,6 +8067,7 @@
                 // v2.0: 商品类型
                 const productType = product.product_type || 'link';
                 const isCdk = productType === 'cdk';
+                const isStore = productType === 'store';
                 const stock = parseInt(product.stock) || 0;
                 const soldCount = parseInt(product.sold_count) || 0;
                 const availableStock = product.availableStock !== undefined ? product.availableStock : stock;
@@ -8049,6 +8085,35 @@
                 
                 // 无图片时的占位背景
                 const bgColor = this._getRandomLightColor(product.id);
+                
+                // 小店类型使用独立详情页
+                if (isStore) {
+                    const storeOwner = product.seller_username || product.seller_name || '店主';
+                    body.innerHTML = `
+                        <div class="ldsp-shop-detail store-detail">
+                            <div class="ldsp-shop-detail-header">
+                                <button class="ldsp-shop-back-btn">←</button>
+                                <span class="ldsp-shop-detail-category">🏪 小店</span>
+                                <span class="ldsp-shop-detail-type-badge store">🏬 友情小店</span>
+                            </div>
+                            ${hasImg ? 
+                                `<div class="ldsp-shop-detail-img-wrap"><img class="ldsp-shop-detail-img" src="${Utils.escapeHtml(product.image_url)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="ldsp-shop-detail-placeholder" style="display:none;background:${bgColor}">🏪</div></div>` : 
+                                `<div class="ldsp-shop-detail-placeholder" style="background:${bgColor}">🏪</div>`
+                            }
+                            <div class="ldsp-shop-detail-content">
+                                <div class="ldsp-shop-detail-name">${Utils.escapeHtml(product.name)}</div>
+                                <div class="ldsp-shop-detail-store-owner">👤 店主：<span>${Utils.escapeHtml(storeOwner)}</span></div>
+                                <div class="ldsp-shop-detail-desc store-desc">${Utils.escapeHtml(product.description || '暂无描述')}</div>
+                            </div>
+                            <div class="ldsp-shop-detail-info">
+                                <span class="ldsp-shop-detail-info-item">👁 ${product.view_count || 0}</span>
+                                <span class="ldsp-shop-detail-info-item">📅 ${this._formatRelativeTime(product.updated_at || product.created_at)}</span>
+                            </div>
+                            <a href="${Utils.escapeHtml(product.payment_link || '')}" target="_blank" class="ldsp-shop-purchase-action" rel="noopener" style="background:linear-gradient(135deg,#06b6d4,#0891b2)">🏪 立即前往</a>
+                        </div>`;
+                    this._bindProductDetailEvents(body);
+                    return;
+                }
                 
                 // v2.0: 根据商品类型生成购买按钮
                 let purchaseButton = '';
@@ -8159,9 +8224,15 @@
                             btn.textContent = '已跳转支付页面';
                             btn.style.background = '#22c55e';
                             
+                            // 计算有效期提示
+                            let expireHint = '';
+                            if (resp.data.expireAt) {
+                                expireHint = '<br>⏰ 订单有效期 <strong>1小时</strong>，请尽快完成支付';
+                            }
+                            
                             // 提示用户
                             setTimeout(() => {
-                                LDSPDialog.alert(`订单已创建：<strong>${resp.data.orderNo}</strong><br><br>📝 请在新窗口中完成支付<br>✅ 支付完成后 CDK 将自动发放<br>📋 可在「我的订单」中查看状态`, { title: '订单创建成功', icon: '🎉' });
+                                LDSPDialog.alert(`订单已创建：<strong>${resp.data.orderNo}</strong><br><br>📝 请在新窗口中完成支付${expireHint}<br>✅ 支付完成后 CDK 将自动发放<br>📋 可在「我的订单」中查看状态`, { title: '订单创建成功', icon: '🎉' });
                             }, 500);
                         } else {
                             btn.disabled = false;
@@ -8330,10 +8401,23 @@
                     const product = o.product || {};
                     const createTime = this._formatRelativeTime(new Date(o.created_at).getTime());
                     
+                    // 计算待支付订单剩余有效期
+                    let expireHint = '';
+                    if (o.status === 'pending' && o.pay_expired_at) {
+                        const expireTime = new Date(o.pay_expired_at.replace(' ', 'T') + '+08:00').getTime();
+                        const remaining = expireTime - Date.now();
+                        if (remaining > 0) {
+                            const mins = Math.floor(remaining / 60000);
+                            expireHint = `<span class="ldsp-order-expire" style="font-size:10px;color:#f59e0b;margin-left:6px">⏰ ${mins}分钟后过期</span>`;
+                        } else {
+                            expireHint = `<span class="ldsp-order-expire" style="font-size:10px;color:#ef4444;margin-left:6px">⚠️ 即将过期</span>`;
+                        }
+                    }
+                    
                     return `<div class="ldsp-order-card" data-order-no="${o.order_no}">
                         <div class="ldsp-order-card-header">
                             <span class="ldsp-order-no">订单号: ${o.order_no}</span>
-                            <span class="ldsp-order-status" style="color:${status.color}">${status.icon} ${status.text}</span>
+                            <span class="ldsp-order-status" style="color:${status.color}">${status.icon} ${status.text}${expireHint}</span>
                         </div>
                         <div class="ldsp-order-card-body">
                             <div class="ldsp-order-product">
@@ -8684,7 +8768,7 @@
                                 <p style="margin-left:12px;font-family:monospace;font-size:11px;color:#3b82f6;word-break:break-all">https://api.ldspro.qzz.io/api/shop/ldc/return</p>
                                 <p style="margin-top:8px">3. 在应用详情页获取 Client ID 和 Client Key</p>
                                 <p>4. 填写到上方配置表单并保存</p>
-                                <p style="margin-top:8px;font-size:11px;color:#94a3b8">💡 提示：通知地址是支付成功后自动发货的关键，请务必正确配置</p>
+                                <p style="margin-top:8px;font-size:11px;color:#94a3b8">💡 提示：<b style="color:#ef4444">通知地址</b>是支付成功后自动发货的关键，请务必正确配置</p>
                             </div>
                         </div>
                     </div>
@@ -9160,14 +9244,30 @@
                             ${order.paid_at ? `<div class="ldsp-order-detail-row"><span class="label">支付</span><span class="value">${fmtDate(order.paid_at)}</span></div>` : ''}
                             ${order.delivered_at ? `<div class="ldsp-order-detail-row"><span class="label">发货</span><span class="value">${fmtDate(order.delivered_at)}</span></div>` : ''}
                         </div>
-                        ${order.status === 'pending' && role === 'buyer' ? `
-                            <div class="ldsp-order-pending-notice" style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--r-md);padding:8px 10px">
+                        ${order.status === 'pending' && role === 'buyer' ? (() => {
+                            // 计算待支付订单剩余有效期
+                            let expireInfo = '';
+                            if (order.pay_expired_at) {
+                                const expireTime = new Date(order.pay_expired_at.replace(' ', 'T') + '+08:00').getTime();
+                                const remaining = expireTime - Date.now();
+                                if (remaining > 0) {
+                                    const mins = Math.floor(remaining / 60000);
+                                    const secs = Math.floor((remaining % 60000) / 1000);
+                                    expireInfo = `<div style="font-size:11px;color:#f59e0b;font-weight:600;margin-bottom:6px">⏰ 剩余支付时间：${mins}分${secs}秒</div>`;
+                                } else {
+                                    expireInfo = `<div style="font-size:11px;color:#ef4444;font-weight:600;margin-bottom:6px">⚠️ 订单即将过期，请尽快支付</div>`;
+                                }
+                            }
+                            return `
+                            <div class="ldsp-order-pending-notice" style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--r-md);padding:10px 12px">
+                                ${expireInfo}
                                 <div style="display:flex;align-items:center;gap:8px">
-                                    <div style="font-size:9px;color:var(--txt-sec);line-height:1.4;flex:1">已支付？点击刷新查询</div>
+                                    <div style="font-size:9px;color:var(--txt-sec);line-height:1.4;flex:1">已支付？点击刷新查询订单状态</div>
                                     <button class="ldsp-order-refresh-btn" data-order="${order.order_no}" style="padding:5px 10px;background:#f59e0b;color:#fff;border:none;border-radius:var(--r-sm);font-size:9px;font-weight:600;cursor:pointer;white-space:nowrap">🔄 刷新</button>
                                 </div>
                             </div>
-                        ` : ''}
+                        `;
+                        })() : ''}
                         ${order.status === 'delivered' && order.deliveryContent ? `
                             <div class="ldsp-order-cdk-section">
                                 <div class="ldsp-order-cdk-title">${role === 'buyer' ? '🎫 您购买的 CDK' : '📤 已发货内容'}</div>
