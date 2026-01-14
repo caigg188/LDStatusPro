@@ -16,3 +16,11 @@ scripts
 website/node_modules
 website/dist
 website/.wrangler
+
+# ld-store 构建产物和依赖
+ld-store/node_modules
+ld-store/dist
+ld-store/.wrangler
+ld-store/package-lock.json
+ld-store/.env.local
+ld-store/.env.*.local

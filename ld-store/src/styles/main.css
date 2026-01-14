@@ -1,0 +1,353 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 基础样式重置 */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    color: #3d3d3d;
+    background-color: #faf9f7;
+    overflow-x: hidden;
+  }
+
+  /* 链接样式 */
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* 图片样式 */
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* 按钮基础样式 */
+  button {
+    font: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+    outline: none;
+  }
+
+  /* 输入框基础样式 */
+  input,
+  textarea,
+  select {
+    font: inherit;
+    border: none;
+    outline: none;
+    background: transparent;
+  }
+
+  /* 滚动条美化 */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.25);
+  }
+
+  /* 选中文本样式 */
+  ::selection {
+    background-color: rgba(181, 168, 152, 0.3);
+    color: inherit;
+  }
+}
+
+/* 通用组件样式 */
+@layer components {
+  /* 卡片 */
+  .card {
+    @apply bg-white rounded-2xl shadow-card transition-shadow duration-200;
+  }
+
+  .card:hover {
+    @apply shadow-hover;
+  }
+
+  /* 按钮 */
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-xl font-medium transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply bg-morandi-500 text-white hover:bg-morandi-600;
+    @apply focus:ring-morandi-400;
+  }
+
+  .btn-secondary {
+    @apply bg-morandi-100 text-morandi-700 hover:bg-morandi-200;
+    @apply focus:ring-morandi-300;
+  }
+
+  .btn-outline {
+    @apply border-2 border-morandi-300 text-morandi-600 hover:border-morandi-400 hover:bg-morandi-50;
+    @apply focus:ring-morandi-300;
+  }
+
+  .btn-ghost {
+    @apply text-morandi-600 hover:bg-morandi-100;
+    @apply focus:ring-morandi-300;
+  }
+
+  .btn-danger {
+    @apply bg-rose-500 text-white hover:bg-rose-600;
+    @apply focus:ring-rose-400;
+  }
+
+  .btn-success {
+    @apply bg-sage-500 text-white hover:bg-sage-600;
+    @apply focus:ring-sage-400;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm rounded-lg;
+  }
+
+  .btn-lg {
+    @apply px-6 py-3 text-lg rounded-xl;
+  }
+
+  /* 输入框 */
+  .input {
+    @apply w-full px-4 py-3 bg-morandi-50 border border-morandi-200 rounded-xl;
+    @apply text-morandi-800 placeholder-morandi-400;
+    @apply focus:border-morandi-400 focus:ring-2 focus:ring-morandi-200;
+    @apply transition-all duration-200;
+  }
+
+  .input-error {
+    @apply border-rose-400 focus:border-rose-500 focus:ring-rose-200;
+  }
+
+  /* 标签 */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply bg-morandi-100 text-morandi-700;
+  }
+
+  .badge-success {
+    @apply bg-sage-100 text-sage-700;
+  }
+
+  .badge-warning {
+    @apply bg-warm-100 text-warm-700;
+  }
+
+  .badge-danger {
+    @apply bg-rose-100 text-rose-700;
+  }
+
+  .badge-info {
+    @apply bg-dusty-100 text-dusty-700;
+  }
+
+  /* 骨架屏 */
+  .skeleton {
+    @apply bg-morandi-200 animate-pulse rounded;
+  }
+
+  /* 分割线 */
+  .divider {
+    @apply border-t border-morandi-200;
+  }
+
+  /* 头像 */
+  .avatar {
+    @apply rounded-full bg-morandi-200 object-cover;
+  }
+
+  .avatar-sm {
+    @apply w-8 h-8;
+  }
+
+  .avatar-md {
+    @apply w-10 h-10;
+  }
+
+  .avatar-lg {
+    @apply w-14 h-14;
+  }
+
+  /* 空状态 */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-12 text-morandi-400;
+  }
+
+  .empty-state-icon {
+    @apply text-5xl mb-4;
+  }
+
+  .empty-state-text {
+    @apply text-lg font-medium;
+  }
+
+  .empty-state-hint {
+    @apply text-sm mt-2;
+  }
+
+  /* 加载动画 */
+  .spinner {
+    @apply w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin;
+  }
+
+  /* 价格样式 */
+  .price {
+    @apply font-semibold text-warm-600;
+  }
+
+  .price-lg {
+    @apply text-2xl;
+  }
+
+  .price-original {
+    @apply text-sm text-morandi-400 line-through;
+  }
+
+  /* 折扣标签 */
+  .discount-badge {
+    @apply absolute top-2 right-2 px-2 py-0.5 bg-rose-500 text-white text-xs font-bold rounded-lg;
+  }
+
+  /* 类型标签 */
+  .type-badge {
+    @apply absolute top-2 left-2 px-2 py-0.5 bg-dusty-500 text-white text-xs font-bold rounded-lg;
+  }
+
+  /* 库存标签 */
+  .stock-badge {
+    @apply text-xs text-morandi-500;
+  }
+
+  .stock-badge.low {
+    @apply text-warm-600;
+  }
+
+  .stock-badge.out {
+    @apply text-rose-500;
+  }
+}
+
+/* 工具类 */
+@layer utilities {
+  /* 安全区域内边距 */
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  /* 文本省略 */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* 隐藏滚动条但保留滚动功能 */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 模糊遮罩 */
+  .backdrop-blur-soft {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  /* 渐变文本 */
+  .text-gradient {
+    background: linear-gradient(135deg, #b5a898 0%, #9f8f7d 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* 禁用选择 */
+  .select-none {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* 触摸反馈 */
+  .tap-highlight {
+    -webkit-tap-highlight-color: rgba(181, 168, 152, 0.1);
+  }
+}
+
+/* 响应式断点 */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* 暗色模式预留（如需实现） */
+@media (prefers-color-scheme: dark) {
+  /* 暂时保持浅色主题 */
+}
+
+/* 移动端底部安全区域 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 60px);
+  }
+}

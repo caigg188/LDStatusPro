@@ -1,0 +1,294 @@
+<template>
+  <div class="category-page">
+    <div class="page-container">
+      <!-- 分类标题 -->
+      <div class="page-header">
+        <h1 class="page-title">
+          {{ categoryIcon }} {{ categoryName }}
+        </h1>
+        <p class="page-subtitle">共 {{ total }} 个商品</p>
+      </div>
+      
+      <!-- 筛选排序 -->
+      <div class="filter-bar">
+        <div class="filter-tabs">
+          <button
+            v-for="sort in sortOptions"
+            :key="sort.value"
+            :class="['filter-tab', { active: currentSort === sort.value }]"
+            @click="changeSort(sort.value)"
+          >
+            {{ sort.label }}
+          </button>
+        </div>
+      </div>
+      
+      <!-- 加载中 -->
+      <div v-if="loading" class="loading-state">
+        <Skeleton type="product" :count="4" />
+      </div>
+      
+      <!-- 空状态 -->
+      <EmptyState
+        v-else-if="products.length === 0"
+        icon="📦"
+        title="暂无商品"
+        :description="`该分类下暂无商品`"
+      >
+        <router-link to="/" class="back-btn">
+          浏览全部商品
+        </router-link>
+      </EmptyState>
+      
+      <!-- 商品列表 -->
+      <div v-else class="products-grid">
+        <ProductCard
+          v-for="product in products"
+          :key="product.id"
+          :product="product"
+          @click="viewProduct(product)"
+        />
+      </div>
+      
+      <!-- 加载更多 -->
+      <div v-if="hasMore && !loading" class="load-more">
+        <button class="load-more-btn" @click="loadMore" :disabled="loadingMore">
+          {{ loadingMore ? '加载中...' : '加载更多' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useShopStore } from '@/stores/shop'
+import ProductCard from '@/components/product/ProductCard.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
+import Skeleton from '@/components/common/Skeleton.vue'
+
+const route = useRoute()
+const router = useRouter()
+const shopStore = useShopStore()
+
+const loading = ref(true)
+const loadingMore = ref(false)
+const products = ref([])
+const page = ref(1)
+const total = ref(0)
+const hasMore = ref(false)
+const currentSort = ref('default')
+const pageSize = 20
+
+// 分类配置
+const categoryConfig = {
+  'AI': { name: 'AI', icon: '🤖' },
+  '存储': { name: '存储', icon: '💾' },
+  '小鸡': { name: '小鸡', icon: '🐔' },
+  '咨询': { name: '咨询', icon: '💬' }
+}
+
+// 排序选项
+const sortOptions = [
+  { value: 'default', label: '默认' },
+  { value: 'newest', label: '最新' },
+  { value: 'price_asc', label: '价格↑' },
+  { value: 'price_desc', label: '价格↓' },
+  { value: 'sales', label: '销量' }
+]
+
+// 当前分类
+const category = computed(() => route.params.name || '')
+const categoryName = computed(() => categoryConfig[category.value]?.name || category.value)
+const categoryIcon = computed(() => categoryConfig[category.value]?.icon || '📦')
+
+// 加载商品
+async function loadProducts(append = false) {
+  try {
+    if (!append) {
+      loading.value = true
+      page.value = 1
+    } else {
+      loadingMore.value = true
+    }
+    
+    const result = await shopStore.fetchProducts({
+      category: category.value,
+      page: page.value,
+      pageSize,
+      sort: currentSort.value
+    })
+    
+    if (append) {
+      products.value.push(...(result.products || result))
+    } else {
+      products.value = result.products || result
+      total.value = result.total || products.value.length
+    }
+    
+    hasMore.value = (result.products || result).length === pageSize
+  } catch (error) {
+    console.error('Load category products error:', error)
+  } finally {
+    loading.value = false
+    loadingMore.value = false
+  }
+}
+
+// 加载更多
+function loadMore() {
+  page.value++
+  loadProducts(true)
+}
+
+// 切换排序
+function changeSort(sort) {
+  currentSort.value = sort
+  loadProducts()
+}
+
+// 查看商品
+function viewProduct(product) {
+  router.push(`/product/${product.id}`)
+}
+
+// 监听分类变化
+watch(() => route.params.name, () => {
+  if (route.params.name) {
+    loadProducts()
+  }
+}, { immediate: true })
+</script>
+
+<style scoped>
+.category-page {
+  min-height: 100vh;
+  padding-bottom: 80px;
+  background: #faf9f7;
+}
+
+.page-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* 页面头部 */
+.page-header {
+  text-align: center;
+  padding: 24px 0;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #3d3d3d;
+  margin: 0 0 8px;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: #999;
+  margin: 0;
+}
+
+/* 筛选栏 */
+.filter-bar {
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-tab {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  background: #f5f3f0;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-tab:hover {
+  background: #ebe7e1;
+}
+
+.filter-tab.active {
+  background: #a5b4a3;
+  color: white;
+}
+
+/* 加载状态 */
+.loading-state {
+  padding-top: 20px;
+}
+
+/* 返回按钮 */
+.back-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  background: #a5b4a3;
+  color: white;
+  border-radius: 12px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: #95a493;
+}
+
+/* 商品网格 */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .products-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 加载更多 */
+.load-more {
+  padding: 30px;
+  text-align: center;
+}
+
+.load-more-btn {
+  padding: 12px 40px;
+  background: white;
+  border: 1px solid #f0ede9;
+  border-radius: 24px;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.load-more-btn:hover:not(:disabled) {
+  background: #faf9f7;
+  border-color: #e0dcd6;
+}
+
+.load-more-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+</style>

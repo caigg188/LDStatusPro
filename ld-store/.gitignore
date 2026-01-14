@@ -1,0 +1,36 @@
+# 依赖
+node_modules/
+
+# 构建产物
+dist/
+*.local
+
+# Cloudflare
+.wrangler/
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志
+logs/
+*.log
+npm-debug.log*
+
+# 环境变量（包含敏感信息）
+.env
+.env.local
+.env.*.local
+
+# 测试覆盖率
+coverage/
+
+# TypeScript 缓存
+*.tsbuildinfo
