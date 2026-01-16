@@ -7,7 +7,9 @@
     <main class="main-content">
       <router-view v-slot="{ Component, route }">
         <transition name="fade" mode="out-in">
-          <component :is="Component" :key="route.path" />
+          <keep-alive :include="cachedViews">
+            <component :is="Component" :key="route.path" />
+          </keep-alive>
         </transition>
       </router-view>
     </main>
@@ -27,7 +29,7 @@
 </template>
 
 <script setup>
-import { onMounted, watch } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import AppHeader from '@/components/layout/AppHeader.vue'
@@ -40,15 +42,14 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
+// 需要缓存的页面组件名称
+// Home = 首页(物品广场), Category = 分类页(小店集市等)
+const cachedViews = ref(['Home', 'Category'])
+
 // 初始化
 onMounted(async () => {
   // 尝试恢复用户会话
   await userStore.restoreSession()
-})
-
-// 路由变化时滚动到顶部
-watch(() => route.path, () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' })
 })
 </script>
 

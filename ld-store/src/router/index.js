@@ -113,16 +113,30 @@ const routes = [
   }
 ]
 
+// 需要保持滚动位置的页面
+const keepScrollRoutes = ['Home', 'Category']
+
 // 创建路由实例
 const router = createRouter({
   history: createWebHistory(),
   routes,
   scrollBehavior(to, from, savedPosition) {
+    // 如果是返回操作且有保存的位置，恢复滚动位置
     if (savedPosition) {
-      return savedPosition
-    } else {
-      return { top: 0 }
+      return new Promise((resolve) => {
+        // 延迟恢复，确保页面内容已渲染
+        setTimeout(() => {
+          resolve(savedPosition)
+        }, 100)
+      })
     }
+    // 从详情页返回到列表页时，不滚动
+    if (keepScrollRoutes.includes(to.name) && 
+        (from.name === 'ProductDetail' || from.name === 'ShopDetail')) {
+      return false
+    }
+    // 其他情况滚动到顶部
+    return { top: 0 }
   }
 })
 

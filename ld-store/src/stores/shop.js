@@ -98,6 +98,15 @@ export const useShopStore = defineStore('shop', () => {
     }
   }
 
+  // 从缓存恢复分类状态（前端缓存用）
+  function restoreFromCache(categoryId, cachedProducts, cachedTotal, cachedHasMore, cachedPage) {
+    currentCategory.value = categoryId
+    products.value = cachedProducts
+    total.value = cachedTotal
+    hasMore.value = cachedHasMore
+    page.value = cachedPage
+  }
+
   // 加载更多商品
   async function loadMore() {
     if (loading.value || !hasMore.value) return
@@ -471,6 +480,7 @@ export const useShopStore = defineStore('shop', () => {
     currentCategory,
     loading,
     hasMore,
+    page,
     total,
     searchQuery,
     searchResults,
@@ -485,6 +495,7 @@ export const useShopStore = defineStore('shop', () => {
     // 方法
     fetchCategories,
     fetchProducts,
+    restoreFromCache,
     loadMore,
     fetchProduct,
     searchProducts,

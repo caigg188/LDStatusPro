@@ -1,8 +1,16 @@
 <template>
   <router-link
+    ref="cardRef"
     :to="`/product/${product.id}`"
     :class="['product-card', { 'out-of-stock': isOutOfStock }]"
+    :style="tiltStyle"
+    @mouseenter="handleMouseEnter"
+    @mousemove="handleMouseMove"
+    @mouseleave="handleMouseLeave"
   >
+    <!-- 3D 光泽效果层 -->
+    <div class="tilt-glare" :style="glareStyle"></div>
+    
     <!-- 折扣标签 -->
     <span v-if="hasDiscount" class="discount-tag">
       -{{ discountPercent }}%
@@ -14,15 +22,20 @@
     
     <!-- 商品图片 -->
     <div class="product-cover" :style="coverStyle">
+      <!-- 骨架屏占位 -->
+      <div v-if="product.image_url && !imageLoaded" class="cover-skeleton">
+        <div class="skeleton-shimmer"></div>
+      </div>
       <img
         v-if="product.image_url"
         :src="product.image_url"
         :alt="product.name"
-        class="cover-image"
+        :class="['cover-image', { loaded: imageLoaded }]"
         loading="lazy"
+        @load="handleImageLoad"
         @error="handleImageError"
       />
-      <span v-else class="cover-placeholder">{{ categoryIcon }}</span>
+      <span v-if="!product.image_url" class="cover-placeholder">{{ categoryIcon }}</span>
     </div>
     
     <!-- 商品信息 -->
@@ -68,7 +81,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { formatRelativeTime, formatPrice } from '@/utils/format'
 
 const props = defineProps({
@@ -81,6 +94,99 @@ const props = defineProps({
     default: () => []
   }
 })
+
+// 图片加载状态
+const imageLoaded = ref(false)
+
+// 3D 倾斜效果
+const cardRef = ref(null)
+const tiltStyle = ref({})
+const glareStyle = ref({})
+const isHovering = ref(false)
+
+// 配置
+const maxTilt = 10 // 最大倾斜角度
+const perspective = 1000 // 透视距离
+const scale = 1.02 // 悬停缩放
+const speed = 400 // 过渡速度
+
+let currentX = 0
+let currentY = 0
+let targetX = 0
+let targetY = 0
+let currentScale = 1
+let currentShadow = 0 // 阴影强度 0-1
+let animationFrame = null
+
+function lerp(start, end, factor) {
+  return start + (end - start) * factor
+}
+
+function updateTilt() {
+  if (!isHovering.value) return
+  
+  currentX = lerp(currentX, targetX, 0.08)
+  currentY = lerp(currentY, targetY, 0.08)
+  currentScale = lerp(currentScale, scale, 0.06)
+  currentShadow = lerp(currentShadow, 1, 0.05) // 阴影缓慢增强
+  
+  const rotateX = currentY * maxTilt
+  const rotateY = -currentX * maxTilt
+  
+  // 计算阴影偏移（基于倾斜方向）
+  const shadowX = -currentX * 8
+  const shadowY = currentY * 8 + 15
+  const shadowBlur = 20 + currentShadow * 25
+  const shadowAlpha = 0.06 + currentShadow * 0.1
+  
+  tiltStyle.value = {
+    transform: `perspective(${perspective}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(${currentScale}, ${currentScale}, ${currentScale})`,
+    boxShadow: `${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0, 0, 0, ${shadowAlpha}), 0 ${4 + currentShadow * 6}px ${8 + currentShadow * 12}px rgba(0, 0, 0, ${0.05 + currentShadow * 0.05})`
+  }
+  
+  // 光泽跟随
+  const glareX = (currentX + 1) * 50
+  const glareY = (currentY + 1) * 50
+  glareStyle.value = {
+    background: `radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.25) 0%, transparent 60%)`,
+    opacity: currentShadow
+  }
+  
+  animationFrame = requestAnimationFrame(updateTilt)
+}
+
+function handleMouseEnter() {
+  // 检查是否触摸设备
+  if ('ontouchstart' in window) return
+  isHovering.value = true
+  animationFrame = requestAnimationFrame(updateTilt)
+}
+
+function handleMouseMove(e) {
+  if (!cardRef.value || !isHovering.value) return
+  const rect = cardRef.value.$el.getBoundingClientRect()
+  targetX = ((e.clientX - rect.left) / rect.width) * 2 - 1
+  targetY = ((e.clientY - rect.top) / rect.height) * 2 - 1
+}
+
+function handleMouseLeave() {
+  isHovering.value = false
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  
+  currentX = 0
+  currentY = 0
+  targetX = 0
+  targetY = 0
+  currentScale = 1
+  currentShadow = 0
+  
+  tiltStyle.value = {
+    transform: `perspective(${perspective}px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`,
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.08)',
+    transition: `transform ${speed}ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow ${speed}ms cubic-bezier(0.23, 1, 0.32, 1)`
+  }
+  glareStyle.value = { opacity: 0 }
+}
 
 // 商品类型
 const productType = computed(() => props.product.product_type || 'link')
@@ -161,10 +267,13 @@ const coverStyle = computed(() => {
 })
 
 // 事件处理
+function handleImageLoad() {
+  imageLoaded.value = true
+}
+
 function handleImageError(e) {
+  imageLoaded.value = true // 隐藏骨架屏
   e.target.style.display = 'none'
-  const placeholder = e.target.nextElementSibling
-  if (placeholder) placeholder.style.display = 'flex'
 }
 
 function handleAvatarError(e) {
@@ -179,14 +288,21 @@ function handleAvatarError(e) {
   border-radius: 16px;
   overflow: hidden;
   text-decoration: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.08);
   position: relative;
+  transform-style: preserve-3d;
+  will-change: transform, box-shadow;
 }
 
-.product-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.1), 0 2px 8px -1px rgba(0, 0, 0, 0.06);
+/* 3D 光泽层 */
+.tilt-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .product-card.out-of-stock {
@@ -258,12 +374,46 @@ function handleAvatarError(e) {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  background: linear-gradient(135deg, #f5f3f0 0%, #ebe7e1 100%);
+}
+
+/* 骨架屏 */
+.cover-skeleton {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #f0ede9 0%, #e5e0d9 100%);
+  z-index: 1;
+}
+
+.skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 .cover-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0;
+  transform: scale(1.02);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.cover-image.loaded {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .cover-placeholder {

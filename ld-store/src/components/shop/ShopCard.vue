@@ -1,9 +1,17 @@
 <template>
   <router-link 
+    ref="cardRef"
     :to="`/shop/${shop.id}`" 
     class="shop-card"
     :class="{ pinned: shop.is_pinned }"
+    :style="tiltStyle"
+    @mouseenter="handleMouseEnter"
+    @mousemove="handleMouseMove"
+    @mouseleave="handleMouseLeave"
   >
+    <!-- 3D 光泽效果层 -->
+    <div class="tilt-glare" :style="glareStyle"></div>
+    
     <!-- 小店图片 -->
     <div class="shop-image">
       <img 
@@ -66,6 +74,94 @@ const props = defineProps({
 // 默认头像 SVG (data URI)
 const defaultAvatar = `data:image/svg+xml,${encodeURIComponent('<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M326.169 533.554v9.903c0 101.362 82.138 184.083 183.5 184.083s183.501-82.72 183.501-184.083v-9.903h-367.001zm277.872-70.487c22.137 0 40.196-18.06 40.196-40.196s-18.06-40.195-40.196-40.195-40.195 18.059-40.195 40.195 18.059 40.196 40.195 40.196zm-186.996 0c22.137 0 40.196-18.06 40.196-40.196s-18.06-40.195-40.196-40.195-40.195 18.059-40.195 40.195 18.059 40.196 40.195 40.196z" fill="#a686ba"/><path d="M1011.239 512c0-276.708-224.279-501.569-501.569-501.569S8.684 235.292 8.684 512c0 154.956 70.487 293.601 180.588 385.643V543.457c0-177.675 143.305-321.563 320.398-321.563s320.398 143.888 320.398 321.563v354.186C941.334 805.601 1011.239 666.956 1011.239 512z" fill="#a686ba"/><path d="M510.252 221.894c-177.093 0-320.398 143.888-320.398 321.563v354.186c86.799 72.235 198.647 115.926 320.398 115.926s233.6-43.691 320.398-115.926V543.457c0-177.675-143.305-321.563-320.398-321.563zm93.207 160.782c22.136 0 40.195 18.059 40.195 40.195s-18.059 40.196-40.195 40.196-40.196-18.06-40.196-40.196 18.06-40.195 40.196-40.195zm-186.996 0c22.136 0 40.195 18.059 40.195 40.195s-18.059 40.196-40.195 40.196-40.196-18.06-40.196-40.196 18.06-40.195 40.196-40.195zm93.207 344.865c-101.363 0-183.501-82.721-183.501-184.084v-9.903h366.418v9.903c.583 101.363-81.556 184.084-182.917 184.084z" fill="#FFF"/></svg>')}`
 
+// 3D 倾斜效果
+const cardRef = ref(null)
+const tiltStyle = ref({})
+const glareStyle = ref({})
+const isHovering = ref(false)
+
+const maxTilt = 12
+const perspective = 800
+const scale = 1.03
+const speed = 400
+
+let currentX = 0
+let currentY = 0
+let targetX = 0
+let targetY = 0
+let currentScale = 1
+let currentShadow = 0
+let animationFrame = null
+
+function lerp(start, end, factor) {
+  return start + (end - start) * factor
+}
+
+function updateTilt() {
+  if (!isHovering.value) return
+  
+  currentX = lerp(currentX, targetX, 0.08)
+  currentY = lerp(currentY, targetY, 0.08)
+  currentScale = lerp(currentScale, scale, 0.06)
+  currentShadow = lerp(currentShadow, 1, 0.05)
+  
+  const rotateX = currentY * maxTilt
+  const rotateY = -currentX * maxTilt
+  
+  // 计算阴影偏移
+  const shadowX = -currentX * 10
+  const shadowY = currentY * 10 + 18
+  const shadowBlur = 24 + currentShadow * 30
+  const shadowAlpha = 0.08 + currentShadow * 0.12
+  
+  tiltStyle.value = {
+    transform: `perspective(${perspective}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(${currentScale}, ${currentScale}, ${currentScale})`,
+    boxShadow: `${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0, 0, 0, ${shadowAlpha}), 0 ${5 + currentShadow * 7}px ${10 + currentShadow * 14}px rgba(0, 0, 0, ${0.05 + currentShadow * 0.05})`
+  }
+  
+  // 光泽跟随
+  const glareX = (currentX + 1) * 50
+  const glareY = (currentY + 1) * 50
+  glareStyle.value = {
+    background: `radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.3) 0%, transparent 60%)`,
+    opacity: currentShadow
+  }
+  
+  animationFrame = requestAnimationFrame(updateTilt)
+}
+
+function handleMouseEnter() {
+  if ('ontouchstart' in window) return
+  isHovering.value = true
+  animationFrame = requestAnimationFrame(updateTilt)
+}
+
+function handleMouseMove(e) {
+  if (!cardRef.value || !isHovering.value) return
+  const rect = cardRef.value.$el.getBoundingClientRect()
+  targetX = ((e.clientX - rect.left) / rect.width) * 2 - 1
+  targetY = ((e.clientY - rect.top) / rect.height) * 2 - 1
+}
+
+function handleMouseLeave() {
+  isHovering.value = false
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  
+  currentX = 0
+  currentY = 0
+  targetX = 0
+  targetY = 0
+  currentScale = 1
+  currentShadow = 0
+  
+  tiltStyle.value = {
+    transform: `perspective(${perspective}px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`,
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+    transition: `transform ${speed}ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow ${speed}ms cubic-bezier(0.23, 1, 0.32, 1)`
+  }
+  glareStyle.value = { opacity: 0 }
+}
+
 // 解析标签
 const parsedTags = computed(() => {
   if (!props.shop.tags) return []
@@ -119,19 +215,31 @@ const getTagClass = (tag) => {
   border-radius: 16px;
   overflow: hidden;
   text-decoration: none;
-  transition: all 0.3s ease;
   border: 1px solid #f0ede9;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  position: relative;
+  transform-style: preserve-3d;
+  will-change: transform, box-shadow;
 }
 
 .shop-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
   border-color: #e0dcd6;
 }
 
 .shop-card.pinned {
   border-color: #b5a898;
   background: linear-gradient(135deg, #faf9f7 0%, white 100%);
+}
+
+/* 3D 光泽层 */
+.tilt-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 /* 小店图片 */

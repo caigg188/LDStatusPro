@@ -1,10 +1,18 @@
 <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="fav-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#3B82F6" />
-      <stop offset="100%" stop-color="#EC4899" />
+      <stop offset="0%" stop-color="#FFD700" />
+      <stop offset="50%" stop-color="#FFA500" />
+      <stop offset="100%" stop-color="#DAA520" />
     </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
   </defs>
-  <path d="M 31,4 A 28,28 0 1,1 11,52" fill="none" stroke="url(#fav-grad)" stroke-width="8" stroke-linecap="round" />
-  <rect x="25" y="26" width="12" height="12" rx="3" fill="url(#fav-grad)" transform="rotate(45 31 32)" />
+  <path d="M 31,4 A 28,28 0 1,1 11,52" fill="none" stroke="url(#fav-grad)" stroke-width="8" stroke-linecap="round" filter="url(#glow)" />
+  <rect x="25" y="26" width="12" height="12" rx="3" fill="url(#fav-grad)" transform="rotate(45 31 32)" filter="url(#glow)" />
 </svg>

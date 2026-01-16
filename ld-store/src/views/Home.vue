@@ -45,21 +45,12 @@
       </div>
       
       <!-- 板块切换 -->
-      <div class="section-tabs">
-        <button 
-          :class="['section-tab', { active: activeSection === 'products' }]"
-          @click="switchSection('products')"
-        >
-          <span class="tab-icon">🛒</span>
-          <span class="tab-text">物品广场</span>
-        </button>
-        <button 
-          :class="['section-tab', { active: activeSection === 'stores' }]"
-          @click="switchSection('stores')"
-        >
-          <span class="tab-icon">🏬</span>
-          <span class="tab-text">小店集市</span>
-        </button>
+      <div class="section-tabs-wrapper">
+        <LiquidTabs
+          v-model="activeSection"
+          :tabs="sectionTabs"
+          @update:model-value="switchSection"
+        />
       </div>
       
       <!-- 物品广场 -->
@@ -81,7 +72,7 @@
         </div>
         
         <!-- 商品列表 -->
-        <div v-if="loading && products.length === 0" class="products-loading">
+        <div v-if="initialLoading" class="products-loading">
           <Skeleton type="card" :count="6" :columns="gridColumns" />
         </div>
         
@@ -162,7 +153,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated, watch, nextTick } from 'vue'
 import { useShopStore } from '@/stores/shop'
 import { api } from '@/utils/api'
 import ProductCard from '@/components/product/ProductCard.vue'
@@ -170,12 +161,20 @@ import ShopCard from '@/components/shop/ShopCard.vue'
 import CategoryFilter from '@/components/product/CategoryFilter.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
+import LiquidTabs from '@/components/common/LiquidTabs.vue'
+
+// 组件名称（用于 keep-alive 缓存）
+defineOptions({ name: 'Home' })
 
 const shopStore = useShopStore()
 
 // 状态
 const sentinel = ref(null)
 const activeSection = ref('products')
+const sectionTabs = [
+  { value: 'products', label: '物品广场', icon: '🛒' },
+  { value: 'stores', label: '小店集市', icon: '🏬' }
+]
 const shops = ref([])  // 独立小店列表
 const shopsLoading = ref(false)
 const shopsTotal = ref(0)
@@ -185,6 +184,17 @@ const stats = ref({
   stores: 0
 })
 let observer = null
+
+// 首次加载状态（区别于加载更多的 loading）
+const initialLoading = ref(true)
+const hasInitialized = ref(false)
+
+// 滚动位置保存
+let savedScrollPosition = 0
+
+// 分类商品缓存 { categoryId: { products, total, hasMore, page, timestamp } }
+const categoryCache = ref(new Map())
+const CATEGORY_CACHE_TTL = 5 * 60 * 1000 // 5分钟缓存
 
 // 计算属性
 const categories = computed(() => shopStore.categories)
@@ -246,7 +256,31 @@ async function loadShops() {
 
 // 分类选择
 async function handleCategorySelect(categoryId) {
+  const cacheKey = categoryId || 'all'
+  const cached = categoryCache.value.get(cacheKey)
+  const now = Date.now()
+  
+  // 检查缓存是否有效
+  if (cached && (now - cached.timestamp < CATEGORY_CACHE_TTL)) {
+    // 使用缓存数据，直接恢复状态
+    shopStore.restoreFromCache(categoryId, cached.products, cached.total, cached.hasMore, cached.page)
+    initialLoading.value = false
+    return
+  }
+  
+  // 无缓存或过期，请求新数据
+  initialLoading.value = true
   await shopStore.fetchProducts(categoryId, true)
+  initialLoading.value = false
+  
+  // 存入缓存
+  categoryCache.value.set(cacheKey, {
+    products: [...shopStore.products],
+    total: shopStore.total,
+    hasMore: shopStore.hasMore,
+    page: shopStore.page,
+    timestamp: now
+  })
 }
 
 // 初始化
@@ -254,9 +288,19 @@ onMounted(async () => {
   updateGridColumns()
   window.addEventListener('resize', updateGridColumns)
   
+  // 如果已经初始化过（keep-alive 缓存），不重新加载
+  if (hasInitialized.value) {
+    initialLoading.value = false
+    return
+  }
+  
   // 获取分类和商品
   await shopStore.fetchCategories()
   await shopStore.fetchProducts('', true)
+  
+  // 加载完成
+  initialLoading.value = false
+  hasInitialized.value = true
   
   // 获取统计数据（已包含独立小店数量）
   const statsData = await shopStore.fetchPublicStats()
@@ -270,6 +314,25 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateGridColumns)
+  if (observer) observer.disconnect()
+})
+
+// keep-alive 激活时恢复滚动位置
+onActivated(() => {
+  if (savedScrollPosition > 0) {
+    nextTick(() => {
+      window.scrollTo(0, savedScrollPosition)
+    })
+  }
+  // 重新设置无限滚动
+  if (activeSection.value === 'products') {
+    setupInfiniteScroll()
+  }
+})
+
+// keep-alive 停用时保存滚动位置
+onDeactivated(() => {
+  savedScrollPosition = window.scrollY
   if (observer) observer.disconnect()
 })
 
@@ -311,21 +374,50 @@ function setupInfiniteScroll() {
   padding: 16px;
 }
 
-/* Banner */
+/* Banner - 液态玻璃效果 */
 .home-banner {
-  background: linear-gradient(135deg, #f5f3f0 0%, #ebe7e1 100%);
-  border-radius: 20px;
+  position: relative;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-radius: 24px;
   padding: 28px 24px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+}
+
+/* Banner 内部光泽 */
+.home-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.1) 60%,
+    transparent 100%
+  );
+  border-radius: 24px 24px 50% 50%;
+  pointer-events: none;
 }
 
 .banner-content {
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .banner-title {
@@ -377,6 +469,8 @@ function setupInfiniteScroll() {
   gap: 20px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  position: relative;
+  z-index: 1;
 }
 
 .stat-group {
@@ -411,41 +505,10 @@ function setupInfiniteScroll() {
 }
 
 /* 板块切换 */
-.section-tabs {
+.section-tabs-wrapper {
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.section-tab {
-  flex: 1;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 16px 20px;
-  background: white;
-  border: 2px solid #f0ede9;
-  border-radius: 16px;
-  font-size: 15px;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.section-tab:hover {
-  border-color: #e0dcd6;
-  background: #faf9f7;
-}
-
-.section-tab.active {
-  background: linear-gradient(135deg, #f8f6f3 0%, #f0ede9 100%);
-  border-color: #b5a898;
-  color: #3d3d3d;
-}
-
-.tab-icon {
-  font-size: 20px;
+  margin-bottom: 24px;
 }
 
 .tab-text {

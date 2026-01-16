@@ -11,16 +11,11 @@
       
       <!-- 筛选排序 -->
       <div class="filter-bar">
-        <div class="filter-tabs">
-          <button
-            v-for="sort in sortOptions"
-            :key="sort.value"
-            :class="['filter-tab', { active: currentSort === sort.value }]"
-            @click="changeSort(sort.value)"
-          >
-            {{ sort.label }}
-          </button>
-        </div>
+        <LiquidTabs
+          v-model="currentSort"
+          :tabs="sortTabs"
+          @update:model-value="changeSort"
+        />
       </div>
       
       <!-- 加载中 -->
@@ -61,12 +56,16 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onActivated, onDeactivated, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
 import ProductCard from '@/components/product/ProductCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
+import LiquidTabs from '@/components/common/LiquidTabs.vue'
+
+// 组件名称（用于 keep-alive 缓存）
+defineOptions({ name: 'Category' })
 
 const route = useRoute()
 const router = useRouter()
@@ -80,6 +79,10 @@ const total = ref(0)
 const hasMore = ref(false)
 const currentSort = ref('default')
 const pageSize = 20
+
+// 滚动位置保存
+let savedScrollPosition = 0
+let lastCategory = ''
 
 // 分类配置
 const categoryConfig = {
@@ -97,6 +100,12 @@ const sortOptions = [
   { value: 'price_desc', label: '价格↓' },
   { value: 'sales', label: '销量' }
 ]
+
+// 转换为 LiquidTabs 格式
+const sortTabs = sortOptions.map(opt => ({
+  value: opt.value,
+  label: opt.label
+}))
 
 // 当前分类
 const category = computed(() => route.params.name || '')
@@ -154,11 +163,30 @@ function viewProduct(product) {
 }
 
 // 监听分类变化
-watch(() => route.params.name, () => {
-  if (route.params.name) {
-    loadProducts()
+watch(() => route.params.name, (newCategory) => {
+  if (newCategory) {
+    // 如果分类变化了，重新加载
+    if (newCategory !== lastCategory) {
+      lastCategory = newCategory
+      loadProducts()
+    }
   }
 }, { immediate: true })
+
+// keep-alive 激活时恢复滚动位置
+onActivated(() => {
+  // 如果分类没变，恢复滚动位置
+  if (route.params.name === lastCategory && savedScrollPosition > 0) {
+    nextTick(() => {
+      window.scrollTo(0, savedScrollPosition)
+    })
+  }
+})
+
+// keep-alive 停用时保存滚动位置
+onDeactivated(() => {
+  savedScrollPosition = window.scrollY
+})
 </script>
 
 <style scoped>
@@ -202,33 +230,7 @@ watch(() => route.params.name, () => {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.filter-tabs {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.filter-tab {
-  flex-shrink: 0;
-  padding: 8px 16px;
-  background: #f5f3f0;
-  border: none;
-  border-radius: 20px;
-  font-size: 14px;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.filter-tab:hover {
-  background: #ebe7e1;
-}
-
-.filter-tab.active {
-  background: #a5b4a3;
-  color: white;
-}
+/* LiquidTabs 已替代原有样式 */
 
 /* 加载状态 */
 .loading-state {
