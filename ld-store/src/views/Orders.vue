@@ -99,7 +99,13 @@
           
           <div class="order-footer">
             <span class="order-amount">{{ order.total_price || order.amount }} LDC</span>
-            <span class="order-action" @click="viewOrderDetail(order)">查看详情 →</span>
+            <div class="order-actions">
+              <!-- 待支付订单操作按钮 -->
+              <template v-if="order.status === 'pending' && currentRole === 'buyer'">
+                <button class="action-btn cancel-btn" @click.stop="handleCancelOrder(order)">取消订单</button>
+              </template>
+              <span v-else class="order-action" @click="viewOrderDetail(order)">查看详情 →</span>
+            </div>
           </div>
         </div>
       </div>
@@ -119,11 +125,13 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
 import { useToast } from '@/composables/useToast'
+import { useDialog } from '@/composables/useDialog'
 import EmptyState from '@/components/common/EmptyState.vue'
 
 const router = useRouter()
 const shopStore = useShopStore()
 const toast = useToast()
+const dialog = useDialog()
 
 const loading = ref(true)
 const loadingMore = ref(false)
@@ -260,6 +268,28 @@ function copyCdk(order) {
   if (content) {
     navigator.clipboard.writeText(content)
     toast.success('CDK 已复制到剪贴板')
+  }
+}
+
+// 取消订单
+async function handleCancelOrder(order) {
+  const productName = order.product?.name || order.product_name || '该商品'
+  const confirmed = await dialog.confirm(`确定要取消订单「${productName}」吗？`, {
+    title: '取消订单',
+    confirmText: '确定取消',
+    cancelText: '再想想'
+  })
+  
+  if (!confirmed) return
+  
+  try {
+    const orderNo = order.order_no || order.orderNo
+    await shopStore.cancelOrder(orderNo)
+    toast.success('订单已取消')
+    // 刷新订单列表
+    await loadOrders()
+  } catch (error) {
+    toast.error(error.message || '取消失败')
   }
 }
 
@@ -558,6 +588,42 @@ onMounted(() => {
 .order-action {
   font-size: 13px;
   color: #a5b4a3;
+}
+
+.order-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.action-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  border: none;
+}
+
+.action-btn.cancel-btn {
+  background: #f5f3f0;
+  color: #999;
+}
+
+.action-btn.cancel-btn:hover {
+  background: #ebe7e1;
+  color: #666;
+}
+
+.action-btn.pay-btn {
+  background: linear-gradient(135deg, #a5b4a3 0%, #95a493 100%);
+  color: white;
+}
+
+.action-btn.pay-btn:hover {
+  opacity: 0.9;
 }
 
 /* 加载更多 */

@@ -130,6 +130,19 @@ export const useShopStore = defineStore('shop', () => {
     return fetchProduct(id)
   }
 
+  // 获取自己的商品详情 (需要登录，可获取任意状态的商品)
+  async function fetchMyProductDetail(id) {
+    try {
+      const result = await api.get(`/api/shop/my-products/${id}`)
+      if (result.success && result.data?.product) {
+        return result.data.product
+      }
+    } catch (e) {
+      console.error('Fetch my product failed:', e)
+    }
+    return null
+  }
+
   // 获取商品 CDK 列表 (别名)
   async function fetchProductCdks(productId, status = '') {
     const result = await fetchCdkList(productId, { status })
@@ -387,6 +400,16 @@ export const useShopStore = defineStore('shop', () => {
     }
   }
 
+  // 获取支付链接（用于重新支付待支付订单）
+  async function getPaymentUrl(orderNo) {
+    try {
+      const result = await api.get(`/api/shop/orders/${orderNo}/payment-url`)
+      return result
+    } catch (e) {
+      return { success: false, error: e.message }
+    }
+  }
+
   // 发货（卖家）
   async function deliverOrder(orderNo, content) {
     try {
@@ -479,12 +502,14 @@ export const useShopStore = defineStore('shop', () => {
     fetchOrders,
     fetchOrderDetail,
     fetchProductDetail,
+    fetchMyProductDetail,
     fetchProductCdks,
     addProductCdks,
     deleteProductCdk,
     createOrder,
     cancelOrder,
     refreshOrderStatus,
+    getPaymentUrl,
     deliverOrder,
     fetchMerchantConfig,
     updateMerchantConfig,

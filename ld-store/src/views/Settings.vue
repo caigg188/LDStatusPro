@@ -125,13 +125,13 @@
               <div class="step-content">
                 <h4 class="step-title">配置通知地址（必填）</h4>
                 <p class="step-desc">
-                  <strong>notify_url（服务器异步通知）：</strong>
+                  <strong>通知URL（服务器异步通知⚠️最最最重要⚠️）：</strong>
                 </p>
-                <code class="url-code">{{ apiBaseUrl }}/api/shop/ldc/notify</code>
+                <code class="url-code">https://api.ldspro.qzz.io/api/shop/ldc/notify</code>
                 <p class="step-desc" style="margin-top: 8px;">
-                  <strong>return_url（支付后浏览器跳转）：</strong>
+                  <strong>回调URL（支付后浏览器跳转）：</strong>
                 </p>
-                <code class="url-code">{{ apiBaseUrl }}/api/shop/ldc/return</code>
+                <code class="url-code">https://api.ldspro.qzz.io/api/shop/ldc/return</code>
               </div>
             </div>
             
@@ -151,10 +151,10 @@
         <div class="warning-card">
           <h3 class="card-title">⚠️ 注意事项</h3>
           <ul class="warning-list">
-            <li><strong>通知地址</strong>是支付成功后自动发货的关键，请务必正确配置</li>
+            <li><strong>通知地址</strong>是支付成功后自动发货的关键，请务必正确配置。配置错误会导致用户支付但订单无法正常完成❗️</li>
             <li>Client Key 将安全加密存储，不会明文显示</li>
             <li>修改配置不会影响已有订单</li>
-            <li>如遇收款问题，请联系 LDC 官方客服</li>
+            <li>如遇收款问题，请联系@JackyLiii</li>
           </ul>
         </div>
       </div>

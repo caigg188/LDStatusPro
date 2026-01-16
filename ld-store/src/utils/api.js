@@ -3,8 +3,7 @@ import { sanitize } from './security'
 
 // API 基础地址
 // 开发环境使用相对路径（通过 Vite 代理），生产环境使用完整 URL
-// 注意：部署时需要设置 VITE_API_BASE_URL 环境变量
-const API_BASE = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_BASE_URL || '')
+const API_BASE = import.meta.env.DEV ? '' : 'https://api.ldspro.qzz.io'
 
 // Linux.do LDC API 基础地址
 export const LDC_API_BASE = 'https://linux.do'
@@ -72,7 +71,17 @@ async function request(url, options = {}) {
     
     // 检查响应状态
     if (!response.ok) {
-      const errorMessage = data?.error || ERROR_MESSAGES[response.status] || `请求失败 (${response.status})`
+      // 处理后端返回的错误格式: { success: false, error: { code, message } }
+      let errorMessage = ERROR_MESSAGES[response.status] || `请求失败 (${response.status})`
+      if (data?.error) {
+        if (typeof data.error === 'string') {
+          errorMessage = data.error
+        } else if (data.error.message) {
+          errorMessage = data.error.message
+        }
+      } else if (data?.message) {
+        errorMessage = data.message
+      }
       return {
         success: false,
         error: errorMessage,

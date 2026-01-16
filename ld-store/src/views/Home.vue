@@ -5,7 +5,8 @@
       <div class="home-banner">
         <div class="banner-content">
           <h1 class="banner-title">🍔 LD士多</h1>
-          <p class="banner-subtitle">LDC 积分兑换商城</p>
+          <p class="banner-subtitle"><a href="https://linux.do" target="_blank" class="link-linuxdo">LinuxDo论坛 </a>虚拟物品和服务<span class="highlight-red"> 兑换中心 </span></p>
+          <p class="banner-subtitle">快使用你的<a href="https://credit.linux.do/" target="_blank" class="highlight-yellow link-credit"> 社区积分 </a>兑换物品吧</p>
         </div>
         <div class="banner-stats">
           <div class="stat-group">
@@ -127,20 +128,19 @@
         <!-- 小店统计 -->
         <div class="products-header">
           <span class="products-count">
-            全部 共 <strong>{{ storeProducts.length }}</strong> 个小店
+            全部 共 <strong>{{ shopsTotal }}</strong> 个小店
           </span>
         </div>
         
-        <div v-if="storeLoading" class="products-loading">
+        <div v-if="shopsLoading" class="products-loading">
           <Skeleton type="card" :count="4" :columns="gridColumns" />
         </div>
         
-        <div v-else-if="storeProducts.length > 0" class="products-grid stores-grid">
-          <ProductCard
-            v-for="product in storeProducts"
-            :key="product.id"
-            :product="product"
-            :categories="categories"
+        <div v-else-if="shops.length > 0" class="products-grid stores-grid">
+          <ShopCard
+            v-for="shop in shops"
+            :key="shop.id"
+            :shop="shop"
           />
         </div>
         
@@ -151,8 +151,8 @@
           hint="快来入驻开设你的第一家小店吧~"
         >
           <template #action>
-            <router-link to="/publish" class="btn btn-primary mt-4">
-              🏪 开设小店
+            <router-link to="/my-shop" class="btn btn-primary mt-4">
+              🏪 小店入驻
             </router-link>
           </template>
         </EmptyState>
@@ -166,6 +166,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useShopStore } from '@/stores/shop'
 import { api } from '@/utils/api'
 import ProductCard from '@/components/product/ProductCard.vue'
+import ShopCard from '@/components/shop/ShopCard.vue'
 import CategoryFilter from '@/components/product/CategoryFilter.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
@@ -175,8 +176,9 @@ const shopStore = useShopStore()
 // 状态
 const sentinel = ref(null)
 const activeSection = ref('products')
-const storeProducts = ref([])
-const storeLoading = ref(false)
+const shops = ref([])  // 独立小店列表
+const shopsLoading = ref(false)
+const shopsTotal = ref(0)
 const stats = ref({
   products: { total: 0, online: 0 },
   orders: { total: 0, today: 0, week: 0 },
@@ -194,9 +196,6 @@ const hasMore = computed(() => shopStore.hasMore)
 const total = computed(() => shopStore.total)
 
 // 物品广场的分类（排除小店）
-const storeCategory = computed(() => 
-  categories.value.find(c => c.name === '小店' || c.name === '友情小店')
-)
 const marketCategories = computed(() => 
   categories.value.filter(c => c.name !== '小店' && c.name !== '友情小店')
 )
@@ -205,7 +204,6 @@ const marketCategories = computed(() =>
 const marketProducts = computed(() => 
   products.value.filter(p => p.product_type !== 'store')
 )
-const marketProductsCount = computed(() => marketProducts.value.length)
 
 // 响应式网格列数
 const gridColumns = ref(2)
@@ -220,8 +218,8 @@ function updateGridColumns() {
 async function switchSection(section) {
   activeSection.value = section
   
-  if (section === 'stores' && storeProducts.value.length === 0) {
-    await loadStoreProducts()
+  if (section === 'stores' && shops.value.length === 0) {
+    await loadShops()
   }
   
   if (section === 'products') {
@@ -230,20 +228,19 @@ async function switchSection(section) {
   }
 }
 
-// 加载小店商品
-async function loadStoreProducts() {
-  if (!storeCategory.value) return
-  
-  storeLoading.value = true
+// 加载独立小店列表（使用新的小店 API）
+async function loadShops() {
+  shopsLoading.value = true
   try {
-    const result = await api.get(`/api/shop/products?categoryId=${storeCategory.value.id}&pageSize=100`)
-    if (result.success && result.data?.products) {
-      storeProducts.value = result.data.products
+    const result = await api.get('/api/shops?pageSize=50')
+    if (result.success && result.data?.shops) {
+      shops.value = result.data.shops
+      shopsTotal.value = result.data.pagination?.total || result.data.shops.length
     }
   } catch (e) {
-    console.error('Load store products failed:', e)
+    console.error('Load shops failed:', e)
   } finally {
-    storeLoading.value = false
+    shopsLoading.value = false
   }
 }
 
@@ -261,7 +258,7 @@ onMounted(async () => {
   await shopStore.fetchCategories()
   await shopStore.fetchProducts('', true)
   
-  // 获取统计数据
+  // 获取统计数据（已包含独立小店数量）
   const statsData = await shopStore.fetchPublicStats()
   if (statsData) {
     stats.value = statsData
@@ -321,6 +318,7 @@ function setupInfiniteScroll() {
   padding: 28px 24px;
   margin-bottom: 20px;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 24px;
@@ -341,6 +339,36 @@ function setupInfiniteScroll() {
   font-size: 14px;
   color: #999;
   margin: 0;
+}
+
+.highlight-yellow {
+  color: #c9a857;
+  font-weight: 700;
+}
+
+.link-credit {
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.link-credit:hover {
+  opacity: 0.8;
+}
+
+.highlight-red {
+  color: #c17c74;
+  font-weight: 700;
+}
+
+.link-linuxdo {
+  color: #3d3d3d;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.link-linuxdo:hover {
+  color: #b5a898;
 }
 
 .banner-stats {
@@ -482,7 +510,8 @@ function setupInfiniteScroll() {
 }
 
 .stores-grid {
-  /* 小店卡片可以稍大一些 */
+  /* 小店网格使用默认样式 */
+  grid-gap: 16px;
 }
 
 /* 商品网格 */

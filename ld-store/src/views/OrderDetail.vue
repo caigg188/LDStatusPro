@@ -57,7 +57,7 @@
           </div>
           
           <div class="info-row amount">
-            <span class="info-label">实付金额</span>
+            <span class="info-label">实付积分</span>
             <span class="info-value price">{{ order.amount || order.total_price }} LDC</span>
           </div>
         </div>
@@ -189,15 +189,17 @@
         </div>
         
         <!-- 操作按钮 -->
-        <div class="actions" v-if="showPayButton">
-          <a
-            :href="order.payment_url || order.paymentUrl"
-            target="_blank"
-            rel="noopener"
-            class="pay-btn"
-          >
-            前往支付
-          </a>
+        <div class="actions" v-if="showActions">
+          <div class="actions-row">
+            <button 
+              v-if="order.status === 'pending'" 
+              class="cancel-btn full-width" 
+              @click="handleCancelOrder"
+              :disabled="cancelling"
+            >
+              {{ cancelling ? '取消中...' : '取消订单' }}
+            </button>
+          </div>
         </div>
       </template>
     </div>
@@ -206,24 +208,27 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
 import { useToast } from '@/composables/useToast'
+import { useDialog } from '@/composables/useDialog'
 import EmptyState from '@/components/common/EmptyState.vue'
 
 const route = useRoute()
+const router = useRouter()
 const shopStore = useShopStore()
 const toast = useToast()
+const dialog = useDialog()
 
 const loading = ref(true)
 const order = ref(null)
 const orderLogs = ref([])
 const showCdk = ref(false)
+const cancelling = ref(false)
 
-// 是否显示支付按钮
-const showPayButton = computed(() => {
-  return order.value?.status === 'pending' &&
-    (order.value?.payment_url || order.value?.paymentUrl)
+// 是否显示操作按钮区域
+const showActions = computed(() => {
+  return order.value?.status === 'pending'
 })
 
 // 获取商品类型
@@ -371,6 +376,31 @@ function copyLink() {
   if (order.value?.link) {
     navigator.clipboard.writeText(order.value.link)
     toast.success('链接已复制')
+  }
+}
+
+// 取消订单
+async function handleCancelOrder() {
+  const productName = order.value?.product?.name || order.value?.product_name || '该商品'
+  const confirmed = await dialog.confirm(`确定要取消订单「${productName}」吗？`, {
+    title: '取消订单',
+    confirmText: '确定取消',
+    cancelText: '再想想'
+  })
+  
+  if (!confirmed) return
+  
+  try {
+    cancelling.value = true
+    const orderNo = order.value?.order_no || order.value?.orderNo
+    await shopStore.cancelOrder(orderNo)
+    toast.success('订单已取消')
+    // 返回订单列表
+    router.push('/user/orders')
+  } catch (error) {
+    toast.error(error.message || '取消失败')
+  } finally {
+    cancelling.value = false
   }
 }
 
@@ -701,6 +731,41 @@ onMounted(() => {
 .pay-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(165, 180, 163, 0.4);
+}
+
+.actions-row {
+  display: flex;
+  gap: 12px;
+  max-width: 568px;
+  margin: 0 auto;
+}
+
+.cancel-btn {
+  flex: 1;
+  padding: 16px 32px;
+  background: #f5f3f0;
+  color: #666;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background: #ebe7e1;
+  color: #3d3d3d;
+}
+
+.cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancel-btn.full-width {
+  flex: 1;
+  width: 100%;
 }
 
 /* 原价样式 */

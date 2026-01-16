@@ -135,7 +135,7 @@ const categoryName = computed(() =>
 
 // 卖家头像
 const sellerAvatar = computed(() => 
-  props.product.seller_avatar || 'https://linux.do/favicon.ico'
+  props.product.seller_avatar || 'https://linux.do/uploads/default/optimized/4X/6/a/6/6a6affc7b1ce8140279e959d32671304db06d5ab_2_180x180.png'
 )
 
 // 更新时间

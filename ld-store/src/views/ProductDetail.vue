@@ -276,7 +276,7 @@ const categoryName = computed(() => product.value?.category_name || '其他')
 
 // 卖家
 const sellerAvatar = computed(() => 
-  product.value?.seller_avatar || 'https://linux.do/favicon.ico'
+  product.value?.seller_avatar || 'https://linux.do/uploads/default/optimized/4X/6/a/6/6a6affc7b1ce8140279e959d32671304db06d5ab_2_180x180.png'
 )
 
 // 时间

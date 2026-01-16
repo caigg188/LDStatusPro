@@ -56,6 +56,17 @@ LD 士多 Web 版是 [LDStatus Pro](https://ldspro.qzz.io) 客户端脚本中「
 - 订单历史查看
 - 个人信息管理
 
+### 🏪 小店集市
+- 小店入驻与管理
+- 小店商品浏览
+- 店主信息展示
+
+### 📚 帮助文档
+- 快速入门指南
+- 商品类型说明（链接/CDK）
+- 发布流程详解
+- 常见问题解答
+
 ## 🛠 技术栈
 
 | 技术 | 版本 | 说明 |
@@ -167,7 +178,9 @@ ld-store/
 │   ├── components/        # Vue 组件
 │   │   ├── common/        # 通用组件
 │   │   ├── layout/        # 布局组件
-│   │   └── product/       # 商品相关组件
+│   │   ├── product/       # 商品相关组件
+│   │   ├── shop/          # 小店相关组件
+│   │   └── docs/          # 文档内容组件
 │   ├── composables/       # Vue Composables
 │   ├── router/            # 路由配置
 │   ├── stores/            # Pinia 状态管理
@@ -190,7 +203,10 @@ ld-store/
 │   │   ├── MyProducts.vue # 我的商品
 │   │   ├── Publish.vue    # 发布商品
 │   │   ├── Edit.vue       # 编辑商品
-│   │   └── Settings.vue   # 收款设置
+│   │   ├── Settings.vue   # 收款设置
+│   │   ├── Docs.vue       # 帮助文档
+│   │   ├── MyShop.vue     # 我的小店
+│   │   └── ShopDetail.vue # 小店详情
 │   ├── styles/            # 全局样式
 │   ├── App.vue            # 根组件
 │   └── main.js            # 应用入口

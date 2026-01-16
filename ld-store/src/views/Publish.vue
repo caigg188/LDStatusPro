@@ -1,5 +1,41 @@
 <template>
   <div class="publish-page">
+    <!-- 使用说明弹窗 -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showGuideModal" class="guide-modal-overlay" @click.self="closeGuideModal">
+          <div class="guide-modal">
+            <div class="guide-modal-header">
+              <div class="guide-modal-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+              </div>
+              <h3 class="guide-modal-title">发布前必读</h3>
+            </div>
+            <div class="guide-modal-body">
+              <p class="guide-modal-text">
+                首次发布物品？建议先阅读<strong>物品类型说明</strong>，了解「链接类型」和「CDK类型」的区别及使用场景，助您选择最合适的发布方式。
+              </p>
+            </div>
+            <div class="guide-modal-footer">
+              <button class="guide-btn guide-btn-secondary" @click="closeGuideModal">
+                我已了解，开始发布
+              </button>
+              <router-link to="/docs/product-types" class="guide-btn guide-btn-primary">
+                查看使用说明
+              </router-link>
+            </div>
+            <label class="guide-modal-remember">
+              <input type="checkbox" v-model="dontShowAgain" />
+              <span>不再提示</span>
+            </label>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <div class="page-container">
       <div class="page-header">
         <h1 class="page-title">发布物品</h1>
@@ -176,6 +212,19 @@ const toast = useToast()
 
 const submitting = ref(false)
 const merchantConfigured = ref(false) // 是否已配置商家收款
+const showGuideModal = ref(false)
+const dontShowAgain = ref(false)
+
+// localStorage key
+const GUIDE_MODAL_KEY = 'ld_store_publish_guide_seen'
+
+// 关闭弹窗
+function closeGuideModal() {
+  showGuideModal.value = false
+  if (dontShowAgain.value) {
+    localStorage.setItem(GUIDE_MODAL_KEY, 'true')
+  }
+}
 
 // 表单数据
 const form = ref({
@@ -203,11 +252,14 @@ async function loadCategories() {
   try {
     const result = await shopStore.fetchCategories()
     if (result && result.length > 0) {
-      categories.value = result.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        icon: cat.icon || '📦'
-      }))
+      // 过滤掉小店分类（小店入驻使用独立的小店集市）
+      categories.value = result
+        .filter(cat => cat.name !== '小店' && cat.name !== '友情小店')
+        .map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          icon: cat.icon || '📦'
+        }))
       // 设置默认分类
       if (categories.value.length > 0 && !form.value.categoryId) {
         form.value.categoryId = categories.value[0].id
@@ -387,6 +439,12 @@ async function submitForm() {
 
 // 初始化
 onMounted(async () => {
+  // 检查是否需要显示引导弹窗
+  const hasSeenGuide = localStorage.getItem(GUIDE_MODAL_KEY)
+  if (!hasSeenGuide) {
+    showGuideModal.value = true
+  }
+  
   // 加载分类
   await loadCategories()
   
@@ -697,5 +755,155 @@ onMounted(async () => {
 .submit-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* 引导弹窗 */
+.guide-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.guide-modal {
+  background: white;
+  border-radius: 20px;
+  max-width: 400px;
+  width: 100%;
+  padding: 28px 24px 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.guide-modal-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.guide-modal-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e8f5e8 0%, #d4e5d4 100%);
+  border-radius: 16px;
+  margin-bottom: 16px;
+}
+
+.guide-modal-icon svg {
+  width: 28px;
+  height: 28px;
+  color: #5a8c5a;
+}
+
+.guide-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #3d3d3d;
+  margin: 0;
+}
+
+.guide-modal-body {
+  margin-bottom: 24px;
+}
+
+.guide-modal-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #666;
+  margin: 0;
+  text-align: center;
+}
+
+.guide-modal-text strong {
+  color: #5a8c5a;
+}
+
+.guide-modal-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guide-btn {
+  display: block;
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.guide-btn-primary {
+  background: linear-gradient(135deg, #a5b4a3 0%, #95a493 100%);
+  color: white;
+}
+
+.guide-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(165, 180, 163, 0.4);
+}
+
+.guide-btn-secondary {
+  background: #f5f3f0;
+  color: #666;
+}
+
+.guide-btn-secondary:hover {
+  background: #ebe7e1;
+}
+
+.guide-modal-remember {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.guide-modal-remember input {
+  width: 16px;
+  height: 16px;
+  accent-color: #a5b4a3;
+}
+
+.guide-modal-remember span {
+  font-size: 13px;
+  color: #999;
+}
+
+/* 弹窗动画 */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-active .guide-modal,
+.modal-leave-active .guide-modal {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .guide-modal,
+.modal-leave-to .guide-modal {
+  transform: scale(0.9);
+  opacity: 0;
 }
 </style>

@@ -52,6 +52,18 @@ const routes = [
     meta: { title: 'LDC收款配置 - LD士多', requiresAuth: true }
   },
   {
+    path: '/shop/:id',
+    name: 'ShopDetail',
+    component: () => import('@/views/ShopDetail.vue'),
+    meta: { title: '小店详情 - LD士多' }
+  },
+  {
+    path: '/user/my-shop',
+    name: 'MyShop',
+    component: () => import('@/views/MyShop.vue'),
+    meta: { title: '小店入驻 - LD士多', requiresAuth: true }
+  },
+  {
     path: '/publish',
     name: 'Publish',
     component: () => import('@/views/Publish.vue'),
@@ -80,6 +92,18 @@ const routes = [
     name: 'AuthCallback',
     component: () => import('@/views/AuthCallback.vue'),
     meta: { title: '登录中...' }
+  },
+  {
+    path: '/docs',
+    name: 'Docs',
+    component: () => import('@/views/Docs.vue'),
+    meta: { title: '使用文档 - LD士多' }
+  },
+  {
+    path: '/docs/:section',
+    name: 'DocsSection',
+    component: () => import('@/views/Docs.vue'),
+    meta: { title: '使用文档 - LD士多' }
   },
   {
     path: '/:pathMatch(.*)*',

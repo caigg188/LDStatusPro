@@ -207,11 +207,14 @@ async function loadCategories() {
   try {
     const result = await shopStore.fetchCategories()
     if (result && result.length > 0) {
-      categories.value = result.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        icon: cat.icon || '📦'
-      }))
+      // 过滤掉小店分类（小店入驻使用独立的小店集市）
+      categories.value = result
+        .filter(cat => cat.name !== '小店' && cat.name !== '友情小店')
+        .map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          icon: cat.icon || '📦'
+        }))
     }
   } catch (error) {
     // 使用默认分类
@@ -262,12 +265,12 @@ function getProductType(prod) {
   return prod?.product_type || prod?.type || prod?.productType || 'link'
 }
 
-// 加载商品
+// 加载商品 (使用 my-products API，可获取任意状态的商品)
 async function loadProduct() {
   try {
     loading.value = true
     const productId = route.params.id
-    product.value = await shopStore.fetchProductDetail(productId)
+    product.value = await shopStore.fetchMyProductDetail(productId)
     
     if (product.value) {
       // 填充表单，处理多种字段名格式

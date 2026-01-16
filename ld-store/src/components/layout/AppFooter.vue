@@ -23,7 +23,7 @@ const userStore = useUserStore()
 // 是否显示底部导航（仅移动端）
 const showFooter = computed(() => {
   // 某些页面不显示底部导航
-  const hideOnRoutes = ['Login', 'AuthCallback', 'ProductDetail', 'Publish', 'Edit', 'OrderDetail']
+  const hideOnRoutes = ['Login', 'AuthCallback', 'ProductDetail', 'Publish', 'Edit', 'OrderDetail', 'Docs', 'DocsSection']
   return !hideOnRoutes.includes(route.name)
 })
 

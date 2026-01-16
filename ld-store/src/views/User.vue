@@ -63,6 +63,12 @@
             <span class="menu-label">收款设置</span>
             <span class="menu-arrow">→</span>
           </router-link>
+          
+          <router-link to="/user/my-shop" class="menu-item">
+            <span class="menu-icon">🏪</span>
+            <span class="menu-label">小店入驻</span>
+            <span class="menu-arrow">→</span>
+          </router-link>
         </div>
       </div>
       
@@ -94,13 +100,24 @@
           </a>
           
           <a
-            href="https://linux.do/t/topic/13716"
+            href="https://ldspro.qzz.io/"
             target="_blank"
             rel="noopener"
             class="menu-item"
           >
             <span class="menu-icon">📊</span>
             <span class="menu-label">LDStatus Pro</span>
+            <span class="menu-arrow">↗</span>
+          </a>
+          
+          <a
+            href="https://github.com/caigg188/LDStatusPro"
+            target="_blank"
+            rel="noopener"
+            class="menu-item"
+          >
+            <span class="menu-icon">🐙</span>
+            <span class="menu-label">GitHub</span>
             <span class="menu-arrow">↗</span>
           </a>
         </div>

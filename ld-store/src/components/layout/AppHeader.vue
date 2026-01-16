@@ -11,30 +11,71 @@
         <span class="header-title">LD士多</span>
       </router-link>
       
-      <!-- 搜索框（桌面端） -->
-      <div class="header-search" v-if="!isMobile">
-        <input
-          v-model="searchQuery"
-          type="text"
-          class="search-input"
-          placeholder="搜索商品..."
-          @keyup.enter="handleSearch"
-        />
-        <button class="search-btn" @click="handleSearch">
-          🔍
-        </button>
+      <!-- 搜索框和GitHub（桌面端） -->
+      <div class="header-center" v-if="!isMobile">
+        <div class="header-search">
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="search-input"
+            placeholder="搜索商品..."
+            @keyup.enter="handleSearch"
+          />
+          <button class="search-btn" @click="handleSearch">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+        </div>
+        <router-link 
+          to="/docs" 
+          class="docs-btn"
+          title="使用文档"
+        >
+          <svg height="20" width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            <line x1="8" y1="7" x2="16" y2="7"/>
+            <line x1="8" y1="11" x2="14" y2="11"/>
+          </svg>
+        </router-link>
+        <a 
+          href="https://github.com/caigg188/LDStatusPro" 
+          target="_blank" 
+          rel="noopener" 
+          class="github-btn"
+          title="GitHub"
+        >
+          <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+        </a>
+      </div>
+      
+      <!-- 访问统计（桌面端） -->
+      <div class="header-visits" v-if="!isMobile">
+        <span id="busuanzi_site_pv">-</span> 访问
+        <span class="visit-sep">·</span>
+        <span id="busuanzi_site_uv">-</span> 访客
       </div>
       
       <!-- 右侧操作区 -->
       <div class="header-actions">
         <!-- 搜索按钮（移动端） -->
         <button v-if="isMobile" class="action-btn" @click="goToSearch">
-          🔍
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
         </button>
         
         <!-- 发布按钮 -->
         <button v-if="isLoggedIn" class="action-btn publish-btn" @click="goToPublish">
-          ➕
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
         </button>
         
         <!-- 用户信息 -->
@@ -42,7 +83,7 @@
           <div class="user-dropdown" ref="dropdownRef">
             <button class="user-info" @click="toggleDropdown">
               <img
-                :src="avatar || 'https://linux.do/favicon.ico'"
+                :src="avatar || defaultAvatar"
                 alt="avatar"
                 class="user-avatar"
                 @error="handleAvatarError"
@@ -53,9 +94,9 @@
             
             <!-- 下拉菜单 -->
             <div v-if="showDropdown" class="dropdown-menu">
-              <div class="dropdown-header">
+              <router-link to="/user" class="dropdown-header" @click="closeDropdown">
                 <img
-                  :src="avatar || 'https://linux.do/favicon.ico'"
+                  :src="avatar || defaultAvatar"
                   alt="avatar"
                   class="dropdown-avatar"
                   @error="handleAvatarError"
@@ -64,19 +105,22 @@
                   <div class="dropdown-username">{{ username }}</div>
                   <div class="dropdown-trust" v-if="trustLevel">信任等级: {{ trustLevel }}</div>
                 </div>
-              </div>
+              </router-link>
               
               <div class="dropdown-divider"></div>
               
-              <router-link to="/user/orders" class="dropdown-item" @click="closeDropdown">
+              <a href="/user/orders" class="dropdown-item" @click.prevent="navigateTo('/user/orders')">
                 📋 我的订单
-              </router-link>
-              <router-link to="/user/products" class="dropdown-item" @click="closeDropdown">
+              </a>
+              <a href="/user/products" class="dropdown-item" @click.prevent="navigateTo('/user/products')">
                 📦 我发布的
-              </router-link>
-              <router-link to="/user/settings" class="dropdown-item" @click="closeDropdown">
+              </a>
+              <a href="/user/my-shop" class="dropdown-item" @click.prevent="navigateTo('/user/my-shop')">
+                🏪 小店入驻
+              </a>
+              <a href="/user/settings" class="dropdown-item" @click.prevent="navigateTo('/user/settings')">
                 💳 收款设置
-              </router-link>
+              </a>
               
               <div class="dropdown-divider"></div>
               
@@ -110,6 +154,9 @@ const isMobile = ref(false)
 const showDropdown = ref(false)
 const dropdownRef = ref(null)
 
+// 默认头像 SVG (data URI)
+const defaultAvatar = `data:image/svg+xml,${encodeURIComponent('<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M326.169 533.554v9.903c0 101.362 82.138 184.083 183.5 184.083s183.501-82.72 183.501-184.083v-9.903h-367.001zm277.872-70.487c22.137 0 40.196-18.06 40.196-40.196s-18.06-40.195-40.196-40.195-40.195 18.059-40.195 40.195 18.059 40.196 40.195 40.196zm-186.996 0c22.137 0 40.196-18.06 40.196-40.196s-18.06-40.195-40.196-40.195-40.195 18.059-40.195 40.195 18.059 40.196 40.195 40.196z" fill="#a686ba"/><path d="M1011.239 512c0-276.708-224.279-501.569-501.569-501.569S8.684 235.292 8.684 512c0 154.956 70.487 293.601 180.588 385.643V543.457c0-177.675 143.305-321.563 320.398-321.563s320.398 143.888 320.398 321.563v354.186C941.334 805.601 1011.239 666.956 1011.239 512z" fill="#a686ba"/><path d="M510.252 221.894c-177.093 0-320.398 143.888-320.398 321.563v354.186c86.799 72.235 198.647 115.926 320.398 115.926s233.6-43.691 320.398-115.926V543.457c0-177.675-143.305-321.563-320.398-321.563zm93.207 160.782c22.136 0 40.195 18.059 40.195 40.195s-18.059 40.196-40.195 40.196-40.196-18.06-40.196-40.196 18.06-40.195 40.196-40.195zm-186.996 0c22.136 0 40.195 18.059 40.195 40.195s-18.059 40.196-40.195 40.196-40.196-18.06-40.196-40.196 18.06-40.195 40.196-40.195zm93.207 344.865c-101.363 0-183.501-82.721-183.501-184.084v-9.903h366.418v9.903c.583 101.363-81.556 184.084-182.917 184.084z" fill="#FFF"/></svg>')}`
+
 // 计算属性
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const username = computed(() => userStore.username)
@@ -123,6 +170,11 @@ function toggleDropdown() {
 
 function closeDropdown() {
   showDropdown.value = false
+}
+
+function navigateTo(path) {
+  closeDropdown()
+  router.push(path)
 }
 
 function handleClickOutside(e) {
@@ -155,7 +207,7 @@ function goToPublish() {
 }
 
 function handleAvatarError(e) {
-  e.target.src = 'https://linux.do/favicon.ico'
+  e.target.src = defaultAvatar
 }
 
 function checkMobile() {
@@ -218,9 +270,16 @@ onUnmounted(() => {
   letter-spacing: -0.5px;
 }
 
+.header-center {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 450px;
+  gap: 8px;
+}
+
 .header-search {
   flex: 1;
-  max-width: 400px;
   position: relative;
 }
 
@@ -261,6 +320,62 @@ onUnmounted(() => {
 
 .search-btn:hover {
   opacity: 1;
+}
+
+.docs-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-left: 8px;
+  background: #f5f3f0;
+  border: none;
+  border-radius: 10px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.docs-btn:hover {
+  background: #ebe7e1;
+  color: #333;
+}
+
+.github-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-left: 8px;
+  background: #f5f3f0;
+  border: none;
+  border-radius: 10px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.github-btn:hover {
+  background: #ebe7e1;
+  color: #333;
+}
+
+.header-visits {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #b5a898;
+  flex-shrink: 0;
+}
+
+.header-visits .visit-sep {
+  color: #d5cfc5;
+  margin: 0 2px;
 }
 
 .header-actions {
@@ -372,6 +487,14 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 12px;
+  text-decoration: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dropdown-header:hover {
+  background: #f5f3f0;
 }
 
 .dropdown-avatar {
