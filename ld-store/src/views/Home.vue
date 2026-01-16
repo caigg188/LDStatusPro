@@ -265,6 +265,9 @@ async function handleCategorySelect(categoryId) {
     // 使用缓存数据，直接恢复状态
     shopStore.restoreFromCache(categoryId, cached.products, cached.total, cached.hasMore, cached.page)
     initialLoading.value = false
+    // 重新设置无限滚动（关键！）
+    await nextTick()
+    setupInfiniteScroll()
     return
   }
   
@@ -281,6 +284,10 @@ async function handleCategorySelect(categoryId) {
     page: shopStore.page,
     timestamp: now
   })
+  
+  // 设置无限滚动
+  await nextTick()
+  setupInfiniteScroll()
 }
 
 // 初始化
