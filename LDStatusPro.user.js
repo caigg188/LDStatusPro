@@ -1,7 +1,7 @@
  // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.4.8
+    // @version      3.5.4.9
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -1332,68 +1332,87 @@
             }
 
             async _doFetch(url, timeout) {
-                // 检测 GM_xmlhttpRequest 是否可用
-                const hasGM = typeof GM_xmlhttpRequest === 'function';
+                // 检测是否为同源请求
+                const isSameOrigin = this._isSameOrigin(url);
                 
-                // 方法1: 尝试 GM_xmlhttpRequest（可绕过跨域）
-                if (hasGM) {
+                // 同源请求优先使用原生 fetch（可以正确携带 cookie）
+                // v3.5.4.9: 修复0/1级用户获取升级要求数据时需要携带cookie的问题
+                if (isSameOrigin) {
                     try {
-                        const result = await new Promise((resolve, reject) => {
-                            let settled = false;
-                            const timeoutId = setTimeout(() => {
-                                if (!settled) {
-                                    settled = true;
-                                    reject(new Error('Timeout'));
-                                }
-                            }, timeout);
-                            
-                            try {
-                                GM_xmlhttpRequest({
-                                    method: 'GET',
-                                    url,
-                                    timeout,
-                                    onload: res => {
-                                        if (settled) return;
-                                        settled = true;
-                                        clearTimeout(timeoutId);
-                                        if (res.status >= 200 && res.status < 300) {
-                                            resolve(res.responseText);
-                                        } else {
-                                            reject(new Error(`HTTP ${res.status}`));
-                                        }
-                                    },
-                                    onerror: () => {
-                                        if (settled) return;
-                                        settled = true;
-                                        clearTimeout(timeoutId);
-                                        reject(new Error('Network error'));
-                                    },
-                                    ontimeout: () => {
-                                        if (settled) return;
-                                        settled = true;
-                                        clearTimeout(timeoutId);
-                                        reject(new Error('GM Timeout'));
-                                    }
-                                });
-                            } catch (gmCallError) {
-                                if (settled) return;
-                                settled = true;
-                                clearTimeout(timeoutId);
-                                reject(gmCallError);
-                            }
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), timeout);
+                        const resp = await fetch(url, { 
+                            credentials: 'include',
+                            headers: { 'Accept': 'application/json, text/html, */*' },
+                            signal: controller.signal
                         });
-                        return result;
-                    } catch (gmError) {
-                        // 跨域请求不使用 native fetch fallback（会触发 CORS 错误）
-                        const isCrossOrigin = !url.startsWith(location.origin);
-                        if (isCrossOrigin) {
-                            throw gmError;  // 直接抛出错误，不 fallback
-                        }
-                        // 同源请求继续尝试 native fetch
+                        clearTimeout(timeoutId);
+                        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                        return await resp.text();
+                    } catch (e) {
+                        if (e.name === 'AbortError') throw new Error('Timeout');
+                        // 原生 fetch 失败，fallback 到 GM（可能是扩展环境问题）
                     }
                 }
                 
-                // 方法2: native fetch 作为 fallback（仅同源请求）
+                // 检测 GM_xmlhttpRequest 是否可用
+                const hasGM = typeof GM_xmlhttpRequest === 'function';
+                
+                // GM_xmlhttpRequest（可绕过跨域，并携带 cookie）
+                if (hasGM) {
+                    const result = await new Promise((resolve, reject) => {
+                        let settled = false;
+                        const timeoutId = setTimeout(() => {
+                            if (!settled) {
+                                settled = true;
+                                reject(new Error('Timeout'));
+                            }
+                        }, timeout);
+                        
+                        try {
+                            GM_xmlhttpRequest({
+                                method: 'GET',
+                                url,
+                                timeout,
+                                // v3.5.4.9: 添加 withCredentials 携带 cookie
+                                withCredentials: true,
+                                headers: {
+                                    'Accept': 'application/json, text/html, */*'
+                                },
+                                onload: res => {
+                                    if (settled) return;
+                                    settled = true;
+                                    clearTimeout(timeoutId);
+                                    if (res.status >= 200 && res.status < 300) {
+                                        resolve(res.responseText);
+                                    } else {
+                                        reject(new Error(`HTTP ${res.status}`));
+                                    }
+                                },
+                                onerror: () => {
+                                    if (settled) return;
+                                    settled = true;
+                                    clearTimeout(timeoutId);
+                                    reject(new Error('Network error'));
+                                },
+                                ontimeout: () => {
+                                    if (settled) return;
+                                    settled = true;
+                                    clearTimeout(timeoutId);
+                                    reject(new Error('GM Timeout'));
+                                }
+                            });
+                        } catch (gmCallError) {
+                            if (settled) return;
+                            settled = true;
+                            clearTimeout(timeoutId);
+                            reject(gmCallError);
+                        }
+                    });
+                    return result;
+                }
+                
+                // 没有 GM 且非同源请求，尝试原生 fetch（可能会失败）
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), timeout);
                 const resp = await fetch(url, { 
@@ -4661,6 +4680,8 @@
     .ldsp-merchant-help-content a{color:var(--accent);text-decoration:none}
     .ldsp-merchant-help-content a:hover{text-decoration:underline}
     .ldsp-shop-header-actions{display:flex;gap:8px;align-items:center}
+    .ldsp-shop-web-btn{padding:4px 8px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:9px;color:var(--txt-sec);background:var(--bg-el);cursor:pointer;transition:all .15s;text-decoration:none;display:flex;align-items:center;gap:3px;white-space:nowrap}
+    .ldsp-shop-web-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(107,140,239,.08)}
     .ldsp-shop-settings-btn{padding:6px 12px;border:1px solid var(--border);border-radius:var(--r-md);font-size:10px;color:var(--txt-sec);background:var(--bg-el);cursor:pointer;transition:all .15s}
     .ldsp-shop-settings-btn:hover{border-color:var(--accent);color:var(--accent)}
     /* Shop v2.0 CDK 库存管理 */
@@ -7445,7 +7466,10 @@
                                 <div class="ldsp-shop-tab" data-view="orders">📋 订单</div>
                                 <div class="ldsp-shop-tab" data-view="settings">⚙️ 设置</div>
                             </div>
-                            <button class="ldsp-shop-add-btn" data-action="add">➕ 发布</button>
+                            <div class="ldsp-shop-header-actions">
+                                <a href="https://ldst0re.qzz.io/" target="_blank" class="ldsp-shop-web-btn" title="打开网页版">🌐 网页版</a>
+                                <button class="ldsp-shop-add-btn" data-action="add">➕ 发布</button>
+                            </div>
                         </div>
                         ${products.length > 0 ? `<div class="ldsp-shop-my-list">${productList}</div>` : 
                         `<div class="ldsp-shop-empty"><div class="ldsp-shop-empty-icon">📭</div><div class="ldsp-shop-empty-text">您还没有发布物品</div><div class="ldsp-shop-empty-hint">点击上方按钮发布您的第一个物品</div></div>`}
@@ -7484,7 +7508,10 @@
                                 <div class="ldsp-shop-tab" data-view="orders">📋 订单</div>
                                 <div class="ldsp-shop-tab" data-view="settings">⚙️ 设置</div>
                             </div>
-                            <button class="ldsp-shop-add-btn" data-action="add">➕ 发布</button>
+                            <div class="ldsp-shop-header-actions">
+                                <a href="https://ldst0re.qzz.io/" target="_blank" class="ldsp-shop-web-btn" title="打开网页版">🌐 网页版</a>
+                                <button class="ldsp-shop-add-btn" data-action="add">➕ 发布</button>
+                            </div>
                         </div>
                         <div class="ldsp-shop-filter">${categoryChips}</div>
                         <div class="ldsp-shop-count">${categoryLabel} 共 <strong>${this._shopTotal}</strong> 件物品</div>
@@ -8450,6 +8477,7 @@
                                 <div class="ldsp-shop-tab active" data-view="orders">📋 订单</div>
                                 <div class="ldsp-shop-tab" data-view="settings">⚙️ 设置</div>
                             </div>
+                            <a href="https://ldst0re.qzz.io/" target="_blank" class="ldsp-shop-web-btn" title="打开网页版">🌐 网页版</a>
                         </div>
                         <div class="ldsp-order-role-tabs">
                             <div class="ldsp-order-role-tab${role === 'buyer' ? ' active' : ''}" data-role="buyer">🛒 我买的</div>
@@ -8685,6 +8713,7 @@
                                 <div class="ldsp-shop-tab" data-view="orders">📋 订单</div>
                                 <div class="ldsp-shop-tab active" data-view="settings">⚙️ 设置</div>
                             </div>
+                            <a href="https://ldst0re.qzz.io/" target="_blank" class="ldsp-shop-web-btn" title="打开网页版">🌐 网页版</a>
                         </div>
                         
                         ${isConfigured ? `
