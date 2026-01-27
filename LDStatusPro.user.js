@@ -1,7 +1,7 @@
  // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.4.9
+    // @version      3.5.4.10
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -6571,6 +6571,7 @@
                     <div class="ldsp-ldc-header">
                         <div class="ldsp-ldc-title">🍔 LD士多</div>
                         <div class="ldsp-ldc-header-actions">
+                            <a href="https://ldst0re.qzz.io/" target="_blank" class="ldsp-ldc-link" title="打开网页版">🌐 网页版</a>
                             <button class="ldsp-ldc-refresh" title="刷新">
                                 <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
                             </button>
@@ -7466,10 +7467,7 @@
                                 <div class="ldsp-shop-tab" data-view="orders">📋 订单</div>
                                 <div class="ldsp-shop-tab" data-view="settings">⚙️ 设置</div>
                             </div>
-                            <div class="ldsp-shop-header-actions">
-                                <a href="https://ldst0re.qzz.io/" target="_blank" class="ldsp-shop-web-btn" title="打开网页版">🌐 网页版</a>
-                                <button class="ldsp-shop-add-btn" data-action="add">➕ 发布</button>
-                            </div>
+                            <button class="ldsp-shop-add-btn" data-action="add">➕ 发布</button>
                         </div>
                         ${products.length > 0 ? `<div class="ldsp-shop-my-list">${productList}</div>` : 
                         `<div class="ldsp-shop-empty"><div class="ldsp-shop-empty-icon">📭</div><div class="ldsp-shop-empty-text">您还没有发布物品</div><div class="ldsp-shop-empty-hint">点击上方按钮发布您的第一个物品</div></div>`}
@@ -7508,10 +7506,7 @@
                                 <div class="ldsp-shop-tab" data-view="orders">📋 订单</div>
                                 <div class="ldsp-shop-tab" data-view="settings">⚙️ 设置</div>
                             </div>
-                            <div class="ldsp-shop-header-actions">
-                                <a href="https://ldst0re.qzz.io/" target="_blank" class="ldsp-shop-web-btn" title="打开网页版">🌐 网页版</a>
-                                <button class="ldsp-shop-add-btn" data-action="add">➕ 发布</button>
-                            </div>
+                            <button class="ldsp-shop-add-btn" data-action="add">➕ 发布</button>
                         </div>
                         <div class="ldsp-shop-filter">${categoryChips}</div>
                         <div class="ldsp-shop-count">${categoryLabel} 共 <strong>${this._shopTotal}</strong> 件物品</div>
@@ -8477,7 +8472,6 @@
                                 <div class="ldsp-shop-tab active" data-view="orders">📋 订单</div>
                                 <div class="ldsp-shop-tab" data-view="settings">⚙️ 设置</div>
                             </div>
-                            <a href="https://ldst0re.qzz.io/" target="_blank" class="ldsp-shop-web-btn" title="打开网页版">🌐 网页版</a>
                         </div>
                         <div class="ldsp-order-role-tabs">
                             <div class="ldsp-order-role-tab${role === 'buyer' ? ' active' : ''}" data-role="buyer">🛒 我买的</div>
@@ -8713,7 +8707,6 @@
                                 <div class="ldsp-shop-tab" data-view="orders">📋 订单</div>
                                 <div class="ldsp-shop-tab active" data-view="settings">⚙️ 设置</div>
                             </div>
-                            <a href="https://ldst0re.qzz.io/" target="_blank" class="ldsp-shop-web-btn" title="打开网页版">🌐 网页版</a>
                         </div>
                         
                         ${isConfigured ? `
