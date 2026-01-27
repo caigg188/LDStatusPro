@@ -13779,7 +13779,7 @@
                     anchorX = alignRight ? pos.rightDist : pos.leftDist;
                     top = pos.topRatio !== undefined ? pos.topRatio * vh : 0;
                 } else {
-                    // 默认位置（右下角）
+                    // 默认位置
                     top = vh - panelHeight - 20;
                 }
                 
