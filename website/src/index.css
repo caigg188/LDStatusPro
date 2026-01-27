@@ -1,41 +1,51 @@
 @import "tailwindcss";
 
 /* ========== Tailwind v4 主题配置 ========== */
+/* 莫兰迪浅色系 + 苹果液态玻璃风格 */
 @theme {
-  /* 背景色 */
-  --color-bg-primary: #0c0c14;
-  --color-bg-secondary: #1a1a24;
-  --color-bg-card: rgba(26, 26, 36, 0.6);
+  /* 背景色 - 莫兰迪暖调 */
+  --color-bg-primary: #f8f7f5;
+  --color-bg-secondary: #efedea;
+  --color-bg-card: rgba(255, 255, 255, 0.65);
   
-  /* 主色调（可通过 Tailwind 类使用，如 bg-primary） */
-  --color-primary-DEFAULT: #3b82f6;
-  --color-primary-light: #60a5fa;
+  /* 主色调 - 莫兰迪蓝 */
+  --color-primary-DEFAULT: #7a9cad;
+  --color-primary-light: #9bb8c7;
   
-  /* 强调色 */
-  --color-accent-green: #10b981;
-  --color-accent-purple: #8b5cf6;
-  --color-accent-pink: #ec4899;
-  --color-accent-orange: #f59e0b;
-  --color-accent-blue: #60a5fa;
+  /* 强调色 - 莫兰迪色系 */
+  --color-accent-green: #8faa9d;
+  --color-accent-purple: #9d95ab;
+  --color-accent-pink: #c4a6a0;
+  --color-accent-orange: #c9a87c;
+  --color-accent-blue: #8ba4b8;
   
-  /* 文字色 */
-  --color-text-primary: #f3f4f6;
-  --color-text-secondary: #9ca3af;
-  --color-text-muted: #6b7280;
+  /* 文字色 - 温和灰调 */
+  --color-text-primary: #3d3d3d;
+  --color-text-secondary: #6b6b6b;
+  --color-text-muted: #9a9a9a;
   
-  /* 自定义动画 */
-  --animate-float: float 3s ease-in-out infinite;
-  --animate-glow-pulse: glow-pulse 2s ease-in-out infinite;
-  --animate-gradient-shift: gradient-shift 5s ease infinite;
-  --animate-rotate-slow: rotate-slow 20s linear infinite;
-  --animate-shimmer: shimmer 2s linear infinite;
+  /* 自定义动画 - 优化性能 */
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-glow-pulse: glow-pulse 3s ease-in-out infinite;
+  --animate-gradient-shift: gradient-shift 8s ease infinite;
+  --animate-rotate-slow: rotate-slow 30s linear infinite;
+  --animate-shimmer: shimmer 3s linear infinite;
 }
 
 /* ========== 自定义 CSS 变量（非 Tailwind） ========== */
 :root {
-  /* 边框 - 使用 rgba 值 */
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-glow: rgba(59, 130, 246, 0.3);
+  /* 边框 - 液态玻璃风格 */
+  --border-color: rgba(0, 0, 0, 0.06);
+  --border-glow: rgba(122, 156, 173, 0.25);
+  
+  /* 液态玻璃效果 */
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  
+  /* 莫兰迪渐变 */
+  --gradient-morandi: linear-gradient(135deg, #8ba4b8, #9d95ab, #c4a6a0);
+  --gradient-morandi-soft: linear-gradient(135deg, #9bb8c7, #b5adc0, #d4bdb8);
 }
 
 /* ========== 基础样式 ========== */
@@ -52,11 +62,15 @@
 
   body {
     font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: #0c0c14;
-    color: #f3f4f6;
+    background: #f8f7f5;
+    color: #3d3d3d;
     line-height: 1.6;
     overflow-x: hidden;
     cursor: default;
+    /* 渲染优化 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   /* 可交互元素保持正确的光标 */
@@ -72,76 +86,100 @@
     cursor: pointer;
   }
 
-  /* ========== 滚动条美化 ========== */
+  /* ========== 滚动条美化 - 莫兰迪风格 ========== */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    background: #0c0c14;
+    background: #efedea;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+    background: linear-gradient(180deg, #9bb8c7, #b5adc0);
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #60a5fa, #ec4899);
+    background: linear-gradient(180deg, #8ba4b8, #9d95ab);
   }
 
   /* Firefox 滚动条 */
   * {
     scrollbar-width: thin;
-    scrollbar-color: #8b5cf6 #0c0c14;
+    scrollbar-color: #9d95ab #efedea;
   }
 
-  /* ========== 选中样式 ========== */
+  /* ========== 选中样式 - 莫兰迪色 ========== */
   ::selection {
-    background: #3b82f6;
+    background: #8ba4b8;
     color: white;
+  }
+  
+  /* ========== 减少动画偏好 ========== */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
 /* ========== 组件样式 ========== */
 @layer components {
-  /* 玻璃效果基础类 */
+  /* 液态玻璃效果 - 苹果风格 */
   .glass {
-    background: rgba(26, 26, 36, 0.6);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 
+      0 4px 24px rgba(0, 0, 0, 0.04),
+      0 1px 2px rgba(0, 0, 0, 0.02),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
   }
 
+  .glass-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, box-shadow;
+  }
+  
   .glass-hover:hover {
-    border-color: var(--border-glow);
-    box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);
+    border-color: rgba(139, 164, 184, 0.3);
+    box-shadow: 
+      0 8px 40px rgba(139, 164, 184, 0.12),
+      0 4px 16px rgba(0, 0, 0, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
   }
 
-  /* 渐变文字 */
+  /* 渐变文字 - 莫兰迪色系 */
   .gradient-text {
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+    background: linear-gradient(135deg, #7a9cad, #9d95ab, #c4a6a0);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .gradient-text-animated {
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899, #3b82f6);
+    background: linear-gradient(135deg, #7a9cad, #9d95ab, #c4a6a0, #7a9cad);
     background-size: 300% 300%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    animation: gradient-shift 5s ease infinite;
+    animation: gradient-shift 8s ease infinite;
   }
 
-  /* 背景装饰 */
+  /* 背景装饰 - 柔和莫兰迪光斑 */
   .bg-aurora {
     background: 
-      radial-gradient(ellipse at 20% 30%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 70%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 50%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
+      radial-gradient(ellipse at 20% 30%, rgba(139, 164, 184, 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 70%, rgba(157, 149, 171, 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(196, 166, 160, 0.08) 0%, transparent 50%);
   }
 
   /* 响应式容器与节(section) 辅助类 */
@@ -180,17 +218,17 @@
 
 /* ========== 工具类样式 ========== */
 @layer utilities {
-  /* 发光效果 */
+  /* 柔和阴影效果 - 替代发光 */
   .glow-blue {
-    box-shadow: 0 0 40px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 8px 32px rgba(139, 164, 184, 0.2);
   }
 
   .glow-purple {
-    box-shadow: 0 0 40px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 8px 32px rgba(157, 149, 171, 0.2);
   }
 
   .glow-pink {
-    box-shadow: 0 0 40px rgba(236, 72, 153, 0.3);
+    box-shadow: 0 8px 32px rgba(196, 166, 160, 0.2);
   }
 
   /* 隐藏滚动条 */
@@ -203,35 +241,51 @@
     scrollbar-width: none;
   }
 
-  /* 浮动动画 */
+  /* 浮动动画 - 更流畅平滑 */
   .animate-float {
-    animation: float 3s ease-in-out infinite;
+    animation: float 4s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 
-  /* 渐变动画 */
+  /* 渐变动画 - 更慢更流畅 */
   .animate-gradient {
-    animation: gradient-shift 5s ease infinite;
+    animation: gradient-shift 8s ease infinite;
+    will-change: background-position;
   }
 
-  /* 旋转动画 */
+  /* 旋转动画 - 更慢 */
   .animate-rotate-slow {
-    animation: rotate-slow 20s linear infinite;
+    animation: rotate-slow 30s linear infinite;
+    will-change: transform;
   }
 
   /* 闪光动画 */
   .animate-shimmer {
-    animation: shimmer 2s linear infinite;
+    animation: shimmer 3s linear infinite;
+    will-change: background-position;
+  }
+  
+  /* GPU 加速优化 */
+  .gpu-accelerate {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
   }
 }
 
-/* ========== 动画关键帧 ========== */
+/* ========== 动画关键帧 - 优化性能 ========== */
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0% { transform: translateY(0) translateZ(0); }
+  25% { transform: translateY(-4px) translateZ(0); }
+  50% { transform: translateY(-8px) translateZ(0); }
+  75% { transform: translateY(-4px) translateZ(0); }
+  100% { transform: translateY(0) translateZ(0); }
 }
 
 @keyframes glow-pulse {
-  0%, 100% { opacity: 0.5; }
+  0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
 }
 
@@ -242,8 +296,8 @@
 }
 
 @keyframes rotate-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from { transform: rotate(0deg) translateZ(0); }
+  to { transform: rotate(360deg) translateZ(0); }
 }
 
 @keyframes shimmer {
@@ -252,6 +306,12 @@
 }
 
 @keyframes confetti {
-  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(100px) rotate(720deg); opacity: 0; }
+  0% { transform: translateY(0) rotate(0deg) translateZ(0); opacity: 1; }
+  100% { transform: translateY(100px) rotate(720deg) translateZ(0); opacity: 0; }
+}
+
+/* 柔和脉动效果 */
+@keyframes soft-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.03); opacity: 1; }
 }

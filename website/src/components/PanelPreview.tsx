@@ -30,29 +30,29 @@ export default function PanelPreview() {
       transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       className="relative"
       style={{
-        // 面板根CSS变量 - 完全复刻自 LDStatusPro.user.js
-        ['--bg' as string]: '#0c0c14',
-        ['--bg-card' as string]: 'rgba(22,22,35,.85)',
-        ['--bg-hover' as string]: 'rgba(40,40,65,.9)',
-        ['--bg-el' as string]: 'rgba(30,30,50,.8)',
-        ['--txt' as string]: '#f0f0f5',
-        ['--txt-sec' as string]: '#a8a8bc',
-        ['--txt-mut' as string]: '#6b6b80',
-        ['--accent' as string]: '#8b5cf6',
-        ['--accent-light' as string]: '#a78bfa',
-        ['--accent2' as string]: '#22d3ee',
-        ['--ok' as string]: '#22c55e',
-        ['--ok-light' as string]: '#4ade80',
-        ['--err' as string]: '#ef4444',
-        ['--border' as string]: 'rgba(255,255,255,.06)',
+        // 面板根CSS变量 - 浅色莫兰迪主题
+        ['--bg' as string]: '#ffffff',
+        ['--bg-card' as string]: 'rgba(248,247,245,.95)',
+        ['--bg-hover' as string]: 'rgba(239,237,234,.95)',
+        ['--bg-el' as string]: 'rgba(245,243,240,.9)',
+        ['--txt' as string]: '#3d3d3d',
+        ['--txt-sec' as string]: '#6b6b6b',
+        ['--txt-mut' as string]: '#9a9a9a',
+        ['--accent' as string]: '#7a9cad',
+        ['--accent-light' as string]: '#9bb8c7',
+        ['--accent2' as string]: '#8faa9d',
+        ['--ok' as string]: '#7a9c8e',
+        ['--ok-light' as string]: '#8faa9d',
+        ['--err' as string]: '#c9877f',
+        ['--border' as string]: 'rgba(0,0,0,.06)',
         ['--r' as string]: '16px',
         ['--r-sm' as string]: '10px',
         ['--pd' as string]: '14px',
       }}
     >
-      {/* 发光背景 */}
-      <div className="absolute -inset-6 rounded-3xl opacity-60" style={{
-        background: 'radial-gradient(ellipse at 30% 20%, rgba(139,92,246,0.3), transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(34,211,238,0.2), transparent 50%)',
+      {/* 发光背景 - 莫兰迪柔和光斑 */}
+      <div className="absolute -inset-6 rounded-3xl opacity-50" style={{
+        background: 'radial-gradient(ellipse at 30% 20%, rgba(122,156,173,0.25), transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(143,170,157,0.2), transparent 50%)',
         filter: 'blur(30px)',
       }} />
       
@@ -65,7 +65,7 @@ export default function PanelPreview() {
           borderRadius: '16px',
           background: 'var(--bg)',
           border: '1px solid var(--border)',
-          boxShadow: '0 25px 50px -12px rgba(0,0,0,.6), 0 0 40px rgba(139,92,246,.15)',
+          boxShadow: '0 25px 50px -12px rgba(0,0,0,.1), 0 0 40px rgba(122,156,173,.12)',
         }}
       >
         {/* Header - 复刻 .ldsp-hdr */}
@@ -73,17 +73,17 @@ export default function PanelPreview() {
           className="flex items-center justify-between"
           style={{
             padding: '10px 14px',
-            background: 'linear-gradient(180deg, rgba(139,92,246,.08), transparent)',
+            background: 'linear-gradient(180deg, rgba(122,156,173,.06), transparent)',
             borderBottom: '1px solid var(--border)',
           }}
         >
           <div className="flex items-center gap-2">
-            {/* 站点图标 - 使用新 Logo */}
+            {/* 站点图标 - 莫兰迪色系 */}
             <svg width="28" height="28" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <linearGradient id="panel-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#3B82F6" />
-                  <stop offset="100%" stopColor="#EC4899" />
+                  <stop offset="0%" stopColor="#7a9cad" />
+                  <stop offset="100%" stopColor="#9d95ab" />
                 </linearGradient>
               </defs>
               <path d="M 32,4 A 28,28 0 1,1 12,52" fill="none" stroke="url(#panel-logo-grad)" strokeWidth="8" strokeLinecap="round" />
@@ -144,9 +144,9 @@ export default function PanelPreview() {
               width: '48px',
               height: '48px',
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #60a5fa, #a855f7)',
+              background: 'linear-gradient(135deg, #7a9cad, #9d95ab)',
               fontSize: '20px',
-              boxShadow: '0 0 20px rgba(139,92,246,.3)',
+              boxShadow: '0 0 20px rgba(122,156,173,.25)',
             }}
           >
             U
@@ -157,17 +157,15 @@ export default function PanelPreview() {
             <div className="flex items-center gap-2">
               <span className="font-bold" style={{ 
                 fontSize: '16px',
-                background: 'linear-gradient(135deg, var(--txt), var(--txt-sec))',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                color: 'var(--txt)',
               }}>演示用户</span>
               <span style={{
                 fontSize: '10px',
                 padding: '2px 6px',
                 borderRadius: '4px',
-                background: 'linear-gradient(135deg, rgba(139,92,246,.2), rgba(59,130,246,.2))',
-                color: '#a78bfa',
-                border: '1px solid rgba(139,92,246,.3)',
+                background: 'rgba(122,156,173,.12)',
+                color: '#7a9cad',
+                border: '1px solid rgba(122,156,173,.25)',
               }}>Lv3</span>
             </div>
             <div style={{ fontSize: '12px', color: 'var(--txt-mut)' }}>@demo_user</div>
@@ -178,8 +176,8 @@ export default function PanelPreview() {
             style={{
               padding: '6px 12px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, rgba(34,197,94,.1), rgba(16,185,129,.1))',
-              border: '1px solid rgba(34,197,94,.25)',
+              background: 'rgba(122,156,140,.08)',
+              border: '1px solid rgba(122,156,140,.2)',
               position: 'relative',
               overflow: 'hidden',
             }}
@@ -213,7 +211,7 @@ export default function PanelPreview() {
                   cy="50"
                   r="42"
                   fill="none"
-                  stroke="rgba(255,255,255,0.08)"
+                  stroke="rgba(0,0,0,0.06)"
                   strokeWidth="8"
                 />
                 {/* 进度环 */}
@@ -227,13 +225,13 @@ export default function PanelPreview() {
                   strokeLinecap="round"
                   strokeDasharray={`${2 * Math.PI * 42}`}
                   strokeDashoffset={2 * Math.PI * 42 * (1 - progress / 100)}
-                  style={{ filter: 'drop-shadow(0 0 8px rgba(139, 92, 246, 0.6))' }}
+                  style={{ filter: 'drop-shadow(0 0 6px rgba(122, 156, 173, 0.4))' }}
                 />
                 <defs>
                   <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#8b5cf6" />
-                    <stop offset="50%" stopColor="#22d3ee" />
-                    <stop offset="100%" stopColor="#f472b6" />
+                    <stop offset="0%" stopColor="#7a9cad" />
+                    <stop offset="50%" stopColor="#8faa9d" />
+                    <stop offset="100%" stopColor="#9d95ab" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -259,9 +257,9 @@ export default function PanelPreview() {
               padding: '4px 12px',
               borderRadius: '20px',
               fontSize: '11px',
-              background: 'rgba(139,92,246,.15)',
-              color: '#a78bfa',
-              border: '1px solid rgba(139,92,246,.25)',
+              background: 'rgba(122,156,173,.1)',
+              color: '#7a9cad',
+              border: '1px solid rgba(122,156,173,.2)',
             }}>
               Lv2 → Lv3
             </span>
@@ -278,7 +276,7 @@ export default function PanelPreview() {
             <div className="flex items-center gap-2">
               <span style={{ fontSize: '24px' }}>🔥</span>
               <div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: '#fbbf24' }}>沉浸阅读</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#c9a87c' }}>沉浸阅读</div>
                 <div style={{ fontSize: '11px', color: 'var(--txt-mut)' }}>距下一级还需44分钟</div>
               </div>
             </div>
@@ -286,13 +284,13 @@ export default function PanelPreview() {
               width: '70px', 
               height: '6px', 
               borderRadius: '3px', 
-              background: 'rgba(255,255,255,.1)',
+              background: 'rgba(0,0,0,.06)',
               overflow: 'hidden',
             }}>
               <motion.div 
                 style={{ 
                   height: '100%', 
-                  background: 'linear-gradient(90deg, #fbbf24, #f97316)',
+                  background: 'linear-gradient(90deg, #c9a87c, #b89070)',
                   borderRadius: '3px',
                 }}
                 initial={{ width: 0 }}
@@ -320,9 +318,9 @@ export default function PanelPreview() {
                 fontWeight: 500,
                 whiteSpace: 'nowrap',
                 transition: 'all 0.2s',
-                background: i === 0 ? 'linear-gradient(135deg, rgba(139,92,246,.2), rgba(34,211,238,.15))' : 'transparent',
+                background: i === 0 ? 'rgba(122,156,173,.1)' : 'transparent',
                 color: i === 0 ? 'var(--txt)' : 'var(--txt-mut)',
-                border: i === 0 ? '1px solid rgba(139,92,246,.3)' : '1px solid transparent',
+                border: i === 0 ? '1px solid rgba(122,156,173,.2)' : '1px solid transparent',
               }}
             >
               {tab}
@@ -362,7 +360,7 @@ export default function PanelPreview() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '12px',
-                    background: item.done ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)',
+                    background: item.done ? 'rgba(122,156,140,.12)' : 'rgba(201,135,127,.12)',
                   }}>
                     {item.icon}
                   </div>

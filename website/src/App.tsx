@@ -25,7 +25,7 @@ function useSimpleRouter() {
 // 主页组件
 function HomePage() {
   return (
-    <div className="min-h-screen bg-[#0c0c14]">
+    <div className="min-h-screen bg-[#f8f7f5]">
       <Header />
       <main>
         <Hero />

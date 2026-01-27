@@ -16,21 +16,22 @@ export const Logo: React.FC<LogoProps> = ({ size = 48, className = "", animated 
   >
     <defs>
       <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#3B82F6" />
-        <stop offset="50%" stopColor="#8B5CF6" />
-        <stop offset="100%" stopColor="#EC4899" />
+        <stop offset="0%" stopColor="#7a9c8a" />
+        <stop offset="50%" stopColor="#8faa9d" />
+        <stop offset="100%" stopColor="#a8c0b0" />
       </linearGradient>
       <filter id="logo-glow">
-        <feGaussianBlur stdDeviation="12" result="blur" />
+        <feGaussianBlur stdDeviation="8" result="blur" />
         <feComposite in="SourceGraphic" in2="blur" operator="over" />
       </filter>
     </defs>
     
-    {/* 背景 */}
-    <rect x="20" y="20" width="472" height="472" rx="120" fill="#0C0C14" />
+    {/* 背景 - 液态玻璃效果 */}
+    <rect x="20" y="20" width="472" height="472" rx="120" fill="rgba(255,255,255,0.9)" />
+    <rect x="20" y="20" width="472" height="472" rx="120" fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="2" />
     
     {/* 灰色轨道 */}
-    <circle cx="256" cy="256" r="160" fill="none" stroke="#1F2937" strokeWidth="32" />
+    <circle cx="256" cy="256" r="160" fill="none" stroke="#e5e3e0" strokeWidth="32" />
     
     {/* 彩色轨道 - 带轻微呼吸动画 */}
     <path 
@@ -47,7 +48,7 @@ export const Logo: React.FC<LogoProps> = ({ size = 48, className = "", animated 
           attributeName="transform" 
           type="rotate" 
           values="-15 256 256; -10 256 256; -15 256 256" 
-          dur="4s" 
+          dur="5s" 
           repeatCount="indefinite" 
         />
       )}
@@ -73,8 +74,8 @@ export const LogoMini: React.FC<{ size?: number; className?: string }> = ({ size
   >
     <defs>
       <linearGradient id="fav-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#3B82F6" />
-        <stop offset="100%" stopColor="#EC4899" />
+        <stop offset="0%" stopColor="#7a9c8a" />
+        <stop offset="100%" stopColor="#a8c0b0" />
       </linearGradient>
     </defs>
     <path d="M 31,4 A 28,28 0 1,1 11,52" fill="none" stroke="url(#fav-grad)" strokeWidth="8" strokeLinecap="round" />
