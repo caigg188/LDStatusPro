@@ -1,7 +1,7 @@
  // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.4.10
+    // @version      3.5.4.11
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -151,6 +151,24 @@
             console.warn('[LDStatus Pro] 不支持的网站');
             return;
         }
+
+        // ==================== Discourse 鉴权头工具 ====================
+        const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+        const buildAuthHeaders = (url, extra = {}) => {
+            const headers = { ...extra };
+            let host = '';
+            try { host = new URL(url, location.href).hostname; } catch {}
+            const needDiscourseHeaders = host && (host.endsWith('linux.do') || host.endsWith('idcflare.com'));
+            if (needDiscourseHeaders) {
+                if (!headers['X-Requested-With'] && !headers['x-requested-with']) headers['X-Requested-With'] = 'XMLHttpRequest';
+                if (!headers['Discourse-Logged-In']) headers['Discourse-Logged-In'] = 'true';
+                if (!headers['Discourse-Present']) headers['Discourse-Present'] = 'true';
+                const csrf = getCsrfToken();
+                if (csrf && !headers['X-CSRF-Token'] && !headers['x-csrf-token']) headers['X-CSRF-Token'] = csrf;
+                if (!headers['Referer']) headers['Referer'] = `${location.origin}/`;
+            }
+            return headers;
+        };
 
         // ==================== 事件总线（跨模块通信） ====================
         const EventBus = {
@@ -1318,12 +1336,13 @@
                 }
             }
 
-            async _fetchWithRetry(url, options) {
-                const { maxRetries = CONFIG.NETWORK.RETRY_COUNT, timeout = CONFIG.NETWORK.TIMEOUT } = options;
+            async _fetchWithRetry(url, options = {}) {
+                const { maxRetries = CONFIG.NETWORK.RETRY_COUNT, timeout = CONFIG.NETWORK.TIMEOUT, headers = {} } = options;
+                const finalHeaders = this._buildHeaders(url, { 'Accept': 'application/json, text/html, */*', ...headers });
                 
                 for (let i = 0; i < maxRetries; i++) {
                     try {
-                        return await this._doFetch(url, timeout);
+                        return await this._doFetch(url, timeout, finalHeaders);
                     } catch (e) {
                         if (i === maxRetries - 1) throw e;
                         await new Promise(r => setTimeout(r, CONFIG.NETWORK.RETRY_DELAY * Math.pow(2, i)));
@@ -1331,7 +1350,7 @@
                 }
             }
 
-            async _doFetch(url, timeout) {
+            async _doFetch(url, timeout, headers = {}) {
                 // 检测是否为同源请求
                 const isSameOrigin = this._isSameOrigin(url);
                 
@@ -1343,7 +1362,7 @@
                         const timeoutId = setTimeout(() => controller.abort(), timeout);
                         const resp = await fetch(url, { 
                             credentials: 'include',
-                            headers: { 'Accept': 'application/json, text/html, */*' },
+                            headers,
                             signal: controller.signal
                         });
                         clearTimeout(timeoutId);
@@ -1376,9 +1395,7 @@
                                 timeout,
                                 // v3.5.4.9: 添加 withCredentials 携带 cookie
                                 withCredentials: true,
-                                headers: {
-                                    'Accept': 'application/json, text/html, */*'
-                                },
+                                headers,
                                 onload: res => {
                                     if (settled) return;
                                     settled = true;
@@ -1417,11 +1434,18 @@
                 const timeoutId = setTimeout(() => controller.abort(), timeout);
                 const resp = await fetch(url, { 
                     credentials: 'include',
+                    headers,
                     signal: controller.signal
                 });
                 clearTimeout(timeoutId);
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 return await resp.text();
+            }
+
+            _buildHeaders(url, headers = {}) {
+                const merged = { ...headers };
+                if (!merged['Accept'] && !merged['accept']) merged['Accept'] = 'application/json, text/html, */*';
+                return buildAuthHeaders(url, merged);
             }
 
             // API 请求（带认证和缓存）
@@ -1533,7 +1557,7 @@
             // 因此对同源请求优先使用原生 fetch，可以正确携带 cookie
             async fetchJson(url, options = {}) {
                 const timeout = options.timeout || CONFIG.NETWORK.TIMEOUT;
-                const headers = options.headers || {};
+                const headers = this._buildHeaders(url, { 'Accept': 'application/json', ...(options.headers || {}) });
                 
                 // 检查是否为同源请求
                 const isSameOrigin = this._isSameOrigin(url);
@@ -1558,17 +1582,14 @@
             }
             
             // 使用原生 fetch 获取 JSON（同源请求，更好的 cookie 支持）
-            async _fetchJsonNative(url, timeout, headers) {
+            async _fetchJsonNative(url, timeout, headers = {}) {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), timeout);
                 
                 try {
                     const resp = await fetch(url, {
                         method: 'GET',
-                        headers: {
-                            'Accept': 'application/json',
-                            ...headers
-                        },
+                        headers,
                         credentials: 'include',
                         signal: controller.signal
                     });
@@ -1592,17 +1613,14 @@
             }
             
             // 使用 GM_xmlhttpRequest 获取 JSON（跨域请求）
-            _fetchJsonGM(url, timeout, headers) {
+            _fetchJsonGM(url, timeout, headers = {}) {
                 return new Promise((resolve, reject) => {
                     const timeoutId = setTimeout(() => reject(new Error('Timeout')), timeout);
                     
                     GM_xmlhttpRequest({
                         method: 'GET',
                         url,
-                        headers: {
-                            'Accept': 'application/json',
-                            ...headers
-                        },
+                        headers,
                         timeout,
                         withCredentials: true,
                         onload: res => {
@@ -6668,7 +6686,8 @@
                         if (window.location.hostname === 'linux.do') {
                             // 在 linux.do 上，直接用 fetch
                             try {
-                                const resp = await fetch(`/u/${ldUsername}.json`, { credentials: 'include' });
+                                const headers = buildAuthHeaders(`/u/${ldUsername}.json`, { 'Accept': 'application/json' });
+                                const resp = await fetch(`/u/${ldUsername}.json`, { credentials: 'include', headers });
                                 if (resp.ok) {
                                     const ldData = await resp.json();
                                     if (ldData?.user?.gamification_score !== undefined) {
@@ -6707,13 +6726,14 @@
             // 获取 linux.do 用户的 gamification_score
             async _fetchGamificationScore(username) {
                 if (!username) return null;
+                const headers = buildAuthHeaders(`https://linux.do/u/${username}.json`, { 'Accept': 'application/json' });
                 return new Promise(resolve => {
                     GM_xmlhttpRequest({
                         method: 'GET',
                         url: `https://linux.do/u/${username}.json`,
                         withCredentials: true,
                         timeout: 10000,
-                        headers: { 'Accept': 'application/json' },
+                        headers,
                         onload: r => {
                             if (r.status === 200) {
                                 try {
@@ -14483,15 +14503,16 @@
                     
                     // 方法1: 使用 GM_xmlhttpRequest
                     try {
-                        jsonText = await this.network.fetch(jsonUrl, { maxRetries: 2, timeout: 10000 });
+                        jsonText = await this.network.fetch(jsonUrl, { maxRetries: 2, timeout: 10000, headers: buildAuthHeaders(jsonUrl) });
                     } catch (e) { /* GM fetch 失败 */ }
                     
                     // 方法2: 如果 GM 方式失败，尝试原生 fetch（同源请求更可靠）
                     if (!jsonText) {
                         try {
+                            const headers = buildAuthHeaders(jsonUrl, { 'Accept': 'application/json' });
                             const response = await fetch(jsonUrl, { 
                                 credentials: 'include',
-                                headers: { 'Accept': 'application/json' }
+                                headers
                             });
                             if (response.ok) {
                                 jsonText = await response.text();
@@ -14530,13 +14551,14 @@
                     
                     // 先尝试 GM_xmlhttpRequest
                     try {
-                        html = await this.network.fetch(url, { maxRetries: 2 });
+                        html = await this.network.fetch(url, { maxRetries: 2, headers: buildAuthHeaders(url) });
                     } catch (e) { /* GM fetch 失败 */ }
                     
                     // 备用：原生 fetch
                     if (!html) {
                         try {
-                            const resp = await fetch(url, { credentials: 'include' });
+                            const headers = buildAuthHeaders(url);
+                            const resp = await fetch(url, { credentials: 'include', headers });
                             if (resp.ok) {
                                 html = await resp.text();
                             }
