@@ -1,7 +1,7 @@
  // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.4.11
+    // @version      3.5.4.12
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -6411,7 +6411,9 @@
             constructor(panelBody) {
                 this.panelBody = panelBody;
                 this.overlay = null;
-                this._loading = false;
+                // 独立的加载状态与请求令牌，避免跨 tab 互相阻塞
+                this._loadingState = { overview: false, trans: false };
+                this._reqToken = { overview: 0, trans: 0 };
                 this._tab = 'overview';
                 this._trans = { orders: [], page: 1, total: 0, hasMore: false };
                 this._order = null;
@@ -6466,6 +6468,11 @@
                 this._shopLoading = false;
                 this._shopScrollObserver = null;
                 this._shopTotal = 0; // 当前分类的商品总数
+                // 用户信息缓存，避免重复请求
+                this._userCache = null;
+                this._userCacheTime = 0;
+                this._userCacheTTL = 60000; // 60s
+                this._userPromise = null;
             }
 
             init() { 
@@ -6492,8 +6499,8 @@
                 
                 // 等待 iframe 加载完成
                 this._bridgeReady = new Promise(r => {
-                    const t = setTimeout(() => r(), 5000);
-                    frame.onload = () => { clearTimeout(t); setTimeout(r, 300); };
+                    const t = setTimeout(() => r(), 2000);
+                    frame.onload = () => { clearTimeout(t); setTimeout(r, 150); };
                 });
             }
 
@@ -6645,16 +6652,33 @@
                 try { GM_setValue(LDCManager.CACHE_KEY, { ...data, userId: this._userId, time: Date.now() }); } catch {}
             }
 
+            // 带缓存的用户信息获取，减少重复请求
+            async _getUserInfo(force = false) {
+                const now = Date.now();
+                if (!force && this._userCache && (now - this._userCacheTime) < this._userCacheTTL) {
+                    return this._userCache;
+                }
+                if (this._userPromise) return this._userPromise;
+                this._userPromise = (async () => {
+                    const user = await this._request('https://credit.linux.do/api/v1/oauth/user-info');
+                    this._userCache = user || null;
+                    this._userCacheTime = Date.now();
+                    this._userPromise = null;
+                    return user;
+                })();
+                return this._userPromise;
+            }
+
             async _fetchData() {
-                if (this._loading) return;
-                this._loading = true;
+                const token = ++this._reqToken.overview;
+                this._loadingState.overview = true;
                 const body = this.overlay.querySelector('.ldsp-ldc-body');
                 const btn = this.overlay.querySelector('.ldsp-ldc-refresh');
                 btn?.classList.add('spinning');
                 body.innerHTML = `<div class="ldsp-ldc-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>`;
 
                 try {
-                    const user = await this._request('https://credit.linux.do/api/v1/oauth/user-info');
+                    const user = await this._getUserInfo(true);
                     if (!user || user._authError) {
                         this._showLoginGuide('auth');
                         return;
@@ -6680,29 +6704,33 @@
                         updateTime: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
                     };
 
-                    // 获取 gamification_score（使用 linux.do 用户名）
+                    // 并行获取 gamification_score 与 7日统计，加速加载
+                    const statsPromise = this._request('https://credit.linux.do/api/v1/dashboard/stats/daily?days=7');
                     let gamificationScore = null;
+                    let gamificationPromise = Promise.resolve(null);
                     if (ldUsername) {
                         if (window.location.hostname === 'linux.do') {
-                            // 在 linux.do 上，直接用 fetch
-                            try {
-                                const headers = buildAuthHeaders(`/u/${ldUsername}.json`, { 'Accept': 'application/json' });
-                                const resp = await fetch(`/u/${ldUsername}.json`, { credentials: 'include', headers });
-                                if (resp.ok) {
-                                    const ldData = await resp.json();
-                                    if (ldData?.user?.gamification_score !== undefined) {
-                                        gamificationScore = parseFloat(ldData.user.gamification_score);
+                            gamificationPromise = (async () => {
+                                try {
+                                    const headers = buildAuthHeaders(`/u/${ldUsername}.json`, { 'Accept': 'application/json' });
+                                    const resp = await fetch(`/u/${ldUsername}.json`, { credentials: 'include', headers });
+                                    if (resp.ok) {
+                                        const ldData = await resp.json();
+                                        return ldData?.user?.gamification_score;
                                     }
-                                }
-                            } catch {}
+                                } catch {}
+                                return null;
+                            })();
                         } else {
-                            // 在其他站点，用 GM_xmlhttpRequest
-                            const ldUserData = await this._fetchGamificationScore(ldUsername);
-                            if (ldUserData?.gamification_score !== undefined) {
-                                gamificationScore = parseFloat(ldUserData.gamification_score);
-                            }
+                            gamificationPromise = (async () => {
+                                const ldUserData = await this._fetchGamificationScore(ldUsername);
+                                return ldUserData?.gamification_score;
+                            })();
                         }
                     }
+
+                    const [stats, gScore] = await Promise.all([statsPromise, gamificationPromise]);
+                    if (gScore !== null && gScore !== undefined) gamificationScore = parseFloat(gScore);
                     
                     // 计算今日预估增加
                     if (gamificationScore !== null && !isNaN(communityBalance)) {
@@ -6710,17 +6738,22 @@
                     }
 
                     // 获取7天统计
-                    const stats = await this._request('https://credit.linux.do/api/v1/dashboard/stats/daily?days=7');
                     if (stats && Array.isArray(stats)) {
                         data.dailyStats = stats.map(i => ({
                             date: i.date, dateShort: i.date.substring(5).replace('-', '/'),
                             income: parseFloat(i.income) || 0, expense: parseFloat(i.expense) || 0
                         }));
                     }
-                    this._renderOverview(data);
-                    this._saveCache(data);
-                } catch { this._showError('网络错误，请稍后重试'); }
-                finally { this._loading = false; btn?.classList.remove('spinning'); }
+                    // 只渲染仍然处于 overview 的请求
+                    if (token === this._reqToken.overview && this._tab === 'overview') {
+                        this._renderOverview(data);
+                        this._saveCache(data);
+                    }
+                } catch { if (token === this._reqToken.overview) this._showError('网络错误，请稍后重试'); }
+                finally {
+                    if (token === this._reqToken.overview) this._loadingState.overview = false;
+                    btn?.classList.remove('spinning');
+                }
             }
 
             // 获取 linux.do 用户的 gamification_score
@@ -6787,25 +6820,21 @@
                 });
             }
 
-            // 优先使用 iframe 桥接方式请求（兼容 iOS Safari）
+            // 优先使用 iframe 桥接方式请求（兼容 iOS Safari）；非 iOS 直接使用 GM 更快
             async _request(url, method = 'GET', data = null) {
-                // 尝试使用 iframe 桥接
-                const bridgeResult = await this._requestViaBridge(url, method, data);
-                if (bridgeResult && !bridgeResult._bridgeError) {
-                    return bridgeResult;
-                }
-                
-                // 桥接失败时回退到 GM_xmlhttpRequest（非 iOS 场景）
+                // 桌面/安卓：直接 GM，避免 iframe 额外等待
                 if (!this._isIOS) {
                     return this._requestViaGM(url, method, data);
                 }
-                
-                // iOS 桥接失败返回对应错误
-                return bridgeResult;
+
+                // iOS：先桥接，设置较短超时；失败后再 GM 兜底
+                const bridgeResult = await this._requestViaBridge(url, method, data, 2000);
+                if (bridgeResult && !bridgeResult._bridgeError) return bridgeResult;
+                return await this._requestViaGM(url, method, data);
             }
 
             // iframe 桥接请求
-            async _requestViaBridge(url, method = 'GET', data = null) {
+            async _requestViaBridge(url, method = 'GET', data = null, timeoutMs = 15000) {
                 if (this._bridgeReady) await this._bridgeReady;
                 if (!this._bridge) return { _bridgeError: true, _error: '桥接未就绪' };
                 
@@ -6814,7 +6843,7 @@
                     const timeout = setTimeout(() => { 
                         this._requests.delete(id); 
                         resolve({ _bridgeError: true, _timeoutError: true, _error: '请求超时' }); 
-                    }, 15000);
+                    }, timeoutMs);
                     
                     this._requests.set(id, ({ status, data: respData }) => {
                         clearTimeout(timeout);
@@ -6861,15 +6890,15 @@
                         data: data ? JSON.stringify(data) : undefined,
                         onload: r => {
                             if (r.status === 200) {
-                                try { const j = JSON.parse(r.responseText); resolve(j?.data ?? null); return; } catch {}
-                            }
-                            resolve(r.status === 401 || r.status === 403 ? { _authError: true } : null);
-                        },
-                        onerror: () => resolve({ _networkError: true }),
-                        ontimeout: () => resolve({ _timeoutError: true })
-                    });
-                });
-            }
+                    try { const j = JSON.parse(r.responseText); resolve(j?.data ?? null); return; } catch {}
+                }
+                resolve(r.status === 401 || r.status === 403 ? { _authError: true } : null);
+            },
+            onerror: () => resolve({ _networkError: true }),
+            ontimeout: () => resolve({ _timeoutError: true })
+        });
+    });
+}
 
             _renderOverview(data) {
                 const body = this.overlay.querySelector('.ldsp-ldc-body');
@@ -6985,8 +7014,8 @@
             }
 
             async _fetchTrans(refresh = false, more = false) {
-                if (this._loading) return;
-                this._loading = true;
+                const token = ++this._reqToken.trans;
+                this._loadingState.trans = true;
                 const currentTab = this._tab; // 保存发起请求时的 tab 状态
                 const body = this.overlay.querySelector('.ldsp-ldc-body');
                 const btn = this.overlay.querySelector('.ldsp-ldc-refresh');
@@ -6996,7 +7025,7 @@
                 try {
                     // 确保 _userId 已设置，用于准确判断收支
                     if (!this._userId) {
-                        const user = await this._request('https://credit.linux.do/api/v1/oauth/user-info');
+                        const user = await this._getUserInfo();
                         if (user && !user._authError) {
                             this._userId = user.id || user.user_id || null;
                         }
@@ -7008,7 +7037,7 @@
                     if (this._filter.type) payload.type = this._filter.type;
                     const result = await this._request('https://credit.linux.do/api/v1/order/transactions', 'POST', payload);
                     // 请求返回后再次检查 tab 状态
-                    if (this._tab !== currentTab) return;
+                    if (this._tab !== currentTab || token !== this._reqToken.trans) return;
                     if (result?._authError) { this._showError('请先登录 credit.linux.do', true); return; }
                     if (!result) { this._showError('获取数据失败'); return; }
                     const orders = result.orders || [], total = result.total || 0;
@@ -7017,8 +7046,11 @@
                     this._trans.total = total;
                     this._trans.hasMore = this._trans.orders.length < total;
                     this._renderTransUI();
-                } catch { if (!more && this._tab === currentTab) this._showError('网络错误，请稍后重试'); }
-                finally { this._loading = false; btn?.classList.remove('spinning'); }
+                } catch { if (!more && this._tab === currentTab && token === this._reqToken.trans) this._showError('网络错误，请稍后重试'); }
+                finally {
+                    if (token === this._reqToken.trans) this._loadingState.trans = false;
+                    btn?.classList.remove('spinning');
+                }
             }
 
             _renderTransUI(loading = false) {
@@ -7090,7 +7122,7 @@
                 
                 this._scrollObserver = new IntersectionObserver(async (entries) => {
                     const entry = entries[0];
-                    if (entry.isIntersecting && !this._loading && this._trans.hasMore) {
+                    if (entry.isIntersecting && !this._loadingState.trans && this._trans.hasMore) {
                         // 显示加载指示器
                         sentinel.innerHTML = '<div class="ldsp-ldc-loading-more"><div class="ldsp-mini-spin" style="width:14px;height:14px"></div><span>加载中...</span></div>';
                         await this._fetchTrans(false, true);
