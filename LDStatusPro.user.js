@@ -12935,6 +12935,8 @@
                 this.loading = false;
                 this._readingTimer = null;
                 this._destroyed = false;  // 销毁标记
+                this._followDataLoaded = false;
+                this._followProfileLoaded = false;
                 
                 // 我的活动相关状态
                 this.activitySubTab = 'read';  // 默认子tab
@@ -12952,43 +12954,73 @@
 
                 // 初始化全局弹窗管理器（传入面板根元素）
                 LDSPDialog.init(this.el);
+                // 管理器改为按需懒加载，减少首屏开销
+                this._loadAvatarFromCache();
+            }
 
-                // 工单管理器初始化
-                if (this.hasLeaderboard && this.oauth) {
+            // ==================== 懒加载各功能管理器 ====================
+            _ensureTicketManager() {
+                if (!this.hasLeaderboard || !this.oauth) return null;
+                if (!this.ticketManager) {
                     this.ticketManager = new TicketManager(this.oauth, this.$.panelBody);
                     this.ticketManager.init().catch(e => Logger.warn('TicketManager init error:', e));
                 }
+                return this.ticketManager;
+            }
 
-                // 吃瓜助手初始化
-                this.melonHelper = new MelonHelper(this.$.panelBody, this.renderer);
-                this.melonHelper.init();
+            _ensureMelonHelper() {
+                if (!this.melonHelper) {
+                    this.melonHelper = new MelonHelper(this.$.panelBody, this.renderer);
+                    this.melonHelper.init();
+                }
+                return this.melonHelper;
+            }
 
-                // 帖子导出器初始化
-                this.topicExporter = new TopicExporter(this.$.panelBody, this.renderer);
-                this.topicExporter.init();
+            _ensureTopicExporter() {
+                if (!this.topicExporter) {
+                    this.topicExporter = new TopicExporter(this.$.panelBody, this.renderer);
+                    this.topicExporter.init();
+                }
+                return this.topicExporter;
+            }
 
-                // LDC 积分管理器初始化（仅 linux.do）
-                if (CURRENT_SITE.domain === 'linux.do') {
+            _ensureLdcManager() {
+                if (CURRENT_SITE.domain !== 'linux.do') return null;
+                if (!this.ldcManager) {
                     this.ldcManager = new LDCManager(this.$.panelBody, this.renderer);
                     this.ldcManager.init();
                 }
-                
-                // CDK 管理器初始化（仅 linux.do）
-                if (CURRENT_SITE.domain === 'linux.do') {
+                return this.ldcManager;
+            }
+
+            _ensureCdkManager() {
+                if (CURRENT_SITE.domain !== 'linux.do') return null;
+                if (!this.cdkManager) {
                     this.cdkManager = new CDKManager(this.$.panelBody, this.renderer);
                     this.cdkManager.init();
                 }
-                
-                // 关注/粉丝管理器初始化（包含头像缓存）
-                this.followManager = new FollowManager(this.network, this.storage, this.$.panelBody, this.renderer);
-                this.followManager.init();
-                // 从缓存加载头像（优先动态头像）
-                this._loadAvatarFromCache();
-                // 延迟懒加载关注/粉丝数据和用户profile
-                setTimeout(() => {
-                    this.followManager.loadData().catch(e => Logger.warn('FollowManager load error:', e));
-                    this.followManager.loadProfile().catch(e => Logger.warn('FollowManager profile error:', e));
-                }, 2000);
+                return this.cdkManager;
+            }
+
+            _ensureFollowManager() {
+                if (!this.followManager) {
+                    this.followManager = new FollowManager(this.network, this.storage, this.$.panelBody, this.renderer);
+                    this.followManager.init();
+                }
+                // 懒加载数据与用户档案，避免首屏请求
+                if (!this._followDataLoaded) {
+                    this._followDataLoaded = true;
+                    requestIdleCallback(() => {
+                        this.followManager.loadData().catch(e => Logger.warn('FollowManager load error:', e));
+                    });
+                }
+                if (!this._followProfileLoaded) {
+                    this._followProfileLoaded = true;
+                    requestIdleCallback(() => {
+                        this.followManager.loadProfile().catch(e => Logger.warn('FollowManager profile error:', e));
+                    });
+                }
+                return this.followManager;
             }
             
             // 初始化云服务
@@ -13457,49 +13489,38 @@
                         this.renderer.showToast('⚠️ 请先登录后使用工单功能');
                         return;
                     }
-                    if (this.ticketManager) {
-                        this.ticketManager.show();
-                    }
+                    const mgr = this._ensureTicketManager();
+                    mgr?.show();
                 });
 
                 // 吃瓜助手按钮
                 this.$.melonBtn?.addEventListener('click', e => {
                     e.stopPropagation();
-                    if (this.melonHelper) {
-                        this.melonHelper.show();
-                    }
+                    this._ensureMelonHelper()?.show();
                 });
 
                 // 导出帖子按钮
                 this.$.exportBtn?.addEventListener('click', e => {
                     e.stopPropagation();
-                    if (this.topicExporter) {
-                        this.topicExporter.show();
-                    }
+                    this._ensureTopicExporter()?.show();
                 });
 
                 // LDC 积分按钮（仅 linux.do）
                 this.$.ldcBtn?.addEventListener('click', e => {
                     e.stopPropagation();
-                    if (this.ldcManager) {
-                        this.ldcManager.show();
-                    }
+                    this._ensureLdcManager()?.show();
                 });
 
                 // 士多按钮（仅 linux.do）
                 this.$.shopBtn?.addEventListener('click', e => {
                     e.stopPropagation();
-                    if (this.ldcManager) {
-                        this.ldcManager.showShop();
-                    }
+                    this._ensureLdcManager()?.showShop();
                 });
 
                 // CDK 按钮（仅 linux.do）
                 this.$.cdkBtn?.addEventListener('click', e => {
                     e.stopPropagation();
-                    if (this.cdkManager) {
-                        this.cdkManager.show();
-                    }
+                    this._ensureCdkManager()?.show();
                 });
                 
                 // 按钮区域展开/收起
@@ -13533,14 +13554,15 @@
                             this.renderer.showToast('⚠️ 请先登录论坛');
                             return;
                         }
-                        if (this.followManager) {
+                        const fm = this._ensureFollowManager();
+                        if (fm) {
                             // 根据点击的区域打开对应列表
                             const tabName = part.dataset.tab || 'following';
-                            const tabs = this.followManager.overlay.querySelectorAll('.ldsp-follow-tab');
+                            const tabs = fm.overlay.querySelectorAll('.ldsp-follow-tab');
                             tabs.forEach(t => t.classList.remove('active'));
-                            const targetTab = this.followManager.overlay.querySelector(`.ldsp-follow-tab[data-tab="${tabName}"]`);
+                            const targetTab = fm.overlay.querySelector(`.ldsp-follow-tab[data-tab="${tabName}"]`);
                             targetTab?.classList.add('active');
-                            this.followManager.show();
+                            fm.show();
                         }
                     });
                 });
@@ -13554,14 +13576,15 @@
                             this.renderer.showToast('⚠️ 请先登录论坛');
                             return;
                         }
-                        if (this.followManager) {
+                        const fm = this._ensureFollowManager();
+                        if (fm) {
                             // 设置激活的tab
                             const isFollowing = stat.classList.contains('ldsp-follow-stat-following');
-                            const tabs = this.followManager.overlay.querySelectorAll('.ldsp-follow-tab');
+                            const tabs = fm.overlay.querySelectorAll('.ldsp-follow-tab');
                             tabs.forEach(t => t.classList.remove('active'));
-                            const targetTab = this.followManager.overlay.querySelector(`.ldsp-follow-tab[data-tab="${isFollowing ? 'following' : 'followers'}"]`);
+                            const targetTab = fm.overlay.querySelector(`.ldsp-follow-tab[data-tab="${isFollowing ? 'following' : 'followers'}"]`);
                             targetTab?.classList.add('active');
-                            this.followManager.show();
+                            fm.show();
                         }
                     });
                 });
