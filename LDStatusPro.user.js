@@ -11721,8 +11721,8 @@
                 
                 try {
                     const [followingRes, followersRes] = await Promise.all([
-                        this.network.fetchJson(`${baseUrl}/u/${username}/follow/following`),
-                        this.network.fetchJson(`${baseUrl}/u/${username}/follow/followers`)
+                        this.network.fetchJson(`${baseUrl}/u/${username}/follow/following`, { headers: buildAuthHeaders(`${baseUrl}/u/${username}/follow/following`, { 'Accept': 'application/json' }) }),
+                        this.network.fetchJson(`${baseUrl}/u/${username}/follow/followers`, { headers: buildAuthHeaders(`${baseUrl}/u/${username}/follow/followers`, { 'Accept': 'application/json' }) })
                     ]);
                     
                     this.following = Array.isArray(followingRes) ? followingRes : [];
@@ -11757,7 +11757,8 @@
                 const baseUrl = `https://${CURRENT_SITE.domain}`;
                 
                 try {
-                    const profileRes = await this.network.fetchJson(`${baseUrl}/u/${encodeURIComponent(username)}.json`);
+                    const profileUrl = `${baseUrl}/u/${encodeURIComponent(username)}.json`;
+                    const profileRes = await this.network.fetchJson(profileUrl, { headers: buildAuthHeaders(profileUrl, { 'Accept': 'application/json' }) });
                     if (profileRes && profileRes.user) {
                         const user = profileRes.user;
                         let hasChanges = false;
