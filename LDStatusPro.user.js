@@ -1,14 +1,14 @@
  // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.4.12
+    // @version      3.5.4.13
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
     // @match        https://linux.do/*
     // @match        https://idcflare.com/*
     // @match        https://cdk.linux.do/*
-    // @match        https://credit
+    // @match        https://credit.linux.do/*
     // @run-at       document-start
     // @grant        GM_xmlhttpRequest
     // @grant        GM_setValue    
@@ -36,15 +36,19 @@
         // 在 cdk.linux.do 或 credit.linux.do 运行时作为数据桥接，用原生 fetch 请求 API（同域自动带 cookie）
         if (location.hostname === 'cdk.linux.do') {
             window.addEventListener('message', async (e) => {
-                if (!e.origin.includes('linux.do') || e.data?.type !== 'ldsp-cdk-request') return;
+                if (!ALLOWED_ORIGINS.includes(e.origin) || e.data?.type !== 'ldsp-cdk-request') {
+                    debugBridgeLog('CDK bridge reject', { origin: e.origin, type: e.data?.type });
+                    return;
+                }
                 const { requestId, url } = e.data;
                 try {
                     const res = await fetch(url, { credentials: 'include' });
                     let data;
                     try { data = await res.json(); } catch { data = { _error: '解析失败' }; }
-                    window.parent?.postMessage({ type: 'ldsp-cdk-response', requestId, status: res.status, data }, '*');
-                } catch {
-                    window.parent?.postMessage({ type: 'ldsp-cdk-response', requestId, status: 0, data: { _error: '网络错误' } }, '*');
+                    window.parent?.postMessage({ type: 'ldsp-cdk-response', requestId, status: res.status, data }, e.origin);
+                } catch (err) {
+                    debugBridgeLog('CDK bridge error', err?.message || err);
+                    window.parent?.postMessage({ type: 'ldsp-cdk-response', requestId, status: 0, data: { _error: '网络错误' } }, e.origin);
                 }
             });
             return; // 桥接页面不执行主程序
@@ -53,7 +57,10 @@
         // LDC (credit.linux.do) 桥接
         if (location.hostname === 'credit.linux.do') {
             window.addEventListener('message', async (e) => {
-                if (!e.origin.includes('linux.do') || e.data?.type !== 'ldsp-ldc-request') return;
+                if (!ALLOWED_ORIGINS.includes(e.origin) || e.data?.type !== 'ldsp-ldc-request') {
+                    debugBridgeLog('LDC bridge reject', { origin: e.origin, type: e.data?.type });
+                    return;
+                }
                 const { requestId, url, method = 'GET', data } = e.data;
                 try {
                     const res = await fetch(url, {
@@ -64,9 +71,10 @@
                     });
                     let resData;
                     try { resData = await res.json(); } catch { resData = { _error: '解析失败' }; }
-                    window.parent?.postMessage({ type: 'ldsp-ldc-response', requestId, status: res.status, data: resData }, '*');
-                } catch {
-                    window.parent?.postMessage({ type: 'ldsp-ldc-response', requestId, status: 0, data: { _error: '网络错误' } }, '*');
+                    window.parent?.postMessage({ type: 'ldsp-ldc-response', requestId, status: res.status, data: resData }, e.origin);
+                } catch (err) {
+                    debugBridgeLog('LDC bridge error', err?.message || err);
+                    window.parent?.postMessage({ type: 'ldsp-ldc-response', requestId, status: 0, data: { _error: '网络错误' } }, e.origin);
                 }
             });
             return; // 桥接页面不执行主程序
@@ -119,7 +127,14 @@
             const start = Date.now();
             return setTimeout(() => cb({ didTimeout: false, timeRemaining: () => Math.max(0, 50 - (Date.now() - start)) }), 1);
         };
-        const cancelIdleCallback = window.cancelIdleCallback || clearTimeout;
+        const _cancelIdleCallback = window.cancelIdleCallback || clearTimeout;
+        const ALLOWED_ORIGINS = ['https://linux.do', 'https://www.linux.do', 'https://idcflare.com', 'https://www.idcflare.com'];
+        const DEBUG = {
+            bridgeLogs: (typeof GM_getValue === 'function' && GM_getValue('ldsp_debug_bridge', false)) || false
+        };
+        const debugBridgeLog = (...args) => {
+            if (DEBUG.bridgeLogs) console.debug('[LDSP][bridge]', ...args);
+        };
 
         // ==================== 网站配置 ====================
         const SITE_CONFIGS = {
@@ -1313,16 +1328,40 @@
             }
 
             async fetch(url, options = {}) {
-                if (this._pending.has(url)) return this._pending.get(url);
+                const key = this._buildPendingKey(url, options);
+                if (this._pending.has(key)) return this._pending.get(key);
                 
                 const promise = this._fetchWithRetry(url, options);
-                this._pending.set(url, promise);
+                this._pending.set(key, promise);
                 
                 try {
                     return await promise;
                 } finally {
-                    this._pending.delete(url);
+                    this._pending.delete(key);
                 }
+            }
+
+            _buildPendingKey(url, options = {}) {
+                const method = (options.method || 'GET').toUpperCase();
+                // 归一化 headers，避免对象引用导致的重复命中
+                let headersSig = '';
+                const headers = options.headers;
+                if (headers) {
+                    const normalized = {};
+                    if (headers instanceof Headers) {
+                        headers.forEach((v, k) => { normalized[k] = v; });
+                    } else if (typeof headers === 'object') {
+                        Object.entries(headers).forEach(([k, v]) => { normalized[k] = v; });
+                    }
+                    headersSig = JSON.stringify(Object.keys(normalized).sort().reduce((acc, k) => { acc[k] = normalized[k]; return acc; }, {}));
+                }
+                let bodySig = '';
+                const body = options.body;
+                if (body) {
+                    if (typeof body === 'string') bodySig = body.slice(0, 128);
+                    else if (typeof body === 'object') { try { bodySig = JSON.stringify(body).slice(0, 128); } catch {} }
+                }
+                return `${method}:${url}#${headersSig}:${bodySig}`;
             }
 
             // 清除 API 缓存
@@ -1337,12 +1376,12 @@
             }
 
             async _fetchWithRetry(url, options = {}) {
-                const { maxRetries = CONFIG.NETWORK.RETRY_COUNT, timeout = CONFIG.NETWORK.TIMEOUT, headers = {} } = options;
+                const { maxRetries = CONFIG.NETWORK.RETRY_COUNT, timeout = CONFIG.NETWORK.TIMEOUT, headers = {}, method = 'GET', body = undefined } = options;
                 const finalHeaders = this._buildHeaders(url, { 'Accept': 'application/json, text/html, */*', ...headers });
                 
                 for (let i = 0; i < maxRetries; i++) {
                     try {
-                        return await this._doFetch(url, timeout, finalHeaders);
+                        return await this._doFetch(url, { timeout, headers: finalHeaders, method, body });
                     } catch (e) {
                         if (i === maxRetries - 1) throw e;
                         await new Promise(r => setTimeout(r, CONFIG.NETWORK.RETRY_DELAY * Math.pow(2, i)));
@@ -1350,7 +1389,7 @@
                 }
             }
 
-            async _doFetch(url, timeout, headers = {}) {
+            async _doFetch(url, { timeout, headers = {}, method = 'GET', body = undefined }) {
                 // 检测是否为同源请求
                 const isSameOrigin = this._isSameOrigin(url);
                 
@@ -1362,6 +1401,8 @@
                         const timeoutId = setTimeout(() => controller.abort(), timeout);
                         const resp = await fetch(url, { 
                             credentials: 'include',
+                            method,
+                            body,
                             headers,
                             signal: controller.signal
                         });
@@ -1390,12 +1431,13 @@
                         
                         try {
                             GM_xmlhttpRequest({
-                                method: 'GET',
+                                method,
                                 url,
                                 timeout,
                                 // v3.5.4.9: 添加 withCredentials 携带 cookie
                                 withCredentials: true,
                                 headers,
+                                data: body && typeof body === 'object' && !(body instanceof FormData) ? JSON.stringify(body) : body,
                                 onload: res => {
                                     if (settled) return;
                                     settled = true;
@@ -1434,6 +1476,8 @@
                 const timeoutId = setTimeout(() => controller.abort(), timeout);
                 const resp = await fetch(url, { 
                     credentials: 'include',
+                    method,
+                    body,
                     headers,
                     signal: controller.signal
                 });
@@ -2840,7 +2884,7 @@
                     // 优化：只上传最近 90 天的数据，减少请求大小
                     const cutoffDate = new Date();
                     cutoffDate.setDate(cutoffDate.getDate() - 90);
-                    const cutoff = cutoffDate.toDateString();
+                    const _cutoff = cutoffDate.toDateString();
                     
                     const recentData = {};
                     let count = 0;
@@ -3390,7 +3434,8 @@
     #ldsp-panel.collapsed{width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;max-height:48px!important;border-radius:var(--r-md);cursor:pointer;touch-action:none;background:linear-gradient(135deg,#7a9bf5 0%,#5a7de0 50%,#5bb5a6 100%);border:none;box-shadow:var(--shadow),0 0 20px rgba(107,140,239,.35)}
     #ldsp-panel.collapsed .ldsp-hdr{padding:0;justify-content:center;align-items:center;height:100%;background:0 0;min-height:0}
     #ldsp-panel.collapsed .ldsp-hdr-info{opacity:0;visibility:hidden;pointer-events:none;position:absolute;transform:translateX(-10px)}
-    #ldsp-panel.collapsed .ldsp-body{display:none!important}
+    #ldsp-panel .ldsp-body{transition:max-height var(--dur-slow) var(--ease),opacity var(--dur-fast) var(--ease);opacity:1;max-height:calc(var(--h) - 120px);}
+    #ldsp-panel.collapsed .ldsp-body{max-height:0!important;opacity:0;pointer-events:none;overflow:hidden}
     #ldsp-panel.collapsed .ldsp-hdr-btns>button:not(.ldsp-toggle){opacity:0;visibility:hidden;pointer-events:none;transform:scale(0.8);position:absolute}
     #ldsp-panel.collapsed .ldsp-hdr-btns{justify-content:center;width:100%;height:100%;margin-left:0}
     #ldsp-panel.collapsed,#ldsp-panel.collapsed *{cursor:pointer!important}
@@ -6672,11 +6717,9 @@
             async _fetchData() {
                 const token = ++this._reqToken.overview;
                 this._loadingState.overview = true;
-                const body = this.overlay.querySelector('.ldsp-ldc-body');
+                const _body = this.overlay.querySelector('.ldsp-ldc-body');
                 const btn = this.overlay.querySelector('.ldsp-ldc-refresh');
-                btn?.classList.add('spinning');
-                body.innerHTML = `<div class="ldsp-ldc-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>`;
-
+                _body.innerHTML = `<div class="ldsp-ldc-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>`;
                 try {
                     const user = await this._getUserInfo(true);
                     if (!user || user._authError) {
@@ -6842,6 +6885,7 @@
                     const id = ++this._reqId;
                     const timeout = setTimeout(() => { 
                         this._requests.delete(id); 
+                        debugBridgeLog('LDC bridge timeout', { url, method });
                         resolve({ _bridgeError: true, _timeoutError: true, _error: '请求超时' }); 
                     }, timeoutMs);
                     
@@ -6857,8 +6901,10 @@
                                 resolve(respData);
                             }
                         } else if (status === 401 || status === 403) {
+                            debugBridgeLog('LDC bridge auth fail', { url, status });
                             resolve({ _authError: true });
                         } else {
+                            debugBridgeLog('LDC bridge status', { url, status });
                             resolve({ _bridgeError: true, _error: respData?._error || `请求失败 (${status})` });
                         }
                     });
@@ -6874,6 +6920,7 @@
                     } catch (e) {
                         clearTimeout(timeout);
                         this._requests.delete(id);
+                        debugBridgeLog('LDC bridge postMessage error', e?.message || e);
                         resolve({ _bridgeError: true, _error: '发送请求失败' });
                     }
                 });
@@ -6892,10 +6939,16 @@
                             if (r.status === 200) {
                     try { const j = JSON.parse(r.responseText); resolve(j?.data ?? null); return; } catch {}
                 }
-                resolve(r.status === 401 || r.status === 403 ? { _authError: true } : null);
+                if (r.status === 401 || r.status === 403) {
+                    debugBridgeLog('LDC GM auth fail', { url, status: r.status });
+                    resolve({ _authError: true });
+                    return;
+                }
+                debugBridgeLog('LDC GM unexpected status', { url, status: r.status });
+                resolve(null);
             },
-            onerror: () => resolve({ _networkError: true }),
-            ontimeout: () => resolve({ _timeoutError: true })
+            onerror: () => { debugBridgeLog('LDC GM network error', url); resolve({ _networkError: true }); },
+            ontimeout: () => { debugBridgeLog('LDC GM timeout', url); resolve({ _timeoutError: true }); }
         });
     });
 }
@@ -7017,7 +7070,7 @@
                 const token = ++this._reqToken.trans;
                 this._loadingState.trans = true;
                 const currentTab = this._tab; // 保存发起请求时的 tab 状态
-                const body = this.overlay.querySelector('.ldsp-ldc-body');
+                const _body = this.overlay.querySelector('.ldsp-ldc-body');
                 const btn = this.overlay.querySelector('.ldsp-ldc-refresh');
                 if (!more) { btn?.classList.add('spinning'); this._trans = { orders: [], page: 1, total: 0, hasMore: false }; this._renderTransUI(true); }
                 const page = more ? this._trans.page + 1 : 1;
@@ -8152,7 +8205,7 @@
                 
                 // 格式化时间
                 const createdAt = product.created_at ? new Date(product.created_at).toLocaleString('zh-CN') : '—';
-                const updatedAt = product.updated_at ? new Date(product.updated_at).toLocaleString('zh-CN') : createdAt;
+                const _updatedAt = product.updated_at ? new Date(product.updated_at).toLocaleString('zh-CN') : createdAt;
 
                 // 格式化卖家头像
                 const sellerAvatar = this._formatAvatar(product.seller_avatar, product.seller_username);
@@ -9960,6 +10013,7 @@
                         } else if (status === 401 || status === 403) {
                             resolve({ _authError: true });
                         } else {
+                            debugBridgeLog('CDK bridge status', { url, status });
                             resolve({ _error: data._error || `请求失败 (${status})` });
                         }
                     });
@@ -9968,6 +10022,7 @@
                     } catch (e) {
                         clearTimeout(timeout);
                         this._requests.delete(id);
+                        debugBridgeLog('CDK bridge postMessage error', e?.message || e);
                         resolve({ _error: '发送请求失败' });
                     }
                 });
@@ -11954,7 +12009,7 @@
 
             // 渲染用户信息
             renderUser(name, level, isOK, reqs, displayName = null) {
-                const done = reqs.filter(r => r.isSuccess).length;
+                const _done = reqs.filter(r => r.isSuccess).length;
                 const $ = this.panel.$;
                 // XSS 防护：使用 textContent 而不是 innerHTML，并清理输入
                 const safeName = Utils.sanitize(name, 30);
@@ -13720,7 +13775,7 @@
                 }
                 
                 // 临时移除折叠状态来计算实际高度
-                const wasCollapsed = area.classList.contains('collapsed');
+                const _wasCollapsed = area.classList.contains('collapsed');
                 area.classList.remove('collapsed');
                 
                 // 强制重排以获取正确的布局信息
@@ -14015,6 +14070,9 @@
              * - left 定位的面板取 left 值，right 定位的面板取 right 值
              */
             _toggle() {
+                if (this._toggleAnimating) return;
+                this._toggleAnimating = true;
+                
                 const el = this.el;
                 const isCurrentlyCollapsed = el.classList.contains('collapsed');
                 const willCollapse = !isCurrentlyCollapsed;
@@ -14101,7 +14159,8 @@
                         el.classList.remove('anim');
                         // 保存位置（保持当前的 alignRight，只更新 anchorX 和 top）
                         this._savePositionKeepAlign(alignRight);
-                    }, 400);
+                        this._toggleAnimating = false;
+                    }, 420);
                 });
             }
             

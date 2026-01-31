@@ -1,0 +1,14 @@
+{
+  "name": "ldstatuspro",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "prettier": "^3.2.5"
+  },
+  "scripts": {
+    "lint:userscript": "eslint LDStatusPro.user.js",
+    "fmt": "prettier --write LDStatusPro.user.js"
+  }
+}
