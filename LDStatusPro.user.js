@@ -12988,6 +12988,12 @@
                 LDSPDialog.init(this.el);
                 // 管理器改为按需懒加载，减少首屏开销
                 this._loadAvatarFromCache();
+                // 轻量预取关注/粉丝/入站天数（空闲时执行，不阻塞首屏）
+                requestIdleCallback(() => {
+                    const fm = this._ensureFollowManager();
+                    fm?.loadData().catch(e => Logger.warn('FollowManager prefetch error:', e));
+                    fm?.loadProfile().catch(e => Logger.warn('FollowManager profile prefetch error:', e));
+                });
             }
 
             // ==================== 懒加载各功能管理器 ====================
