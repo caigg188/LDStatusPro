@@ -10023,8 +10023,39 @@
                         clearTimeout(timeout);
                         this._requests.delete(id);
                         debugBridgeLog('CDK bridge postMessage error', e?.message || e);
-                        resolve({ _error: '发送请求失败' });
+                        resolve({ _bridgeError: true, _error: '发送请求失败' });
                     }
+                }).then(async resp => {
+                    // 桥接失败/未登录时，尝试 GM 兜底（桌面端更稳定）
+                    if (resp?._bridgeError || resp?._timeoutError || resp?._networkError) {
+                        debugBridgeLog('CDK bridge fallback to GM', { url, reason: resp });
+                        const gmResp = await this._requestViaGM(url);
+                        return gmResp ?? resp;
+                    }
+                    return resp;
+                });
+            }
+
+            _requestViaGM(url) {
+                if (typeof GM_xmlhttpRequest !== 'function') return null;
+                return new Promise(resolve => {
+                    GM_xmlhttpRequest({
+                        method: 'GET',
+                        url,
+                        withCredentials: true,
+                        timeout: 12000,
+                        headers: { 'Accept': 'application/json', 'Referer': 'https://cdk.linux.do/dashboard' },
+                        onload: r => {
+                            if (r.status === 200) {
+                                try { resolve(JSON.parse(r.responseText)); return; } catch {}
+                            }
+                            if (r.status === 401 || r.status === 403) { resolve({ _authError: true }); return; }
+                            debugBridgeLog('CDK GM status', { url, status: r.status });
+                            resolve({ _error: `请求失败 (${r.status})` });
+                        },
+                        ontimeout: () => { debugBridgeLog('CDK GM timeout', url); resolve({ _timeoutError: true }); },
+                        onerror: () => { debugBridgeLog('CDK GM network', url); resolve({ _networkError: true }); }
+                    });
                 });
             }
 
