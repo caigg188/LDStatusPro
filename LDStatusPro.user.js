@@ -32,6 +32,15 @@
     (function() {
         'use strict';
 
+        // 提前定义跨域白名单 & 调试开关（桥接逻辑需要）
+        const ALLOWED_ORIGINS = ['https://linux.do', 'https://www.linux.do', 'https://idcflare.com', 'https://www.idcflare.com'];
+        const DEBUG = {
+            bridgeLogs: (typeof GM_getValue === 'function' && GM_getValue('ldsp_debug_bridge', false)) || false
+        };
+        const debugBridgeLog = (...args) => {
+            if (DEBUG.bridgeLogs) console.debug('[LDSP][bridge]', ...args);
+        };
+
         // ==================== CDK/LDC 桥接页面 ====================
         // 在 cdk.linux.do 或 credit.linux.do 运行时作为数据桥接，用原生 fetch 请求 API（同域自动带 cookie）
         if (location.hostname === 'cdk.linux.do') {
@@ -128,13 +137,6 @@
             return setTimeout(() => cb({ didTimeout: false, timeRemaining: () => Math.max(0, 50 - (Date.now() - start)) }), 1);
         };
         const _cancelIdleCallback = window.cancelIdleCallback || clearTimeout;
-        const ALLOWED_ORIGINS = ['https://linux.do', 'https://www.linux.do', 'https://idcflare.com', 'https://www.idcflare.com'];
-        const DEBUG = {
-            bridgeLogs: (typeof GM_getValue === 'function' && GM_getValue('ldsp_debug_bridge', false)) || false
-        };
-        const debugBridgeLog = (...args) => {
-            if (DEBUG.bridgeLogs) console.debug('[LDSP][bridge]', ...args);
-        };
 
         // ==================== 网站配置 ====================
         const SITE_CONFIGS = {
