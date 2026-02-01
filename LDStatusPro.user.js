@@ -1,7 +1,7 @@
  // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.4.13
+// @version      3.5.4.14
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -1086,6 +1086,7 @@
                 'INVALID_TOKEN': '登录已失效，请重新登录',
                 'TOKEN_EXPIRED': '登录已过期，请重新登录',
                 'NOT_JOINED': '请先加入排行榜',
+                'REGISTRATION_PAUSED': '已暂停新用户注册',
                 'UNAUTHORIZED': '没有访问权限',
                 'NOT_FOUND': '请求的资源不存在',
                 'SERVER_ERROR': '服务器暂时不可用，请稍后重试',
@@ -1575,7 +1576,10 @@
                                     
                                     // 其他错误：构建错误消息
                                     const errorMsg = data.error?.message || data.error || `HTTP ${res.status}`;
-                                    reject(new Error(errorCode ? `${errorCode}: ${errorMsg}` : errorMsg));
+                                    const err = new Error(errorCode ? `${errorCode}: ${errorMsg}` : errorMsg);
+                                    if (errorCode) err.code = errorCode;
+                                    err.status = res.status;
+                                    reject(err);
                                 }
                             } catch (e) {
                                 // JSON 解析失败，可能是服务器返回非 JSON 响应
@@ -3852,6 +3856,9 @@
     .ldsp-join-prompt-icon{font-size:44px;margin-bottom:12px;filter:drop-shadow(0 2px 10px rgba(0,0,0,.15))}
     .ldsp-join-prompt-title{font-size:14px;font-weight:700;margin-bottom:6px;letter-spacing:-.01em}
     .ldsp-join-prompt-desc{font-size:11px;color:var(--txt-mut);line-height:1.7;margin-bottom:16px;font-weight:500}
+    .ldsp-join-prompt.paused{border-style:dashed;background:linear-gradient(135deg,rgba(244,63,94,.08),rgba(249,115,22,.06))}
+    .ldsp-join-prompt.paused::before{background:linear-gradient(90deg,#f97316,#f43f5e)}
+    .ldsp-join-prompt.paused .ldsp-join-prompt-title{color:#f97316}
     .ldsp-privacy-note{font-size:9px;color:var(--txt-mut);margin-top:12px;display:flex;align-items:center;justify-content:center;gap:5px;font-weight:500}
     /* 面板手动调整大小 - 仅桌面端 */
     @media (hover:hover) and (pointer:fine){
@@ -12416,6 +12423,7 @@
             }
             renderLeaderboardLogin() { return `<div class="ldsp-lb-login"><div class="ldsp-lb-login-icon">🔐</div><div class="ldsp-lb-login-title">需要登录</div><div class="ldsp-lb-login-desc">登录后可以：<br>☁️ 阅读数据云端同步<br>🏆 查看/加入排行榜</div><button class="ldsp-lb-btn primary" id="ldsp-lb-login">🚀 立即登录</button><div class="ldsp-privacy-note"><span>🔒</span><span>仅获取基本信息，用于数据同步</span></div></div>`; }
             renderLeaderboardJoin() { return `<div class="ldsp-join-prompt"><div class="ldsp-join-prompt-icon">🏆</div><div class="ldsp-join-prompt-title">加入阅读排行榜</div><div class="ldsp-join-prompt-desc">加入后可以查看排行榜，你的阅读时间将与其他用户一起展示<br>这是完全可选的，随时可以退出</div><button class="ldsp-lb-btn primary" id="ldsp-lb-join">✨ 加入排行榜</button><div class="ldsp-privacy-note"><span>🔒</span><span>仅展示用户名和阅读时间</span></div></div>`; }
+            renderRegistrationPaused() { return `<div class="ldsp-join-prompt paused"><div class="ldsp-join-prompt-icon">🚧</div><div class="ldsp-join-prompt-title">已暂停新用户注册</div><div class="ldsp-join-prompt-desc">由于后端服务压力，暂不开放新用户注册。已注册用户可正常登录使用。</div></div>`; }
 
             renderLeaderboardData(data, uid, joined, type = 'daily') {
                 const fmtInt = ms => { const m = Math.round(ms/60000); return m < 60 ? `每 ${m} 分钟更新` : `每 ${Math.round(m/60)} 小时更新`; };
@@ -13054,6 +13062,8 @@
                 this.cachedHistory = [];
                 this.cachedReqs = [];
                 this.loading = false;
+                this.registrationPaused = false;  // 后端暂停新用户注册开关（通过 /api/user/status 透出）
+                this.hasJoinedBefore = false;    // joinedAt 存在时为 true，用于判断老用户
                 this._readingTimer = null;
                 this._destroyed = false;  // 销毁标记
                 this._followDataLoaded = false;
@@ -13564,6 +13574,8 @@
                     hideLogoutConfirm();
                     this.oauth.logout();
                     this.leaderboard?.stopSync();
+                    this.registrationPaused = false;
+                    this.hasJoinedBefore = false;
                     this.renderer.showToast('✅ 已退出登录');
                     this._updateLoginUI();
                     this._renderLeaderboard();
@@ -15652,8 +15664,16 @@
                 try {
                     const result = await this.oauth.api('/api/user/status');
                     if (result.success && result.data) {
+                        const prevPaused = this.registrationPaused;
+                        const prevJoinedBefore = this.hasJoinedBefore;
+                        this.registrationPaused = !!result.data.registrationPaused;
+                        this.hasJoinedBefore = !!result.data.joinedAt;
                         this.oauth.setJoined(result.data.isJoined || false);
-                        if (this.oauth.isJoined()) this.leaderboard.startSync();
+                        if (this.oauth.isJoined()) {
+                            this.leaderboard.startSync();
+                        } else if (prevPaused !== this.registrationPaused || prevJoinedBefore !== this.hasJoinedBefore) {
+                            await this._renderLeaderboardContent();
+                        }
                     }
                 } catch (e) {
                     console.warn('[Prefs]', e);
@@ -16472,6 +16492,11 @@
                 }
 
                 if (!joined) {
+                    if (this.registrationPaused && !this.hasJoinedBefore) {
+                        container.innerHTML = this.renderer.renderRegistrationPaused();
+                        return;
+                    }
+
                     container.innerHTML = this.renderer.renderLeaderboardJoin();
                     const joinBtn = container.querySelector('#ldsp-lb-join');
                     if (joinBtn) {
@@ -16480,12 +16505,19 @@
                             joinBtn.textContent = '⏳ 加入中...';
                             try {
                                 await this.leaderboard.join();
+                                this.hasJoinedBefore = true;
                                 this.leaderboard.startSync();
                                 this.renderer.showToast('✅ 已成功加入排行榜');
                                 await this._renderLeaderboardContent();
                             } catch (e) {
-                                // v3.5.2.9: 使用统一的错误格式化
-                                this.renderer.showToast(ErrorFormatter.withIcon(e));
+                                const msg = ErrorFormatter.withIcon(e);
+                                this.renderer.showToast(msg);
+                                const paused = e?.code === 'REGISTRATION_PAUSED' || (e?.message || '').includes('已暂停新用户注册');
+                                if (paused) {
+                                    this.registrationPaused = true;
+                                    await this._renderLeaderboardContent();
+                                    return;
+                                }
                                 joinBtn.disabled = false;
                                 joinBtn.textContent = '✨ 加入排行榜';
                             }
