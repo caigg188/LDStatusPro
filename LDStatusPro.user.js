@@ -1,7 +1,7 @@
  // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-// @version      3.5.4.14
+    // @version      3.5.4.15
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -3089,6 +3089,19 @@
             }
 
             /**
+             * 为单日升级要求记录生成稳定哈希，用于请求去重
+             * @param {{data: object, readingTime?: number}} record
+             * @returns {string}
+             */
+            _getReqRecordHash(record) {
+                if (!record?.data) return '';
+                const sorted = Object.entries(record.data).sort(([a], [b]) => a.localeCompare(b));
+                const dataStr = sorted.map(([k, v]) => `${k}:${v ?? 0}`).join('|');
+                const reading = Math.round(record.readingTime || 0);
+                return `${dataStr}|rt:${reading}`;
+            }
+
+            /**
              * 下载升级要求历史数据
              */
             async downloadRequirements() {
@@ -3179,18 +3192,38 @@
              * 增量同步当天的升级要求数据
              * @param {Object} todayRecord - 今天的历史记录 {ts, data, readingTime}
              */
-            async syncTodayRequirements(todayRecord) {
+            async syncTodayRequirements(todayRecord, { force = false } = {}) {
                 // 前置检查：登录状态 + 数据有效性
                 if (!this.oauth.isLoggedIn() || !this._historyMgr) return null;
                 if (!todayRecord?.data || Object.keys(todayRecord.data).length === 0) return null;
+                // 仅标签页主节点执行，避免多标签重复请求
+                if (!TabLeader.isLeader()) return null;
                 
+                const INCREMENTAL_INTERVAL = CONFIG.INTERVALS.REQ_SYNC_INCREMENTAL || 3600000; // 1小时
+                const now = Date.now();
+                const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+                const lastIncremental = this._reqLastIncrementalSync || 0;
+
+                // 数据去重：相同内容不重复同步
+                const hashKey = `lastReqHash_${today}`;
+                const currentHash = this._getReqRecordHash(todayRecord);
+                const lastHash = this.storage.getGlobal(hashKey, '');
+
+                if (!force) {
+                    if (currentHash && currentHash === lastHash) {
+                        return null;
+                    }
+                    if ((now - lastIncremental) < INCREMENTAL_INTERVAL) {
+                        return null;
+                    }
+                }
+
                 // 检查退避延迟
                 if (!this._canRetry('requirements')) {
                     return null;
                 }
 
                 try {
-                    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
                     const result = await this.oauth.api('/api/requirements/sync', {
                         method: 'POST',
                         body: { 
@@ -3203,6 +3236,9 @@
                     if (result.success) {
                         this._reqLastIncrementalSync = Date.now();
                         this.storage.setGlobalNow('lastReqIncrementalSync', this._reqLastIncrementalSync);
+                        if (currentHash) {
+                            this.storage.setGlobalNow(hashKey, currentHash);
+                        }
                         this._updateTrustLevelCache(true);
                         this._recordSuccess('requirements');
                         return result.data;
