@@ -252,8 +252,8 @@
   font-size: 13px;
   font-weight: 500;
   border-radius: 16px;
-  background: #f5f3f0;
-  color: #666;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
 .tag.tag-subscription { background: #e8f5e8; color: #166534; }

@@ -94,6 +94,12 @@ const routes = [
     meta: { title: '登录中...' }
   },
   {
+    path: '/ld-image',
+    name: 'LdImage',
+    component: () => import('@/views/LdImage.vue'),
+    meta: { title: '士多图床 - LD士多' }
+  },
+  {
     path: '/docs',
     name: 'Docs',
     component: () => import('@/views/Docs.vue'),

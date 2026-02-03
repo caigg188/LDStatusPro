@@ -193,7 +193,7 @@ onDeactivated(() => {
 .category-page {
   min-height: 100vh;
   padding-bottom: 80px;
-  background: #faf9f7;
+  background: var(--bg-primary);
 }
 
 .page-container {
@@ -211,13 +211,13 @@ onDeactivated(() => {
 .page-title {
   font-size: 28px;
   font-weight: 700;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0 0 8px;
 }
 
 .page-subtitle {
   font-size: 14px;
-  color: #999;
+  color: var(--text-tertiary);
   margin: 0;
 }
 
@@ -225,9 +225,9 @@ onDeactivated(() => {
 .filter-bar {
   margin-bottom: 20px;
   padding: 12px 16px;
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 /* LiquidTabs 已替代原有样式 */
@@ -241,7 +241,7 @@ onDeactivated(() => {
 .back-btn {
   display: inline-block;
   padding: 12px 24px;
-  background: #a5b4a3;
+  background: var(--color-primary);
   color: white;
   border-radius: 12px;
   text-decoration: none;
@@ -251,7 +251,7 @@ onDeactivated(() => {
 }
 
 .back-btn:hover {
-  background: #95a493;
+  background: var(--color-primary-hover);
 }
 
 /* 商品网格 */
@@ -275,18 +275,18 @@ onDeactivated(() => {
 
 .load-more-btn {
   padding: 12px 40px;
-  background: white;
-  border: 1px solid #f0ede9;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 24px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .load-more-btn:hover:not(:disabled) {
-  background: #faf9f7;
-  border-color: #e0dcd6;
+  background: var(--bg-secondary);
+  border-color: var(--border-default);
 }
 
 .load-more-btn:disabled {

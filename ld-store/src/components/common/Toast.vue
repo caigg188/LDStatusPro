@@ -59,15 +59,17 @@ function getIcon(type) {
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--glass-bg-heavy);
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--dropdown-shadow);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border-light);
   pointer-events: auto;
   cursor: pointer;
   max-width: 90vw;
   font-size: 14px;
-  color: #3d3d3d;
+  color: var(--text-primary);
 }
 
 .toast-icon {
@@ -79,30 +81,30 @@ function getIcon(type) {
 }
 
 .toast-success {
-  border-left: 3px solid #7d8d69;
+  border-left: 3px solid var(--color-success);
 }
 
 .toast-error {
-  border-left: 3px solid #ad9090;
+  border-left: 3px solid var(--color-danger);
 }
 
 .toast-warning {
-  border-left: 3px solid #cfa76f;
+  border-left: 3px solid var(--color-warning);
 }
 
 .toast-info {
-  border-left: 3px solid #778d9c;
+  border-left: 3px solid var(--color-info);
 }
 
 .toast-loading {
-  border-left: 3px solid #b5a898;
+  border-left: 3px solid var(--color-primary);
 }
 
 .toast-spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(181, 168, 152, 0.3);
-  border-top-color: #b5a898;
+  border: 2px solid var(--border-medium);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

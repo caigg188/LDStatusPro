@@ -17,7 +17,8 @@
     </span>
     
     <!-- 类型标签 -->
-    <span v-if="isCdk" class="type-tag cdk">CDK</span>
+    <span v-if="isTestMode" class="type-tag test">🧪 测试</span>
+    <span v-else-if="isCdk" class="type-tag cdk">CDK</span>
     <span v-else-if="isStore" class="type-tag store">小店</span>
     
     <!-- 商品图片 -->
@@ -61,6 +62,7 @@
             :src="sellerAvatar"
             alt=""
             class="seller-avatar"
+            referrerpolicy="no-referrer"
             @error="handleAvatarError"
           />
           <span class="seller-name">{{ product.seller_username || '匿名' }}</span>
@@ -95,8 +97,12 @@ const props = defineProps({
   }
 })
 
+
 // 图片加载状态
 const imageLoaded = ref(false)
+
+// 默认头像 SVG (data URI)
+const defaultAvatar = `data:image/svg+xml,${encodeURIComponent('<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M326.169 533.554v9.903c0 101.362 82.138 184.083 183.5 184.083s183.501-82.72 183.501-184.083v-9.903h-367.001zm277.872-70.487c22.137 0 40.196-18.06 40.196-40.196s-18.06-40.195-40.196-40.195-40.195 18.059-40.195 40.195 18.059 40.196 40.195 40.196zm-186.996 0c22.137 0 40.196-18.06 40.196-40.196s-18.06-40.195-40.196-40.195-40.195 18.059-40.195 40.195 18.059 40.196 40.195 40.196z" fill="#a686ba"/><path d="M1011.239 512c0-276.708-224.279-501.569-501.569-501.569S8.684 235.292 8.684 512c0 154.956 70.487 293.601 180.588 385.643V543.457c0-177.675 143.305-321.563 320.398-321.563s320.398 143.888 320.398 321.563v354.186C941.334 805.601 1011.239 666.956 1011.239 512z" fill="#a686ba"/><path d="M510.252 221.894c-177.093 0-320.398 143.888-320.398 321.563v354.186c86.799 72.235 198.647 115.926 320.398 115.926s233.6-43.691 320.398-115.926V543.457c0-177.675-143.305-321.563-320.398-321.563zm93.207 160.782c22.136 0 40.195 18.059 40.195 40.195s-18.059 40.196-40.195 40.196-40.196-18.06-40.196-40.196 18.06-40.195 40.196-40.195zm-186.996 0c22.136 0 40.195 18.059 40.195 40.195s-18.059 40.196-40.195 40.196-40.196-18.06-40.196-40.196 18.06-40.195 40.196-40.195zm93.207 344.865c-101.363 0-183.501-82.721-183.501-184.084v-9.903h366.418v9.903c.583 101.363-81.556 184.084-182.917 184.084z" fill="#FFF"/></svg>')}`
 
 // 3D 倾斜效果
 const cardRef = ref(null)
@@ -192,6 +198,7 @@ function handleMouseLeave() {
 const productType = computed(() => props.product.product_type || 'link')
 const isCdk = computed(() => productType.value === 'cdk')
 const isStore = computed(() => productType.value === 'store')
+const isTestMode = computed(() => !!props.product.is_test_mode || !!props.product.isTestMode)
 
 // 价格计算
 const price = computed(() => parseFloat(props.product.price) || 0)
@@ -212,16 +219,20 @@ const totalStock = computed(() => props.product.cdkStats?.total || stock.value)
 const isOutOfStock = computed(() => 
   isCdk.value && stock.value !== -1 && availableStock.value <= 0
 )
-const isLowStock = computed(() => 
-  isCdk.value && stock.value !== -1 && availableStock.value <= 5 && availableStock.value > 0
-)
+
+// 库存状态样式类
+// ≤0: out（售罄）, ≤2: danger（红色）, 3-5: warning（黄色）, >5: normal（绿色）
 const stockClass = computed(() => {
-  if (isOutOfStock.value) return 'out'
-  if (isLowStock.value) return 'low'
-  return ''
+  if (!isCdk.value || stock.value === -1) return 'normal' // 无限库存显示绿色
+  if (availableStock.value <= 0) return 'out'
+  if (availableStock.value <= 2) return 'danger'
+  if (availableStock.value <= 5) return 'warning'
+  return 'normal'
 })
 const stockDisplay = computed(() => {
   if (stock.value === -1) return '∞'
+  // 如果库存是0，直接显示0，不显示无限符号
+  if (availableStock.value === 0 && totalStock.value === 0) return '0'
   return `${availableStock.value}/${totalStock.value}`
 })
 
@@ -241,7 +252,7 @@ const categoryName = computed(() =>
 
 // 卖家头像
 const sellerAvatar = computed(() => 
-  props.product.seller_avatar || 'https://linux.do/uploads/default/optimized/4X/6/a/6/6a6affc7b1ce8140279e959d32671304db06d5ab_2_180x180.png'
+  props.product.seller_avatar || defaultAvatar
 )
 
 // 更新时间
@@ -277,18 +288,19 @@ function handleImageError(e) {
 }
 
 function handleAvatarError(e) {
-  e.target.src = 'https://linux.do/favicon.ico'
+  e.target.src = defaultAvatar
 }
 </script>
 
 <style scoped>
 .product-card {
   display: block;
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   overflow: hidden;
   text-decoration: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
   position: relative;
   transform-style: preserve-3d;
   will-change: transform, box-shadow;
@@ -315,7 +327,7 @@ function handleAvatarError(e) {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-15deg);
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--overlay-bg);
   color: white;
   padding: 8px 16px;
   border-radius: 4px;
@@ -357,8 +369,15 @@ function handleAvatarError(e) {
 }
 
 .type-tag.cdk {
-  background: linear-gradient(135deg, #778d9c 0%, #627684 100%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
   color: white;
+  box-shadow: 0 2px 6px rgba(139, 92, 246, 0.35);
+}
+
+.type-tag.test {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  color: white;
+  box-shadow: 0 2px 6px rgba(6, 182, 212, 0.35);
 }
 
 .type-tag.store {
@@ -374,14 +393,14 @@ function handleAvatarError(e) {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: linear-gradient(135deg, #f5f3f0 0%, #ebe7e1 100%);
+  background: var(--bg-secondary);
 }
 
 /* 骨架屏 */
 .cover-skeleton {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #f0ede9 0%, #e5e0d9 100%);
+  background: var(--skeleton-base);
   z-index: 1;
 }
 
@@ -391,7 +410,7 @@ function handleAvatarError(e) {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.5) 50%,
+    var(--skeleton-shine) 50%,
     transparent 100%
   );
   animation: shimmer 1.5s infinite;
@@ -429,13 +448,12 @@ function handleAvatarError(e) {
 .product-name {
   font-size: 14px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0 0 8px;
   line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .product-meta {
@@ -443,39 +461,45 @@ function handleAvatarError(e) {
   align-items: center;
   gap: 8px;
   font-size: 11px;
-  color: #999;
+  color: var(--text-tertiary);
   margin-bottom: 8px;
   flex-wrap: wrap;
 }
 
 .product-category {
-  background: #f5f3f0;
+  background: var(--bg-secondary);
   padding: 2px 6px;
   border-radius: 4px;
 }
 
 .product-stock {
   padding: 3px 8px;
-  background: #e8f5e8;
-  color: #16a34a;
   border-radius: 6px;
   font-weight: 600;
 }
 
-.product-stock.low {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  color: #b45309;
-  animation: pulse-low 1.5s ease-in-out infinite;
+/* 库存充足 (>5) - 绿色 */
+.product-stock.normal {
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
-@keyframes pulse-low {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+/* 库存紧张 (3-5) - 黄色 */
+.product-stock.warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
+/* 库存告急 (≤2) - 红色 */
+.product-stock.danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+/* 售罄 (0) - 红色加粗 */
 .product-stock.out {
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  color: #dc2626;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
   font-weight: 700;
 }
 
@@ -501,13 +525,13 @@ function handleAvatarError(e) {
 
 .store-owner-label {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   flex-shrink: 0;
 }
 
 .seller-name {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -516,7 +540,7 @@ function handleAvatarError(e) {
 .sold-count {
   margin-left: auto;
   font-size: 11px;
-  color: #f97316;
+  color: var(--color-warning);
 }
 
 /* 底部 */
@@ -529,7 +553,7 @@ function handleAvatarError(e) {
 .product-price {
   font-size: 18px;
   font-weight: 700;
-  color: #cfa76f;
+  color: var(--color-warning);
 }
 
 .product-price .unit {
@@ -544,18 +568,18 @@ function handleAvatarError(e) {
 
 .original-price {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   text-decoration: line-through;
   margin-left: 4px;
   font-weight: 400;
-  background: #f3f4f6;
+  background: var(--bg-secondary);
   padding: 1px 4px;
   border-radius: 3px;
 }
 
 .product-views {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 /* 移动端适配 */

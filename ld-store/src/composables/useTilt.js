@@ -136,9 +136,10 @@ export function useTilt(options = {}) {
   }
 
   onMounted(() => {
-    // 检查是否为触摸设备，触摸设备不启用倾斜效果
+    // 检查是否为触摸设备或用户偏好减少动效，优先保证兼容与性能
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
-    if (!isTouchDevice) {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (!isTouchDevice && !prefersReducedMotion) {
       bindEvents()
     }
   })

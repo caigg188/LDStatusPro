@@ -59,13 +59,30 @@ export const useShopStore = defineStore('shop', () => {
     return categories.value
   }
 
+  // 排序状态
+  const currentSort = ref('default')
+  
+  // 筛选：只看有库存
+  const inStockOnly = ref(false)
+
+  // 排序参数映射
+  const sortMapping = {
+    default: { sortBy: 'updated_at', sortOrder: 'DESC' },
+    newest: { sortBy: 'created_at', sortOrder: 'DESC' },
+    price_asc: { sortBy: 'price', sortOrder: 'ASC' },
+    price_desc: { sortBy: 'price', sortOrder: 'DESC' },
+    sales: { sortBy: 'sold_count', sortOrder: 'DESC' }
+  }
+
   // 获取商品列表
-  async function fetchProducts(categoryId = '', forceRefresh = false) {
+  async function fetchProducts(categoryId = '', forceRefresh = false, sort = '') {
     if (loading.value) return
 
-    // 切换分类时重置状态
-    if (categoryId !== currentCategory.value || forceRefresh) {
+    // 切换分类或排序时重置状态
+    const sortChanged = sort && sort !== currentSort.value
+    if (categoryId !== currentCategory.value || forceRefresh || sortChanged) {
       currentCategory.value = categoryId
+      if (sort) currentSort.value = sort
       page.value = 1
       hasMore.value = true
       products.value = []
@@ -77,6 +94,15 @@ export const useShopStore = defineStore('shop', () => {
       let url = `/api/shop/products?page=${page.value}&pageSize=${pageSize}`
       if (categoryId) {
         url += `&categoryId=${encodeURIComponent(categoryId)}`
+      }
+      
+      // 添加排序参数
+      const sortConfig = sortMapping[currentSort.value] || sortMapping.default
+      url += `&sortBy=${sortConfig.sortBy}&sortOrder=${sortConfig.sortOrder}`
+      
+      // 添加库存筛选
+      if (inStockOnly.value) {
+        url += '&inStock=true'
       }
 
       const result = await api.get(url)
@@ -99,12 +125,13 @@ export const useShopStore = defineStore('shop', () => {
   }
 
   // 从缓存恢复分类状态（前端缓存用）
-  function restoreFromCache(categoryId, cachedProducts, cachedTotal, cachedHasMore, cachedPage) {
+  function restoreFromCache(categoryId, cachedProducts, cachedTotal, cachedHasMore, cachedPage, cachedSort = 'default') {
     currentCategory.value = categoryId
     products.value = cachedProducts
     total.value = cachedTotal
     hasMore.value = cachedHasMore
     page.value = cachedPage
+    currentSort.value = cachedSort
   }
 
   // 加载更多商品
@@ -180,7 +207,8 @@ export const useShopStore = defineStore('shop', () => {
     searchLoading.value = true
 
     try {
-      const result = await api.get(`/api/shop/products/search?q=${encodeURIComponent(query)}`)
+      // 使用已有的 /api/shop/products 端点，通过 search 参数进行搜索
+      const result = await api.get(`/api/shop/products?search=${encodeURIComponent(query)}`)
       if (result.success && result.data?.products) {
         searchResults.value = result.data.products
         return result.data.products
@@ -272,7 +300,7 @@ export const useShopStore = defineStore('shop', () => {
       if (result.success) {
         invalidateCache()
         productCache.delete(id)
-        await fetchMyProducts()
+        // 不需要重新获取，前端会自己移除
       }
       return result
     } catch (e) {
@@ -473,11 +501,23 @@ export const useShopStore = defineStore('shop', () => {
     }
   }
 
+  // 切换库存筛选
+  async function toggleInStockOnly() {
+    inStockOnly.value = !inStockOnly.value
+    // 重新加载商品
+    page.value = 1
+    hasMore.value = true
+    products.value = []
+    await fetchProducts(currentCategory.value, true)
+  }
+
   return {
     // 状态
     categories,
     products,
     currentCategory,
+    currentSort,
+    inStockOnly,
     loading,
     hasMore,
     page,
@@ -497,6 +537,7 @@ export const useShopStore = defineStore('shop', () => {
     fetchProducts,
     restoreFromCache,
     loadMore,
+    toggleInStockOnly,
     fetchProduct,
     searchProducts,
     clearSearch,

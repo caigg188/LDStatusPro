@@ -100,8 +100,12 @@
           <div class="order-footer">
             <span class="order-amount">{{ order.total_price || order.amount }} LDC</span>
             <div class="order-actions">
-              <!-- 待支付订单操作按钮 -->
-              <template v-if="order.status === 'pending' && currentRole === 'buyer'">
+              <!-- 图床订单 -->
+              <template v-if="order.order_type === 'image'">
+                <span class="order-action" @click="viewOrderDetail(order)">查看图床 →</span>
+              </template>
+              <!-- CDK 待支付订单操作按钮（买家和卖家都可以取消） -->
+              <template v-else-if="order.status === 'pending'">
                 <button class="action-btn cancel-btn" @click.stop="handleCancelOrder(order)">取消订单</button>
               </template>
               <span v-else class="order-action" @click="viewOrderDetail(order)">查看详情 →</span>
@@ -191,6 +195,11 @@ function loadMore() {
 
 // 查看订单详情
 function viewOrderDetail(order) {
+  // 图床订单跳转到图床页面
+  if (order.order_type === 'image') {
+    router.push('/ld-image')
+    return
+  }
   const orderNo = order.order_no || order.orderNo || order.id
   router.push(`/order/${orderNo}?role=${currentRole.value}`)
 }
@@ -199,11 +208,14 @@ function viewOrderDetail(order) {
 function getStatusText(status) {
   const map = {
     pending: '待支付',
+    paying: '支付中',
     paid: '已支付',
     completed: '已完成',
     cancelled: '已取消',
     refunded: '已退款',
-    delivered: '已发货'
+    delivered: '已发货',
+    expired: '已过期',
+    uploaded: '已上传'
   }
   return map[status] || status || '未知'
 }
@@ -212,11 +224,14 @@ function getStatusText(status) {
 function getStatusClass(status) {
   const map = {
     pending: 'status-pending',
+    paying: 'status-pending',
     paid: 'status-paid',
     completed: 'status-completed',
     cancelled: 'status-cancelled',
     refunded: 'status-refunded',
-    delivered: 'status-delivered'
+    delivered: 'status-delivered',
+    expired: 'status-expired',
+    uploaded: 'status-completed'
   }
   return map[status] || ''
 }
@@ -302,7 +317,7 @@ onMounted(() => {
 .orders-page {
   min-height: 100vh;
   padding-bottom: 80px;
-  background: #faf9f7;
+  background: var(--bg-primary);
 }
 
 .page-container {
@@ -318,7 +333,7 @@ onMounted(() => {
 .page-title {
   font-size: 24px;
   font-weight: 700;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -332,25 +347,25 @@ onMounted(() => {
 .role-tab {
   flex: 1;
   padding: 14px 20px;
-  background: white;
-  border: 2px solid #f0ede9;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
   border-radius: 14px;
   font-size: 15px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .role-tab:hover {
-  border-color: #e0dcd6;
-  background: #faf9f7;
+  border-color: var(--border-hover);
+  background: var(--bg-secondary);
 }
 
 .role-tab.active {
-  background: #f0f9f0;
-  border-color: #a5b4a3;
-  color: #5a8c5a;
+  background: rgba(143, 163, 141, 0.15);
+  border-color: #8fa38d;
+  color: #6b7d69;
   font-weight: 600;
 }
 
@@ -362,10 +377,10 @@ onMounted(() => {
 }
 
 .skeleton-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 16px 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .skeleton-header {
@@ -375,7 +390,7 @@ onMounted(() => {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #f5f3f0 25%, #ebe7e1 50%, #f5f3f0 75%);
+  background: var(--skeleton-gradient);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
@@ -406,7 +421,7 @@ onMounted(() => {
 .browse-btn {
   display: inline-block;
   padding: 12px 24px;
-  background: #a5b4a3;
+  background: var(--color-primary);
   color: white;
   border-radius: 12px;
   text-decoration: none;
@@ -416,7 +431,7 @@ onMounted(() => {
 }
 
 .browse-btn:hover {
-  background: #95a493;
+  background: var(--color-primary-hover);
 }
 
 /* 订单列表 */
@@ -427,17 +442,17 @@ onMounted(() => {
 }
 
 .order-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 16px 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .order-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .order-header {
@@ -449,7 +464,7 @@ onMounted(() => {
 
 .order-date {
   font-size: 13px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .order-status {
@@ -460,33 +475,38 @@ onMounted(() => {
 }
 
 .status-pending {
-  background: #fff8eb;
-  color: #cfa76f;
+  background: var(--color-warning-light);
+  color: var(--color-warning);
 }
 
 .status-paid {
-  background: #e8f5e8;
-  color: #5a8c5a;
+  background: var(--color-success-light);
+  color: var(--color-success);
 }
 
 .status-completed {
-  background: #e8f5e8;
-  color: #5a8c5a;
+  background: var(--color-success-light);
+  color: var(--color-success);
 }
 
 .status-delivered {
-  background: #e8f0f5;
-  color: #778d9c;
+  background: var(--color-info-light);
+  color: var(--color-info);
 }
 
 .status-cancelled {
-  background: #f5f3f0;
-  color: #999;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
 }
 
 .status-refunded {
-  background: #f5e8e8;
-  color: #ad9090;
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.status-expired {
+  background: var(--bg-tertiary);
+  color: var(--text-quaternary);
 }
 
 .order-content {
@@ -496,7 +516,7 @@ onMounted(() => {
 .product-name {
   font-size: 16px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin-bottom: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -507,21 +527,21 @@ onMounted(() => {
   display: flex;
   gap: 16px;
   font-size: 13px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 /* CDK 显示区域 */
 .cdk-display {
   margin: 12px 0;
   padding: 12px;
-  background: #f9f7f5;
+  background: var(--bg-secondary);
   border-radius: 12px;
 }
 
 .cdk-label {
   font-size: 12px;
   font-weight: 500;
-  color: #5a8c5a;
+  color: var(--color-success);
   margin-bottom: 8px;
 }
 
@@ -534,16 +554,16 @@ onMounted(() => {
 .cdk-code {
   flex: 1;
   padding: 10px 12px;
-  background: white;
+  background: var(--bg-card);
   border-radius: 8px;
   font-family: 'Monaco', 'Consolas', monospace;
   font-size: 13px;
-  color: #3d3d3d;
+  color: var(--text-primary);
   word-break: break-all;
 }
 
 .cdk-code.hidden {
-  color: #999;
+  color: var(--text-tertiary);
   letter-spacing: 2px;
 }
 
@@ -558,8 +578,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
-  border: 1px solid #f0ede9;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
   cursor: pointer;
@@ -567,8 +587,8 @@ onMounted(() => {
 }
 
 .cdk-btn:hover {
-  background: #faf9f7;
-  border-color: #e0dcd6;
+  background: var(--bg-secondary);
+  border-color: var(--border-hover);
 }
 
 .order-footer {
@@ -576,18 +596,18 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding-top: 12px;
-  border-top: 1px solid #f5f3f0;
+  border-top: 1px solid var(--border-light);
 }
 
 .order-amount {
   font-size: 18px;
   font-weight: 700;
-  color: #cfa76f;
+  color: var(--color-warning);
 }
 
 .order-action {
   font-size: 13px;
-  color: #a5b4a3;
+  color: var(--color-primary);
 }
 
 .order-actions {
@@ -608,17 +628,17 @@ onMounted(() => {
 }
 
 .action-btn.cancel-btn {
-  background: #f5f3f0;
-  color: #999;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
 }
 
 .action-btn.cancel-btn:hover {
-  background: #ebe7e1;
-  color: #666;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
 .action-btn.pay-btn {
-  background: linear-gradient(135deg, #a5b4a3 0%, #95a493 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   color: white;
 }
 
@@ -634,18 +654,18 @@ onMounted(() => {
 
 .load-more-btn {
   padding: 12px 32px;
-  background: white;
-  border: 1px solid #f0ede9;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 24px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .load-more-btn:hover:not(:disabled) {
-  background: #faf9f7;
-  border-color: #e0dcd6;
+  background: var(--bg-secondary);
+  border-color: var(--border-hover);
 }
 
 .load-more-btn:disabled {

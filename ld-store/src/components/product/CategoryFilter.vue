@@ -31,7 +31,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 
 const props = defineProps({
   categories: {
@@ -116,6 +116,10 @@ onMounted(() => {
   nextTick(updateIndicator)
   window.addEventListener('resize', updateIndicator)
 })
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateIndicator)
+})
 </script>
 
 <style scoped>
@@ -127,14 +131,14 @@ onMounted(() => {
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  background: rgba(245, 243, 240, 0.8);
+  background: var(--glass-bg-medium);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--glass-border);
   box-shadow: 
-    0 2px 12px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 2px 12px var(--glass-shadow-light),
+    inset 0 1px 0 var(--glass-shine);
 }
 
 .category-filter::-webkit-scrollbar {
@@ -159,19 +163,14 @@ onMounted(() => {
 .liquid-glass {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.98) 0%,
-    rgba(252, 252, 252, 0.95) 50%,
-    rgba(255, 255, 255, 0.96) 100%
-  );
+  background: var(--glass-bg-heavy);
   border-radius: inherit;
   box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.08),
-    0 2px 8px rgba(0, 0, 0, 0.04),
-    inset 0 2px 4px rgba(255, 255, 255, 1),
+    0 4px 20px var(--glass-shadow),
+    0 2px 8px var(--glass-shadow-light),
+    inset 0 2px 4px var(--glass-shine-strong),
     inset 0 -1px 2px rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--glass-border-light);
 }
 
 .liquid-shine {
@@ -182,12 +181,22 @@ onMounted(() => {
   height: 50%;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.9) 0%,
-    rgba(255, 255, 255, 0.4) 40%,
+    var(--glass-shine) 0%,
+    rgba(255, 255, 255, 0.2) 40%,
     transparent 100%
   );
   border-radius: 10px 10px 50% 50%;
   pointer-events: none;
+}
+
+/* 深色模式下降低高光亮度 */
+:global(html.dark) .liquid-shine {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.02) 40%,
+    transparent 100%
+  );
 }
 
 /* 分类按钮 */
@@ -203,7 +212,7 @@ onMounted(() => {
   border-radius: 12px;
   font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: 
     color 0.3s ease,
@@ -214,7 +223,7 @@ onMounted(() => {
 }
 
 .filter-chip:hover:not(.active) {
-  color: #4a4a4a;
+  color: var(--text-primary);
 }
 
 .filter-chip:active {
@@ -222,7 +231,7 @@ onMounted(() => {
 }
 
 .filter-chip.active {
-  color: #3d3d3d;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -238,30 +247,6 @@ onMounted(() => {
 
 .chip-text {
   letter-spacing: 0.3px;
-}
-
-/* 点击波纹 */
-.filter-chip::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(
-    circle at center,
-    rgba(255, 255, 255, 0.6) 0%,
-    transparent 60%
-  );
-  opacity: 0;
-  transform: scale(0);
-  transition: 
-    transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
-    opacity 0.4s ease;
-}
-
-.filter-chip:active::before {
-  transform: scale(2);
-  opacity: 1;
-  transition: transform 0s, opacity 0s;
 }
 
 /* 移动端适配 */

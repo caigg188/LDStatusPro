@@ -48,14 +48,28 @@
 
     <!-- 小店图片 -->
     <div class="form-group">
-      <label class="form-label">小店图片</label>
+      <label class="form-label">
+        <span class="required">*</span> 小店图片
+      </label>
       <input 
         v-model="form.imageUrl"
         type="url"
         class="form-input"
+        :class="{ 'input-error': imageUrlError || imageLoadError }"
         placeholder="https://example.com/image.jpg"
+        required
+        @blur="validateImageLoad"
       />
-      <p class="form-hint">推荐尺寸 16:9，必须使用 HTTPS 链接</p>
+      <p v-if="imageUrlError" class="form-error">{{ imageUrlError }}</p>
+      <p v-else-if="imageLoadError" class="form-error">{{ imageLoadError }}</p>
+      <p v-else-if="imageValidating" class="form-hint loading-hint">⚙️ 正在验证图片...</p>
+      <p v-else-if="imageValidated" class="form-hint success-hint">✅ 图片验证通过</p>
+      <p v-else class="form-hint">推荐尺寸 16:9，必须使用 HTTPS 链接，不支持 linux.do 图床</p>
+      
+      <!-- 图片预览 -->
+      <div v-if="imagePreviewUrl && !imageLoadError" class="image-preview">
+        <img :src="imagePreviewUrl" alt="图片预览" @error="onPreviewError" />
+      </div>
     </div>
 
     <!-- 标签选择 -->
@@ -171,12 +185,112 @@ watch(() => props.initialData, (data) => {
   }
 }, { immediate: true })
 
+// 允许的图片后缀
+const VALID_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif']
+
+// 图片加载验证状态
+const imageValidating = ref(false)
+const imageValidated = ref(false)
+const imageLoadError = ref('')
+const imagePreviewUrl = ref('')
+let lastValidatedUrl = ''
+
+// 检查URL是否为有效图片链接（后缀检查）
+function isValidImageUrl(url) {
+  if (!url) return false
+  try {
+    const urlObj = new URL(url)
+    const pathname = urlObj.pathname.toLowerCase()
+    return VALID_IMAGE_EXTENSIONS.some(ext => pathname.endsWith('.' + ext))
+  } catch {
+    return false
+  }
+}
+
+// 图片链接错误信息
+const imageUrlError = computed(() => {
+  const url = form.imageUrl.trim()
+  if (!url) return ''
+  if (!url.startsWith('https://')) return '图片链接必须使用 HTTPS'
+  if (url.includes('linux.do')) return '不支持使用 linux.do 图床，请使用其他图床'
+  if (!isValidImageUrl(url)) return '图片链接格式无效，支持: jpg, png, gif, webp, svg 等'
+  return ''
+})
+
+// 图片预加载验证
+function preloadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const timeout = setTimeout(() => {
+      img.src = ''
+      reject(new Error('图片加载超时'))
+    }, 10000)
+    img.onload = () => {
+      clearTimeout(timeout)
+      resolve(img)
+    }
+    img.onerror = () => {
+      clearTimeout(timeout)
+      reject(new Error('图片加载失败'))
+    }
+    img.src = url
+  })
+}
+
+// 验证图片是否可加载
+async function validateImageLoad() {
+  const url = form.imageUrl.trim()
+  
+  // 清空或格式错误时重置状态
+  if (!url || imageUrlError.value) {
+    imageValidating.value = false
+    imageValidated.value = false
+    imageLoadError.value = ''
+    imagePreviewUrl.value = ''
+    lastValidatedUrl = ''
+    return
+  }
+  
+  // 如果 URL 没变，不重复验证
+  if (url === lastValidatedUrl) return
+  
+  imageValidating.value = true
+  imageValidated.value = false
+  imageLoadError.value = ''
+  imagePreviewUrl.value = ''
+  
+  try {
+    await preloadImage(url)
+    if (form.imageUrl.trim() !== url) return
+    
+    imageValidated.value = true
+    imagePreviewUrl.value = url
+    lastValidatedUrl = url
+  } catch (error) {
+    if (form.imageUrl.trim() !== url) return
+    imageLoadError.value = '图片无法加载，请检查链接是否有效'
+    lastValidatedUrl = ''
+  } finally {
+    imageValidating.value = false
+  }
+}
+
+// 预览图片加载失败
+function onPreviewError() {
+  imageLoadError.value = '图片加载失败，请检查链接是否有效'
+  imagePreviewUrl.value = ''
+  imageValidated.value = false
+}
+
 // 表单验证
 const isFormValid = computed(() => {
   return form.name.trim() && 
          form.shopUrl.trim() && 
          form.ownerLinuxDoLink.trim() &&
-         form.ownerLinuxDoLink.includes('linux.do/u/')
+         form.ownerLinuxDoLink.includes('linux.do/u/') &&
+         form.imageUrl.trim() &&
+         !imageUrlError.value &&
+         !imageLoadError.value
 })
 
 // 标签样式类
@@ -193,12 +307,23 @@ const getTagClass = (tag) => {
 }
 
 // 提交表单
-function handleSubmit() {
+async function handleSubmit() {
   if (!isFormValid.value || props.submitting) return
   
-  // 验证图片链接
-  if (form.imageUrl && !form.imageUrl.startsWith('https://')) {
-    alert('图片链接必须使用 HTTPS')
+  // 验证图片链接格式
+  if (imageUrlError.value) {
+    alert(imageUrlError.value)
+    return
+  }
+  
+  // 如果图片还未验证，先进行验证
+  if (!imageValidated.value && !imageLoadError.value) {
+    await validateImageLoad()
+  }
+  
+  // 图片加载失败
+  if (imageLoadError.value) {
+    alert(imageLoadError.value)
     return
   }
   
@@ -215,7 +340,7 @@ function handleSubmit() {
 
 <style scoped>
 .shop-form {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 24px;
 }
@@ -228,17 +353,17 @@ function handleSubmit() {
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .form-label .required {
-  color: #dc2626;
+  color: var(--color-danger);
 }
 
 .tag-hint {
   font-weight: 400;
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -247,10 +372,10 @@ function handleSubmit() {
   width: 100%;
   padding: 12px 16px;
   font-size: 14px;
-  border: 1px solid #e0dcd6;
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  background: #faf9f7;
-  color: #3d3d3d;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   transition: all 0.2s;
   box-sizing: border-box;
 }
@@ -258,13 +383,13 @@ function handleSubmit() {
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #b5a898;
-  background: white;
+  border-color: var(--color-primary);
+  background: var(--bg-card);
 }
 
 .form-input::placeholder,
 .form-textarea::placeholder {
-  color: #aaa;
+  color: var(--text-placeholder);
 }
 
 .form-textarea {
@@ -274,8 +399,42 @@ function handleSubmit() {
 
 .form-hint {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   margin-top: 6px;
+}
+
+.form-error {
+  font-size: 12px;
+  color: var(--color-danger);
+  margin-top: 6px;
+}
+
+.form-hint.loading-hint {
+  color: var(--color-warning);
+}
+
+.form-hint.success-hint {
+  color: var(--color-success);
+}
+
+.form-input.input-error {
+  border-color: var(--color-danger);
+}
+
+/* 图片预览 */
+.image-preview {
+  margin-top: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+}
+
+.image-preview img {
+  display: block;
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
 }
 
 /* 标签选择器 */
@@ -304,8 +463,8 @@ function handleSubmit() {
   font-size: 13px;
   font-weight: 500;
   border-radius: 20px;
-  background: #f5f3f0;
-  color: #666;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   border: 2px solid transparent;
   transition: all 0.2s;
 }
@@ -315,9 +474,9 @@ function handleSubmit() {
   transform: scale(1.02);
 }
 
-.tag-label.tag-subscription { background: #e8f5e8; color: #166534; }
-.tag-label.tag-service { background: #e0f2fe; color: #0369a1; }
-.tag-label.tag-vps { background: #fef3c7; color: #b45309; }
+.tag-label.tag-subscription { background: var(--color-success-light); color: var(--color-success); }
+.tag-label.tag-service { background: var(--color-info-light); color: var(--color-info); }
+.tag-label.tag-vps { background: var(--color-warning-light); color: var(--color-warning); }
 .tag-label.tag-ai { background: #f3e8ff; color: #7c3aed; }
 .tag-label.tag-entertainment { background: #ffe4e6; color: #be123c; }
 .tag-label.tag-charity { background: #fce7f3; color: #be185d; }
@@ -329,7 +488,7 @@ function handleSubmit() {
   justify-content: flex-end;
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid #f0ede9;
+  border-top: 1px solid var(--border-light);
 }
 
 .btn {
@@ -352,23 +511,23 @@ function handleSubmit() {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #b5a898 0%, #a09080 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(181, 168, 152, 0.4);
+  box-shadow: var(--shadow-primary);
 }
 
 .btn-secondary {
-  background: white;
-  color: #666;
-  border: 1px solid #e0dcd6;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #f8f6f3;
+  background: var(--bg-secondary);
 }
 
 .spinner-small {

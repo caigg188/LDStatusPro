@@ -41,6 +41,7 @@
           :src="ownerAvatarUrl" 
           :alt="shop.owner_username"
           class="owner-avatar"
+          referrerpolicy="no-referrer"
           @error="handleAvatarError"
         />
         <span class="owner-name">{{ shop.owner_username }}</span>
@@ -181,7 +182,7 @@ const ownerAvatarUrl = computed(() => {
   // 替换模板中的 {size} 为实际尺寸
   return template.replace('{size}', '48')
     // 如果是相对路径，补全域名
-    .replace(/^\//,  'https://linux.do/')
+    .replace(/^\//, 'https://linux.do/')
 })
 
 // 处理图片加载错误
@@ -211,24 +212,24 @@ const getTagClass = (tag) => {
 <style scoped>
 .shop-card {
   display: block;
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   overflow: hidden;
   text-decoration: none;
-  border: 1px solid #f0ede9;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
   position: relative;
   transform-style: preserve-3d;
   will-change: transform, box-shadow;
 }
 
 .shop-card:hover {
-  border-color: #e0dcd6;
+  border-color: var(--border-medium);
 }
 
 .shop-card.pinned {
-  border-color: #b5a898;
-  background: linear-gradient(135deg, #faf9f7 0%, white 100%);
+  border-color: var(--color-primary);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-card) 100%);
 }
 
 /* 3D 光泽层 */
@@ -247,7 +248,7 @@ const getTagClass = (tag) => {
   position: relative;
   width: 100%;
   padding-top: 56.25%; /* 16:9 比例 */
-  background: #f8f6f3;
+  background: var(--bg-secondary);
   overflow: hidden;
 }
 
@@ -270,7 +271,7 @@ const getTagClass = (tag) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f8f6f3 0%, #f0ede9 100%);
+  background: var(--bg-secondary);
   font-size: 48px;
 }
 
@@ -283,11 +284,11 @@ const getTagClass = (tag) => {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--glass-bg-heavy);
   border-radius: 8px;
   padding: 4px 8px;
   font-size: 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 /* 小店信息 */
@@ -299,7 +300,7 @@ const getTagClass = (tag) => {
   margin: 0 0 10px;
   font-size: 16px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -321,12 +322,12 @@ const getTagClass = (tag) => {
   height: 24px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid #f0ede9;
+  border: 1px solid var(--border-light);
 }
 
 .owner-name {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -344,39 +345,39 @@ const getTagClass = (tag) => {
   font-size: 11px;
   font-weight: 500;
   border-radius: 12px;
-  background: #f5f3f0;
-  color: #666;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
 /* 标签颜色 */
 .shop-tag.tag-subscription {
-  background: #e8f5e8;
-  color: #166534;
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .shop-tag.tag-service {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: var(--color-info-bg);
+  color: var(--color-info);
 }
 
 .shop-tag.tag-vps {
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 .shop-tag.tag-ai {
-  background: #f3e8ff;
-  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.12);
+  color: #a78bfa;
 }
 
 .shop-tag.tag-entertainment {
-  background: #ffe4e6;
-  color: #be123c;
+  background: rgba(190, 18, 60, 0.12);
+  color: #fb7185;
 }
 
 .shop-tag.tag-charity {
-  background: #fce7f3;
-  color: #be185d;
+  background: rgba(190, 24, 93, 0.12);
+  color: #f472b6;
 }
 
 /* 移动端适配 */

@@ -7,7 +7,6 @@
     >
       <div class="liquid-glass"></div>
       <div class="liquid-shine"></div>
-      <div class="liquid-glow"></div>
     </div>
     
     <!-- Tab 按钮 -->
@@ -17,8 +16,6 @@
       :ref="el => setTabRef(el, index)"
       :class="['liquid-tab', { active: modelValue === tab.value }]"
       @click="selectTab(tab.value)"
-      @mouseenter="handleHover(index)"
-      @mouseleave="handleLeave"
     >
       <span v-if="tab.icon" class="tab-icon">{{ tab.icon }}</span>
       <span class="tab-text">{{ tab.label }}</span>
@@ -27,7 +24,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 
 const props = defineProps({
   tabs: {
@@ -63,10 +60,13 @@ const currentIndex = computed(() => {
   return props.tabs.findIndex(tab => tab.value === props.modelValue)
 })
 
-// 更新指示器位置
+// 更新指示器位置到当前选中
 function updateIndicator() {
   const index = currentIndex.value
-  if (index < 0 || !tabRefs.value[index] || !tabsContainer.value) return
+  if (index < 0 || !tabRefs.value[index] || !tabsContainer.value) {
+    indicatorStyle.value = { ...indicatorStyle.value, opacity: 0 }
+    return
+  }
   
   const tab = tabRefs.value[index]
   const container = tabsContainer.value
@@ -88,20 +88,6 @@ function selectTab(value) {
   emit('update:modelValue', value)
 }
 
-// 悬停效果
-const isHovering = ref(false)
-const hoverIndex = ref(-1)
-
-function handleHover(index) {
-  isHovering.value = true
-  hoverIndex.value = index
-}
-
-function handleLeave() {
-  isHovering.value = false
-  hoverIndex.value = -1
-}
-
 // 监听值变化
 watch(() => props.modelValue, () => {
   nextTick(updateIndicator)
@@ -112,11 +98,25 @@ watch(() => props.tabs, () => {
   nextTick(updateIndicator)
 }, { deep: true })
 
+// ResizeObserver 用于响应容器大小变化
+let resizeObserver = null
+
 // 初始化
 onMounted(() => {
   nextTick(updateIndicator)
-  // 窗口大小变化时更新
-  window.addEventListener('resize', updateIndicator)
+  
+  // 监听容器大小变化
+  if (tabsContainer.value && window.ResizeObserver) {
+    resizeObserver = new ResizeObserver(() => {
+      updateIndicator()
+    })
+    resizeObserver.observe(tabsContainer.value)
+  }
+})
+
+// 清理
+onUnmounted(() => {
+  resizeObserver?.disconnect()
 })
 </script>
 
@@ -126,16 +126,15 @@ onMounted(() => {
   display: inline-flex;
   gap: 2px;
   padding: 5px;
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-radius: 18px;
+  background: var(--glass-bg-medium);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 16px;
   box-shadow: 
-    0 4px 24px rgba(0, 0, 0, 0.06),
-    0 1px 4px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+    0 4px 20px var(--glass-shadow),
+    0 1px 3px var(--glass-shadow-light),
+    inset 0 1px 0 var(--glass-shine-strong);
+  border: 1px solid var(--glass-border);
 }
 
 /* 液态指示器 */
@@ -144,70 +143,54 @@ onMounted(() => {
   top: 5px;
   left: 0;
   height: calc(100% - 10px);
-  border-radius: 14px;
+  border-radius: 12px;
   pointer-events: none;
   z-index: 0;
-  /* 核心：苹果风格的弹性过渡 */
+  /* 流畅的弹性过渡 */
   transition: 
-    transform 0.6s cubic-bezier(0.32, 1.2, 0.32, 1),
-    width 0.45s cubic-bezier(0.32, 0.72, 0, 1),
-    opacity 0.3s ease;
+    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.25s ease;
 }
 
-/* 玄璃材质层 - 白色透明 */
+/* 玻璃材质层 */
 .liquid-glass {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(250, 250, 250, 0.9) 40%,
-    rgba(255, 255, 255, 0.92) 100%
-  );
+  background: var(--glass-bg-heavy);
   border-radius: inherit;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.08),
-    0 4px 16px rgba(0, 0, 0, 0.05),
-    inset 0 2px 4px rgba(255, 255, 255, 0.9),
-    inset 0 -1px 2px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+    0 4px 16px var(--glass-shadow),
+    0 2px 8px var(--glass-shadow-light),
+    inset 0 1px 2px var(--glass-shine-strong);
+  border: 1px solid var(--glass-border-light);
 }
 
 /* 高光层 - 模拟玻璃反光 */
 .liquid-shine {
   position: absolute;
   top: 1px;
-  left: 8%;
-  right: 8%;
-  height: 50%;
+  left: 10%;
+  right: 10%;
+  height: 45%;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.8) 0%,
-    rgba(255, 255, 255, 0.3) 40%,
+    var(--glass-shine) 0%,
+    rgba(255, 255, 255, 0.12) 50%,
     transparent 100%
   );
-  border-radius: 12px 12px 50% 50%;
+  border-radius: 10px 10px 50% 50%;
   pointer-events: none;
 }
 
-/* 液态光晕效果 */
-.liquid-glow {
-  position: absolute;
-  inset: -4px;
-  background: radial-gradient(
-    ellipse 120% 80% at center,
-    rgba(255, 255, 255, 0.6) 0%,
-    rgba(255, 255, 255, 0.2) 40%,
-    transparent 70%
+/* 深色模式下的高光 */
+:global(html.dark) .liquid-shine {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.03) 50%,
+    transparent 100%
   );
-  border-radius: inherit;
-  filter: blur(12px);
-  opacity: 0;
-  transition: opacity 0.5s cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-.liquid-tabs:hover .liquid-glow {
-  opacity: 1;
 }
 
 /* Tab 按钮 */
@@ -215,25 +198,26 @@ onMounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 22px;
+  gap: 6px;
+  padding: 10px 20px;
   background: transparent;
   border: none;
-  border-radius: 14px;
-  font-size: 15px;
+  border-radius: 12px;
+  font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: 
-    color 0.35s ease,
-    transform 0.2s ease;
+    color 0.25s ease,
+    transform 0.15s ease;
   z-index: 1;
   white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .liquid-tab:hover:not(.active) {
-  color: #4a4a4a;
+  color: var(--text-primary);
 }
 
 .liquid-tab:active {
@@ -241,48 +225,24 @@ onMounted(() => {
 }
 
 .liquid-tab.active {
-  color: #3d3d3d;
+  color: var(--text-primary);
   font-weight: 600;
-  text-shadow: none;
 }
 
+/* 图标 */
 .tab-icon {
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1;
-  transition: transform 0.4s cubic-bezier(0.32, 1.2, 0.32, 1);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .liquid-tab.active .tab-icon {
-  transform: scale(1.15);
+  transform: scale(1.1);
 }
 
+/* 文字 */
 .tab-text {
-  transition: transform 0.3s ease;
   letter-spacing: 0.3px;
-}
-
-/* 点击时的波纹效果 */
-.liquid-tab::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(
-    circle at var(--ripple-x, 50%) var(--ripple-y, 50%),
-    rgba(255, 255, 255, 0.4) 0%,
-    transparent 60%
-  );
-  opacity: 0;
-  transform: scale(0);
-  transition: 
-    transform 0.6s cubic-bezier(0.32, 0.72, 0, 1),
-    opacity 0.4s ease;
-}
-
-.liquid-tab:active::before {
-  transform: scale(2.5);
-  opacity: 1;
-  transition: transform 0s, opacity 0s;
 }
 
 /* 悬停时的微光效果 */
@@ -293,16 +253,23 @@ onMounted(() => {
   border-radius: inherit;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.1) 0%,
-    transparent 50%,
-    rgba(0, 0, 0, 0.02) 100%
+    rgba(255, 255, 255, 0.08) 0%,
+    transparent 50%
   );
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease;
 }
 
 .liquid-tab:hover:not(.active)::after {
   opacity: 1;
+}
+
+:global(html.dark) .liquid-tab::after {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    transparent 50%
+  );
 }
 
 /* 移动端适配 */
@@ -310,17 +277,29 @@ onMounted(() => {
   .liquid-tabs {
     width: auto;
     max-width: 100%;
+    padding: 4px;
+    border-radius: 14px;
   }
   
   .liquid-tab {
     flex: 1;
     justify-content: center;
-    padding: 12px 16px;
-    font-size: 14px;
+    padding: 10px 14px;
+    font-size: 13px;
   }
   
   .tab-icon {
-    font-size: 16px;
+    font-size: 15px;
+  }
+
+  .liquid-indicator {
+    top: 4px;
+    height: calc(100% - 8px);
+    border-radius: 10px;
+  }
+
+  .liquid-shine {
+    border-radius: 8px 8px 50% 50%;
   }
 }
 
@@ -328,8 +307,7 @@ onMounted(() => {
 @media (prefers-reduced-motion: reduce) {
   .liquid-indicator,
   .liquid-tab,
-  .tab-icon,
-  .liquid-glow {
+  .tab-icon {
     transition-duration: 0.01ms !important;
   }
 }

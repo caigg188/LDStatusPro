@@ -47,7 +47,7 @@ function goBack() {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: #faf9f7;
+  background: var(--bg-primary);
 }
 
 .content {
@@ -73,13 +73,13 @@ function goBack() {
 .title {
   font-size: 28px;
   font-weight: 700;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0 0 12px;
 }
 
 .message {
   font-size: 16px;
-  color: #999;
+  color: var(--text-tertiary);
   margin: 0 0 32px;
 }
 
@@ -103,37 +103,37 @@ function goBack() {
 
 .home-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(165, 180, 163, 0.4);
+  box-shadow: var(--shadow-primary);
 }
 
 .back-btn {
   padding: 14px 28px;
-  background: white;
-  border: 1px solid #f0ede9;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   font-size: 15px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .back-btn:hover {
-  background: #faf9f7;
-  border-color: #e0dcd6;
+  background: var(--bg-secondary);
+  border-color: var(--border-default);
 }
 
 .suggestions {
   padding: 24px;
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .suggestions-title {
   font-size: 14px;
   font-weight: 600;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0 0 12px;
 }
 
@@ -141,7 +141,7 @@ function goBack() {
   margin: 0;
   padding: 0 0 0 20px;
   text-align: left;
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 14px;
   line-height: 2;
 }

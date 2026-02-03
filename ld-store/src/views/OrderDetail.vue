@@ -226,7 +226,10 @@ const orderLogs = ref([])
 const showCdk = ref(false)
 const cancelling = ref(false)
 
-// 是否显示操作按钮区域
+// 当前用户角色（买家/卖家）
+const currentRole = computed(() => route.query.role || 'buyer')
+
+// 是否显示操作按钮区域（买家和卖家都可以取消待支付订单）
 const showActions = computed(() => {
   return order.value?.status === 'pending'
 })
@@ -413,7 +416,7 @@ onMounted(() => {
 .order-detail-page {
   min-height: 100vh;
   padding-bottom: 100px;
-  background: #faf9f7;
+  background: var(--bg-primary);
 }
 
 .page-container {
@@ -428,10 +431,11 @@ onMounted(() => {
 }
 
 .skeleton-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 
 .skeleton-card.large {
@@ -439,7 +443,7 @@ onMounted(() => {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #f5f3f0 25%, #ebe7e1 50%, #f5f3f0 75%);
+  background: var(--skeleton-gradient);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
@@ -483,28 +487,29 @@ onMounted(() => {
   padding: 32px;
   border-radius: 20px;
   margin-bottom: 16px;
-  background: white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 
 .status-card.status-pending {
-  background: linear-gradient(135deg, #fffaf0 0%, #fff8eb 100%);
+  background: var(--color-warning-bg);
 }
 
 .status-card.status-success {
-  background: linear-gradient(135deg, #f0f9f0 0%, #e8f5e8 100%);
+  background: var(--color-success-bg);
 }
 
 .status-card.status-info {
-  background: linear-gradient(135deg, #f0f5f9 0%, #e8f0f5 100%);
+  background: var(--color-info-bg);
 }
 
 .status-card.status-cancelled {
-  background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+  background: var(--bg-secondary);
 }
 
 .status-card.status-refunded {
-  background: linear-gradient(135deg, #faf5f5 0%, #f5eeee 100%);
+  background: var(--color-danger-bg);
 }
 
 .status-icon {
@@ -515,28 +520,29 @@ onMounted(() => {
 .status-text {
   font-size: 20px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .status-time {
   font-size: 14px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 /* 信息卡片 */
 .info-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 20px;
   margin-bottom: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 
 .card-title {
   font-size: 14px;
   font-weight: 600;
-  color: #999;
+  color: var(--text-tertiary);
   margin: 0 0 16px;
 }
 
@@ -545,7 +551,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
-  border-bottom: 1px solid #f5f3f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .info-row:last-child {
@@ -555,18 +561,18 @@ onMounted(() => {
 .info-row.amount {
   padding-top: 16px;
   margin-top: 8px;
-  border-top: 1px dashed #e0dcd6;
+  border-top: 1px dashed var(--border-medium);
   border-bottom: none;
 }
 
 .info-label {
   font-size: 14px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .info-value {
   font-size: 14px;
-  color: #3d3d3d;
+  color: var(--text-primary);
   max-width: 60%;
   text-align: right;
   overflow: hidden;
@@ -603,8 +609,8 @@ onMounted(() => {
 }
 
 .type-badge.store {
-  background: #fff8eb;
-  color: #cfa76f;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 /* CDK 展示框 */
@@ -613,7 +619,7 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: #f9f7f5;
+  background: var(--bg-secondary);
   border-radius: 12px;
 }
 
@@ -621,7 +627,7 @@ onMounted(() => {
   flex: 1;
   font-family: 'Monaco', 'Consolas', monospace;
   font-size: 14px;
-  color: #3d3d3d;
+  color: var(--text-primary);
   word-break: break-all;
 }
 
@@ -636,8 +642,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
-  border: 1px solid #f0ede9;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 10px;
   font-size: 16px;
   cursor: pointer;
@@ -645,8 +651,8 @@ onMounted(() => {
 }
 
 .icon-btn:hover {
-  background: #faf9f7;
-  border-color: #e0dcd6;
+  background: var(--bg-secondary);
+  border-color: var(--border-hover);
 }
 
 /* 链接展示框 */
@@ -655,14 +661,14 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: #f9f7f5;
+  background: var(--bg-secondary);
   border-radius: 12px;
 }
 
 .link-url {
   flex: 1;
   font-size: 14px;
-  color: #778d9c;
+  color: var(--color-info);
   word-break: break-all;
   text-decoration: none;
 }
@@ -674,10 +680,10 @@ onMounted(() => {
 /* 使用说明 */
 .description-content {
   padding: 16px;
-  background: #f9f7f5;
+  background: var(--bg-secondary);
   border-radius: 12px;
   font-size: 14px;
-  color: #3d3d3d;
+  color: var(--text-primary);
   line-height: 1.8;
   white-space: pre-wrap;
   word-break: break-word;
@@ -686,13 +692,13 @@ onMounted(() => {
 /* 寄存信息 */
 .store-info {
   padding: 16px;
-  background: #f9f7f5;
+  background: var(--bg-secondary);
   border-radius: 12px;
 }
 
 .store-notice {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0 0 12px;
 }
 
@@ -708,8 +714,8 @@ onMounted(() => {
   right: 0;
   bottom: 0;
   padding: 16px;
-  background: white;
-  border-top: 1px solid #f0ede9;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-light);
   text-align: center;
 }
 
@@ -730,7 +736,7 @@ onMounted(() => {
 
 .pay-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(165, 180, 163, 0.4);
+  box-shadow: var(--shadow-primary);
 }
 
 .actions-row {
@@ -743,8 +749,8 @@ onMounted(() => {
 .cancel-btn {
   flex: 1;
   padding: 16px 32px;
-  background: #f5f3f0;
-  color: #666;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   border: none;
   border-radius: 14px;
   font-size: 16px;
@@ -754,8 +760,8 @@ onMounted(() => {
 }
 
 .cancel-btn:hover:not(:disabled) {
-  background: #ebe7e1;
-  color: #3d3d3d;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .cancel-btn:disabled {
@@ -771,12 +777,12 @@ onMounted(() => {
 /* 原价样式 */
 .original-price {
   text-decoration: line-through;
-  color: #999 !important;
+  color: var(--text-tertiary) !important;
 }
 
 /* 用户链接 */
 .user-link {
-  color: #778d9c;
+  color: var(--color-info);
   text-decoration: none;
 }
 
@@ -796,7 +802,7 @@ onMounted(() => {
   align-items: flex-start;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid #f5f3f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .log-item:last-child {
@@ -815,7 +821,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f9f7f5;
+  background: var(--bg-secondary);
   border-radius: 8px;
   flex-shrink: 0;
 }
@@ -827,12 +833,12 @@ onMounted(() => {
 
 .log-action {
   font-size: 14px;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .log-time {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 </style>

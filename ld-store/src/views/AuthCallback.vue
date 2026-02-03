@@ -22,6 +22,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
+import { sanitizeRedirect } from '@/utils/navigation'
 
 const route = useRoute()
 const router = useRouter()
@@ -82,7 +83,10 @@ onMounted(async () => {
       history.replaceState(null, '', window.location.pathname + window.location.search)
       
       // 跳转到之前的页面
-      const redirect = route.query.redirect || '/'
+      const redirect = sanitizeRedirect(
+        Array.isArray(route.query.redirect) ? route.query.redirect[0] : route.query.redirect,
+        '/'
+      )
       router.replace(redirect)
     } else {
       // 没有找到 OAuth 数据
@@ -103,7 +107,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #faf9f7;
+  background: var(--bg-primary);
 }
 
 .callback-container {
@@ -135,7 +139,7 @@ onMounted(async () => {
 
 .callback-loading p {
   font-size: 16px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -152,7 +156,7 @@ onMounted(async () => {
 
 .error-text {
   font-size: 16px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0;
 }
 

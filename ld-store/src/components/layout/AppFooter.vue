@@ -64,9 +64,10 @@ function isActive(path) {
   left: 0;
   right: 0;
   display: none;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--glass-bg-heavy);
   backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border-light);
   padding-bottom: env(safe-area-inset-bottom, 0);
   z-index: 100;
 }
@@ -91,7 +92,7 @@ function isActive(path) {
 
 .nav-label {
   font-size: 10px;
-  color: #999;
+  color: var(--text-tertiary);
   transition: color 0.2s;
 }
 
@@ -101,7 +102,7 @@ function isActive(path) {
 }
 
 .nav-item.active .nav-label {
-  color: #b5a898;
+  color: var(--color-primary);
   font-weight: 600;
 }
 

@@ -3,6 +3,19 @@
     <h1>🚀 快速开始</h1>
     <p class="lead">欢迎来到 LD士多！这是一个基于 <a href="https://linux.do" target="_blank">LinuxDo 论坛</a> 社区积分（LDC）的虚拟物品和服务兑换平台。</p>
     
+    <!-- 文档访问统计 -->
+    <div class="doc-stats">
+      <span class="stat-item">
+        <span class="stat-icon">👁️</span>
+        <span id="busuanzi_value_page_pv">-</span> 次阅读
+      </span>
+      <span class="stat-divider">·</span>
+      <span class="stat-item">
+        <span class="stat-icon">👤</span>
+        <span id="busuanzi_value_site_uv">-</span> 位访客
+      </span>
+    </div>
+    
     <div class="highlight-box tip">
       <div class="box-icon">💡</div>
       <div class="box-content">

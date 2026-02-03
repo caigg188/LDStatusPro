@@ -55,7 +55,7 @@ function handleCancel() {
 .dialog-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--overlay-bg);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -65,11 +65,12 @@ function handleCancel() {
 }
 
 .dialog-container {
-  background: white;
+  background: var(--dropdown-bg);
   border-radius: 20px;
   width: 100%;
   max-width: 360px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--dropdown-shadow);
+  border: 1px solid var(--border-light);
   overflow: hidden;
 }
 
@@ -89,25 +90,25 @@ function handleCancel() {
 .dialog-title {
   font-size: 18px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .dialog-body {
   padding: 12px 24px 24px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   text-align: center;
   line-height: 1.6;
 }
 
 .dialog-body :deep(strong) {
-  color: #3d3d3d;
+  color: var(--text-primary);
 }
 
 .dialog-footer {
   display: flex;
-  border-top: 1px solid #f0ede9;
+  border-top: 1px solid var(--border-light);
 }
 
 .dialog-btn {
@@ -122,24 +123,24 @@ function handleCancel() {
 }
 
 .dialog-btn-cancel {
-  color: #999;
-  border-right: 1px solid #f0ede9;
+  color: var(--text-tertiary);
+  border-right: 1px solid var(--border-light);
 }
 
 .dialog-btn-cancel:hover {
-  background: #f7f5f2;
+  background: var(--bg-secondary);
 }
 
 .dialog-btn-confirm {
-  color: #b5a898;
+  color: var(--color-primary);
 }
 
 .dialog-btn-confirm:hover {
-  background: #faf8f6;
+  background: var(--color-primary-light);
 }
 
 .dialog-btn-confirm.danger {
-  color: #ad9090;
+  color: var(--color-danger);
 }
 
 /* 动画 */

@@ -24,8 +24,9 @@ const loadingText = computed(() => uiStore.loadingText)
 .loading-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(250, 249, 247, 0.85);
+  background: var(--glass-bg-medium);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -42,15 +43,15 @@ const loadingText = computed(() => uiStore.loadingText)
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(181, 168, 152, 0.2);
-  border-top-color: #b5a898;
+  border: 3px solid var(--border-medium);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
 .loading-text {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0;
 }
 

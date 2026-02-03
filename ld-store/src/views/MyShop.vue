@@ -47,6 +47,7 @@
                 :src="ownerAvatarUrl" 
                 :alt="myShop.owner_username"
                 class="owner-avatar"
+                referrerpolicy="no-referrer"
               />
               <span class="owner-name">{{ myShop.owner_username }}</span>
             </div>
@@ -293,7 +294,7 @@ onMounted(() => {
 <style scoped>
 .my-shop-page {
   min-height: 100vh;
-  background: #f8f6f3;
+  background: var(--bg-primary);
   padding-bottom: 80px;
 }
 
@@ -312,7 +313,7 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #666;
+  color: var(--text-secondary);
   text-decoration: none;
   font-size: 14px;
   padding: 8px 12px;
@@ -321,8 +322,8 @@ onMounted(() => {
 }
 
 .back-link:hover {
-  background: white;
-  color: #3d3d3d;
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .back-icon {
@@ -332,7 +333,7 @@ onMounted(() => {
 .page-title {
   font-size: 24px;
   font-weight: 700;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0 0 24px;
 }
 
@@ -343,14 +344,14 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid rgba(181, 168, 152, 0.3);
-  border-top-color: #b5a898;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 12px;
@@ -371,23 +372,23 @@ onMounted(() => {
 }
 
 .status-banner.status-pending {
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--color-warning-light);
+  color: var(--color-warning);
 }
 
 .status-banner.status-active {
-  background: #d1fae5;
-  color: #166534;
+  background: var(--color-success-light);
+  color: var(--color-success);
 }
 
 .status-banner.status-rejected {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--color-danger-light);
+  color: var(--color-danger);
 }
 
 .status-banner.status-offline {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
 }
 
 .status-icon {
@@ -413,18 +414,18 @@ onMounted(() => {
 
 /* 小店卡片 */
 .shop-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   overflow: hidden;
   margin-bottom: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
 }
 
 .shop-image-wrapper {
   width: 100%;
   padding-top: 40%;
   position: relative;
-  background: #f8f6f3;
+  background: var(--bg-secondary);
 }
 
 .shop-image {
@@ -443,7 +444,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 60px;
-  background: linear-gradient(135deg, #f8f6f3 0%, #f0ede9 100%);
+  background: var(--bg-tertiary);
 }
 
 .shop-info {
@@ -453,7 +454,7 @@ onMounted(() => {
 .shop-name {
   font-size: 20px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0 0 14px;
 }
 
@@ -473,7 +474,7 @@ onMounted(() => {
 
 .owner-name {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .shop-tags {
@@ -488,20 +489,20 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 500;
   border-radius: 12px;
-  background: #f5f3f0;
-  color: #666;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
-.shop-tag.tag-subscription { background: #e8f5e8; color: #166534; }
-.shop-tag.tag-service { background: #e0f2fe; color: #0369a1; }
-.shop-tag.tag-vps { background: #fef3c7; color: #b45309; }
+.shop-tag.tag-subscription { background: var(--color-success-light); color: var(--color-success); }
+.shop-tag.tag-service { background: var(--color-info-light); color: var(--color-info); }
+.shop-tag.tag-vps { background: var(--color-warning-light); color: var(--color-warning); }
 .shop-tag.tag-ai { background: #f3e8ff; color: #7c3aed; }
 .shop-tag.tag-entertainment { background: #ffe4e6; color: #be123c; }
 .shop-tag.tag-charity { background: #fce7f3; color: #be185d; }
 
 .shop-stats {
   font-size: 13px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .shop-stats .stat {
@@ -536,38 +537,38 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #b5a898 0%, #a09080 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(181, 168, 152, 0.4);
+  box-shadow: var(--shadow-primary);
 }
 
 .btn-secondary {
-  background: white;
-  color: #666;
-  border: 1px solid #e0dcd6;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #f8f6f3;
-  border-color: #b5a898;
+  background: var(--bg-secondary);
+  border-color: var(--color-primary);
 }
 
 .btn-danger {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--color-danger-light);
+  color: var(--color-danger);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #fecaca;
+  filter: brightness(0.95);
 }
 
 /* 入驻介绍 */
 .intro-card {
-  background: linear-gradient(135deg, #e8f5e8 0%, #d1fae5 100%);
+  background: var(--color-success-light);
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 24px;
@@ -576,13 +577,13 @@ onMounted(() => {
 .intro-card h2 {
   font-size: 18px;
   font-weight: 600;
-  color: #166534;
+  color: var(--color-success);
   margin: 0 0 12px;
 }
 
 .intro-card p {
   font-size: 14px;
-  color: #166534;
+  color: var(--color-success);
   margin: 0 0 16px;
   opacity: 0.9;
 }
@@ -598,19 +599,19 @@ onMounted(() => {
 
 .intro-list li {
   font-size: 13px;
-  color: #166534;
+  color: var(--color-success);
 }
 
 /* 区块标题 */
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0 0 16px;
 }
 
 .edit-section {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 20px;
   margin-bottom: 20px;

@@ -13,7 +13,8 @@
   <a href="#技术栈">技术栈</a> •
   <a href="#快速开始">快速开始</a> •
   <a href="#部署指南">部署指南</a> •
-  <a href="#项目结构">项目结构</a>
+  <a href="#项目结构">项目结构</a> •
+  <a href="#文档">文档</a>
 </p>
 
 ---
@@ -170,6 +171,21 @@ npm run preview
 
 只需运行 `npm run build` 并上传 `dist` 目录即可。
 
+### 🖼️ 社交分享图片 (og-image)
+
+为了在社交媒体和论坛分享时显示预览图，需要准备 `og-image.jpg` 文件：
+
+1. 在浏览器中打开 `public/generate-og-image.html`
+2. 点击「下载图片」按钮下载 PNG 格式图片
+3. 使用图片工具将 PNG 转换为 JPG 格式
+4. 将 `og-image.jpg` 放到 `public` 目录下
+5. 重新部署
+
+**图片规格要求：**
+- 尺寸：1200 x 630 像素
+- 格式：JPG（推荐）或 PNG
+- 大小：建议 < 500KB
+
 ## 📁 项目结构
 
 ```
@@ -213,6 +229,9 @@ ld-store/
 │   ├── styles/            # 全局样式
 │   ├── App.vue            # 根组件
 │   └── main.js            # 应用入口
+├── docs/                  # 项目文档
+│   ├── TECHNICAL_DOCUMENTATION.md    # 技术文档
+│   └── PRODUCT_REQUIREMENTS.md       # 产品需求文档
 ├── index.html             # HTML 入口
 ├── vite.config.js         # Vite 配置
 ├── tailwind.config.js     # Tailwind 配置
@@ -221,7 +240,42 @@ ld-store/
 └── package.json           # 项目配置
 ```
 
-## 🔐 安全特性
+## � 文档
+
+本项目包含详细的技术文档和产品需求文档，位于 `docs/` 目录：
+
+| 文档 | 说明 |
+|------|------|
+| **[技术文档](./docs/TECHNICAL_DOCUMENTATION.md)** | 完整的技术架构、API 集成、开发指南、性能优化等 |
+| **[产品文档](./docs/PRODUCT_REQUIREMENTS.md)** | 产品需求、功能设计、用户流程、商业模式等 |
+
+### 📖 快速查看文档内容
+
+**技术文档** 包含：
+- 📋 项目架构与目录结构
+- 🛠 完整技术栈说明
+- 🏗 应用整体架构设计
+- 💾 核心模块实现细节
+- 🔗 API 集成文档与示例
+- 🔐 安全防护措施
+- ⚡ 性能优化方案
+- 👨‍💻 开发指南与代码规范
+- 🐛 故障排查常见问题
+
+**产品文档** 包含：
+- 📌 市场分析与竞争优势
+- 👥 用户角色分析
+- ✅ 详细的功能需求列表
+- 📖 页面设计与布局
+- 🔄 用户交互流程
+- 📊 非功能需求
+- 💼 商业模式与收入分析
+- 🎯 成功指标与 KPI
+- 🗺 产品版本规划
+
+---
+
+## �🔐 安全特性
 
 ### XSS 防护
 - HTML 实体转义
@@ -355,3 +409,9 @@ chore: 构建/工具
 <p align="center">
   Made with ❤️ by LDStatus Pro Team
 </p>
+
+---
+
+**最后更新**: 2026-01-22  
+**维护者**: LDStatus Pro 开发团队  
+**项目版本**: 1.0.0

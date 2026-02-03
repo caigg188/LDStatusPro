@@ -139,6 +139,12 @@ const navGroups = [
     items: [
       { id: 'faq', title: 'FAQ', icon: '❓' }
     ]
+  },
+  {
+    title: '规则与协议',
+    items: [
+      { id: 'terms', title: '服务条款', icon: '📜' }
+    ]
   }
 ]
 
@@ -167,7 +173,8 @@ const docComponents = {
   'publish-cdk': defineAsyncComponent(() => import('@/components/docs/DocPublishCdk.vue')),
   'shop-register': defineAsyncComponent(() => import('@/components/docs/DocShopRegister.vue')),
   'buy-guide': defineAsyncComponent(() => import('@/components/docs/DocBuyGuide.vue')),
-  'faq': defineAsyncComponent(() => import('@/components/docs/DocFaq.vue'))
+  'faq': defineAsyncComponent(() => import('@/components/docs/DocFaq.vue')),
+  'terms': defineAsyncComponent(() => import('@/components/docs/DocTerms.vue'))
 }
 
 const currentComponent = computed(() => {
@@ -231,7 +238,7 @@ onUnmounted(() => {
 <style scoped>
 .docs-page {
   min-height: 100vh;
-  background: #faf9f7;
+  background: var(--bg-primary);
 }
 
 .docs-container {
@@ -248,19 +255,19 @@ onUnmounted(() => {
   left: 12px;
   z-index: 200;
   padding: 10px 16px;
-  background: white;
-  border: 1px solid #e0dcd6;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 10px;
   font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-sm);
   transition: all 0.2s;
 }
 
 .mobile-menu-btn:hover {
-  background: #f5f3f0;
+  background: var(--bg-secondary);
 }
 
 /* 侧边栏 */
@@ -270,8 +277,8 @@ onUnmounted(() => {
   width: 260px;
   height: calc(100vh - 60px);
   flex-shrink: 0;
-  background: white;
-  border-right: 1px solid #f0ede9;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -279,7 +286,7 @@ onUnmounted(() => {
 
 .sidebar-header {
   padding: 20px;
-  border-bottom: 1px solid #f0ede9;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .sidebar-logo {
@@ -296,7 +303,7 @@ onUnmounted(() => {
 .logo-text {
   font-size: 18px;
   font-weight: 700;
-  color: #3d3d3d;
+  color: var(--text-primary);
 }
 
 .sidebar-nav {
@@ -313,7 +320,7 @@ onUnmounted(() => {
   padding: 8px 12px;
   font-size: 12px;
   font-weight: 600;
-  color: #999;
+  color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -326,19 +333,19 @@ onUnmounted(() => {
   margin: 2px 0;
   border-radius: 10px;
   text-decoration: none;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
   transition: all 0.2s;
 }
 
 .nav-item:hover {
-  background: #f5f3f0;
-  color: #3d3d3d;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, #f0f9f0 0%, #e8f5e8 100%);
-  color: #5a8c5a;
+  background: var(--color-success-bg);
+  color: var(--color-success);
   font-weight: 500;
 }
 
@@ -348,7 +355,7 @@ onUnmounted(() => {
 
 .sidebar-footer {
   padding: 16px 20px;
-  border-top: 1px solid #f0ede9;
+  border-top: 1px solid var(--border-light);
 }
 
 .back-home {
@@ -356,13 +363,13 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #999;
+  color: var(--text-tertiary);
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .back-home:hover {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 /* 遮罩层 */
@@ -372,7 +379,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--overlay-bg);
   z-index: 149;
 }
 
@@ -391,32 +398,33 @@ onUnmounted(() => {
   gap: 8px;
   margin-bottom: 24px;
   font-size: 13px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .breadcrumb a {
-  color: #778d9c;
+  color: var(--color-info);
   text-decoration: none;
 }
 
 .breadcrumb a:hover {
-  color: #5a8c5a;
+  color: var(--color-success);
 }
 
 .breadcrumb .sep {
-  color: #d5cfc5;
+  color: var(--border-medium);
 }
 
 .breadcrumb .current {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 /* 文档内容 */
 .doc-article {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 32px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 
 /* 文档翻页 */
@@ -429,16 +437,16 @@ onUnmounted(() => {
 .pagination-item {
   flex: 1;
   padding: 20px;
-  background: white;
-  border: 1px solid #f0ede9;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 14px;
   text-decoration: none;
   transition: all 0.2s;
 }
 
 .pagination-item:hover {
-  border-color: #b5a898;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .pagination-item.prev {
@@ -452,14 +460,14 @@ onUnmounted(() => {
 .pagination-label {
   display: block;
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   margin-bottom: 4px;
 }
 
 .pagination-title {
   font-size: 15px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
 }
 
 .pagination-placeholder {
@@ -478,6 +486,7 @@ onUnmounted(() => {
     transform: translateX(-100%);
     transition: transform 0.3s ease;
     height: 100vh;
+    background: var(--bg-card);
   }
   
   .docs-sidebar.show {

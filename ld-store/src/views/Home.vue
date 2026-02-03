@@ -5,7 +5,7 @@
       <div class="home-banner">
         <div class="banner-content">
           <h1 class="banner-title">🍔 LD士多</h1>
-          <p class="banner-subtitle"><a href="https://linux.do" target="_blank" class="link-linuxdo">LinuxDo论坛 </a>虚拟物品和服务<span class="highlight-red"> 兑换中心 </span></p>
+          <p class="banner-subtitle"><a href="https://linux.do" target="_blank" class="link-linuxdo">LinuxDo社区</a>虚拟物品和服务<span class="highlight-red"> 兑换中心 </span></p>
           <p class="banner-subtitle">快使用你的<a href="https://credit.linux.do/" target="_blank" class="highlight-yellow link-credit"> 社区积分 </a>兑换物品吧</p>
         </div>
         <div class="banner-stats">
@@ -64,10 +64,32 @@
           />
         </div>
         
+        <!-- 排序和筛选选项 -->
+        <div class="sort-section">
+          <div class="sort-options">
+            <button
+              v-for="tab in sortTabs"
+              :key="tab.value"
+              class="sort-btn"
+              :class="{ active: currentSort === tab.value }"
+              @click="handleSortChange(tab.value)"
+            >
+              {{ tab.label }}
+            </button>
+          </div>
+          <label class="stock-filter" @click="handleToggleInStock">
+            <span class="checkbox" :class="{ checked: inStockOnly }">
+              <span class="checkmark" v-if="inStockOnly">✓</span>
+            </span>
+            <span class="filter-label">只看有货</span>
+          </label>
+        </div>
+        
         <!-- 商品统计 -->
         <div class="products-header">
           <span class="products-count">
             {{ currentCategoryName }} 共 <strong>{{ total }}</strong> 件商品
+            <span v-if="inStockOnly" class="filter-tag">有库存</span>
           </span>
         </div>
         
@@ -92,7 +114,7 @@
             </div>
             <span v-else class="load-hint">⬇️ 滚动加载更多</span>
           </div>
-          <div v-else class="loaded-all">✅ 已加载全部</div>
+          <div v-else class="loaded-all">✨ 已加载全部</div>
         </div>
         
         <!-- 空状态 -->
@@ -113,7 +135,7 @@
       <!-- 小店集市 -->
       <div v-show="activeSection === 'stores'" class="section-content">
         <div class="stores-header">
-          <p class="stores-desc">🏪 汇集各路大佬的友情小店，欢迎入驻</p>
+          <p class="stores-desc">🏪 汇集各路大佬的自建小店，欢迎入驻🎉</p>
         </div>
         
         <!-- 小店统计 -->
@@ -175,6 +197,15 @@ const sectionTabs = [
   { value: 'products', label: '物品广场', icon: '🛒' },
   { value: 'stores', label: '小店集市', icon: '🏬' }
 ]
+
+// 排序选项
+const sortTabs = [
+  { value: 'default', label: '默认' },
+  { value: 'newest', label: '最新' },
+  { value: 'price_asc', label: '价格↑' },
+  { value: 'price_desc', label: '价格↓' },
+  { value: 'sales', label: '销量' }
+]
 const shops = ref([])  // 独立小店列表
 const shopsLoading = ref(false)
 const shopsTotal = ref(0)
@@ -196,11 +227,43 @@ let savedScrollPosition = 0
 const categoryCache = ref(new Map())
 const CATEGORY_CACHE_TTL = 5 * 60 * 1000 // 5分钟缓存
 
-// 计算属性
+const getCacheKey = (categoryId, sortKey) => `${categoryId || 'all'}_${sortKey || 'default'}`
+
+function tryRestoreFromCache(categoryId, sortKey) {
+  const cacheKey = getCacheKey(categoryId, sortKey)
+  const cached = categoryCache.value.get(cacheKey)
+  const now = Date.now()
+
+  if (cached && (now - cached.timestamp < CATEGORY_CACHE_TTL)) {
+    shopStore.restoreFromCache(categoryId, cached.products, cached.total, cached.hasMore, cached.page, cached.sort)
+    initialLoading.value = false
+    return true
+  }
+  return false
+}
+
+function saveCache(categoryId, sortKey) {
+  const cacheKey = getCacheKey(categoryId, sortKey)
+  categoryCache.value.set(cacheKey, {
+    products: [...shopStore.products],
+    total: shopStore.total,
+    hasMore: shopStore.hasMore,
+    page: shopStore.page,
+    sort: sortKey,
+    timestamp: Date.now()
+  })
+}
+
+// 计算属�?
 const categories = computed(() => shopStore.categories)
 const products = computed(() => shopStore.products)
 const currentCategory = computed(() => shopStore.currentCategory)
 const currentCategoryName = computed(() => shopStore.currentCategoryName)
+const currentSort = computed({
+  get: () => shopStore.currentSort,
+  set: (val) => { shopStore.currentSort = val }
+})
+const inStockOnly = computed(() => shopStore.inStockOnly)
 const loading = computed(() => shopStore.loading)
 const hasMore = computed(() => shopStore.hasMore)
 const total = computed(() => shopStore.total)
@@ -256,38 +319,72 @@ async function loadShops() {
 
 // 分类选择
 async function handleCategorySelect(categoryId) {
-  const cacheKey = categoryId || 'all'
-  const cached = categoryCache.value.get(cacheKey)
-  const now = Date.now()
-  
-  // 检查缓存是否有效
-  if (cached && (now - cached.timestamp < CATEGORY_CACHE_TTL)) {
-    // 使用缓存数据，直接恢复状态
-    shopStore.restoreFromCache(categoryId, cached.products, cached.total, cached.hasMore, cached.page)
-    initialLoading.value = false
-    // 重新设置无限滚动（关键！）
+  const sortKey = shopStore.currentSort || 'default'
+
+  if (tryRestoreFromCache(categoryId, sortKey)) {
     await nextTick()
     setupInfiniteScroll()
     return
   }
-  
-  // 无缓存或过期，请求新数据
+
   initialLoading.value = true
   await shopStore.fetchProducts(categoryId, true)
   initialLoading.value = false
-  
-  // 存入缓存
-  categoryCache.value.set(cacheKey, {
-    products: [...shopStore.products],
-    total: shopStore.total,
-    hasMore: shopStore.hasMore,
-    page: shopStore.page,
-    timestamp: now
-  })
+
+  saveCache(categoryId, shopStore.currentSort)
+
+  await nextTick()
+  setupInfiniteScroll()
+}
+
+// 排序变更
+async function handleSortChange(sort) {
+  const categoryId = shopStore.currentCategory
+
+  if (tryRestoreFromCache(categoryId, sort)) {
+    await nextTick()
+    setupInfiniteScroll()
+    return
+  }
+
+  initialLoading.value = true
+  await shopStore.fetchProducts(categoryId, true, sort)
+  initialLoading.value = false
+
+  saveCache(categoryId, sort)
+
+  await nextTick()
+  setupInfiniteScroll()
+}
+
+// 切换只看有库存
+async function handleToggleInStock() {
+  // 清除缓存，因为库存筛选条件变化
+  categoryCache.value.clear()
+  initialLoading.value = true
+  await shopStore.toggleInStockOnly()
+  initialLoading.value = false
   
   // 设置无限滚动
   await nextTick()
   setupInfiniteScroll()
+}
+
+// 恢复首先分配的商品分类关键功能使不表示空商品
+async function recoverProductsIfNeeded() {
+  if (loading.value || initialLoading.value) return
+  if (marketProducts.value.length > 0) return
+
+  const categoryId = shopStore.currentCategory
+  const sortKey = shopStore.currentSort || 'default'
+
+  const restored = tryRestoreFromCache(categoryId, sortKey)
+  if (!restored) {
+    initialLoading.value = true
+    await shopStore.fetchProducts(categoryId, true, sortKey)
+    initialLoading.value = false
+    saveCache(categoryId, sortKey)
+  }
 }
 
 // 初始化
@@ -304,6 +401,8 @@ onMounted(async () => {
   // 获取分类和商品
   await shopStore.fetchCategories()
   await shopStore.fetchProducts('', true)
+  saveCache(shopStore.currentCategory, shopStore.currentSort)
+
   
   // 加载完成
   initialLoading.value = false
@@ -325,14 +424,15 @@ onUnmounted(() => {
 })
 
 // keep-alive 激活时恢复滚动位置
-onActivated(() => {
+onActivated(async () => {
   if (savedScrollPosition > 0) {
-    nextTick(() => {
-      window.scrollTo(0, savedScrollPosition)
-    })
+    await nextTick()
+    window.scrollTo(0, savedScrollPosition)
   }
-  // 重新设置无限滚动
+
   if (activeSection.value === 'products') {
+    await recoverProductsIfNeeded()
+    await nextTick()
     setupInfiniteScroll()
   }
 })
@@ -381,10 +481,10 @@ function setupInfiniteScroll() {
   padding: 16px;
 }
 
-/* Banner - 液态玻璃效果 */
+/* Banner - 液态玻璃效�?*/
 .home-banner {
   position: relative;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--glass-bg-light);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border-radius: 24px;
@@ -395,11 +495,11 @@ function setupInfiniteScroll() {
   justify-content: space-between;
   align-items: center;
   gap: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--glass-border-light);
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.06),
-    0 2px 8px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    0 8px 32px var(--glass-shadow),
+    0 2px 8px var(--glass-shadow-light),
+    inset 0 1px 0 var(--glass-shine-strong);
   overflow: hidden;
 }
 
@@ -413,8 +513,8 @@ function setupInfiniteScroll() {
   height: 50%;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(255, 255, 255, 0.1) 60%,
+    var(--glass-shine) 0%,
+    rgba(255, 255, 255, 0.05) 60%,
     transparent 100%
   );
   border-radius: 24px 24px 50% 50%;
@@ -430,18 +530,18 @@ function setupInfiniteScroll() {
 .banner-title {
   font-size: 28px;
   font-weight: 700;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0 0 4px;
 }
 
 .banner-subtitle {
   font-size: 14px;
-  color: #999;
+  color: var(--text-tertiary);
   margin: 0;
 }
 
 .highlight-yellow {
-  color: #c9a857;
+  color: var(--color-warning);
   font-weight: 700;
 }
 
@@ -455,19 +555,19 @@ function setupInfiniteScroll() {
 }
 
 .highlight-red {
-  color: #c17c74;
+  color: var(--color-danger);
   font-weight: 700;
 }
 
 .link-linuxdo {
-  color: #3d3d3d;
+  color: var(--text-primary);
   font-weight: 700;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .link-linuxdo:hover {
-  color: #b5a898;
+  color: var(--color-primary);
 }
 
 .banner-stats {
@@ -488,7 +588,7 @@ function setupInfiniteScroll() {
 .stat-divider {
   width: 1px;
   height: 36px;
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--border-light);
 }
 
 .stat-item {
@@ -501,13 +601,13 @@ function setupInfiniteScroll() {
 .stat-value {
   font-size: 22px;
   font-weight: 700;
-  color: #b5a898;
+  color: var(--color-primary);
   line-height: 1.2;
 }
 
 .stat-label {
   font-size: 11px;
-  color: #999;
+  color: var(--text-tertiary);
   white-space: nowrap;
 }
 
@@ -523,8 +623,8 @@ function setupInfiniteScroll() {
 }
 
 .tab-count {
-  background: #f0ede9;
-  color: #999;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
   font-size: 12px;
   font-weight: 600;
   padding: 2px 8px;
@@ -546,9 +646,91 @@ function setupInfiniteScroll() {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 分类筛选 */
+/* 分类筛�?*/
 .filter-section {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+}
+
+/* 排序和筛选选项 */
+.sort-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.sort-options {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sort-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.sort-btn:hover {
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+.sort-btn.active {
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  font-weight: 500;
+}
+
+/* 库存筛�?*/
+.stock-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.stock-filter .checkbox {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  transition: all 0.2s ease;
+}
+
+.stock-filter .checkbox.checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.stock-filter .checkmark {
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.stock-filter .filter-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.stock-filter:hover .checkbox {
+  border-color: var(--color-primary);
 }
 
 /* 商品头部 */
@@ -558,25 +740,35 @@ function setupInfiniteScroll() {
 
 .products-count {
   font-size: 13px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .products-count strong {
-  color: #3d3d3d;
+  color: var(--text-primary);
+}
+
+.products-count .filter-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--color-success);
+  background: var(--color-success-bg);
+  border-radius: 10px;
 }
 
 /* 小店集市头部 */
 .stores-header {
   margin-bottom: 20px;
   padding: 16px 20px;
-  background: linear-gradient(135deg, #e8f5e8 0%, #d1fae5 100%);
+  background: var(--color-success-bg);
   border-radius: 14px;
 }
 
 .stores-desc {
   margin: 0;
   font-size: 14px;
-  color: #166534;
+  color: var(--color-success);
 }
 
 .stores-grid {
@@ -611,7 +803,7 @@ function setupInfiniteScroll() {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 13px;
 }
 
@@ -624,8 +816,8 @@ function setupInfiniteScroll() {
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(181, 168, 152, 0.3);
-  border-top-color: #b5a898;
+  border: 2px solid var(--border-medium);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -652,7 +844,7 @@ function setupInfiniteScroll() {
   
   .banner-stats {
     justify-content: center;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    border-top: 1px solid var(--border-light);
     padding-top: 16px;
     gap: 12px;
   }

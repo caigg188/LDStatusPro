@@ -321,7 +321,7 @@ onMounted(() => {
 .settings-page {
   min-height: 100vh;
   padding-bottom: 80px;
-  background: #faf9f7;
+  background: var(--bg-primary);
 }
 
 .page-container {
@@ -337,7 +337,7 @@ onMounted(() => {
 .page-title {
   font-size: 24px;
   font-weight: 700;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -347,14 +347,14 @@ onMounted(() => {
 }
 
 .skeleton-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #f5f3f0 25%, #ebe7e1 50%, #f5f3f0 75%);
+  background: var(--skeleton-gradient);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
@@ -377,7 +377,7 @@ onMounted(() => {
 
 /* 统计卡片 */
 .stats-card {
-  background: linear-gradient(135deg, #f0f9f0 0%, #e8f5e8 100%);
+  background: var(--color-success-light);
   border-radius: 16px;
   padding: 20px;
   margin-bottom: 16px;
@@ -386,7 +386,7 @@ onMounted(() => {
 .stats-card .card-title {
   font-size: 15px;
   font-weight: 600;
-  color: #5a8c5a;
+  color: var(--color-success);
   margin: 0 0 16px;
 }
 
@@ -397,7 +397,7 @@ onMounted(() => {
 }
 
 .stat-item {
-  background: white;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 14px;
   text-align: center;
@@ -406,24 +406,24 @@ onMounted(() => {
 .stat-value {
   font-size: 22px;
   font-weight: 700;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 /* 表单卡片 */
 .form-card,
 .help-card,
 .warning-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .form-header {
@@ -446,35 +446,35 @@ onMounted(() => {
 }
 
 .status-badge.verified {
-  background: #e8f5e8;
-  color: #5a8c5a;
+  background: var(--color-success-light);
+  color: var(--color-success);
 }
 
 .status-badge.pending {
-  background: #fff8eb;
-  color: #cfa76f;
+  background: var(--color-warning-light);
+  color: var(--color-warning);
 }
 
 .status-badge.active {
-  background: #e8f5e8;
-  color: #5a8c5a;
+  background: var(--color-success-light);
+  color: var(--color-success);
 }
 
 .status-badge.inactive {
-  background: #f5f3f0;
-  color: #999;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
 }
 
 .card-title {
   font-size: 16px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0 0 8px;
 }
 
 .card-desc {
   font-size: 14px;
-  color: #999;
+  color: var(--text-tertiary);
   margin: 0 0 20px;
   line-height: 1.6;
 }
@@ -488,43 +488,43 @@ onMounted(() => {
   display: block;
   font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
 .form-input {
   width: 100%;
   padding: 14px 16px;
-  background: #f9f7f5;
-  border: 1px solid #f0ede9;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   font-size: 14px;
-  color: #3d3d3d;
+  color: var(--text-primary);
   outline: none;
   transition: border-color 0.2s;
 }
 
 .form-input:focus {
-  border-color: #a5b4a3;
+  border-color: var(--color-primary);
 }
 
 .form-input:disabled {
-  background: #f5f3f0;
-  color: #999;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
 }
 
 .form-input::placeholder {
-  color: #bbb;
+  color: var(--text-placeholder);
 }
 
 .form-hint {
   font-size: 13px;
-  color: #999;
+  color: var(--text-tertiary);
   margin: 8px 0 0;
 }
 
 .form-hint a {
-  color: #778d9c;
+  color: var(--color-info);
   text-decoration: none;
 }
 
@@ -544,7 +544,7 @@ onMounted(() => {
   flex: 1;
   min-width: 140px;
   padding: 14px;
-  background: linear-gradient(135deg, #a5b4a3 0%, #95a493 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   border: none;
   border-radius: 12px;
   font-size: 15px;
@@ -556,7 +556,7 @@ onMounted(() => {
 
 .save-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(165, 180, 163, 0.4);
+  box-shadow: var(--shadow-primary);
 }
 
 .save-btn:disabled {
@@ -570,12 +570,12 @@ onMounted(() => {
   flex: 1;
   min-width: 100px;
   padding: 12px 16px;
-  background: #f5f3f0;
+  background: var(--bg-secondary);
   border: none;
   border-radius: 12px;
   font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -583,7 +583,7 @@ onMounted(() => {
 .edit-btn:hover,
 .test-btn:hover,
 .cancel-btn:hover {
-  background: #ebe7e1;
+  background: var(--bg-tertiary);
 }
 
 .test-btn:disabled {
@@ -595,18 +595,19 @@ onMounted(() => {
   flex: 1;
   min-width: 100px;
   padding: 12px 16px;
-  background: #f5e8e8;
+  background: var(--color-danger-light);
   border: none;
   border-radius: 12px;
   font-size: 14px;
   font-weight: 500;
-  color: #ad9090;
+  color: var(--color-danger);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .delete-btn:hover {
-  background: #f0dede;
+  background: var(--color-danger-light);
+  filter: brightness(0.95);
 }
 
 /* 帮助内容 */
@@ -629,7 +630,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #a5b4a3;
+  background: var(--color-primary);
   color: white;
   font-size: 14px;
   font-weight: 600;
@@ -644,19 +645,19 @@ onMounted(() => {
 .step-title {
   font-size: 14px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0 0 4px;
 }
 
 .step-desc {
   font-size: 13px;
-  color: #999;
+  color: var(--text-tertiary);
   margin: 0;
   line-height: 1.5;
 }
 
 .step-desc a {
-  color: #778d9c;
+  color: var(--color-info);
   text-decoration: none;
 }
 
@@ -667,29 +668,29 @@ onMounted(() => {
 .url-code {
   display: block;
   padding: 8px 12px;
-  background: #f5f3f0;
+  background: var(--bg-secondary);
   border-radius: 8px;
   font-family: 'Monaco', 'Consolas', monospace;
   font-size: 12px;
-  color: #778d9c;
+  color: var(--color-info);
   word-break: break-all;
   margin-top: 4px;
 }
 
 /* 警告卡片 */
 .warning-card {
-  background: #fffaf5;
-  border: 1px solid #f5ece3;
+  background: var(--color-warning-light);
+  border: 1px solid var(--border-color);
 }
 
 .warning-card .card-title {
-  color: #cfa76f;
+  color: var(--color-warning);
 }
 
 .warning-list {
   margin: 16px 0 0;
   padding: 0 0 0 20px;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.8;
 }

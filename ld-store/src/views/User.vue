@@ -8,6 +8,7 @@
             :src="avatar"
             alt=""
             class="user-avatar"
+            referrerpolicy="no-referrer"
             @error="handleAvatarError"
           />
           <div class="user-detail">
@@ -77,6 +78,12 @@
         <h3 class="section-title">其他</h3>
         
         <div class="menu-list">
+          <router-link to="/ld-image" class="menu-item">
+            <span class="menu-icon">🖼️</span>
+            <span class="menu-label">士多图床</span>
+            <span class="menu-arrow">→</span>
+          </router-link>
+          
           <a
             href="https://credit.linux.do/home"
             target="_blank"
@@ -189,7 +196,7 @@ async function handleLogout() {
 .user-page {
   min-height: 100vh;
   padding-bottom: 80px;
-  background: #faf9f7;
+  background: var(--bg-primary);
 }
 
 .page-container {
@@ -200,11 +207,11 @@ async function handleLogout() {
 
 /* 用户卡片 */
 .user-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
   padding: 24px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .user-info {
@@ -219,7 +226,7 @@ async function handleLogout() {
   height: 64px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid #f5f3f0;
+  border: 3px solid var(--border-light);
 }
 
 .user-detail {
@@ -229,13 +236,13 @@ async function handleLogout() {
 .user-name {
   font-size: 20px;
   font-weight: 700;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0 0 4px;
 }
 
 .user-id {
   font-size: 14px;
-  color: #999;
+  color: var(--text-tertiary);
   margin: 0;
 }
 
@@ -244,7 +251,7 @@ async function handleLogout() {
   display: flex;
   gap: 20px;
   padding: 20px;
-  background: linear-gradient(135deg, #f9f7f5 0%, #f5f3f0 100%);
+  background: var(--bg-tertiary);
   border-radius: 16px;
   margin-bottom: 16px;
 }
@@ -258,39 +265,39 @@ async function handleLogout() {
 
 .balance-label {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   margin-bottom: 4px;
 }
 
 .balance-value {
   font-size: 24px;
   font-weight: 700;
-  color: #cfa76f;
+  color: var(--color-warning);
 }
 
 .balance-value.secondary {
-  color: #778d9c;
+  color: var(--color-info);
 }
 
 .balance-unit {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .refresh-btn {
   width: 100%;
   padding: 12px;
-  background: #f5f3f0;
+  background: var(--bg-secondary);
   border: none;
   border-radius: 12px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #ebe7e1;
+  background: var(--bg-tertiary);
 }
 
 .refresh-btn:disabled {
@@ -306,15 +313,15 @@ async function handleLogout() {
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  color: #999;
+  color: var(--text-tertiary);
   margin: 0 0 12px 4px;
 }
 
 .menu-list {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .menu-item {
@@ -322,8 +329,8 @@ async function handleLogout() {
   align-items: center;
   padding: 16px 20px;
   text-decoration: none;
-  color: #3d3d3d;
-  border-bottom: 1px solid #f5f3f0;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-light);
   transition: background 0.2s;
 }
 
@@ -332,7 +339,7 @@ async function handleLogout() {
 }
 
 .menu-item:hover {
-  background: #faf9f7;
+  background: var(--bg-secondary);
 }
 
 .menu-icon {
@@ -347,25 +354,25 @@ async function handleLogout() {
 
 .menu-arrow {
   font-size: 16px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 /* 退出按钮 */
 .logout-btn {
   width: 100%;
   padding: 16px;
-  background: white;
-  border: 1px solid #f0ede9;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   font-size: 15px;
-  color: #ad9090;
+  color: var(--color-danger);
   cursor: pointer;
   transition: all 0.2s;
   margin-top: 20px;
 }
 
 .logout-btn:hover {
-  border-color: #ad9090;
-  background: #faf8f8;
+  border-color: var(--color-danger);
+  background: var(--color-danger-light);
 }
 </style>

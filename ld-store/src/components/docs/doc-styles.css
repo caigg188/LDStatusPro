@@ -2,7 +2,7 @@
 
 .doc-content {
   line-height: 1.8;
-  color: #3d3d3d;
+  color: var(--text-primary);
 }
 
 .doc-content h1 {
@@ -10,28 +10,28 @@
   font-weight: 700;
   margin: 0 0 16px;
   padding-bottom: 16px;
-  border-bottom: 2px solid #f0ede9;
+  border-bottom: 2px solid var(--border-light);
 }
 
 .doc-content h2 {
   font-size: 20px;
   font-weight: 600;
   margin: 36px 0 16px;
-  color: #3d3d3d;
+  color: var(--text-primary);
 }
 
 .doc-content h3 {
   font-size: 17px;
   font-weight: 600;
   margin: 28px 0 12px;
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .doc-content h4 {
   font-size: 15px;
   font-weight: 600;
   margin: 20px 0 10px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .doc-content p {
@@ -41,29 +41,56 @@
 
 .doc-content .lead {
   font-size: 17px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.7;
 }
 
+/* 文档访问统计 */
+.doc-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 20px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.doc-stats .stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.doc-stats .stat-icon {
+  font-size: 14px;
+}
+
+.doc-stats .stat-divider {
+  color: var(--border-color);
+}
+
 .doc-content a {
-  color: #778d9c;
+  color: var(--color-info);
   text-decoration: none;
-  border-bottom: 1px solid #778d9c;
+  border-bottom: 1px solid var(--color-info);
   transition: all 0.2s;
 }
 
 .doc-content a:hover {
-  color: #5a8c5a;
-  border-bottom-color: #5a8c5a;
+  color: var(--color-success);
+  border-bottom-color: var(--color-success);
 }
 
 .doc-content code {
-  background: #f5f3f0;
+  background: var(--bg-secondary);
   padding: 2px 8px;
   border-radius: 6px;
   font-family: 'Monaco', 'Consolas', monospace;
   font-size: 13px;
-  color: #ad6b6b;
+  color: var(--color-danger);
 }
 
 .doc-content pre {
@@ -96,7 +123,7 @@
 }
 
 .doc-content li strong {
-  color: #3d3d3d;
+  color: var(--text-primary);
 }
 
 /* 有序列表 */
@@ -122,7 +149,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #b5a898;
+  background: var(--color-primary);
   color: white;
   font-size: 13px;
   font-weight: 600;
@@ -150,23 +177,23 @@
 }
 
 .highlight-box.tip {
-  background: #f0f9f0;
-  border: 1px solid #d1e7d1;
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success);
 }
 
 .highlight-box.info {
-  background: #f0f6fa;
-  border: 1px solid #d1e0e7;
+  background: var(--color-info-bg);
+  border: 1px solid var(--color-info);
 }
 
 .highlight-box.warning {
-  background: #fffaf0;
-  border: 1px solid #f5ece3;
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning);
 }
 
 .highlight-box.danger {
-  background: #faf0f0;
-  border: 1px solid #e7d1d1;
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger);
 }
 
 .box-icon {
@@ -182,12 +209,13 @@
   display: block;
   font-size: 14px;
   margin-bottom: 4px;
+  color: var(--text-primary);
 }
 
 .box-content p {
   margin: 0;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .box-content p a {
@@ -213,7 +241,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #b5a898 0%, #9f8f7d 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   color: white;
   font-size: 15px;
   font-weight: 600;
@@ -224,13 +252,13 @@
   margin: 0 0 4px;
   font-size: 15px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
 }
 
 .step-content p {
   margin: 0;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 /* 特性卡片 */
@@ -242,14 +270,14 @@
 }
 
 .feature-card {
-  background: #f9f7f5;
+  background: var(--bg-secondary);
   border-radius: 14px;
   padding: 20px;
   transition: all 0.2s;
 }
 
 .feature-card:hover {
-  background: #f5f3f0;
+  background: var(--bg-tertiary);
   transform: translateY(-2px);
 }
 
@@ -262,13 +290,13 @@
   margin: 0 0 8px;
   font-size: 16px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
 }
 
 .feature-card p {
   margin: 0;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 
@@ -284,17 +312,17 @@
 .doc-table td {
   padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid #f0ede9;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .doc-table th {
-  background: #f9f7f5;
+  background: var(--bg-secondary);
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
 }
 
 .doc-table tr:hover td {
-  background: #faf9f7;
+  background: var(--bg-secondary);
 }
 
 /* 流程图 */
@@ -306,7 +334,7 @@
   gap: 8px;
   margin: 24px 0;
   padding: 20px;
-  background: #f9f7f5;
+  background: var(--bg-secondary);
   border-radius: 14px;
 }
 
@@ -315,12 +343,12 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: white;
+  background: var(--bg-card);
   border-radius: 10px;
   font-size: 14px;
   font-weight: 500;
-  color: #3d3d3d;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .flow-step .step-icon {
@@ -328,7 +356,7 @@
 }
 
 .flow-arrow {
-  color: #b5a898;
+  color: var(--color-primary);
   font-size: 18px;
 }
 
@@ -336,11 +364,11 @@
 .url-code {
   display: block;
   padding: 12px 16px;
-  background: #f5f3f0;
+  background: var(--bg-secondary);
   border-radius: 10px;
   font-family: 'Monaco', 'Consolas', monospace;
   font-size: 13px;
-  color: #778d9c;
+  color: var(--color-info);
   word-break: break-all;
   margin: 12px 0;
 }
@@ -350,7 +378,7 @@
   max-width: 100%;
   border-radius: 12px;
   margin: 16px 0;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 /* FAQ 折叠 */
@@ -359,7 +387,7 @@
 }
 
 .faq-item {
-  background: #f9f7f5;
+  background: var(--bg-secondary);
   border-radius: 14px;
   margin-bottom: 12px;
   overflow: hidden;
@@ -375,24 +403,24 @@
   border: none;
   font-size: 15px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   text-align: left;
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .faq-question:hover {
-  background: #f5f3f0;
+  background: var(--bg-tertiary);
 }
 
 .faq-question .q-icon {
   font-size: 18px;
-  color: #b5a898;
+  color: var(--color-primary);
 }
 
 .faq-arrow {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   transition: transform 0.3s;
 }
 
@@ -403,7 +431,7 @@
 .faq-answer {
   padding: 0 20px 16px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.7;
 }
 
@@ -422,7 +450,7 @@
   margin: 20px 0;
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .compare-table th,
@@ -432,29 +460,30 @@
 }
 
 .compare-table th {
-  background: linear-gradient(135deg, #b5a898 0%, #a09080 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   color: white;
   font-weight: 600;
 }
 
 .compare-table td {
-  background: white;
-  border-bottom: 1px solid #f0ede9;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-primary);
 }
 
 .compare-table td:first-child {
   text-align: left;
   font-weight: 500;
-  background: #f9f7f5;
+  background: var(--bg-secondary);
 }
 
 .compare-table .check {
-  color: #5a8c5a;
+  color: var(--color-success);
   font-size: 18px;
 }
 
 .compare-table .cross {
-  color: #ad9090;
+  color: var(--color-danger);
   font-size: 18px;
 }
 

@@ -169,7 +169,31 @@
     <h3>3. 选择物品类型</h3>
     <p>在「物品类型」区域选择「🎫 CDK 类型」。</p>
     
-    <h3>4. 添加 CDK 卡密（可选）</h3>
+    <h3>4. 测试模式（可选）</h3>
+    <p>测试模式是为卖家测试支付回调和 CDK 发货流程而设计的特殊模式。</p>
+    
+    <div class="highlight-box info">
+      <div class="box-icon">🧪</div>
+      <div class="box-content">
+        <strong>测试模式说明</strong>
+        <ul style="margin: 8px 0 0; padding-left: 20px;">
+          <li><strong>开启后</strong>：只有卖家自己可以购买该商品，其他用户无法购买</li>
+          <li><strong>用途</strong>：验证通知地址、回调地址是否配置正确，测试 CDK 发货流程</li>
+          <li><strong>标识</strong>：测试模式商品会在商品卡片左上角显示「🧪 测试」标记</li>
+          <li><strong>注意</strong>：测试购买会真实扣除 LDC 并发放 CDK，请使用低价测试</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="highlight-box warning">
+      <div class="box-icon">⚠️</div>
+      <div class="box-content">
+        <strong>使用测试模式前</strong>
+        <p>如果你需要测试 LDC 应用的通知回调功能，请先在 LDC 集市中将你的应用切换到「测试模式」，这样测试购买不会真正扣除 LDC。</p>
+      </div>
+    </div>
+    
+    <h3>5. 添加 CDK 卡密（可选）</h3>
     <p>你可以在发布时直接填入 CDK 卡密，也可以发布后在「我的物品」中管理库存。</p>
     
     <ul>
@@ -177,7 +201,7 @@
       <li><strong>后续添加</strong>：发布后在商品管理中随时补充库存</li>
     </ul>
     
-    <h3>5. 提交审核</h3>
+    <h3>6. 提交审核</h3>
     <p>点击「发布并上传CDK」按钮提交。审核通过后商品自动上架。</p>
     
     <h2>库存管理</h2>
@@ -265,6 +289,12 @@
     
     <h3>Q: 发布 CDK 物品需要手续费吗？</h3>
     <p>LD士多 平台目前不收取手续费。但 LDC 支付可能有官方的交易费用，具体以 LDC 官方说明为准。</p>
+    
+    <h3>Q: 测试模式商品可以被其他人购买吗？</h3>
+    <p>不能。开启测试模式的商品只允许卖家自己购买，其他用户看到的购买按钮会显示「🧪 测试商品」且无法点击。</p>
+    
+    <h3>Q: 如何关闭测试模式？</h3>
+    <p>在「我的物品」中找到对应商品，点击编辑，关闭测试模式开关后保存即可。关闭后其他用户就可以正常购买了。</p>
   </div>
 </template>
 

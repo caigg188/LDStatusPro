@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Allow previews by social/IM link unfurlers and search engines.
+# Block nothing else; add specific Disallow rules here if needed later.

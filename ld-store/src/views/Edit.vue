@@ -102,14 +102,25 @@
           </div>
           
           <div class="form-group">
-            <label class="form-label">物品图片</label>
+            <label class="form-label required">物品图片</label>
             <input
               v-model="form.imageUrl"
               type="url"
               class="form-input"
+              :class="{ 'input-error': imageUrlError || imageLoadError }"
               placeholder="https://..."
+              @blur="validateImageLoad"
             />
-            <p class="form-hint">图片URL地址，建议使用 https 链接</p>
+            <p v-if="imageUrlError" class="form-error">{{ imageUrlError }}</p>
+            <p v-else-if="imageLoadError" class="form-error">{{ imageLoadError }}</p>
+            <p v-else-if="imageValidating" class="form-hint loading-hint">⚙️ 正在验证图片...</p>
+            <p v-else-if="imageValidated" class="form-hint success-hint">✅ 图片验证通过</p>
+            <p v-else class="form-hint">推荐尺寸 16:9，必须使用 HTTPS 链接，不支持 linux.do 图床</p>
+            
+            <!-- 图片预览 -->
+            <div v-if="imagePreviewUrl && !imageLoadError" class="image-preview">
+              <img :src="imagePreviewUrl" alt="图片预览" @error="onPreviewError" />
+            </div>
           </div>
         </div>
         
@@ -182,7 +193,15 @@ const toast = useToast()
 const loading = ref(true)
 const submitting = ref(false)
 const product = ref(null)
+// 允许的图片后缀
+const VALID_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif']
 
+// 图片加载验证状态
+const imageValidating = ref(false)
+const imageValidated = ref(false)
+const imageLoadError = ref('')
+const imagePreviewUrl = ref('')
+let lastValidatedUrl = ''
 // 分类 - 从API获取或使用默认
 const categories = ref([
   { id: 1, name: 'AI', icon: '🤖' },
@@ -221,6 +240,91 @@ async function loadCategories() {
   }
 }
 
+// 检查URL是否为有效图片链接（后缀检查）
+function isValidImageUrl(url) {
+  if (!url) return false
+  try {
+    const urlObj = new URL(url)
+    const pathname = urlObj.pathname.toLowerCase()
+    return VALID_IMAGE_EXTENSIONS.some(ext => pathname.endsWith('.' + ext))
+  } catch {
+    return false
+  }
+}
+
+// 图片URL验证
+const imageUrlError = computed(() => {
+  const url = form.value.imageUrl?.trim()
+  if (!url) return null
+  if (!url.startsWith('https://')) return '图片链接必须使用 HTTPS'
+  if (url.includes('linux.do')) return '不支持使用 linux.do 图床，请使用其他图床服务'
+  if (!isValidImageUrl(url)) return '图片链接格式无效，支持: jpg, png, gif, webp, svg 等'
+  return null
+})
+
+// 图片预加载验证
+function preloadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const timeout = setTimeout(() => {
+      img.src = ''
+      reject(new Error('图片加载超时'))
+    }, 10000)
+    img.onload = () => {
+      clearTimeout(timeout)
+      resolve(img)
+    }
+    img.onerror = () => {
+      clearTimeout(timeout)
+      reject(new Error('图片加载失败'))
+    }
+    img.src = url
+  })
+}
+
+// 验证图片是否可加载
+async function validateImageLoad() {
+  const url = form.value.imageUrl?.trim()
+  
+  if (!url || imageUrlError.value) {
+    imageValidating.value = false
+    imageValidated.value = false
+    imageLoadError.value = ''
+    imagePreviewUrl.value = ''
+    lastValidatedUrl = ''
+    return
+  }
+  
+  if (url === lastValidatedUrl) return
+  
+  imageValidating.value = true
+  imageValidated.value = false
+  imageLoadError.value = ''
+  imagePreviewUrl.value = ''
+  
+  try {
+    await preloadImage(url)
+    if (form.value.imageUrl?.trim() !== url) return
+    
+    imageValidated.value = true
+    imagePreviewUrl.value = url
+    lastValidatedUrl = url
+  } catch (error) {
+    if (form.value.imageUrl?.trim() !== url) return
+    imageLoadError.value = '图片无法加载，请检查链接是否有效'
+    lastValidatedUrl = ''
+  } finally {
+    imageValidating.value = false
+  }
+}
+
+// 预览图片加载失败
+function onPreviewError() {
+  imageLoadError.value = '图片加载失败，请检查链接是否有效'
+  imagePreviewUrl.value = ''
+  imageValidated.value = false
+}
+
 // 是否可以提交
 const canSubmit = computed(() => {
   // 基本验证
@@ -231,6 +335,9 @@ const canSubmit = computed(() => {
   if (!form.value.categoryId) return false
   if (!form.value.price || parseFloat(form.value.price) <= 0 || parseFloat(form.value.price) > 99999999) return false
   if (form.value.discount < 0.01 || form.value.discount > 1) return false
+  // 图片验证：必填且格式正确
+  if (!form.value.imageUrl?.trim()) return false
+  if (imageUrlError.value) return false
   
   // 类型特定验证
   const type = getProductType(product.value)
@@ -282,6 +389,11 @@ async function loadProduct() {
         discount: product.value.discount || 1,
         imageUrl: product.value.image_url || product.value.imageUrl || '',
         paymentLink: product.value.payment_link || product.value.paymentLink || ''
+      }
+      
+      // 如果已有图片，自动验证
+      if (form.value.imageUrl) {
+        validateImageLoad()
       }
     }
   } catch (error) {
@@ -339,9 +451,34 @@ async function submitForm() {
     }
   }
   
-  // 验证图片URL（可选）
-  if (form.value.imageUrl && !form.value.imageUrl.startsWith('https://')) {
-    toast.error('图片链接请使用 https 开头的安全链接')
+  // 验证图片URL（必填）
+  if (!form.value.imageUrl || !form.value.imageUrl.trim()) {
+    toast.error('请上传物品图片')
+    return
+  }
+  if (!form.value.imageUrl.startsWith('https://')) {
+    toast.error('图片链接必须使用 HTTPS')
+    return
+  }
+  if (form.value.imageUrl.includes('linux.do')) {
+    toast.error('不支持使用 linux.do 图床，请使用其他图床服务')
+    return
+  }
+  if (!isValidImageUrl(form.value.imageUrl)) {
+    toast.error('图片链接格式无效，支持: jpg, png, gif, webp, svg 等')
+    return
+  }
+  
+  // 如果图片还未验证，先进行验证
+  if (!imageValidated.value && !imageLoadError.value) {
+    toast.loading('正在验证图片...')
+    await validateImageLoad()
+    toast.dismiss()
+  }
+  
+  // 图片加载失败
+  if (imageLoadError.value) {
+    toast.error(imageLoadError.value)
     return
   }
   
@@ -392,7 +529,7 @@ onMounted(async () => {
 .edit-page {
   min-height: 100vh;
   padding-bottom: 100px;
-  background: #faf9f7;
+  background: var(--bg-primary);
 }
 
 .page-container {
@@ -408,7 +545,7 @@ onMounted(async () => {
 .page-title {
   font-size: 24px;
   font-weight: 700;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -418,14 +555,14 @@ onMounted(async () => {
 }
 
 .skeleton-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #f5f3f0 25%, #ebe7e1 50%, #f5f3f0 75%);
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-tertiary) 50%, var(--bg-secondary) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
@@ -450,7 +587,7 @@ onMounted(async () => {
 .back-btn {
   display: inline-block;
   padding: 12px 24px;
-  background: #a5b4a3;
+  background: var(--color-primary);
   color: white;
   border-radius: 12px;
   text-decoration: none;
@@ -460,22 +597,22 @@ onMounted(async () => {
 }
 
 .back-btn:hover {
-  background: #95a493;
+  background: var(--color-primary-hover);
 }
 
 /* 表单卡片 */
 .form-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 20px;
   margin-bottom: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .card-title {
   font-size: 16px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0 0 16px;
 }
 
@@ -493,45 +630,45 @@ onMounted(async () => {
   display: block;
   font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
 .form-label.required::after {
   content: '*';
-  color: #ad9090;
+  color: var(--color-danger);
   margin-left: 4px;
 }
 
 .form-input {
   width: 100%;
   padding: 14px 16px;
-  background: #f9f7f5;
-  border: 1px solid #f0ede9;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   font-size: 14px;
-  color: #3d3d3d;
+  color: var(--text-primary);
   outline: none;
   transition: border-color 0.2s;
   box-sizing: border-box;
 }
 
 .form-input:focus {
-  border-color: #a5b4a3;
+  border-color: var(--color-primary);
 }
 
 .form-input::placeholder {
-  color: #bbb;
+  color: var(--text-muted);
 }
 
 .form-textarea {
   width: 100%;
   padding: 14px 16px;
-  background: #f9f7f5;
-  border: 1px solid #f0ede9;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   font-size: 14px;
-  color: #3d3d3d;
+  color: var(--text-primary);
   outline: none;
   resize: none;
   transition: border-color 0.2s;
@@ -539,7 +676,7 @@ onMounted(async () => {
 }
 
 .form-textarea:focus {
-  border-color: #a5b4a3;
+  border-color: var(--color-primary);
 }
 
 .form-row {
@@ -556,15 +693,23 @@ onMounted(async () => {
   right: 12px;
   bottom: -20px;
   font-size: 12px;
-  color: #bbb;
+  color: var(--text-muted);
   margin: 0;
 }
 
 .form-hint {
   font-size: 13px;
-  color: #999;
+  color: var(--text-tertiary);
   margin: 8px 0 0;
   line-height: 1.5;
+}
+
+.form-hint.loading-hint {
+  color: var(--color-warning);
+}
+
+.form-hint.success-hint {
+  color: var(--color-success);
 }
 
 .form-hint.selectable {
@@ -572,12 +717,38 @@ onMounted(async () => {
 }
 
 .form-hint a {
-  color: #7a9a7a;
+  color: var(--color-primary);
   text-decoration: none;
 }
 
 .form-hint a:hover {
   text-decoration: underline;
+}
+
+.form-error {
+  font-size: 13px;
+  color: var(--color-danger);
+  margin: 8px 0 0;
+}
+
+.form-input.input-error {
+  border-color: var(--color-danger);
+}
+
+/* 图片预览 */
+.image-preview {
+  margin-top: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+}
+
+.image-preview img {
+  display: block;
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
 }
 
 /* 分类选择 */
@@ -589,23 +760,23 @@ onMounted(async () => {
 
 .category-btn {
   padding: 10px 18px;
-  background: #f5f3f0;
+  background: var(--bg-secondary);
   border: 2px solid transparent;
   border-radius: 24px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .category-btn:hover {
-  background: #ebe7e1;
+  background: var(--bg-tertiary);
 }
 
 .category-btn.active {
-  background: #e8f5e8;
-  border-color: #a5b4a3;
-  color: #5a8c5a;
+  background: var(--color-success-bg);
+  border-color: var(--color-primary);
+  color: var(--color-success);
 }
 
 /* 类型只读 */
@@ -614,7 +785,7 @@ onMounted(async () => {
   align-items: center;
   gap: 14px;
   padding: 16px;
-  background: #f9f7f5;
+  background: var(--bg-secondary);
   border-radius: 14px;
 }
 
@@ -629,27 +800,27 @@ onMounted(async () => {
 .type-name {
   font-size: 15px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0 0 4px;
 }
 
 .type-desc {
   font-size: 13px;
-  color: #999;
+  color: var(--text-tertiary);
   margin: 0;
 }
 
 /* CDK 管理提示 */
 .cdk-hint {
   font-size: 14px;
-  color: #999;
+  color: var(--text-tertiary);
   margin: 0 0 12px;
 }
 
 .manage-link {
   display: inline-block;
   font-size: 14px;
-  color: #a5b4a3;
+  color: var(--color-primary);
   text-decoration: none;
 }
 
@@ -664,8 +835,8 @@ onMounted(async () => {
   right: 0;
   bottom: 0;
   padding: 16px;
-  background: white;
-  border-top: 1px solid #f0ede9;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-light);
   z-index: 100;
 }
 
@@ -687,7 +858,7 @@ onMounted(async () => {
 
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(165, 180, 163, 0.4);
+  box-shadow: var(--shadow-primary);
 }
 
 .submit-btn:disabled {

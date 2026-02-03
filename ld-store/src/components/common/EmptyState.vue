@@ -42,13 +42,13 @@ defineProps({
 
 .empty-text {
   font-size: 16px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0;
 }
 
 .empty-hint {
   font-size: 13px;
-  color: #999;
+  color: var(--text-tertiary);
   margin: 8px 0 0;
 }
 </style>

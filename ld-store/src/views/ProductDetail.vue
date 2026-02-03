@@ -24,7 +24,7 @@
         <div class="detail-main">
           <!-- 左侧：图片 -->
           <div class="detail-media">
-            <div class="media-wrapper" :style="coverStyle">
+            <div class="media-wrapper" :style="coverStyle" @click="openImagePreview">
               <img
                 v-if="product.image_url"
                 :src="product.image_url"
@@ -53,6 +53,12 @@
               <div v-if="hasDiscount" class="price-original">{{ originalPrice }} LDC</div>
             </div>
             
+            <!-- 测试模式提示 -->
+            <div v-if="isTestMode" class="test-mode-banner">
+              <span class="test-badge">🧪 测试模式</span>
+              <span class="test-desc">{{ isSeller ? '只有您可以购买此商品' : '该商品为测试模式，仅卖家可购买' }}</span>
+            </div>
+            
             <!-- 商品状态信息 -->
             <div class="status-row">
               <div class="status-item">
@@ -79,6 +85,7 @@
                 :src="sellerAvatar"
                 alt=""
                 class="seller-avatar"
+                referrerpolicy="no-referrer"
                 @error="handleAvatarError"
               />
               <div class="seller-content">
@@ -108,6 +115,13 @@
                   😢 已售罄
                 </button>
                 <button
+                  v-else-if="isTestMode && !isSeller"
+                  class="buy-btn disabled test-only"
+                  disabled
+                >
+                  🧪 测试商品
+                </button>
+                <button
                   v-else-if="!canPurchase"
                   class="buy-btn disabled"
                   disabled
@@ -117,6 +131,7 @@
                 <button
                   v-else
                   class="buy-btn"
+                  :class="{ test: isTestMode && isSeller }"
                   :disabled="purchasing"
                   @click="handleBuyCdk"
                 >
@@ -124,14 +139,12 @@
                 </button>
               </template>
               <template v-else>
-                <a
-                  :href="product.payment_link"
-                  target="_blank"
-                  rel="noopener"
+                <button
                   class="buy-btn"
+                  @click="handleBuyLink"
                 >
                   🛒 立即兑换
-                </a>
+                </button>
               </template>
             </div>
           </div>
@@ -164,6 +177,13 @@
               😢 已售罄
             </button>
             <button
+              v-else-if="isTestMode && !isSeller"
+              class="buy-btn disabled test-only"
+              disabled
+            >
+              🧪 测试商品
+            </button>
+            <button
               v-else-if="!canPurchase"
               class="buy-btn disabled"
               disabled
@@ -173,6 +193,7 @@
             <button
               v-else
               class="buy-btn"
+              :class="{ test: isTestMode && isSeller }"
               :disabled="purchasing"
               @click="handleBuyCdk"
             >
@@ -180,14 +201,12 @@
             </button>
           </template>
           <template v-else>
-            <a
-              :href="product.payment_link"
-              target="_blank"
-              rel="noopener"
+            <button
               class="buy-btn"
+              @click="handleBuyLink"
             >
               🛒 立即兑换
-            </a>
+            </button>
           </template>
         </div>
       </template>
@@ -206,6 +225,23 @@
         </template>
       </EmptyState>
     </div>
+    
+    <!-- 图片预览弹窗 -->
+    <Teleport to="body">
+      <div 
+        v-if="showImagePreview && product?.image_url" 
+        class="image-preview-overlay"
+        @click.self="closeImagePreview"
+      >
+        <button class="preview-close" @click="closeImagePreview">✕</button>
+        <img 
+          :src="product.image_url" 
+          :alt="product.name" 
+          class="preview-image"
+        />
+        <div class="preview-hint">点击空白处或按 ESC 关闭</div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -218,6 +254,7 @@ import { useToast } from '@/composables/useToast'
 import { useDialog } from '@/composables/useDialog'
 import { formatRelativeTime, formatPrice } from '@/utils/format'
 import { escapeHtml } from '@/utils/security'
+import { prepareNewTab, openInNewTab, cleanupPreparedTab } from '@/utils/newTab'
 import Skeleton from '@/components/common/Skeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 
@@ -232,11 +269,19 @@ const dialog = useDialog()
 const loading = ref(true)
 const product = ref(null)
 const purchasing = ref(false)
+const showImagePreview = ref(false)
 
 // 商品类型
 const productType = computed(() => product.value?.product_type || 'link')
 const isCdk = computed(() => productType.value === 'cdk')
 const isStore = computed(() => productType.value === 'store')
+
+// 测试模式相关
+const isTestMode = computed(() => !!product.value?.is_test_mode || !!product.value?.isTestMode)
+const isSeller = computed(() => {
+  if (!product.value || !userStore.user) return false
+  return String(userStore.user.id) === String(product.value.seller_user_id)
+})
 
 // 价格计算
 const price = computed(() => parseFloat(product.value?.price) || 0)
@@ -274,9 +319,12 @@ const soldCount = computed(() => parseInt(product.value?.sold_count) || 0)
 const categoryIcon = computed(() => product.value?.category_icon || '📦')
 const categoryName = computed(() => product.value?.category_name || '其他')
 
+// 默认头像 SVG (data URI)
+const defaultAvatar = `data:image/svg+xml,${encodeURIComponent('<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M326.169 533.554v9.903c0 101.362 82.138 184.083 183.5 184.083s183.501-82.72 183.501-184.083v-9.903h-367.001zm277.872-70.487c22.137 0 40.196-18.06 40.196-40.196s-18.06-40.195-40.196-40.195-40.195 18.059-40.195 40.195 18.059 40.196 40.195 40.196zm-186.996 0c22.137 0 40.196-18.06 40.196-40.196s-18.06-40.195-40.196-40.195-40.195 18.059-40.195 40.195 18.059 40.196 40.195 40.196z" fill="#a686ba"/><path d="M1011.239 512c0-276.708-224.279-501.569-501.569-501.569S8.684 235.292 8.684 512c0 154.956 70.487 293.601 180.588 385.643V543.457c0-177.675 143.305-321.563 320.398-321.563s320.398 143.888 320.398 321.563v354.186C941.334 805.601 1011.239 666.956 1011.239 512z" fill="#a686ba"/><path d="M510.252 221.894c-177.093 0-320.398 143.888-320.398 321.563v354.186c86.799 72.235 198.647 115.926 320.398 115.926s233.6-43.691 320.398-115.926V543.457c0-177.675-143.305-321.563-320.398-321.563zm93.207 160.782c22.136 0 40.195 18.059 40.195 40.195s-18.059 40.196-40.195 40.196-40.196-18.06-40.196-40.196 18.06-40.195 40.196-40.195zm-186.996 0c22.136 0 40.195 18.059 40.195 40.195s-18.059 40.196-40.195 40.196-40.196-18.06-40.196-40.196 18.06-40.195 40.196-40.195zm93.207 344.865c-101.363 0-183.501-82.721-183.501-184.084v-9.903h366.418v9.903c.583 101.363-81.556 184.084-182.917 184.084z" fill="#FFF"/></svg>')}`
+
 // 卖家
 const sellerAvatar = computed(() => 
-  product.value?.seller_avatar || 'https://linux.do/uploads/default/optimized/4X/6/a/6/6a6affc7b1ce8140279e959d32671304db06d5ab_2_180x180.png'
+  product.value?.seller_avatar || defaultAvatar
 )
 
 // 时间
@@ -344,6 +392,28 @@ function handleAvatarError(e) {
   e.target.src = 'https://linux.do/favicon.ico'
 }
 
+// 图片预览
+function openImagePreview() {
+  if (product.value?.image_url) {
+    showImagePreview.value = true
+    document.body.style.overflow = 'hidden'
+    // ESC 键关闭
+    document.addEventListener('keydown', handleEscKey)
+  }
+}
+
+function closeImagePreview() {
+  showImagePreview.value = false
+  document.body.style.overflow = ''
+  document.removeEventListener('keydown', handleEscKey)
+}
+
+function handleEscKey(e) {
+  if (e.key === 'Escape') {
+    closeImagePreview()
+  }
+}
+
 async function handleBuyCdk() {
   // 检查登录
   if (!userStore.isLoggedIn) {
@@ -366,6 +436,10 @@ async function handleBuyCdk() {
   
   if (!confirmed) return
   
+  // Pre-open a blank tab to keep navigation tied to the user gesture (better for mobile Safari).
+  const preparedWindow = prepareNewTab()
+  let paymentOpened = false
+  
   purchasing.value = true
   
   try {
@@ -373,7 +447,10 @@ async function handleBuyCdk() {
     
     if (result.success && result.data?.paymentUrl) {
       // 跳转支付
-      window.open(result.data.paymentUrl, '_blank')
+      paymentOpened = openInNewTab(result.data.paymentUrl, preparedWindow)
+      if (!paymentOpened) {
+        cleanupPreparedTab(preparedWindow)
+      }
       
       // 提示用户
       await dialog.alert(
@@ -381,6 +458,7 @@ async function handleBuyCdk() {
         { title: '订单创建成功', icon: '🎉' }
       )
     } else {
+      cleanupPreparedTab(preparedWindow)
       // 提取错误消息，处理对象格式的 error
       const errorMsg = typeof result.error === 'object' 
         ? (result.error.message || result.error.code || '创建订单失败')
@@ -388,9 +466,40 @@ async function handleBuyCdk() {
       toast.error(errorMsg)
     }
   } catch (e) {
+    cleanupPreparedTab(preparedWindow)
     toast.error('创建订单失败：' + e.message)
   } finally {
     purchasing.value = false
+  }
+}
+
+// 外链物品兑换
+async function handleBuyLink() {
+  const confirmed = await dialog.confirm(
+    `<div style="text-align: left; line-height: 1.8;">
+      <p>⚠️ <strong>外链物品提示</strong></p>
+      <p style="margin-top: 12px;">此物品为外链物品，点击「继续兑换」后将跳转到卖家设置的支付链接。</p>
+      <ul style="margin: 12px 0; padding-left: 20px; color: var(--text-secondary);">
+        <li>您将直接向卖家支付 LDC</li>
+        <li>交易不会在平台留下支付记录</li>
+        <li>兑换后请联系卖家获取服务</li>
+      </ul>
+      <p style="color: var(--text-tertiary); font-size: 13px;">💡 建议：交易前可先与卖家沟通确认</p>
+    </div>`,
+    { 
+      title: '外链物品提示', 
+      icon: '🔗',
+      confirmText: '继续兑换',
+      cancelText: '取消'
+    }
+  )
+  
+  if (confirmed && product.value?.payment_link) {
+    const preparedWindow = prepareNewTab()
+    const opened = openInNewTab(product.value.payment_link, preparedWindow)
+    if (!opened) {
+      cleanupPreparedTab(preparedWindow)
+    }
   }
 }
 </script>
@@ -398,7 +507,7 @@ async function handleBuyCdk() {
 <style scoped>
 .detail-page {
   min-height: 100vh;
-  background: #faf9f7;
+  background: var(--bg-primary);
 }
 
 .page-container {
@@ -424,19 +533,19 @@ async function handleBuyCdk() {
 
 .back-btn {
   padding: 10px 16px;
-  background: white;
-  border: 1px solid #f0ede9;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   font-size: 14px;
   font-weight: 500;
-  color: #3d3d3d;
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .back-btn:hover {
-  background: #f9f7f5;
-  border-color: #e0dcd6;
+  background: var(--bg-secondary);
+  border-color: var(--border-hover);
 }
 
 .nav-tags {
@@ -447,10 +556,10 @@ async function handleBuyCdk() {
 
 .nav-category {
   padding: 8px 14px;
-  background: #f5f3f0;
+  background: var(--bg-secondary);
   border-radius: 20px;
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .nav-type {
@@ -461,13 +570,13 @@ async function handleBuyCdk() {
 }
 
 .nav-type.cdk {
-  background: #e8f0f5;
-  color: #778d9c;
+  background: var(--color-info-bg);
+  color: var(--color-info);
 }
 
 .nav-type.store {
-  background: #e8f5e8;
-  color: #5a8c5a;
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 /* 主内容区 - 桌面端左右布局 */
@@ -475,10 +584,11 @@ async function handleBuyCdk() {
   display: grid;
   grid-template-columns: 1fr;
   gap: 24px;
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
   padding: 24px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
   margin-bottom: 20px;
 }
 
@@ -493,7 +603,7 @@ async function handleBuyCdk() {
 .detail-media {
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .media-wrapper {
@@ -507,7 +617,103 @@ async function handleBuyCdk() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f3f0;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.media-wrapper:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.media-wrapper::after {
+  content: '🔍 点击查看大图';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.5));
+  color: white;
+  font-size: 12px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.media-wrapper:has(.media-image):hover::after {
+  opacity: 1;
+}
+
+/* 图片预览弹窗 */
+.image-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.preview-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.preview-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.preview-image {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  animation: zoomIn 0.3s ease;
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.preview-hint {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
 }
 
 /* 没有图片时使用正方形占位 */
@@ -520,7 +726,7 @@ async function handleBuyCdk() {
   height: auto;
   max-height: 500px;
   object-fit: contain;
-  background: #f5f3f0;
+  background: var(--bg-secondary);
 }
 
 .media-placeholder {
@@ -550,7 +756,7 @@ async function handleBuyCdk() {
 .detail-name {
   font-size: 24px;
   font-weight: 700;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0;
   line-height: 1.4;
 }
@@ -574,7 +780,7 @@ async function handleBuyCdk() {
 .price-main {
   font-size: 32px;
   font-weight: 700;
-  color: #cfa76f;
+  color: var(--color-warning);
 }
 
 .price-main .unit {
@@ -583,12 +789,12 @@ async function handleBuyCdk() {
 }
 
 .price-main.discounted {
-  color: #ad9090;
+  color: var(--color-danger);
 }
 
 .price-original {
   font-size: 16px;
-  color: #999;
+  color: var(--text-tertiary);
   text-decoration: line-through;
 }
 
@@ -604,7 +810,7 @@ async function handleBuyCdk() {
   align-items: center;
   gap: 6px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .status-icon {
@@ -612,12 +818,12 @@ async function handleBuyCdk() {
 }
 
 .status-text.low {
-  color: #dc2626;
+  color: var(--color-danger);
   font-weight: 500;
 }
 
 .status-item.hot .status-text {
-  color: #f97316;
+  color: var(--color-warning);
   font-weight: 500;
 }
 
@@ -627,14 +833,14 @@ async function handleBuyCdk() {
   align-items: center;
   gap: 14px;
   padding: 16px;
-  background: #f9f7f5;
+  background: var(--bg-secondary);
   border-radius: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .seller-card:hover {
-  background: #f5f3f0;
+  background: var(--bg-tertiary);
   transform: translateY(-1px);
 }
 
@@ -654,7 +860,7 @@ async function handleBuyCdk() {
 .seller-name {
   font-size: 15px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -662,7 +868,7 @@ async function handleBuyCdk() {
 
 .seller-hint {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   margin-top: 4px;
 }
 
@@ -684,24 +890,25 @@ async function handleBuyCdk() {
 
 /* 描述区域 */
 .detail-description {
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
   padding: 24px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0 0 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #f0ede9;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .description-content {
   font-size: 15px;
-  color: #555;
+  color: var(--text-secondary);
   line-height: 1.8;
   white-space: pre-wrap;
   word-break: break-word;
@@ -715,9 +922,9 @@ async function handleBuyCdk() {
   right: 0;
   padding: 12px 16px;
   padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--glass-bg-heavy);
   backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  border-top: 1px solid var(--border-light);
   z-index: 100;
 }
 
@@ -773,6 +980,46 @@ async function handleBuyCdk() {
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+.buy-btn.disabled.test-only {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  opacity: 0.6;
+}
+
+.buy-btn.test {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+}
+
+.buy-btn.test:hover {
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+}
+
+/* 测试模式横幅 */
+.test-mode-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+  border: 1px solid #a5f3fc;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.test-badge {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.test-desc {
+  font-size: 13px;
+  color: #0891b2;
 }
 
 /* 移动端适配 */

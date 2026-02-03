@@ -219,7 +219,7 @@ onMounted(() => {
 .search-page {
   min-height: 100vh;
   padding-bottom: 80px;
-  background: #faf9f7;
+  background: var(--bg-primary);
 }
 
 .page-container {
@@ -238,9 +238,9 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 14px 20px;
-  background: white;
+  background: var(--bg-card);
   border-radius: 28px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .search-icon {
@@ -253,12 +253,12 @@ onMounted(() => {
   border: none;
   background: none;
   font-size: 16px;
-  color: #3d3d3d;
+  color: var(--text-primary);
   outline: none;
 }
 
 .search-input::placeholder {
-  color: #bbb;
+  color: var(--text-muted);
 }
 
 .clear-btn {
@@ -267,17 +267,17 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f3f0;
+  background: var(--bg-secondary);
   border: none;
   border-radius: 50%;
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .clear-btn:hover {
-  background: #ebe7e1;
+  background: var(--bg-tertiary);
 }
 
 /* 搜索历史 */
@@ -295,7 +295,7 @@ onMounted(() => {
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -304,12 +304,12 @@ onMounted(() => {
   background: none;
   border: none;
   font-size: 13px;
-  color: #999;
+  color: var(--text-tertiary);
   cursor: pointer;
 }
 
 .clear-history:hover {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .history-list {
@@ -320,26 +320,26 @@ onMounted(() => {
 
 .history-item {
   padding: 8px 16px;
-  background: white;
-  border: 1px solid #f0ede9;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 20px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .history-item:hover {
-  background: #faf9f7;
-  border-color: #e0dcd6;
+  background: var(--bg-secondary);
+  border-color: var(--border-default);
 }
 
 /* 热门搜索 */
 .hot-section {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .hot-section .section-title {
@@ -366,7 +366,7 @@ onMounted(() => {
 }
 
 .hot-item:hover {
-  background: #f9f7f5;
+  background: var(--bg-secondary);
 }
 
 .hot-rank {
@@ -375,11 +375,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f3f0;
+  background: var(--bg-secondary);
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .hot-item.top .hot-rank {
@@ -389,7 +389,7 @@ onMounted(() => {
 
 .hot-text {
   font-size: 14px;
-  color: #3d3d3d;
+  color: var(--text-primary);
 }
 
 /* 搜索结果 */
@@ -407,7 +407,7 @@ onMounted(() => {
 
 .results-count {
   font-size: 14px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .products-grid {

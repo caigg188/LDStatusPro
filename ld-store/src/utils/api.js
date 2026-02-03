@@ -135,6 +135,82 @@ function del(url, options = {}) {
 }
 
 /**
+ * 上传文件（FormData 请求）
+ */
+async function upload(url, formData, options = {}) {
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`
+  
+  // 获取 token
+  const token = storage.get('token')
+  
+  // 不要设置 Content-Type，让浏览器自动添加 multipart/form-data 及 boundary
+  const headers = {
+    'Accept': 'application/json',
+    ...options.headers
+  }
+  
+  // 添加认证头
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  
+  // 创建 AbortController 用于超时控制（上传可能需要更长时间）
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), options.timeout || 60000)
+  
+  try {
+    const response = await fetch(fullUrl, {
+      method: 'POST',
+      headers,
+      body: formData, // 直接传 FormData，不要 JSON.stringify
+      signal: controller.signal,
+      credentials: 'include'
+    })
+    
+    clearTimeout(timeoutId)
+    
+    // 解析响应
+    const contentType = response.headers.get('content-type')
+    let data
+    
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json()
+    } else {
+      data = await response.text()
+    }
+    
+    // 检查响应状态
+    if (!response.ok) {
+      let errorMessage = ERROR_MESSAGES[response.status] || `请求失败 (${response.status})`
+      if (data?.error) {
+        if (typeof data.error === 'string') {
+          errorMessage = data.error
+        } else if (data.error.message) {
+          errorMessage = data.error.message
+        }
+      } else if (data?.message) {
+        errorMessage = data.message
+      }
+      return {
+        success: false,
+        error: errorMessage,
+        status: response.status
+      }
+    }
+    
+    return data
+  } catch (error) {
+    clearTimeout(timeoutId)
+    
+    if (error.name === 'AbortError') {
+      return { success: false, error: '上传超时，请检查网络连接' }
+    }
+    
+    return { success: false, error: error.message || '网络错误' }
+  }
+}
+
+/**
  * 并发请求
  */
 async function all(requests) {
@@ -147,6 +223,7 @@ export const api = {
   post,
   put,
   delete: del,
+  upload,
   all,
   BASE_URL: API_BASE
 }

@@ -86,7 +86,7 @@ const customStyle = computed(() => ({
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #f0ede9 25%, #e8e4de 50%, #f0ede9 75%);
+  background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--bg-tertiary) 50%, var(--skeleton-base) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 8px;
@@ -103,10 +103,11 @@ const customStyle = computed(() => ({
 
 /* 卡片骨架 */
 .skeleton-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 
 .skeleton-image {
@@ -142,9 +143,10 @@ const customStyle = computed(() => ({
   align-items: center;
   padding: 16px;
   gap: 12px;
-  background: white;
+  background: var(--bg-card);
   border-radius: 12px;
   margin-bottom: 12px;
+  border: 1px solid var(--border-light);
 }
 
 .skeleton-avatar {

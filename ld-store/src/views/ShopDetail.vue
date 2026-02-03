@@ -65,6 +65,7 @@
                 :src="ownerAvatarUrl" 
                 :alt="shop.owner_username"
                 class="owner-avatar"
+                referrerpolicy="no-referrer"
                 @error="handleAvatarError"
               />
               <div class="owner-info">
@@ -219,7 +220,7 @@ onMounted(() => {
 <style scoped>
 .shop-detail-page {
   min-height: 100vh;
-  background: #f8f6f3;
+  background: var(--bg-primary);
   padding-bottom: 80px;
 }
 
@@ -238,17 +239,20 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #666;
+  color: var(--text-secondary);
   text-decoration: none;
   font-size: 14px;
   padding: 8px 12px;
   border-radius: 10px;
   transition: all 0.2s;
+  background: transparent;
+  border: none;
+  cursor: pointer;
 }
 
 .back-link:hover {
-  background: white;
-  color: #3d3d3d;
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .back-icon {
@@ -263,7 +267,7 @@ onMounted(() => {
 }
 
 .skeleton-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
   overflow: hidden;
   max-width: 600px;
@@ -273,7 +277,7 @@ onMounted(() => {
 .skeleton-image {
   width: 100%;
   padding-top: 56.25%;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: var(--skeleton-gradient);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -284,7 +288,7 @@ onMounted(() => {
 
 .skeleton-line {
   height: 20px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: var(--skeleton-gradient);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
@@ -301,7 +305,7 @@ onMounted(() => {
 }
 
 .error-state {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .error-icon {
@@ -311,15 +315,16 @@ onMounted(() => {
 
 .error-state h3 {
   margin-bottom: 20px;
-  color: #3d3d3d;
+  color: var(--text-primary);
 }
 
 /* 小店详情 */
 .shop-detail {
-  background: white;
+  background: var(--bg-card);
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-light);
 }
 
 /* 小店图片 */
@@ -327,7 +332,7 @@ onMounted(() => {
   position: relative;
   width: 100%;
   padding-top: 50%;
-  background: #f8f6f3;
+  background: var(--bg-secondary);
 }
 
 .shop-image {
@@ -349,20 +354,20 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 80px;
-  background: linear-gradient(135deg, #f8f6f3 0%, #f0ede9 100%);
+  background: var(--bg-secondary);
 }
 
 .pinned-badge {
   position: absolute;
   top: 16px;
   right: 16px;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--glass-bg-heavy);
   border-radius: 12px;
   padding: 8px 14px;
   font-size: 13px;
   font-weight: 500;
-  color: #b5a898;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 /* 小店信息卡片 */
@@ -373,7 +378,7 @@ onMounted(() => {
 .shop-name {
   font-size: 24px;
   font-weight: 700;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0 0 20px;
   line-height: 1.3;
 }
@@ -388,14 +393,14 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: #f8f6f3;
+  background: var(--bg-secondary);
   border-radius: 14px;
   text-decoration: none;
   transition: all 0.2s;
 }
 
 .owner-link:hover {
-  background: #f0ede9;
+  background: var(--bg-tertiary);
 }
 
 .owner-avatar {
@@ -403,8 +408,8 @@ onMounted(() => {
   height: 48px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid var(--bg-card);
+  box-shadow: var(--shadow-sm);
 }
 
 .owner-info {
@@ -415,19 +420,19 @@ onMounted(() => {
   display: block;
   font-size: 15px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
 }
 
 .owner-desc {
   display: block;
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   margin-top: 2px;
 }
 
 .external-icon {
   font-size: 18px;
-  color: #b5a898;
+  color: var(--color-primary);
 }
 
 /* 标签 */
@@ -445,38 +450,38 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 500;
   border-radius: 20px;
-  background: #f5f3f0;
-  color: #666;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
 .shop-tag.tag-subscription {
-  background: #e8f5e8;
-  color: #166534;
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .shop-tag.tag-service {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: var(--color-info-bg);
+  color: var(--color-info);
 }
 
 .shop-tag.tag-vps {
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 .shop-tag.tag-ai {
-  background: #f3e8ff;
-  color: #7c3aed;
+  background: rgba(147, 51, 234, 0.15);
+  color: #a855f7;
 }
 
 .shop-tag.tag-entertainment {
-  background: #ffe4e6;
-  color: #be123c;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .shop-tag.tag-charity {
-  background: #fce7f3;
-  color: #be185d;
+  background: rgba(219, 39, 119, 0.15);
+  color: #ec4899;
 }
 
 /* 统计信息 */
@@ -484,8 +489,8 @@ onMounted(() => {
   display: flex;
   gap: 24px;
   padding: 16px 0;
-  border-top: 1px solid #f0ede9;
-  border-bottom: 1px solid #f0ede9;
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
   margin-bottom: 20px;
 }
 
@@ -502,12 +507,12 @@ onMounted(() => {
 .stat-value {
   font-size: 16px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
 }
 
 .stat-label {
   font-size: 13px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 /* 小店介绍 */
@@ -518,13 +523,13 @@ onMounted(() => {
 .section-title {
   font-size: 15px;
   font-weight: 600;
-  color: #3d3d3d;
+  color: var(--text-primary);
   margin: 0 0 12px;
 }
 
 .shop-description {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.7;
   margin: 0;
   white-space: pre-wrap;
@@ -552,13 +557,13 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #b5a898 0%, #a09080 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   color: white;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(181, 168, 152, 0.4);
+  box-shadow: var(--shadow-primary);
 }
 
 .btn-large {
@@ -569,7 +574,7 @@ onMounted(() => {
 
 .action-hint {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   margin-top: 12px;
 }
 
