@@ -1,7 +1,7 @@
  // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.4.15
+    // @version      3.5.4.16
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -571,6 +571,22 @@
                 return 0;
             },
 
+            // 颜色工具：hex -> rgb/rgba
+            hexToRgb(hex) {
+                if (!hex) return null;
+                let h = String(hex).trim().replace('#', '');
+                if (h.length === 3) h = h.split('').map(c => c + c).join('');
+                if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+                const num = parseInt(h, 16);
+                return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+            },
+            hexToRgba(hex, alpha = 1) {
+                const rgb = this.hexToRgb(hex);
+                if (!rgb) return '';
+                const a = Math.max(0, Math.min(1, Number(alpha)));
+                return `rgba(${rgb.r},${rgb.g},${rgb.b},${a})`;
+            },
+
             // 简化名称
             simplifyName(name) {
                 if (this._nameCache.has(name)) return this._nameCache.get(name);
@@ -775,11 +791,18 @@
         const Screen = {
             _cache: null,
             _cacheTime: 0,
+            _cacheVw: 0,
+            _cacheVh: 0,
 
             // 动态计算面板配置 - 基于视口尺寸的相对计算
             // 确保面板始终在窗口内显示，针对移动设备优化
             getConfig() {
+                const now = Date.now();
                 const { innerWidth: vw, innerHeight: vh } = window;
+                if (this._cache && this._cacheVw === vw && this._cacheVh === vh &&
+                    (now - this._cacheTime) < CONFIG.CACHE.SCREEN_TTL) {
+                    return this._cache;
+                }
                 const isMobile = vw < 500 || vh < 700;
                 const isVerySmall = vw < 360 || vh < 500;
                 
@@ -827,7 +850,7 @@
                     ? Math.max(50, Math.min(65, Math.round(vh / 12)))
                     : Math.max(65, Math.min(85, Math.round(vh / 11)));
                 
-                return {
+                const config = {
                     width,
                     maxHeight,
                     fontSize,
@@ -840,6 +863,11 @@
                     isMobile,
                     isVerySmall
                 };
+                this._cache = config;
+                this._cacheTime = now;
+                this._cacheVw = vw;
+                this._cacheVh = vh;
+                return config;
             }
         };
 
@@ -4049,8 +4077,8 @@
     .ldsp-export-option label{font-size:11px;color:var(--txt);cursor:pointer}
     .ldsp-export-format-selector{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:10px}
     .ldsp-export-format-title{font-size:10px;color:var(--txt-sec);margin-bottom:8px}
-    .ldsp-export-format-cards{display:flex;gap:8px}
-    .ldsp-export-format-card{flex:1;display:flex;flex-direction:column;align-items:center;padding:12px 8px;background:var(--bg-el);border:2px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all .2s}
+    .ldsp-export-format-cards{display:flex;gap:8px;flex-wrap:wrap}
+    .ldsp-export-format-card{flex:1 1 90px;min-width:90px;display:flex;flex-direction:column;align-items:center;padding:12px 8px;background:var(--bg-el);border:2px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all .2s}
     .ldsp-export-format-card:hover{border-color:var(--txt-mut);background:var(--bg-hover);transform:translateY(-1px)}
     .ldsp-export-format-card.active{border-color:var(--accent);background:rgba(107,140,239,.1);box-shadow:0 2px 8px rgba(107,140,239,.15)}
     .ldsp-export-format-card input{display:none}
@@ -5246,6 +5274,7 @@
     .ldsp-topic-tags{display:flex;gap:3px;flex-wrap:wrap}
     .ldsp-topic-tag{padding:1px 6px;background:rgba(107,140,239,.08);border:1px solid rgba(107,140,239,.2);border-radius:8px;font-size:8px;color:#5a7de0;max-width:55px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .ldsp-topic-tag-more{padding:1px 5px;background:rgba(107,140,239,.15);border:1px solid rgba(107,140,239,.3);border-radius:8px;font-size:8px;color:#4a6bc9;font-weight:600}
+    .ldsp-topic-tag.ldsp-topic-category,.ldsp-bookmark-tag.ldsp-bookmark-category,.ldsp-mytopic-tag.ldsp-mytopic-category{background:var(--cat-bg,rgba(107,140,239,.12));border-color:var(--cat-bd,rgba(107,140,239,.35));color:var(--txt);font-weight:600}
     .ldsp-topic-footer{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
     .ldsp-topic-posters{display:flex;align-items:center;flex-shrink:0}
     .ldsp-topic-avatar{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--bg-card);margin-left:-5px;object-fit:cover;background:var(--bg-el)}
@@ -6102,7 +6131,8 @@
                     
                     const catEl = document.querySelector('.badge-category__name, .category-name');
                     const catStyle = document.querySelector('.badge-category')?.getAttribute('style') || '';
-                    const tags = d.tags?.length ? d.tags : Array.from(document.querySelectorAll('.discourse-tags .discourse-tag, .topic-header-extra .discourse-tag')).map(e => e.textContent.trim()).filter(Boolean);
+                    const rawTags = d.tags?.length ? d.tags : Array.from(document.querySelectorAll('.discourse-tags .discourse-tag, .topic-header-extra .discourse-tag')).map(e => e.textContent.trim());
+                    const tags = (rawTags || []).map(t => typeof t === 'string' ? t : (t?.name || '')).filter(Boolean);
                     
                     this._cache = {
                         id: tid, title: d.title || '未知标题',
@@ -6227,6 +6257,7 @@
                         <div class="ldsp-export-format-cards">
                             <label class="ldsp-export-format-card ${this._format === 'html' ? 'active' : ''}" data-format="html"><input type="radio" name="export-format" value="html" ${this._format === 'html' ? 'checked' : ''}><div class="ldsp-export-format-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div><div class="ldsp-export-format-card-name">HTML</div></label>
                             <label class="ldsp-export-format-card ${this._format === 'pdf' ? 'active' : ''}" data-format="pdf"><input type="radio" name="export-format" value="pdf" ${this._format === 'pdf' ? 'checked' : ''}><div class="ldsp-export-format-card-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="#ef4444" stroke="#dc2626" stroke-width="1"/><polyline points="14 2 14 8 20 8" fill="#fca5a5" stroke="#dc2626" stroke-width="1"/><text x="12" y="16" font-size="6" font-weight="bold" fill="#fff" text-anchor="middle" font-family="Arial">PDF</text></svg></div><div class="ldsp-export-format-card-name">PDF</div></label>
+                            <label class="ldsp-export-format-card ${this._format === 'md' ? 'active' : ''}" data-format="md"><input type="radio" name="export-format" value="md" ${this._format === 'md' ? 'checked' : ''}><div class="ldsp-export-format-card-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="#334155" stroke="#1f2937" stroke-width="1"/><polyline points="14 2 14 8 20 8" fill="#64748b" stroke="#1f2937" stroke-width="1"/><text x="12" y="16" font-size="6" font-weight="bold" fill="#fff" text-anchor="middle" font-family="Arial">MD</text></svg></div><div class="ldsp-export-format-card-name">Markdown</div></label>
                         </div>
                     </div>
                     <div class="ldsp-export-options">
@@ -6268,10 +6299,15 @@
 
                     setStatus('正在生成文件...');
                     const data = { topic: info, posts, exportDate: new Date().toISOString(), postCount: posts.length, range: { start, end } };
-                    const html = this._genHTML(data);
 
-                    if (this._format === 'html') this._download(html, this._genFilename(info, 'html'), 'text/html');
-                    else this._printPDF(html);
+                    if (this._format === 'md') {
+                        const md = this._genMarkdown(data);
+                        this._download(md, this._genFilename(info, 'md'), 'text/markdown');
+                    } else {
+                        const html = this._genHTML(data);
+                        if (this._format === 'html') this._download(html, this._genFilename(info, 'html'), 'text/html');
+                        else this._printPDF(html);
+                    }
 
                     status.innerHTML = `<div class="ldsp-export-status-icon">✅</div>导出成功！`;
                     this.renderer?.showToast('✅ 导出成功！');
@@ -6296,10 +6332,297 @@
                 const { topic, posts, exportDate, postCount, range } = data;
                 const n = new Date(exportDate);
                 const ts = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')} ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
-                const postsHtml = posts.map(p => `<div class="post" id="post-${p.postNumber}"><div class="post-header">${p.author.avatarUrl ? `<img src="${p.author.avatarUrl}" alt="${Utils.escapeHtml(p.author.username)}" class="avatar">` : '<div class="avatar-placeholder"></div>'}<div class="author-info"><span class="author-name">${Utils.escapeHtml(p.author.name)}</span><span class="author-username">@${Utils.escapeHtml(p.author.username)}</span><span class="post-time">${new Date(p.timestamp).toLocaleString('zh-CN')}</span></div><span class="post-number">#${p.postNumber}</span></div>${p.replyTo ? `<div class="reply-to">回复 #${p.replyTo.postNumber} @${Utils.escapeHtml(p.replyTo.username)}</div>` : ''}<div class="post-content">${p.content}</div>${p.likeCount > 0 ? `<div class="post-footer"><span class="like-count">❤️ ${p.likeCount}</span></div>` : ''}</div>`).join('');
-                const css = `*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;line-height:1.6;color:#1a1a1a;background:#f5f5f5;padding:20px}.container{max-width:900px;margin:0 auto}.header{background:linear-gradient(135deg,#6b8cef 0%,#5a7de0 100%);color:#fff;padding:24px;border-radius:12px;margin-bottom:20px;box-shadow:0 4px 20px rgba(107,140,239,0.3)}.header h1{font-size:20px;font-weight:700;margin-bottom:12px;line-height:1.4}.meta{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;opacity:0.9}.meta-item{display:flex;align-items:center;gap:4px}.badge{background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:12px;font-size:12px;font-weight:500}.post{background:#fff;border-radius:10px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}.post-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #f0f0f0}.avatar{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0}.avatar-placeholder{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#e0e0e0,#c0c0c0);flex-shrink:0}.author-info{flex:1;min-width:0}.author-name{font-weight:600;color:#1a1a1a;margin-right:6px}.author-username{color:#666;font-size:13px}.post-time{color:#999;font-size:12px;margin-left:8px}.post-number{background:#f0f0f0;padding:4px 10px;border-radius:6px;font-size:12px;color:#666;font-weight:500}.reply-to{background:#f8f9fa;border-left:3px solid #6b8cef;padding:8px 12px;margin-bottom:12px;border-radius:0 6px 6px 0;font-size:13px;color:#666}.post-content{font-size:15px;line-height:1.8;word-wrap:break-word}.post-content img{max-width:100%;height:auto;border-radius:8px;margin:8px 0}.post-content blockquote,.post-content aside.quote{background:#f8f9fa;border-left:3px solid #6b8cef;padding:12px 16px;margin:12px 0;border-radius:0 6px 6px 0;color:#555}.post-content pre{background:#1e1e1e;color:#d4d4d4;padding:16px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.5}.post-content code{background:#f4f4f4;padding:2px 6px;border-radius:4px;font-size:13px}.post-content pre code{background:none;padding:0}.post-content a{color:#6b8cef;text-decoration:none}.post-content a:hover{text-decoration:underline}.post-footer{margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0;font-size:13px;color:#666}.like-count{color:#e74c3c}.topic-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.topic-category{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;background:rgba(255,255,255,0.25);border-radius:12px;font-size:12px;font-weight:600}.topic-tag{display:inline-flex;align-items:center;padding:4px 10px;background:rgba(255,255,255,0.15);border-radius:12px;font-size:11px;font-weight:500}.footer{text-align:center;padding:20px;color:#999;font-size:12px}.footer a{color:#6b8cef;text-decoration:none}@media print{body{background:#fff;padding:0}.header{box-shadow:none;page-break-after:avoid}.post{box-shadow:none;border:1px solid #e0e0e0;page-break-inside:avoid}}@media(max-width:600px){body{padding:10px}.header{padding:16px}.header h1{font-size:16px}.meta{gap:8px;font-size:12px}.topic-tags{gap:6px;margin-top:10px}.post{padding:12px}.post-header{gap:8px}.avatar,.avatar-placeholder{width:32px;height:32px}.post-content{font-size:14px}}`;
-                const tagsHtml = (topic.category || topic.tags?.length) ? `<div class="topic-tags">${topic.category ? `<span class="topic-category" ${topic.categoryColor ? `style="background:#${topic.categoryColor}"` : ''}>📁 ${Utils.escapeHtml(topic.category)}</span>` : ''}${(topic.tags||[]).map(t => `<span class="topic-tag">🏷️ ${Utils.escapeHtml(t)}</span>`).join('')}</div>` : '';
-                return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>LDStatusPro 导出 - ${Utils.escapeHtml(topic.title)} - 话题#${topic.id} - ${ts}</title><style>${css}</style></head><body><div class="container"><div class="header"><h1>${Utils.escapeHtml(topic.title)}</h1><div class="meta"><span class="meta-item"><a href="https://github.com/caigg188/LDStatusPro" target="_blank" class="badge" style="color:#fff;text-decoration:none;">LDStatusPro</a></span><span class="meta-item">📋 话题 #${topic.id}</span><span class="meta-item">📝 ${postCount} 楼 (${range.start}-${range.end})</span>${topic.views ? `<span class="meta-item">👁️ ${topic.views.toLocaleString()} 浏览</span>` : ''}<span class="meta-item">📅 ${ts}</span></div>${tagsHtml}</div>${postsHtml}<div class="footer">由 <a href="https://github.com/caigg188/LDStatusPro" target="_blank">LDStatusPro</a> 导出 | 来源: <a href="${location.origin}/t/${topic.id}" target="_blank">${location.origin}/t/${topic.id}</a></div></div></body></html>`;
+                const sourceUrl = `${location.origin}/t/${topic.id}`;
+                const catHex = (topic.categoryColor || '').replace('#', '');
+                const catRgb = catHex ? Utils.hexToRgb(catHex) : null;
+                const catText = catRgb ? ((0.299 * catRgb.r + 0.587 * catRgb.g + 0.114 * catRgb.b) > 160 ? '#111' : '#fff') : '#fff';
+                const catStyle = catHex ? `style="background:#${catHex};color:${catText}"` : '';
+                const postsHtml = posts.map(p => {
+                    const postUrl = `${sourceUrl}/${p.postNumber}`;
+                    const authorName = Utils.escapeHtml(p.author.name || p.author.username);
+                    const authorUsername = Utils.escapeHtml(p.author.username);
+                    const replyHtml = p.replyTo ? `<div class="reply-to">回复 <a href="${sourceUrl}/${p.replyTo.postNumber}" target="_blank">#${p.replyTo.postNumber}</a> @${Utils.escapeHtml(p.replyTo.username)}</div>` : '';
+                    const likeHtml = p.likeCount > 0 ? `<div class="post-footer"><span class="like-count">❤️ ${p.likeCount}</span></div>` : '';
+                    return `<div class="post" id="post-${p.postNumber}">
+                        <div class="post-header">
+                            <div class="post-author">
+                                ${p.author.avatarUrl ? `<img src="${p.author.avatarUrl}" alt="${authorUsername}" class="avatar">` : '<div class="avatar-placeholder"></div>'}
+                                <div class="author-info">
+                                    <span class="author-name">${authorName}</span>
+                                    <span class="author-username">@${authorUsername}</span>
+                                </div>
+                            </div>
+                            <div class="post-meta">
+                                <span class="post-time">${new Date(p.timestamp).toLocaleString('zh-CN')}</span>
+                                <a class="post-number" href="${postUrl}" target="_blank">#${p.postNumber}</a>
+                            </div>
+                        </div>
+                        ${replyHtml}
+                        <div class="post-content">${p.content}</div>
+                        ${likeHtml}
+                    </div>`;
+                }).join('');
+                const css = `
+:root{--accent:#5a7de0;--accent-2:#6b8cef;--bg:#f6f7fb;--card:#ffffff;--text:#1b1f2a;--muted:#6b7280;--border:#e6e9f2;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;line-height:1.7;color:var(--text);background:var(--bg);}
+a{color:var(--accent);text-decoration:none;}
+a:hover{text-decoration:underline;}
+.container{max-width:920px;margin:0 auto;padding:24px;}
+.header{background:linear-gradient(135deg,#6b8cef 0%,#5a7de0 100%);color:#fff;padding:24px;border-radius:14px;margin-bottom:20px;box-shadow:0 8px 24px rgba(91,125,224,0.25);}
+.header h1{font-size:22px;font-weight:700;margin-bottom:10px;line-height:1.4;}
+.meta{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;opacity:0.95;}
+.meta-item{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.18);padding:4px 10px;border-radius:12px;}
+.meta-item a{color:#fff;}
+.badge{font-weight:600;}
+.topic-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.topic-category{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600;}
+.topic-tag{display:inline-flex;align-items:center;padding:4px 10px;background:rgba(255,255,255,0.16);border-radius:12px;font-size:11px;font-weight:500;}
+.post{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(15,23,42,0.06);}
+.post-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.post-author{display:flex;align-items:center;gap:10px;min-width:0;}
+.avatar{width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+.avatar-placeholder{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#e2e8f0,#cbd5f5);flex-shrink:0;}
+.author-info{min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.author-name{font-weight:600;color:var(--text);}
+.author-username{color:var(--muted);font-size:12px;}
+.post-meta{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
+.post-time{color:var(--muted);font-size:12px;}
+.post-number{background:#eef2ff;color:#3b5bd6;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:600;}
+.reply-to{background:#f8fafc;border-left:3px solid var(--accent);padding:8px 12px;margin-bottom:12px;border-radius:0 6px 6px 0;font-size:13px;color:#4b5563;}
+.post-content{font-size:15px;line-height:1.8;word-wrap:break-word;}
+.post-content p{margin:8px 0;}
+.post-content img{max-width:100%;height:auto;border-radius:8px;margin:8px 0;}
+.post-content blockquote,.post-content aside.quote{background:#f8fafc;border-left:3px solid var(--accent);padding:12px 16px;margin:12px 0;border-radius:0 6px 6px 0;color:#4b5563;}
+.post-content pre{background:#0f172a;color:#e2e8f0;padding:14px;border-radius:8px;overflow-x:auto;font-size:13px;line-height:1.5;}
+.post-content code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:13px;}
+.post-content pre code{background:none;padding:0;}
+.post-content ul,.post-content ol{padding-left:22px;margin:8px 0;}
+.post-content li{margin:4px 0;}
+.post-content table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px;}
+.post-content th,.post-content td{border:1px solid var(--border);padding:6px 8px;text-align:left;}
+.post-content hr{border:none;border-top:1px dashed var(--border);margin:12px 0;}
+.post-footer{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);}
+.like-count{color:#e74c3c;font-weight:600;}
+.footer{text-align:center;padding:16px;color:var(--muted);font-size:12px;}
+.footer a{color:var(--accent);}
+@media print{
+  @page{margin:12mm;}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  body{background:#fff;}
+  .container{max-width:none;padding:0;}
+  .header{box-shadow:none;border-radius:0;margin-bottom:12px;}
+  .post{box-shadow:none;break-inside:auto;page-break-inside:auto;}
+  .post-header,.reply-to,.post-footer,.topic-tags{break-inside:avoid;page-break-inside:avoid;}
+  .post-number{background:#e5edff;color:#1f3fb8;}
+}
+@media(max-width:600px){
+  .container{padding:14px;}
+  .header{padding:16px;}
+  .header h1{font-size:18px;}
+  .meta{gap:8px;font-size:12px;}
+  .post{padding:12px;}
+  .post-header{gap:8px;flex-direction:column;align-items:flex-start;}
+  .post-meta{justify-content:flex-start;}
+  .avatar,.avatar-placeholder{width:32px;height:32px;}
+  .post-content{font-size:14px;}
+}`;
+                const tagsHtml = (topic.category || topic.tags?.length) ? `<div class="topic-tags">${topic.category ? `<span class="topic-category" ${catStyle}>📁 ${Utils.escapeHtml(topic.category)}</span>` : ''}${(topic.tags||[]).map(t => `<span class="topic-tag">🏷️ ${Utils.escapeHtml(t)}</span>`).join('')}</div>` : '';
+                return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><meta name="color-scheme" content="light"><title>LDStatusPro 导出 - ${Utils.escapeHtml(topic.title)} - 话题#${topic.id} - ${ts}</title><style>${css}</style></head><body><div class="container"><div class="header"><h1>${Utils.escapeHtml(topic.title)}</h1><div class="meta"><span class="meta-item"><a href="https://github.com/caigg188/LDStatusPro" target="_blank" class="badge">LDStatusPro</a></span><span class="meta-item">📋 话题 #${topic.id}</span><span class="meta-item">📝 ${postCount} 楼 (${range.start}-${range.end})</span>${topic.views ? `<span class="meta-item">👁️ ${topic.views.toLocaleString()} 浏览</span>` : ''}<span class="meta-item">📅 ${ts}</span></div>${tagsHtml}</div>${postsHtml}<div class="footer">由 <a href="https://github.com/caigg188/LDStatusPro" target="_blank">LDStatusPro</a> 导出 | 来源: <a href="${sourceUrl}" target="_blank">${sourceUrl}</a></div></div></body></html>`;
+            }
+
+            _genMarkdown(data) {
+                const { topic, posts, exportDate, postCount, range } = data;
+                const n = new Date(exportDate);
+                const ts = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')} ${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+                const sourceUrl = `${location.origin}/t/${topic.id}`;
+                const clean = v => String(v ?? '').replace(/\r?\n+/g, ' ').trim();
+                const lines = [];
+
+                lines.push(`# ${clean(topic.title) || '未命名话题'}`);
+                lines.push('');
+                lines.push(`> 话题ID: ${topic.id}`);
+                lines.push(`> 导出时间: ${ts}`);
+                lines.push(`> 楼层范围: ${range.start}-${range.end}（共 ${postCount} 楼）`);
+                if (topic.views) lines.push(`> 浏览量: ${topic.views.toLocaleString()}`);
+                if (topic.category) lines.push(`> 分类: ${clean(topic.category)}`);
+                if (topic.tags?.length) {
+                    const tagList = topic.tags.map(t => typeof t === 'string' ? t : (t?.name || '')).filter(Boolean);
+                    if (tagList.length) lines.push(`> 标签: ${tagList.map(t => `\`${clean(t)}\``).join(' ')}`);
+                }
+                lines.push(`> 原文链接: ${sourceUrl}`);
+                lines.push('');
+                lines.push('---');
+                lines.push('');
+
+                posts.forEach((p, idx) => {
+                    const authorUser = clean(p.author.username);
+                    const authorName = clean(p.author.name || p.author.username);
+                    const authorLine = authorName && authorUser && authorName !== authorUser
+                        ? `${authorName} (@${authorUser})`
+                        : (authorUser ? `@${authorUser}` : authorName || '未知作者');
+                    const postUrl = `${sourceUrl}#post_${p.postNumber}`;
+
+                    lines.push(`## #${p.postNumber} ${authorLine}`);
+                    lines.push('');
+                    const meta = [
+                        `> 时间: ${new Date(p.timestamp).toLocaleString('zh-CN')}`,
+                        p.replyTo?.postNumber ? `> 回复: #${p.replyTo.postNumber}${p.replyTo.username ? ` @${clean(p.replyTo.username)}` : ''}` : '',
+                        p.likeCount > 0 ? `> 点赞: ${p.likeCount}` : '',
+                        `> 链接: ${postUrl}`
+                    ].filter(Boolean);
+                    lines.push(meta.join('\n'));
+                    lines.push('');
+
+                    const contentMd = this._htmlToMarkdown(p.content);
+                    lines.push(contentMd ? contentMd : '_（无内容）_');
+
+                    if (idx !== posts.length - 1) {
+                        lines.push('');
+                        lines.push('---');
+                        lines.push('');
+                    }
+                });
+
+                return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+            }
+
+            _htmlToMarkdown(html) {
+                if (!html) return '';
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = html;
+                let md = this._nodeToMarkdownChildren(wrapper);
+                md = md.replace(/\u00a0/g, ' ');
+                md = md.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+                return md;
+            }
+
+            _nodeToMarkdown(node) {
+                if (!node) return '';
+                if (node.nodeType === 3) return node.nodeValue || '';
+                if (node.nodeType !== 1) return '';
+
+                const tag = node.tagName.toLowerCase();
+                if (tag === 'script' || tag === 'style') return '';
+
+                switch (tag) {
+                    case 'br':
+                        return '\n';
+                    case 'p':
+                        return `${this._nodeToMarkdownChildren(node).trim()}\n\n`;
+                    case 'strong':
+                    case 'b':
+                        return `**${this._nodeToMarkdownChildren(node)}**`;
+                    case 'em':
+                    case 'i':
+                        return `*${this._nodeToMarkdownChildren(node)}*`;
+                    case 'code': {
+                        if (node.parentElement && node.parentElement.tagName.toLowerCase() === 'pre') {
+                            return node.textContent || '';
+                        }
+                        const text = (node.textContent || '').replace(/`/g, '\\`');
+                        return `\`${text}\``;
+                    }
+                    case 'pre': {
+                        const codeEl = node.querySelector('code');
+                        const raw = (codeEl ? codeEl.textContent : node.textContent) || '';
+                        const code = raw.replace(/\n$/, '');
+                        const className = codeEl?.className || node.className || '';
+                        const m = className.match(/language-([\w-]+)/i) || className.match(/lang(?:uage)?-([\w-]+)/i);
+                        const lang = m ? m[1] : '';
+                        const fence = code.includes('```') ? '````' : '```';
+                        return `\n\n${fence}${lang}\n${code}\n${fence}\n\n`;
+                    }
+                    case 'a': {
+                        const href = node.getAttribute('href') || '';
+                        const text = this._inlineMarkdown(node) || href;
+                        return href ? `[${text}](${href})` : text;
+                    }
+                    case 'img': {
+                        const src = node.getAttribute('src') || '';
+                        const alt = (node.getAttribute('alt') || '').replace(/\n/g, ' ').trim();
+                        return src ? `![${alt}](${src})` : '';
+                    }
+                    case 'ul':
+                        return this._listToMarkdown(node, false);
+                    case 'ol':
+                        return this._listToMarkdown(node, true);
+                    case 'blockquote':
+                    case 'aside': {
+                        if (tag === 'aside') {
+                            if (!node.classList.contains('quote')) return this._nodeToMarkdownChildren(node);
+                            const innerBlock = node.querySelector('blockquote');
+                            if (innerBlock) return this._nodeToMarkdown(innerBlock);
+                        }
+                        const content = this._nodeToMarkdownChildren(node).trim();
+                        if (!content) return '';
+                        return content.split('\n').map(line => (line ? `> ${line}` : '>')).join('\n') + '\n\n';
+                    }
+                    case 'h1':
+                    case 'h2':
+                    case 'h3':
+                    case 'h4':
+                    case 'h5':
+                    case 'h6': {
+                        const level = parseInt(tag.slice(1), 10);
+                        const text = this._nodeToMarkdownChildren(node).trim();
+                        return text ? `${'#'.repeat(level)} ${text}\n\n` : '';
+                    }
+                    case 'hr':
+                        return '\n\n---\n\n';
+                    case 'table':
+                        return `${this._tableToMarkdown(node)}\n\n`;
+                    default:
+                        return this._nodeToMarkdownChildren(node);
+                }
+            }
+
+            _nodeToMarkdownChildren(node) {
+                return Array.from(node.childNodes).map(n => this._nodeToMarkdown(n)).join('');
+            }
+
+            _inlineMarkdown(node) {
+                return this._nodeToMarkdownChildren(node).replace(/\n+/g, ' ').trim();
+            }
+
+            _listToMarkdown(listEl, ordered) {
+                const items = Array.from(listEl.children).filter(el => el.tagName && el.tagName.toLowerCase() === 'li');
+                if (!items.length) return '';
+                const lines = items.map((li, idx) => {
+                    const prefix = ordered ? `${idx + 1}. ` : '- ';
+                    const content = this._nodeToMarkdownChildren(li).trim();
+                    if (!content) return '';
+                    const parts = content.split('\n');
+                    const first = parts.shift() || '';
+                    const rest = parts.map(line => (line ? `  ${line}` : '')).join('\n');
+                    return prefix + first + (rest ? `\n${rest}` : '');
+                }).filter(Boolean);
+                return lines.join('\n') + '\n\n';
+            }
+
+            _tableToMarkdown(tableEl) {
+                const rows = Array.from(tableEl.querySelectorAll('tr'));
+                if (!rows.length) return '';
+                const getCells = (row) => Array.from(row.children).filter(el => el.tagName && /^(th|td)$/i.test(el.tagName));
+                const formatCell = (cell) => this._escapeTableCell(this._inlineMarkdown(cell));
+                const headerCells = getCells(rows[0]);
+                const hasTh = headerCells.some(cell => cell.tagName.toLowerCase() === 'th');
+                const header = headerCells.map(formatCell);
+                const headerLine = `| ${header.join(' | ')} |`;
+                const sepLine = `| ${header.map(() => '---').join(' | ')} |`;
+                const bodyRows = hasTh ? rows.slice(1) : rows;
+                const bodyLines = bodyRows.map(row => {
+                    const cells = getCells(row).map(formatCell);
+                    const padded = header.length
+                        ? [...cells, ...Array(Math.max(0, header.length - cells.length)).fill('')].slice(0, header.length)
+                        : cells;
+                    return `| ${padded.join(' | ')} |`;
+                });
+                return [headerLine, sepLine, ...bodyLines].join('\n');
+            }
+
+            _escapeTableCell(text) {
+                return String(text || '').replace(/\|/g, '\\|').replace(/\n/g, ' ').trim();
             }
 
             _download(content, filename, type) {
@@ -6313,8 +6636,18 @@
             _printPDF(html) {
                 const w = window.open('', '_blank');
                 if (!w) throw new Error('无法打开打印窗口，请检查弹窗拦截设置');
-                w.document.write(html); w.document.close();
-                w.onload = () => setTimeout(() => w.print(), 500);
+                w.document.open();
+                w.document.write(html);
+                w.document.close();
+                const doPrint = () => {
+                    try { w.focus(); } catch {}
+                    setTimeout(() => { try { w.print(); } catch {} }, 200);
+                };
+                if (w.document.fonts && w.document.fonts.ready) {
+                    w.document.fonts.ready.finally(doPrint);
+                } else {
+                    w.onload = doPrint;
+                }
             }
 
             destroy() { this._stopUrlWatch(); this.overlay?.remove(); this.overlay = null; }
@@ -12502,13 +12835,25 @@
                 const ic = { reply:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>', view:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>', like:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' };
                 const getAv = u => { if(!u?.avatar_template)return''; let t=u.avatar_template; if(t.startsWith('/'))t=`https://${CURRENT_SITE.domain}${t}`; return t.replace('{size}',36); };
                 const getThumb = t => { if(!t.thumbnails?.length)return null; const s=t.thumbnails.find(x=>x.max_width&&x.max_width<=200); return s?.url||t.thumbnails[t.thumbnails.length-1]?.url||t.image_url; };
+                // 提取tag名称，兼容新旧格式（新格式是对象数组 {id,name,slug}，旧格式是字符串数组）
+                const getTagName = tag => typeof tag === 'string' ? tag : (tag?.name || '');
                 let h = '<div class="ldsp-topic-list ldsp-topic-list-enhanced">';
                 topics.forEach((t,i) => {
                     const title = Utils.escapeHtml(t.title||'无标题'), pc = t.posts_count||0, v = t.views||0, lc = t.like_count||0;
                     const ur = t.unread_posts||t.unread||0, np = t.new_posts||0, tags = t.tags||[], rt = Utils.formatRelativeTime(t.bumped_at);
+                    const catName = (typeof t.category_name === 'string' && t.category_name.trim())
+                        ? t.category_name
+                        : (typeof t.category === 'string' ? t.category : (t.category?.name || ''));
+                    const catColor = t.category_color || t.category?.color || '';
+                    const catBg = Utils.hexToRgba(catColor, 0.12);
+                    const catBd = Utils.hexToRgba(catColor, 0.35);
+                    const catStyle = (catName && (catBg || catBd))
+                        ? `style="${catBg ? `--cat-bg:${catBg};` : ''}${catBd ? `--cat-bd:${catBd};` : ''}"`
+                        : '';
+                    const catH = catName ? `<span class="ldsp-topic-tag ldsp-topic-category" ${catStyle}>📁 ${Utils.escapeHtml(catName)}</span>` : '';
                     const url = `https://${CURRENT_SITE.domain}/t/topic/${t.id}`, thumb = getThumb(t), ps = t.postersInfo||[];
                     const badge = ur>0?`<span class="ldsp-topic-badge ldsp-badge-unread">${ur}</span>`:np>0?`<span class="ldsp-topic-badge ldsp-badge-new">${np}</span>`:'';
-                    const tagsH = tags.length?`<div class="ldsp-topic-tags">${tags.slice(0,2).map(x=>`<span class="ldsp-topic-tag">${Utils.escapeHtml(x)}</span>`).join('')}${tags.length>2?`<span class="ldsp-topic-tag-more">+${tags.length-2}</span>`:''}</div>`:'';
+                    const tagsH = (catName || tags.length)?`<div class="ldsp-topic-tags">${catH}${tags.slice(0,2).map(x=>`<span class="ldsp-topic-tag">${Utils.escapeHtml(getTagName(x))}</span>`).join('')}${tags.length>2?`<span class="ldsp-topic-tag-more">+${tags.length-2}</span>`:''}</div>`:'';
                     let psH = ps.length?'<div class="ldsp-topic-posters">'+ps.slice(0,3).map((p,j)=>`<img src="${getAv(p)}" class="ldsp-topic-avatar ${p.description?.includes('原始发帖人')?'ldsp-poster-op':p.extras?.includes('latest')?'ldsp-poster-latest':''}" title="${Utils.escapeHtml(p.name||p.username)}" style="z-index:${5-j}" loading="lazy">`).join('')+(ps.length>3?`<span class="ldsp-topic-posters-more">+${ps.length-3}</span>`:'')+'</div>':'';
                     h += `<a href="${url}" target="_blank" class="ldsp-topic-item" style="animation-delay:${i*20}ms"><div class="ldsp-topic-main"><div class="ldsp-topic-header"><div class="ldsp-topic-title-row">${badge?`<div class="ldsp-topic-badges">${badge}</div>`:''}<div class="ldsp-topic-title" title="${title}">${title}</div></div><div class="ldsp-topic-info">${tagsH}</div></div><div class="ldsp-topic-footer">${psH}<div class="ldsp-topic-stats"><span class="ldsp-topic-stat" title="回复">${ic.reply}<em>${pc}</em></span><span class="ldsp-topic-stat" title="阅读">${ic.view}<em>${v>=1000?(v/1000).toFixed(1)+'k':v}</em></span>${lc>0?`<span class="ldsp-topic-stat ldsp-stat-like" title="点赞">${ic.like}<em>${lc}</em></span>`:''}<span class="ldsp-topic-time">${rt}</span></div></div></div>${thumb?`<div class="ldsp-topic-thumbnail"><img src="${thumb}" loading="lazy"></div>`:''}</a>`;
                 });
@@ -12534,10 +12879,22 @@
 
             _renderBookmarkItems(bm, hasMore) {
                 const ic = { clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>', calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' };
+                // 提取tag名称，兼容新旧格式（新格式是对象数组 {id,name,slug}，旧格式是字符串数组）
+                const getTagName = tag => typeof tag === 'string' ? tag : (tag?.name || '');
                 let h = '<div class="ldsp-bookmark-list">';
                 bm.forEach((b,i) => {
                     const title = Utils.escapeHtml(b.title||b.fancy_title||'无标题'), tags = b.tags||[], rt = Utils.formatRelativeTime(b.bumped_at), ct = Utils.formatDateTime(b.created_at), url = b.bookmarkable_url||'#', ex = b.excerpt||'';
-                    const tagsH = tags.length?`<div class="ldsp-bookmark-tags">${tags.slice(0,4).map(t=>`<span class="ldsp-bookmark-tag">${Utils.escapeHtml(t)}</span>`).join('')}${tags.length>4?`<span class="ldsp-bookmark-tag-more">+${tags.length-4}</span>`:''}</div>`:'';
+                    const catName = (typeof b.category_name === 'string' && b.category_name.trim())
+                        ? b.category_name
+                        : (typeof b.category === 'string' ? b.category : (b.category?.name || ''));
+                    const catColor = b.category_color || b.category?.color || '';
+                    const catBg = Utils.hexToRgba(catColor, 0.12);
+                    const catBd = Utils.hexToRgba(catColor, 0.35);
+                    const catStyle = (catName && (catBg || catBd))
+                        ? `style="${catBg ? `--cat-bg:${catBg};` : ''}${catBd ? `--cat-bd:${catBd};` : ''}"`
+                        : '';
+                    const catH = catName ? `<span class="ldsp-bookmark-tag ldsp-bookmark-category" ${catStyle}>📁 ${Utils.escapeHtml(catName)}</span>` : '';
+                    const tagsH = (catName || tags.length)?`<div class="ldsp-bookmark-tags">${catH}${tags.slice(0,4).map(t=>`<span class="ldsp-bookmark-tag">${Utils.escapeHtml(getTagName(t))}</span>`).join('')}${tags.length>4?`<span class="ldsp-bookmark-tag-more">+${tags.length-4}</span>`:''}</div>`:'';
                     h += `<div class="ldsp-bookmark-item" data-url="${url}" style="animation-delay:${i*30}ms"><div class="ldsp-bookmark-title">${title}</div><div class="ldsp-bookmark-meta"><span class="ldsp-bookmark-time" title="收藏时间">${ic.calendar}${ct||'--'}</span><span class="ldsp-bookmark-time" title="最后活动">${ic.clock}${rt||'--'}</span></div>${tagsH}${ex?`<div class="ldsp-bookmark-excerpt">${ex}</div>`:''}</div>`;
                 });
                 return h+'</div>'+(hasMore?'<div class="ldsp-load-more"><div class="ldsp-load-more-spinner"></div><span>加载更多...</span></div>':'');
@@ -12569,11 +12926,23 @@
             renderMyTopicList(tp, hasMore) {
                 if (!tp?.length) return this.renderActivityEmpty('📝', '暂无发布的话题');
                 const ic = { reply:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>', view:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>', heart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>', clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>', calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>', pin:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>', lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>' };
+                // 提取tag名称，兼容新旧格式（新格式是对象数组 {id,name,slug}，旧格式是字符串数组）
+                const getTagName = tag => typeof tag === 'string' ? tag : (tag?.name || '');
                 let h = '<div class="ldsp-mytopic-list">';
                 tp.forEach((t,i) => {
                     const title = Utils.escapeHtml(t.title||t.fancy_title||'无标题'), pc = t.posts_count||0, v = t.views||0, lc = t.like_count||0, tags = t.tags||[];
                     const rt = Utils.formatRelativeTime(t.bumped_at), ct = Utils.formatDateTime(t.created_at), url = `https://${CURRENT_SITE.domain}/t/topic/${t.id}`;
-                    const tagsH = tags.length?`<div class="ldsp-mytopic-tags">${tags.slice(0,3).map(x=>`<span class="ldsp-mytopic-tag">${Utils.escapeHtml(x)}</span>`).join('')}${tags.length>3?`<span class="ldsp-mytopic-tag-more">+${tags.length-3}</span>`:''}</div>`:'';
+                    const catName = (typeof t.category_name === 'string' && t.category_name.trim())
+                        ? t.category_name
+                        : (typeof t.category === 'string' ? t.category : (t.category?.name || ''));
+                    const catColor = t.category_color || t.category?.color || '';
+                    const catBg = Utils.hexToRgba(catColor, 0.12);
+                    const catBd = Utils.hexToRgba(catColor, 0.35);
+                    const catStyle = (catName && (catBg || catBd))
+                        ? `style="${catBg ? `--cat-bg:${catBg};` : ''}${catBd ? `--cat-bd:${catBd};` : ''}"`
+                        : '';
+                    const catH = catName ? `<span class="ldsp-mytopic-tag ldsp-mytopic-category" ${catStyle}>📁 ${Utils.escapeHtml(catName)}</span>` : '';
+                    const tagsH = (catName || tags.length)?`<div class="ldsp-mytopic-tags">${catH}${tags.slice(0,3).map(x=>`<span class="ldsp-mytopic-tag">${Utils.escapeHtml(getTagName(x))}</span>`).join('')}${tags.length>3?`<span class="ldsp-mytopic-tag-more">+${tags.length-3}</span>`:''}</div>`:'';
                     const st = (t.pinned?`<span class="ldsp-mytopic-status" title="已置顶">${ic.pin}</span>`:'')+(t.closed?`<span class="ldsp-mytopic-status ldsp-mytopic-closed" title="已关闭">${ic.lock}</span>`:'');
                     h += `<a href="${url}" target="_blank" class="ldsp-mytopic-item${t.closed?' closed':''}" style="animation-delay:${i*30}ms" title="${title}"><div class="ldsp-mytopic-header"><div class="ldsp-mytopic-title">${title}</div>${st?`<div class="ldsp-mytopic-icons">${st}</div>`:''}</div><div class="ldsp-mytopic-row">${tagsH}<span class="ldsp-mytopic-time" title="创建时间">${ic.calendar}${ct||'--'}</span></div><div class="ldsp-mytopic-meta"><span class="ldsp-mytopic-stat" title="回复数">${ic.reply}${pc}</span><span class="ldsp-mytopic-stat" title="浏览量">${ic.view}${v}</span><span class="ldsp-mytopic-stat ldsp-mytopic-likes" title="点赞数">${ic.heart}${lc}</span><div class="ldsp-mytopic-meta-right"><span class="ldsp-mytopic-time" title="最后活动">${ic.clock}${rt||'--'}</span></div></div></a>`;
                 });
@@ -12606,6 +12975,96 @@
                 this._cache = new Map();
                 this._loading = new Map();
                 this._pageState = new Map(); // 记录每个子tab的分页状态
+                this._categoryCache = null; // { map, time, source }
+            }
+
+            _updateCategoryCacheFromResponse(response, source = 'partial') {
+                const roots = [];
+                if (Array.isArray(response?.topic_list?.categories)) roots.push(...response.topic_list.categories);
+                if (Array.isArray(response?.category_list?.categories)) roots.push(...response.category_list.categories);
+                if (Array.isArray(response?.categories)) roots.push(...response.categories);
+                if (!roots.length) return false;
+
+                const map = this._categoryCache?.map ? { ...this._categoryCache.map } : {};
+                const collect = (cats) => {
+                    cats.forEach(cat => {
+                        if (!cat || cat.id == null) return;
+                        map[cat.id] = {
+                            name: cat.name || cat.slug || '',
+                            color: cat.color || cat.hex_color || '',
+                            textColor: cat.text_color || cat.textColor || ''
+                        };
+                        const children = cat.subcategory_list?.categories || cat.subcategories || cat.children;
+                        if (Array.isArray(children) && children.length) collect(children);
+                    });
+                };
+                collect(roots);
+
+                const currentSource = this._categoryCache?.source;
+                this._categoryCache = {
+                    map,
+                    time: Date.now(),
+                    source: source === 'full' ? 'full' : (currentSource || 'partial')
+                };
+                return true;
+            }
+
+            async _getCategoryMap(forceFull = false) {
+                const ttl = 30 * 60 * 1000;
+                if (!forceFull && this._categoryCache && this._categoryCache.source === 'full' && Date.now() - this._categoryCache.time < ttl) {
+                    return this._categoryCache.map || {};
+                }
+                try {
+                    const url = `https://${CURRENT_SITE.domain}/categories.json`;
+                    const response = await this.network.fetchJson(url, {
+                        headers: {
+                            'Accept': 'application/json, text/javascript, */*; q=0.01',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Discourse-Present': 'true',
+                            'Discourse-Logged-In': 'true'
+                        },
+                        credentials: 'include'
+                    });
+                    const updated = this._updateCategoryCacheFromResponse(response, 'full');
+                    if (!updated) throw new Error('empty categories');
+                } catch (e) {
+                    try {
+                        const url = `https://${CURRENT_SITE.domain}/site.json`;
+                        const response = await this.network.fetchJson(url, {
+                            headers: {
+                                'Accept': 'application/json, text/javascript, */*; q=0.01',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Discourse-Present': 'true',
+                                'Discourse-Logged-In': 'true'
+                            },
+                            credentials: 'include'
+                        });
+                        this._updateCategoryCacheFromResponse(response, 'full');
+                    } catch (_) {
+                        // ignore
+                    }
+                }
+                return this._categoryCache?.map || {};
+            }
+
+            _extractCategoryInfo(item, categoryMap) {
+                if (!item) return { missing: false };
+                const rawCategory = item.category;
+                const catObj = rawCategory && typeof rawCategory === 'object' ? rawCategory : null;
+                const catId = item.category_id ?? item.categoryId ?? catObj?.id ?? item.topic?.category_id ?? item.topic?.categoryId ?? item.topic_category_id ?? null;
+                const mapped = catId != null ? categoryMap?.[catId] : null;
+                const name = (mapped?.name || item.category_name || item.categoryName || catObj?.name || (typeof rawCategory === 'string' ? rawCategory : '') || '').trim();
+                const color = (mapped?.color || item.category_color || item.categoryColor || catObj?.color || '').trim();
+                const textColor = (mapped?.textColor || item.category_text_color || item.categoryTextColor || catObj?.text_color || catObj?.textColor || '').trim();
+                return { id: catId, name, color, textColor, missing: catId != null && !mapped };
+            }
+
+            _applyCategoryInfo(item, info) {
+                if (!item || !info) return;
+                if (info.id != null && item.category_id == null) item.category_id = info.id;
+                if (info.name) item.category_name = info.name;
+                if (info.color) item.category_color = info.color;
+                if (info.textColor) item.category_text_color = info.textColor;
             }
 
             // 获取已读话题列表（单页）
@@ -12628,6 +13087,10 @@
                     throw new Error('无效的响应数据');
                 }
 
+                this._updateCategoryCacheFromResponse(response);
+                let categoryMap = await this._getCategoryMap();
+                let needsFull = false;
+
                 // 构建用户ID到用户信息的映射
                 const usersMap = {};
                 if (response.users && Array.isArray(response.users)) {
@@ -12644,8 +13107,16 @@
                             return user ? { ...user, description: poster.description, extras: poster.extras } : null;
                         }).filter(Boolean);
                     }
+                    const catInfo = this._extractCategoryInfo(topic, categoryMap);
+                    if (catInfo.missing) needsFull = true;
+                    this._applyCategoryInfo(topic, catInfo);
                     return topic;
                 });
+
+                if (needsFull) {
+                    categoryMap = await this._getCategoryMap(true);
+                    topics.forEach(topic => this._applyCategoryInfo(topic, this._extractCategoryInfo(topic, categoryMap)));
+                }
 
                 return {
                     topics: topics,
@@ -12756,8 +13227,22 @@
                         throw new Error('无效的响应数据');
                     }
 
+                    this._updateCategoryCacheFromResponse(response);
+                    let categoryMap = await this._getCategoryMap();
+                    let needsFull = false;
+                    const bookmarks = (response.user_bookmark_list.bookmarks || []).map(b => {
+                        const catInfo = this._extractCategoryInfo(b, categoryMap);
+                        if (catInfo.missing) needsFull = true;
+                        this._applyCategoryInfo(b, catInfo);
+                        return b;
+                    });
+                    if (needsFull) {
+                        categoryMap = await this._getCategoryMap(true);
+                        bookmarks.forEach(b => this._applyCategoryInfo(b, this._extractCategoryInfo(b, categoryMap)));
+                    }
+
                     const result = {
-                        bookmarks: response.user_bookmark_list.bookmarks || [],
+                        bookmarks: bookmarks,
                         hasMore: !!response.user_bookmark_list.more_bookmarks_url,
                         page: page
                     };
@@ -12940,7 +13425,19 @@
                         throw new Error('无效的响应数据');
                     }
 
-                    const topics = response.topic_list.topics || [];
+                    this._updateCategoryCacheFromResponse(response);
+                    let categoryMap = await this._getCategoryMap();
+                    let needsFull = false;
+                    const topics = (response.topic_list.topics || []).map(t => {
+                        const catInfo = this._extractCategoryInfo(t, categoryMap);
+                        if (catInfo.missing) needsFull = true;
+                        this._applyCategoryInfo(t, catInfo);
+                        return t;
+                    });
+                    if (needsFull) {
+                        categoryMap = await this._getCategoryMap(true);
+                        topics.forEach(t => this._applyCategoryInfo(t, this._extractCategoryInfo(t, categoryMap)));
+                    }
                     const result = {
                         topics: topics,
                         hasMore: topics.length >= 30, // 每页30条
@@ -13104,6 +13601,10 @@
                 this._destroyed = false;  // 销毁标记
                 this._followDataLoaded = false;
                 this._followProfileLoaded = false;
+                this._actionsUserExpanded = false;
+                this._actionsCheckRaf = null;
+                this._actionsRowHeight = 0;
+                this._lastSizeKey = null;
                 
                 // 我的活动相关状态
                 this.activitySubTab = 'read';  // 默认子tab
@@ -13366,7 +13867,7 @@
                                         ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-action-btn ldsp-shop-btn" data-clickable title="LD士多"><span class="ldsp-action-icon">🍔</span><span class="ldsp-action-text">士多</span></div>' : ''}
                                         ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-action-btn ldsp-cdk-btn" data-clickable title="CDK 系统"><span class="ldsp-action-icon">🎁</span><span class="ldsp-action-text">CDK</span></div>' : ''}
                                         <div class="ldsp-action-btn ldsp-melon-btn" data-clickable title="AI 帖子总结"><span class="ldsp-action-icon">🍉</span><span class="ldsp-action-text">总结</span></div>
-                                        <div class="ldsp-action-btn ldsp-export-btn" data-clickable title="导出帖子为PDF/HTML"><span class="ldsp-action-icon">📥</span><span class="ldsp-action-text">导出</span></div>
+                                        <div class="ldsp-action-btn ldsp-export-btn" data-clickable title="导出帖子为PDF/HTML/Markdown"><span class="ldsp-action-icon">📥</span><span class="ldsp-action-text">导出</span></div>
                                         <div class="ldsp-action-btn ldsp-ticket-btn" data-clickable title="工单系统"><span class="ldsp-action-icon">📪</span><span class="ldsp-action-text">工单</span></div>
                                     </div>
                                     <div class="ldsp-user-actions-toggle" data-clickable title="展开更多按钮"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg><span class="ldsp-toggle-text">展开更多</span></div>
@@ -13411,6 +13912,8 @@
                 
                 // 初始化resize功能（仅桌面端）
                 this._initResize();
+                // 应用初始面板尺寸（含自定义尺寸/相对尺寸）
+                this._applyPanelSize('init');
                 
                 // 绑定自定义 Tooltip
                 Tooltip.bindToPanel(this.el);
@@ -13703,22 +14206,15 @@
                     e.stopPropagation();
                     const area = this.$.actionsArea;
                     const toggle = this.$.actionsToggle;
-                    if (!area || !toggle) return;
+                    if (!area || !toggle || !toggle.classList.contains('show')) return;
                     
-                    const isCollapsed = area.classList.contains('collapsed');
-                    if (isCollapsed) {
-                        area.classList.remove('collapsed');
-                        toggle.classList.add('expanded');
-                        toggle.querySelector('.ldsp-toggle-text').textContent = '收起';
-                    } else {
-                        area.classList.add('collapsed');
-                        toggle.classList.remove('expanded');
-                        toggle.querySelector('.ldsp-toggle-text').textContent = '展开更多';
-                    }
+                    const willExpand = area.classList.contains('collapsed');
+                    this._actionsUserExpanded = willExpand;
+                    this._applyActionsToggleState(true, willExpand);
                 });
                 
                 // 检查按钮区域是否需要展开/收起功能（延迟执行以确保DOM已渲染）
-                requestAnimationFrame(() => this._checkActionsOverflow());
+                this._scheduleActionsOverflowCheck();
                 
                 // 关注/粉丝分别点击
                 this.el.querySelectorAll('.ldsp-follow-part').forEach(part => {
@@ -13838,52 +14334,69 @@
             }
             
             // 检查按钮区域是否需要展开/收起功能
+            _scheduleActionsOverflowCheck() {
+                if (this._actionsCheckRaf) return;
+                this._actionsCheckRaf = requestAnimationFrame(() => {
+                    this._actionsCheckRaf = null;
+                    this._checkActionsOverflow();
+                });
+            }
+            
+            _applyActionsToggleState(showToggle, expanded) {
+                const area = this.$.actionsArea;
+                const toggle = this.$.actionsToggle;
+                if (!area || !toggle) return;
+                
+                toggle.classList.toggle('show', !!showToggle);
+                toggle.classList.toggle('expanded', !!expanded);
+                area.classList.toggle('collapsed', !!showToggle && !expanded);
+                if (showToggle && !expanded && this._actionsRowHeight) {
+                    area.style.maxHeight = `${this._actionsRowHeight}px`;
+                } else {
+                    area.style.maxHeight = '';
+                }
+                
+                const textEl = toggle.querySelector('.ldsp-toggle-text');
+                if (textEl) textEl.textContent = expanded ? '收起' : '展开更多';
+                toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                toggle.setAttribute('aria-hidden', showToggle ? 'false' : 'true');
+            }
+            
             _checkActionsOverflow() {
                 const area = this.$.actionsArea;
                 const toggle = this.$.actionsToggle;
                 if (!area || !toggle) return;
                 
-                // 获取所有可见的操作按钮（排除登录按钮，因为它和注销按钮互斥显示）
-                const buttons = Array.from(area.querySelectorAll('.ldsp-action-btn')).filter(btn => {
-                    const style = getComputedStyle(btn);
-                    return style.display !== 'none';
-                });
+                const buttons = Array.from(area.querySelectorAll('.ldsp-action-btn'))
+                    .filter(btn => btn.offsetParent !== null);
                 
                 if (buttons.length === 0) {
-                    toggle.classList.remove('show');
-                    area.classList.remove('collapsed');
+                    this._actionsUserExpanded = false;
+                    this._applyActionsToggleState(false, false);
                     return;
                 }
                 
-                // 临时移除折叠状态来计算实际高度
-                const _wasCollapsed = area.classList.contains('collapsed');
-                area.classList.remove('collapsed');
+                // 临时移除折叠状态来计算实际行数
+                const wasCollapsed = area.classList.contains('collapsed');
+                if (wasCollapsed) area.classList.remove('collapsed');
+                void area.offsetHeight;
                 
-                // 强制重排以获取正确的布局信息
-                area.offsetHeight;
-                
-                // 通过比较按钮位置来判断行数
                 const firstBtn = buttons[0];
-                const firstTop = firstBtn.getBoundingClientRect().top;
-                let rows = 1;
-                let lastTop = firstTop;
+                const rowHeight = Math.ceil(firstBtn?.offsetHeight || 0);
+                if (rowHeight) this._actionsRowHeight = rowHeight;
                 
+                const rowTops = new Set();
                 for (const btn of buttons) {
-                    const btnTop = btn.getBoundingClientRect().top;
-                    if (btnTop > lastTop + 5) { // 允许5px误差
-                        rows++;
-                        lastTop = btnTop;
-                    }
+                    rowTops.add(Math.round(btn.offsetTop));
                 }
+                const rows = Math.max(1, rowTops.size);
                 
-                // 超过2行则显示展开按钮并折叠（折叠后只显示1行）
-                if (rows > 2) {
-                    toggle.classList.add('show');
-                    area.classList.add('collapsed');
-                } else {
-                    toggle.classList.remove('show');
-                    area.classList.remove('collapsed');
+                const showToggle = rows > 2;
+                if (!showToggle) {
+                    this._actionsUserExpanded = false;
                 }
+                const expanded = showToggle ? this._actionsUserExpanded : true;
+                this._applyActionsToggleState(showToggle, expanded);
             }
 
             _restore() {
@@ -13926,20 +14439,52 @@
                 }
             }
 
-            _onResize() {
+            _getPanelSizeBounds(cfg, vw, vh) {
+                const margin = 8;
+                const minW = cfg.isVerySmall ? 200 : 220;
+                const minH = cfg.isVerySmall ? 240 : 300;
+                const maxW = Math.min(420, Math.max(minW, vw - margin * 2));
+                const maxH = Math.max(minH, vh - margin * 2);
+                return { minW, maxW, minH, maxH, margin };
+            }
+            
+            _getPanelSizeConfig() {
                 const cfg = Screen.getConfig();
+                const { innerWidth: vw, innerHeight: vh } = window;
+                const custom = this.storage.getGlobal('customSize', null);
+                const bounds = this._getPanelSizeBounds(cfg, vw, vh);
+                
+                let width = cfg.width;
+                let maxHeight = cfg.maxHeight;
+                
+                if (custom && typeof custom === 'object') {
+                    const wRatio = Utils.toSafeNumber(custom.widthRatio, 0);
+                    const hRatio = Utils.toSafeNumber(custom.heightRatio, 0);
+                    const w = Utils.toSafeNumber(custom.width, 0);
+                    const h = Utils.toSafeNumber(custom.height, 0);
+                    
+                    if (wRatio > 0) width = vw * wRatio;
+                    else if (w > 0) width = w;
+                    
+                    if (hRatio > 0) maxHeight = vh * hRatio;
+                    else if (h > 0) maxHeight = h;
+                }
+                
+                width = Math.round(Math.min(bounds.maxW, Math.max(bounds.minW, width)));
+                maxHeight = Math.round(Math.min(bounds.maxH, Math.max(bounds.minH, maxHeight)));
+                
+                return { ...cfg, width, maxHeight, bounds, usingCustom: !!custom };
+            }
+            
+            _applyPanelSize(_reason = '') {
+                const cfg = this._getPanelSizeConfig();
                 const el = this.el;
-                const isCollapsed = el.classList.contains('collapsed');
+                if (!el) return;
                 
-                // 窗口变化时恢复位置（会同时更新 expand-left/expand-right 类）
-                this._restorePosition();
+                const key = `${cfg.width}|${cfg.maxHeight}|${cfg.fontSize}|${cfg.padding}|${cfg.avatarSize}|${cfg.ringSize}`;
+                if (this._lastSizeKey === key) return;
+                this._lastSizeKey = key;
                 
-                // 重新检测按钮区域溢出（延迟执行以确保布局已更新）
-                requestAnimationFrame(() => this._checkActionsOverflow());
-                
-                if (isCollapsed) return;
-                
-                // 更新CSS变量
                 el.style.setProperty('--w', `${cfg.width}px`);
                 el.style.setProperty('--h', `${cfg.maxHeight}px`);
                 el.style.setProperty('--fs', `${cfg.fontSize}px`);
@@ -13947,8 +14492,20 @@
                 el.style.setProperty('--av', `${cfg.avatarSize}px`);
                 el.style.setProperty('--ring', `${cfg.ringSize}px`);
                 
+                // 即使处于折叠状态，也更新尺寸以便展开时生效
                 el.style.width = `${cfg.width}px`;
                 el.style.maxHeight = `${cfg.maxHeight}px`;
+            }
+            
+            _onResize() {
+                // 先应用尺寸（含自定义尺寸/相对变化）
+                this._applyPanelSize('resize');
+                
+                // 窗口变化时恢复位置（会同时更新 expand-left/expand-right 类）
+                this._restorePosition();
+                
+                // 重新检测按钮区域溢出（延迟执行以确保布局已更新）
+                this._scheduleActionsOverflowCheck();
             }
             
             /**
@@ -14056,8 +14613,7 @@
                 const handles = el.querySelectorAll('.ldsp-resize-handle');
                 if (!handles.length) return;
                 
-                let startX, startY, startW, startH, startLeft, startTop, direction;
-                const minW = 220, maxW = 420, minH = 300;
+                let startX, startY, startW, startH, startLeft, startTop, direction, alignRight;
                 
                 const onMouseMove = (e) => {
                     if (!direction) return;
@@ -14066,18 +14622,22 @@
                     const dx = e.clientX - startX;
                     const dy = e.clientY - startY;
                     const { innerWidth: vw, innerHeight: vh } = window;
+                    const cfg = Screen.getConfig();
+                    const bounds = this._getPanelSizeBounds(cfg, vw, vh);
+                    
+                    let maxW = Math.min(bounds.maxW, vw - bounds.margin - startLeft);
+                    let maxH = Math.min(bounds.maxH, vh - bounds.margin - startTop);
+                    maxW = Math.max(bounds.minW, maxW);
+                    maxH = Math.max(bounds.minH, maxH);
                     
                     // 根据方向调整尺寸
                     if (direction.includes('e')) {
-                        const newW = Math.max(minW, Math.min(maxW, startW + dx));
-                        // 确保不超出右边界
-                        if (startLeft + newW <= vw - 8) {
-                            el.style.width = `${newW}px`;
-                            el.style.setProperty('--w', `${newW}px`);
-                        }
+                        const newW = Math.max(bounds.minW, Math.min(maxW, startW + dx));
+                        el.style.width = `${newW}px`;
+                        el.style.setProperty('--w', `${newW}px`);
                     }
                     if (direction.includes('s')) {
-                        const newH = Math.max(minH, Math.min(vh - startTop - 20, startH + dy));
+                        const newH = Math.max(bounds.minH, Math.min(maxH, startH + dy));
                         el.style.maxHeight = `${newH}px`;
                         el.style.setProperty('--h', `${newH}px`);
                     }
@@ -14090,11 +14650,36 @@
                     document.removeEventListener('mousemove', onMouseMove);
                     document.removeEventListener('mouseup', onMouseUp);
                     
-                    // 保存用户自定义的尺寸
+                    const rect = el.getBoundingClientRect();
+                    const { innerWidth: vw, innerHeight: vh } = window;
+                    const width = Math.round(rect.width);
+                    const height = Math.round(rect.height);
+                    const widthRatio = vw > 0 ? Math.round((width / vw) * 10000) / 10000 : 0;
+                    const heightRatio = vh > 0 ? Math.round((height / vh) * 10000) / 10000 : 0;
+                    
+                    // 保存用户自定义的尺寸（像素 + 相对比例）
                     this.storage.setGlobalNow('customSize', {
-                        width: parseInt(el.style.width),
-                        height: parseInt(el.style.maxHeight)
+                        width,
+                        height,
+                        widthRatio,
+                        heightRatio,
+                        updatedAt: Date.now()
                     });
+                    
+                    // 恢复原有对齐方式（保持当前右/左边距）
+                    if (alignRight) {
+                        const right = Math.max(8, Math.round(vw - rect.right));
+                        el.style.right = `${right}px`;
+                        el.style.left = 'auto';
+                    } else {
+                        const left = Math.max(8, Math.round(rect.left));
+                        el.style.left = `${left}px`;
+                        el.style.right = 'auto';
+                    }
+                    
+                    // 保存位置（保持 alignRight 不变）
+                    this._savePositionKeepAlign(!!alignRight);
+                    this._lastSizeKey = null;
                 };
                 
                 handles.forEach(handle => {
@@ -14116,26 +14701,19 @@
                         startLeft = rect.left;
                         startTop = rect.top;
                         
+                        // 记录当前对齐方式，避免 resize 期间锚点跳动
+                        const savedPos = this.storage.getGlobal('position');
+                        alignRight = savedPos?.alignRight ?? el.classList.contains('expand-left');
+                        
+                        // resize 期间统一使用 left 定位，保证拖拽方向与鼠标一致
+                        el.style.left = `${Math.round(startLeft)}px`;
+                        el.style.right = 'auto';
+                        
                         el.classList.add('resizing');
                         document.addEventListener('mousemove', onMouseMove);
                         document.addEventListener('mouseup', onMouseUp);
                     });
                 });
-                
-                // 恢复用户自定义的尺寸
-                const customSize = this.storage.getGlobal('customSize');
-                if (customSize) {
-                    if (customSize.width >= minW && customSize.width <= maxW) {
-                        el.style.width = `${customSize.width}px`;
-                        el.style.setProperty('--w', `${customSize.width}px`);
-                    }
-                    if (customSize.height >= minH) {
-                        const maxH = window.innerHeight - 50;
-                        const h = Math.min(customSize.height, maxH);
-                        el.style.maxHeight = `${h}px`;
-                        el.style.setProperty('--h', `${h}px`);
-                    }
-                }
             }
 
             /**
@@ -15519,6 +16097,9 @@
                 if (!logged) {
                     this._bindUserLogin();
                 }
+                
+                // 登录状态变化后重新计算按钮区域折叠状态
+                this._scheduleActionsOverflowCheck();
             }
 
             _bindLoginButton() {
@@ -15842,9 +16423,11 @@
                 let filteredTopics = state.allTopics;
                 if (search) {
                     const kw = search.toLowerCase();
+                    // 兼容新旧tags格式（新格式是对象数组 {id,name,slug}，旧格式是字符串数组）
+                    const getTagName = tag => typeof tag === 'string' ? tag : (tag?.name || '');
                     filteredTopics = state.allTopics.filter(t => 
                         (t.title && t.title.toLowerCase().includes(kw)) ||
-                        (t.tags && t.tags.some(tag => tag.toLowerCase().includes(kw)))
+                        (t.tags && t.tags.some(tag => getTagName(tag).toLowerCase().includes(kw)))
                     );
                 }
 
@@ -15980,10 +16563,12 @@
                 let filteredItems = state.allItems;
                 if (search) {
                     const kw = search.toLowerCase();
+                    // 兼容新旧tags格式（新格式是对象数组 {id,name,slug}，旧格式是字符串数组）
+                    const getTagName = tag => typeof tag === 'string' ? tag : (tag?.name || '');
                     filteredItems = state.allItems.filter(b => 
                         (b.title && b.title.toLowerCase().includes(kw)) ||
                         (b.fancy_title && b.fancy_title.toLowerCase().includes(kw)) ||
-                        (b.tags && b.tags.some(tag => tag.toLowerCase().includes(kw))) ||
+                        (b.tags && b.tags.some(tag => getTagName(tag).toLowerCase().includes(kw))) ||
                         (b.excerpt && b.excerpt.toLowerCase().includes(kw))
                     );
                 }
@@ -16339,10 +16924,12 @@
                                 let filteredItems = state.allItems;
                                 if (search) {
                                     const kw = search.toLowerCase();
+                                    // 兼容新旧tags格式（新格式是对象数组 {id,name,slug}，旧格式是字符串数组）
+                                    const getTagName = tag => typeof tag === 'string' ? tag : (tag?.name || '');
                                     filteredItems = state.allItems.filter(b => 
                                         (b.title && b.title.toLowerCase().includes(kw)) ||
                                         (b.fancy_title && b.fancy_title.toLowerCase().includes(kw)) ||
-                                        (b.tags && b.tags.some(tag => tag.toLowerCase().includes(kw))) ||
+                                        (b.tags && b.tags.some(tag => getTagName(tag).toLowerCase().includes(kw))) ||
                                         (b.excerpt && b.excerpt.toLowerCase().includes(kw))
                                     );
                                 }
@@ -16404,9 +16991,11 @@
                                 let filteredTopics = state.allTopics;
                                 if (search) {
                                     const kw = search.toLowerCase();
+                                    // 兼容新旧tags格式（新格式是对象数组 {id,name,slug}，旧格式是字符串数组）
+                                    const getTagName = tag => typeof tag === 'string' ? tag : (tag?.name || '');
                                     filteredTopics = state.allTopics.filter(t => 
                                         (t.title && t.title.toLowerCase().includes(kw)) ||
-                                        (t.tags && t.tags.some(tag => tag.toLowerCase().includes(kw)))
+                                        (t.tags && t.tags.some(tag => getTagName(tag).toLowerCase().includes(kw)))
                                     );
                                 }
                                 container.innerHTML = this.renderer.renderTopicListWithSearch(filteredTopics, state.hasMore && !search, search, batchSize, state.allTopics.length);
@@ -16653,6 +17242,10 @@
                 // 清理事件监听器
                 if (this._resizeHandler) {
                     window.removeEventListener('resize', this._resizeHandler);
+                }
+                if (this._actionsCheckRaf) {
+                    cancelAnimationFrame(this._actionsCheckRaf);
+                    this._actionsCheckRaf = null;
                 }
                 
                 // 清理阅读追踪器
