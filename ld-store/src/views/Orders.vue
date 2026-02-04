@@ -106,10 +106,47 @@
               </template>
               <!-- CDK 待支付订单操作按钮（买家和卖家都可以取消） -->
               <template v-else-if="order.status === 'pending'">
-                <button class="action-btn cancel-btn" @click.stop="handleCancelOrder(order)">取消订单</button>
+                <button
+                  class="action-btn cancel-btn"
+                  @click.stop="handleCancelOrder(order)"
+                  :disabled="cancellingOrderId === getOrderKey(order)"
+                >
+                  {{ cancellingOrderId === getOrderKey(order) ? '取消中...' : '取消订单' }}
+                </button>
+              </template>
+              <template v-else-if="showManualDeliver(order)">
+                <button
+                  class="action-btn deliver-btn"
+                  @click.stop="openDeliverForm(order)"
+                  :disabled="deliveringOrderId === getOrderKey(order)"
+                >
+                  {{ deliveringOrderId === getOrderKey(order) ? '发货中...' : '立即发货' }}
+                </button>
               </template>
               <span v-else class="order-action" @click="viewOrderDetail(order)">查看详情 →</span>
             </div>
+          </div>
+          
+          <div v-if="isDeliverFormVisible(order)" class="deliver-form" @click.stop>
+            <textarea
+              v-model="deliverContent"
+              class="deliver-input"
+              rows="3"
+              placeholder="请输入发货内容（CDK/链接/说明）"
+            ></textarea>
+            <div class="deliver-actions">
+              <button class="action-btn cancel-btn" @click="closeDeliverForm" :disabled="deliveringOrderId === getOrderKey(order)">
+                取消
+              </button>
+              <button
+                class="action-btn pay-btn"
+                @click="submitManualDeliver(order)"
+                :disabled="!deliverContent.trim() || deliveringOrderId === getOrderKey(order)"
+              >
+                确认发货
+              </button>
+            </div>
+            <div class="deliver-hint">提示：系统卡顿导致未自动发货时，可手动补发。</div>
           </div>
         </div>
       </div>
@@ -144,12 +181,17 @@ const page = ref(1)
 const hasMore = ref(false)
 const pageSize = 20
 const currentRole = ref('buyer')
+const cancellingOrderId = ref(null)
+const deliverFormOrderId = ref(null)
+const deliverContent = ref('')
+const deliveringOrderId = ref(null)
 
 // 切换角色
 async function switchRole(role) {
   if (currentRole.value === role) return
   currentRole.value = role
   page.value = 1
+  closeDeliverForm()
   await loadOrders()
 }
 
@@ -193,6 +235,41 @@ function loadMore() {
   loadOrders(true)
 }
 
+function getOrderKey(order) {
+  return order.order_no || order.orderNo || order.id
+}
+
+function getOrderPaidAt(order) {
+  return order.paid_at || order.paidAt || order.pay_time || order.paidTime
+}
+
+function isPaidOvertime(order) {
+  if (order.status !== 'paid') return false
+  const paidAt = getOrderPaidAt(order)
+  const paidTs = new Date(paidAt || 0).getTime()
+  if (!paidTs || Number.isNaN(paidTs)) return false
+  return Date.now() - paidTs >= 30 * 60 * 1000
+}
+
+function showManualDeliver(order) {
+  return currentRole.value === 'seller' && isCdkOrder(order) && isPaidOvertime(order)
+}
+
+function isDeliverFormVisible(order) {
+  return deliverFormOrderId.value === getOrderKey(order) && showManualDeliver(order)
+}
+
+function openDeliverForm(order) {
+  if (!showManualDeliver(order)) return
+  deliverFormOrderId.value = getOrderKey(order)
+  deliverContent.value = ''
+}
+
+function closeDeliverForm() {
+  deliverFormOrderId.value = null
+  deliverContent.value = ''
+}
+
 // 查看订单详情
 function viewOrderDetail(order) {
   // 图床订单跳转到图床页面
@@ -200,7 +277,7 @@ function viewOrderDetail(order) {
     router.push('/ld-image')
     return
   }
-  const orderNo = order.order_no || order.orderNo || order.id
+  const orderNo = getOrderKey(order)
   router.push(`/order/${orderNo}?role=${currentRole.value}`)
 }
 
@@ -287,6 +364,7 @@ function copyCdk(order) {
 }
 
 // 取消订单
+
 async function handleCancelOrder(order) {
   const productName = order.product?.name || order.product_name || '该商品'
   const confirmed = await dialog.confirm(`确定要取消订单「${productName}」吗？`, {
@@ -294,17 +372,55 @@ async function handleCancelOrder(order) {
     confirmText: '确定取消',
     cancelText: '再想想'
   })
-  
+
   if (!confirmed) return
-  
+
+  const orderNo = getOrderKey(order)
+  if (!orderNo || cancellingOrderId.value === orderNo) return
+
+  const loadingId = toast.loading('正在取消订单...')
+  cancellingOrderId.value = orderNo
+
   try {
-    const orderNo = order.order_no || order.orderNo
     await shopStore.cancelOrder(orderNo)
     toast.success('订单已取消')
     // 刷新订单列表
     await loadOrders()
   } catch (error) {
     toast.error(error.message || '取消失败')
+  } finally {
+    toast.close(loadingId)
+    cancellingOrderId.value = null
+  }
+}
+
+// 手动发货
+async function submitManualDeliver(order) {
+  const orderNo = getOrderKey(order)
+  if (!orderNo || deliveringOrderId.value === orderNo) return
+  const content = deliverContent.value.trim()
+  if (!content) {
+    toast.warning('请输入发货内容')
+    return
+  }
+  
+  const loadingId = toast.loading('正在发货...')
+  deliveringOrderId.value = orderNo
+  
+  try {
+    const result = await shopStore.deliverOrder(orderNo, content)
+    if (result?.success === false) {
+      toast.error(result?.error?.message || result?.error || '发货失败')
+      return
+    }
+    toast.success(result?.message || '发货成功')
+    closeDeliverForm()
+    await loadOrders()
+  } catch (error) {
+    toast.error('发货失败: ' + (error.message || '未知错误'))
+  } finally {
+    toast.close(loadingId)
+    deliveringOrderId.value = null
   }
 }
 
@@ -627,6 +743,11 @@ onMounted(() => {
   border: none;
 }
 
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .action-btn.cancel-btn {
   background: var(--bg-secondary);
   color: var(--text-tertiary);
@@ -637,6 +758,15 @@ onMounted(() => {
   color: var(--text-secondary);
 }
 
+.action-btn.deliver-btn {
+  background: linear-gradient(135deg, var(--color-info) 0%, #3b82f6 100%);
+  color: white;
+}
+
+.action-btn.deliver-btn:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
 .action-btn.pay-btn {
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   color: white;
@@ -644,6 +774,46 @@ onMounted(() => {
 
 .action-btn.pay-btn:hover {
   opacity: 0.9;
+}
+
+/* 手动发货 */
+.deliver-form {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+}
+
+.deliver-input {
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 13px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.deliver-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.deliver-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.deliver-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 /* 加载更多 */

@@ -95,7 +95,7 @@
             @click="handleOffline"
             :disabled="submitting"
           >
-            📤 下架小店
+            {{ submitting ? '下架中...' : '📤 下架小店' }}
           </button>
           <a 
             v-if="myShop.status === 'active'"

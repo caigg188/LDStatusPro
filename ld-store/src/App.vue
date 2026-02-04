@@ -21,7 +21,7 @@
     <AppFooter />
     
     <!-- 涂鸦背景开关 -->
-    <DoodleToggle v-model="showDoodleBg" />
+    <CornerActionMenu v-model="showDoodleBg" />
     
     <!-- 全局消息提示 -->
     <Toast />
@@ -45,7 +45,7 @@ import Toast from '@/components/common/Toast.vue'
 import Dialog from '@/components/common/Dialog.vue'
 import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 import DoodleBackground from '@/components/common/DoodleBackground.vue'
-import DoodleToggle from '@/components/common/DoodleToggle.vue'
+import CornerActionMenu from '@/components/common/CornerActionMenu.vue'
 
 const router = useRouter()
 const route = useRoute()

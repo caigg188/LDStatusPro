@@ -20,7 +20,7 @@
         <div class="step-num">1</div>
         <div class="step-content">
           <h4>访问 LDC 集市</h4>
-          <p>打开 <a href="https://credit.linux.do/merchant" target="_blank">credit.linux.do/merchant</a>，登录你的 LinuxDo 账号</p>
+          <p>打开 <a href="https://credit.linux.do/merchant" target="_blank" rel="noopener">credit.linux.do/merchant</a>，登录你的 LinuxDo 账号</p>
         </div>
       </div>
       <div class="step">

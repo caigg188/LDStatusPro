@@ -111,6 +111,13 @@ const routes = [
     component: () => import('@/views/Docs.vue'),
     meta: { title: '使用文档 - LD士多' }
   },
+
+  {
+    path: '/support',
+    name: 'Support',
+    component: () => import('@/views/Support.vue'),
+    meta: { title: '支持 LDStatus Pro - LD士多' }
+  },
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',

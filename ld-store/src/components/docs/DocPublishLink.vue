@@ -21,7 +21,7 @@
         <div class="step-num">1</div>
         <div class="step-content">
           <h4>访问 LDC 官网</h4>
-          <p>打开 <a href="https://credit.linux.do" target="_blank">credit.linux.do</a>，使用 LinuxDo 账号登录</p>
+          <p>打开 <a href="https://credit.linux.do" target="_blank" rel="noopener">credit.linux.do</a>，使用 LinuxDo 账号登录</p>
         </div>
       </div>
       <div class="step">
@@ -51,7 +51,7 @@
       <div class="box-icon">📖</div>
       <div class="box-content">
         <strong>详细教程</strong>
-        <p>更多关于积分流转链接的使用说明，请参考：<a href="https://linux.do/t/topic/1356124" target="_blank">创建自己的积分流转链接</a></p>
+        <p>更多关于积分流转链接的使用说明，请参考：<a href="https://linux.do/t/topic/1356124" target="_blank" rel="noopener">创建自己的积分流转链接</a></p>
       </div>
     </div>
     

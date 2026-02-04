@@ -10,7 +10,7 @@
       <div class="box-icon">💰</div>
       <div class="box-content">
         <strong>如何获取 LDC？</strong>
-        <p>在 LinuxDo 论坛活跃参与讨论、发帖、获得点赞等都可以积累 LDC 积分。访问 <a href="https://credit.linux.do" target="_blank">credit.linux.do</a> 查看你的积分余额。</p>
+        <p>在 LinuxDo 论坛活跃参与讨论、发帖、获得点赞等都可以积累 LDC 积分。访问 <a href="https://credit.linux.do" target="_blank" rel="noopener">credit.linux.do</a> 查看你的积分余额。</p>
       </div>
     </div>
     
@@ -70,13 +70,13 @@
     
     <p>创建方法：</p>
     <ol class="numbered-list">
-      <li>访问 <a href="https://credit.linux.do" target="_blank">credit.linux.do</a></li>
+      <li>访问 <a href="https://credit.linux.do" target="_blank" rel="noopener">credit.linux.do</a></li>
       <li>点击「创建收款链接」</li>
       <li>填写积分数额和备注信息</li>
       <li>生成链接后复制使用</li>
     </ol>
     
-    <p>更多详情参考：<a href="https://linux.do/t/topic/1356124" target="_blank">创建自己的积分流转链接</a></p>
+    <p>更多详情参考：<a href="https://linux.do/t/topic/1356124" target="_blank" rel="noopener">创建自己的积分流转链接</a></p>
     
     <h2>小店集市</h2>
     <p>小店集市是 LD士多 为社区用户提供的友情链接展示区域。如果你有自己的网站、博客、项目，可以申请入驻获得曝光。</p>

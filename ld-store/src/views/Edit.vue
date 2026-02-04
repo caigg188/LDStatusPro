@@ -4,6 +4,11 @@
       <div class="page-header">
         <h1 class="page-title">编辑物品</h1>
       </div>
+
+      <div class="edit-notice">
+        <span class="notice-icon">⏳</span>
+        <span class="notice-text">为避免刷位，1 小时内最多修改 5 次，超过将无法保存。</span>
+      </div>
       
       <!-- 加载中 -->
       <div v-if="loading" class="loading-state">
@@ -547,6 +552,28 @@ onMounted(async () => {
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
+}
+
+.edit-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border-radius: 14px;
+  background: var(--glass-bg-light);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.notice-icon {
+  font-size: 16px;
+}
+
+.notice-text {
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 /* 加载骨架 */

@@ -17,7 +17,7 @@
         <div class="step-num">2</div>
         <div class="step-content">
           <h4>确认余额</h4>
-          <p>在 <a href="https://credit.linux.do" target="_blank">credit.linux.do</a> 确认你的 LDC 余额充足</p>
+          <p>在 <a href="https://credit.linux.do" target="_blank" rel="noopener">credit.linux.do</a> 确认你的 LDC 余额充足</p>
         </div>
       </div>
     </div>

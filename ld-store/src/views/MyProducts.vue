@@ -101,13 +101,14 @@
           
           <!-- 操作按钮 -->
           <div class="product-actions">
-            <button class="action-btn edit" @click.stop="editProduct(product)">
+            <button class="action-btn edit" @click.stop="editProduct(product)" :disabled="isProductBusy(product)">
               ✏️ 编辑
             </button>
             <button
               v-if="getProductType(product) === 'cdk'"
               class="action-btn cdk"
               @click.stop="manageCdk(product)"
+              :disabled="isProductBusy(product)"
             >
               🔑 CDK
             </button>
@@ -116,11 +117,12 @@
               class="action-btn"
               :class="isProductActive(product) ? 'offline' : 'online'"
               @click.stop="toggleStatus(product)"
+              :disabled="isProductBusy(product)"
             >
-              {{ isProductActive(product) ? '⏸️ 下架' : '▶️ 重新上架' }}
+              {{ getToggleLabel(product) }}
             </button>
-            <button class="action-btn delete" @click.stop="deleteProduct(product)">
-              🗑️ 删除
+            <button class="action-btn delete" @click.stop="deleteProduct(product)" :disabled="isProductBusy(product)">
+              {{ getDeleteLabel(product) }}
             </button>
           </div>
         </div>
@@ -192,7 +194,8 @@
                     v-if="cdk.status !== 'sold'" 
                     class="cdk-delete-btn"
                     @click="deleteCdkItem(cdk)"
-                  >🗑️</button>
+                    :disabled="isDeletingCdk(cdk)"
+                  >{{ isDeletingCdk(cdk) ? '...' : '🗑️' }}</button>
                 </div>
               </div>
             </div>
@@ -256,6 +259,8 @@ const newCdkText = ref('')
 const addingCdk = ref(false)
 const cdkLoading = ref(false)
 const cdkStatusFilter = ref('')
+const deletingCdkId = ref(null)
+const productAction = ref({ id: null, type: '' })
 
 // 计算即将添加的 CDK 数量
 const newCdkCount = computed(() => {
@@ -353,17 +358,22 @@ function isProductActive(product) {
 }
 
 // 切换状态
+
 async function toggleStatus(product) {
+  if (isProductBusy(product)) return
   const isActive = isProductActive(product)
   const action = isActive ? '下架' : '上架'
-  
+
   const confirmed = await dialog.confirm(`确定要${action}该物品吗？${!isActive ? '\n将重新提交审核' : ''}`, {
     title: `${action}物品`,
     icon: isActive ? '⏸️' : '▶️'
   })
-  
+
   if (!confirmed) return
-  
+
+  productAction.value = { id: product.id, type: isActive ? 'offline' : 'online' }
+  const loadingId = toast.loading(isActive ? '正在下架商品...' : '正在上架商品...')
+
   try {
     if (isActive) {
       // 下架操作
@@ -394,24 +404,32 @@ async function toggleStatus(product) {
     }
   } catch (error) {
     toast.error(`${action}失败: ${error.message || '未知错误'}`)
+  } finally {
+    toast.close(loadingId)
+    productAction.value = { id: null, type: '' }
   }
 }
 
 // 删除物品
+
 async function deleteProduct(product) {
+  if (isProductBusy(product)) return
   const isActive = isProductActive(product)
   const confirmMsg = isActive 
     ? '该物品当前已上架，删除后将自动下架。确定要删除吗？此操作无法撤销。'
     : '确定要删除该物品吗？此操作无法撤销。'
-  
+
   const confirmed = await dialog.confirm(confirmMsg, {
     title: '删除物品',
     icon: '🗑️',
     danger: true
   })
-  
+
   if (!confirmed) return
-  
+
+  productAction.value = { id: product.id, type: 'delete' }
+  const loadingId = toast.loading('正在删除物品...')
+
   try {
     const result = await shopStore.deleteProduct(product.id)
     if (result?.success === false) {
@@ -422,6 +440,9 @@ async function deleteProduct(product) {
     toast.success(result?.message || '物品已删除')
   } catch (error) {
     toast.error('删除失败: ' + (error.message || '未知错误'))
+  } finally {
+    toast.close(loadingId)
+    productAction.value = { id: null, type: '' }
   }
 }
 
@@ -439,6 +460,7 @@ function closeCdkModal() {
   currentProduct.value = null
   cdkList.value = []
   newCdkText.value = ''
+  deletingCdkId.value = null
 }
 
 // 添加 CDK
@@ -617,20 +639,25 @@ async function loadCdkList() {
 }
 
 // 删除单个 CDK
+
 async function deleteCdkItem(cdk) {
+  if (isDeletingCdk(cdk)) return
   const confirmed = await dialog.confirm('确定要删除这个 CDK 吗？', {
     title: '删除 CDK',
     icon: '🗑️',
     danger: true
   })
-  
+
   if (!confirmed) return
-  
+
+  deletingCdkId.value = getCdkKey(cdk)
+  const loadingId = toast.loading('正在删除 CDK...')
+
   try {
     await shopStore.deleteProductCdk(currentProduct.value.id, cdk.id)
     cdkList.value = cdkList.value.filter(item => item.id !== cdk.id)
     toast.success('CDK 已删除')
-    
+
     // 更新库存
     const index = products.value.findIndex(p => p.id === currentProduct.value.id)
     if (index !== -1 && products.value[index].availableStock > 0) {
@@ -638,7 +665,36 @@ async function deleteCdkItem(cdk) {
     }
   } catch (error) {
     toast.error('删除 CDK 失败')
+  } finally {
+    toast.close(loadingId)
+    deletingCdkId.value = null
   }
+}
+
+function getCdkKey(cdk) {
+  return cdk?.id ?? cdk?.code
+}
+
+function isDeletingCdk(cdk) {
+  return deletingCdkId.value === getCdkKey(cdk)
+}
+
+function isProductBusy(product) {
+  return productAction.value.id === product.id
+}
+
+function isProcessingProduct(product, type) {
+  return isProductBusy(product) && productAction.value.type === type
+}
+
+function getToggleLabel(product) {
+  if (isProcessingProduct(product, 'offline')) return '⏸️ 下架中...'
+  if (isProcessingProduct(product, 'online')) return '▶️ 上架中...'
+  return isProductActive(product) ? '⏸️ 下架' : '▶️ 重新上架'
+}
+
+function getDeleteLabel(product) {
+  return isProcessingProduct(product, 'delete') ? '🗑️ 删除中...' : '🗑️ 删除'
 }
 
 onMounted(() => {
@@ -1060,6 +1116,13 @@ onMounted(() => {
   font-weight: 500;
 }
 
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .action-btn:hover {
   background: var(--bg-tertiary);
   border-color: var(--border-hover);
@@ -1365,6 +1428,11 @@ onMounted(() => {
   cursor: pointer;
   opacity: 0.6;
   transition: all 0.2s;
+}
+
+.cdk-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .cdk-delete-btn:hover {

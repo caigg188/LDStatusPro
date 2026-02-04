@@ -1,7 +1,7 @@
 <template>
   <div class="doc-content">
     <h1>🚀 快速开始</h1>
-    <p class="lead">欢迎来到 LD士多！这是一个基于 <a href="https://linux.do" target="_blank">LinuxDo 论坛</a> 社区积分（LDC）的虚拟物品和服务兑换平台。</p>
+    <p class="lead">欢迎来到 LD士多！这是一个基于 <a href="https://linux.do" target="_blank" rel="noopener">LinuxDo 论坛</a> 社区积分（LDC）的虚拟物品和服务兑换平台。</p>
     
     <!-- 文档访问统计 -->
     <div class="doc-stats">
@@ -20,7 +20,7 @@
       <div class="box-icon">💡</div>
       <div class="box-content">
         <strong>什么是 LDC？</strong>
-        <p>LDC（Linux.do Credit）是 LinuxDo 论坛的社区积分，可以在 <a href="https://credit.linux.do" target="_blank">credit.linux.do</a> 查看和使用。</p>
+        <p>LDC（Linux.do Credit）是 LinuxDo 论坛的社区积分，可以在 <a href="https://credit.linux.do" target="_blank" rel="noopener">credit.linux.do</a> 查看和使用。</p>
       </div>
     </div>
     
@@ -100,7 +100,7 @@
     <h2>五、联系我们</h2>
     <p>如遇到任何问题，可以通过以下方式联系：</p>
     <ul>
-      <li>在 <a href="https://linux.do" target="_blank">LinuxDo 论坛</a> 私信 <code>@JackyLiii</code></li>
+      <li>在 <a href="https://linux.do" target="_blank" rel="noopener">LinuxDo 论坛</a> 私信 <code>@JackyLiii</code></li>
       <li>在相关帖子下方留言反馈</li>
     </ul>
   </div>

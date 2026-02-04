@@ -13,7 +13,7 @@
         </button>
         <div class="faq-answer" v-show="openFaq === 'login'">
           <p>LD士多 使用 LinuxDo 论坛账号登录，点击右上角「登录」按钮，授权后即可登录。</p>
-          <p>你需要先在 <a href="https://linux.do" target="_blank">linux.do</a> 注册账号。</p>
+          <p>你需要先在 <a href="https://linux.do" target="_blank" rel="noopener">linux.do</a> 注册账号。</p>
         </div>
       </div>
       
@@ -49,7 +49,7 @@
         </button>
         <div class="faq-answer" v-show="openFaq === 'ldc'">
           <p>LDC（Linux.do Credit）是 LinuxDo 社区的积分系统，可用于社区内的各种服务和商品交换。</p>
-          <p>访问 <a href="https://credit.linux.do" target="_blank">credit.linux.do</a> 查看你的积分余额。</p>
+          <p>访问 <a href="https://credit.linux.do" target="_blank" rel="noopener">credit.linux.do</a> 查看你的积分余额。</p>
         </div>
       </div>
       
@@ -75,7 +75,7 @@
           <span class="faq-arrow">▼</span>
         </button>
         <div class="faq-answer" v-show="openFaq === 'balance'">
-          <p>访问 <a href="https://credit.linux.do" target="_blank">credit.linux.do</a> 登录后即可查看你的 LDC 余额和交易记录。</p>
+          <p>访问 <a href="https://credit.linux.do" target="_blank" rel="noopener">credit.linux.do</a> 登录后即可查看你的 LDC 余额和交易记录。</p>
         </div>
       </div>
     </div>
@@ -147,7 +147,7 @@
         <div class="faq-answer" v-show="openFaq === 'publish-cdk'">
           <p>发布 CDK 物品需要先配置 LDC 收款信息：</p>
           <ol>
-            <li>在 <a href="https://credit.linux.do/merchant" target="_blank">LDC 集市</a> 创建应用</li>
+            <li>在 <a href="https://credit.linux.do/merchant" target="_blank" rel="noopener">LDC 集市</a> 创建应用</li>
             <li>配置正确的通知地址和回调地址</li>
             <li>在 LD士多「收款设置」中填入凭证</li>
           </ol>
@@ -239,7 +239,7 @@
         </button>
         <div class="faq-answer" v-show="openFaq === 'mobile'">
           <p>可以！LD士多 采用响应式设计，完美支持手机浏览器访问。</p>
-          <p>直接在手机浏览器中访问 <a href="https://shop.ldspro.qzz.io" target="_blank">shop.ldspro.qzz.io</a> 即可。</p>
+          <p>直接在手机浏览器中访问 <a href="https://shop.ldspro.qzz.io" target="_blank" rel="noopener">shop.ldspro.qzz.io</a> 即可。</p>
         </div>
       </div>
       

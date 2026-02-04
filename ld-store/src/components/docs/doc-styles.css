@@ -517,4 +517,18 @@
   .doc-table td {
     padding: 10px 12px;
   }
+
+  .doc-table,
+  .compare-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .doc-table th,
+  .doc-table td,
+  .compare-table th,
+  .compare-table td {
+    white-space: nowrap;
+  }
 }
