@@ -1,7 +1,7 @@
  // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.4.16
+    // @version      3.5.4.17
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -24,6 +24,7 @@
     // @connect      github.com
     // @connect      raw.githubusercontent.com
     // @connect      api.ldspro.qzz.io
+    // @connect      api2.ldspro.qzz.io
     // @updateURL    https://raw.githubusercontent.com/caigg188/LDStatusPro/main/LDStatusPro.user.js
     // @downloadURL  https://raw.githubusercontent.com/caigg188/LDStatusPro/main/LDStatusPro.user.js
     // @icon         https://linux.do/uploads/default/optimized/4X/6/a/6/6a6affc7b1ce8140279e959d32671304db06d5ab_2_180x180.png
@@ -6850,7 +6851,7 @@ a:hover{text-decoration:underline;}
                 this._reqId = 0;
                 this._msgHandler = null;
                 // v2.0: API 配置
-                this._apiUrl = (typeof ApiService !== 'undefined' && ApiService.baseUrl) || 'https://api.ldspro.qzz.io';
+                this._apiUrl = (typeof ApiService !== 'undefined' && ApiService.baseUrl) || 'https://api2.ldspro.qzz.io';
                 this._tokenKey = `ldsp_${CURRENT_SITE.prefix}_leaderboard_token`;
                 this._token = GM_getValue(this._tokenKey, null);
                 // 小卖部相关
@@ -7752,7 +7753,7 @@ a:hover{text-decoration:underline;}
             }
 
             async _shopRequest(path, method = 'GET', body = null) {
-                const API_BASE = (typeof ApiService !== 'undefined' && ApiService.baseUrl) || 'https://api.ldspro.qzz.io';
+                const API_BASE = (typeof ApiService !== 'undefined' && ApiService.baseUrl) || 'https://api2.ldspro.qzz.io';
                 const url = API_BASE + path;
                 
                 // 获取 JWT Token 用于认证（存储键格式：ldsp_{site_prefix}_leaderboard_token）
