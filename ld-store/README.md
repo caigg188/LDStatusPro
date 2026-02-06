@@ -28,8 +28,8 @@ LD 士多 Web 版是 [LDStatus Pro](https://ldspro.qzz.io) 客户端脚本中「
 - 🌐 **无需安装** - 直接通过浏览器访问，无需安装浏览器扩展
 - 📱 **响应式设计** - 完美支持桌面端和移动端
 - 🎨 **更好的 UI/UX** - 采用现代化的莫兰迪配色设计
-- � **液态玻璃效果** - 苹果风格的交互动效，流畅自然
-- �🔐 **安全可靠** - 前端安全防护，防止 XSS 等攻击
+- ✨ **液态玻璃效果** - 苹果风格的交互动效，流畅自然
+- 🔐 **安全可靠** - 前端安全防护，防止 XSS 等攻击
 
 ## ✨ 功能特性
 
@@ -94,6 +94,22 @@ LD 士多 Web 版是 [LDStatus Pro](https://ldspro.qzz.io) 客户端脚本中「
 cd ld-store
 npm install
 ```
+
+### 环境变量（可选）
+
+复制并按需调整：
+
+```bash
+cp .env.example .env
+```
+
+关键变量：
+
+- `VITE_API_BASE`：LD 士多后端地址（切换到新后端时改为 `https://api2.ldspro.qzz.io`）
+- `VITE_AUTH_API_BASE`：登录认证接口地址（生产建议旧后端 `https://api.ldspro.qzz.io`，本地开发建议留空走 Vite 代理）
+- `VITE_IMAGE_API_BASE`：图床接口地址（当前仍使用旧后端可保持 `https://api.ldspro.qzz.io`）
+- `VITE_MAINTENANCE_MODE`：维护模式开关（`1` 开启，`0` 关闭）
+- `VITE_MAINTENANCE_TITLE`、`VITE_MAINTENANCE_MESSAGE`、`VITE_MAINTENANCE_ETA`：维护页文案
 
 ### 开发模式
 
@@ -240,7 +256,7 @@ ld-store/
 └── package.json           # 项目配置
 ```
 
-## � 文档
+## 📚 文档
 
 本项目包含详细的技术文档和产品需求文档，位于 `docs/` 目录：
 
@@ -275,7 +291,7 @@ ld-store/
 
 ---
 
-## �🔐 安全特性
+## 🔐 安全特性
 
 ### XSS 防护
 - HTML 实体转义

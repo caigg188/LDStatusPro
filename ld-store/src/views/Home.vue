@@ -1,12 +1,60 @@
 <template>
   <div class="home-page">
+    <!-- 迁移恢复提醒弹窗 -->
+    <div v-if="showMigrationNotice" class="migration-notice-overlay">
+      <div class="migration-notice-card">
+        <h2 class="notice-title">⚠️ 迁移恢复提醒（必读）</h2>
+        <p class="notice-desc">
+          原后端加解密密钥已丢失，之前上传的物品 CDK 和收款设置中的 Client Key 无法解密，请尽快按步骤重新配置。
+        </p>
+        <p class="notice-desc warning">
+          ⚠️ 为避免购买错误，已下架所有 CDK 类型物品，请修改收款配置、补充 CDK 后重新上架。
+        </p>
+        <div class="notice-steps">
+          <label :class="['step-item', { completed: stepCompleted.relogin }]">
+            <input type="checkbox" v-model="stepCompleted.relogin" />
+            <span class="step-text">1. <strong>退出登录，然后重新授权登录</strong>（旧 Token 已失效）</span>
+          </label>
+          <label :class="['step-item', { completed: stepCompleted.config }]">
+            <input type="checkbox" v-model="stepCompleted.config" />
+            <span class="step-text">2. 重新配置收款设置（LDC 参数），重新填写并保存</span>
+          </label>
+          <label :class="['step-item', { completed: stepCompleted.relist }]">
+            <input type="checkbox" v-model="stepCompleted.relist" />
+            <span class="step-text">3. 清空可用 CDK，补充新 CDK 后再重新上架商品</span>
+          </label>
+          <p class="step-note">若你购买的是加密后的自动发货代码，请联系卖家获取原始内容</p>
+        </div>
+        <div class="notice-actions">
+          <button class="notice-btn primary" @click="goToMerchantSettings">去重新配置收款设置</button>
+          <button class="notice-btn danger" @click="goToCdkRecovery">去清空并重传CDK</button>
+        </div>
+        <div class="notice-footer">
+          <span class="step-progress">已完成 {{ completedStepsCount }}/3 步</span>
+          <button 
+            :class="['notice-btn', allStepsCompleted ? 'confirm-done' : 'confirm']" 
+            @click="ackMigrationNotice"
+          >
+            {{ allStepsCompleted ? '我已完成，不再显示' : '我已知晓' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="page-container">
       <!-- Banner -->
       <div class="home-banner">
         <div class="banner-content">
           <h1 class="banner-title">🍔 LD士多</h1>
-          <p class="banner-subtitle"><a href="https://linux.do" target="_blank" class="link-linuxdo">LinuxDo社区</a>虚拟物品和服务<span class="highlight-red"> 兑换中心 </span></p>
-          <p class="banner-subtitle">快使用你的<a href="https://credit.linux.do/" target="_blank" class="highlight-yellow link-credit"> 社区积分 </a>兑换物品吧</p>
+          <p class="banner-subtitle">
+            <a href="https://linux.do" target="_blank" class="link-linuxdo">LinuxDo社区</a>
+            虚拟物品与服务 <span class="highlight-red">兑换中心</span>
+          </p>
+          <p class="banner-subtitle">
+            快使用你的
+            <a href="https://credit.linux.do/" target="_blank" class="highlight-yellow link-credit">社区积分</a>
+            兑换商品吧
+          </p>
         </div>
         <div class="banner-stats">
           <div class="stat-group">
@@ -170,13 +218,16 @@
           </template>
         </EmptyState>
       </div>
+
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated, watch, nextTick } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
+import { useUserStore } from '@/stores/user'
 import { api } from '@/utils/api'
 import ProductCard from '@/components/product/ProductCard.vue'
 import ShopCard from '@/components/shop/ShopCard.vue'
@@ -188,14 +239,69 @@ import LiquidTabs from '@/components/common/LiquidTabs.vue'
 // 组件名称（用于 keep-alive 缓存）
 defineOptions({ name: 'Home' })
 
+const router = useRouter()
+const route = useRoute()
 const shopStore = useShopStore()
+const userStore = useUserStore()
+
+// ========== 迁移提醒相关 ==========
+const MIGRATION_NOTICE_KEY = 'ld-store-migration-notice-v3'
+const showMigrationNotice = ref(false)
+const stepCompleted = ref({
+  relogin: false,
+  config: false,
+  relist: false
+})
+
+const completedStepsCount = computed(() => {
+  return Object.values(stepCompleted.value).filter(Boolean).length
+})
+
+const allStepsCompleted = computed(() => {
+  return completedStepsCount.value === 3
+})
+
+function shouldShowMigrationNotice() {
+  try {
+    return localStorage.getItem(MIGRATION_NOTICE_KEY) !== 'ack'
+  } catch {
+    return true
+  }
+}
+
+function ackMigrationNotice() {
+  showMigrationNotice.value = false
+  // 只有全部完成才永久关闭
+  if (allStepsCompleted.value) {
+    try {
+      localStorage.setItem(MIGRATION_NOTICE_KEY, 'ack')
+    } catch { /* ignore */ }
+  }
+}
+
+function goToRouteWithAuth(path) {
+  showMigrationNotice.value = false
+  if (!userStore.isLoggedIn) {
+    router.push({ name: 'Login', query: { redirect: path } })
+    return
+  }
+  router.push(path)
+}
+
+function goToMerchantSettings() {
+  goToRouteWithAuth('/user/settings')
+}
+
+function goToCdkRecovery() {
+  goToRouteWithAuth('/user/products')
+}
 
 // 状态
 const sentinel = ref(null)
 const activeSection = ref('products')
 const sectionTabs = [
   { value: 'products', label: '物品广场', icon: '🛒' },
-  { value: 'stores', label: '小店集市', icon: '🏬' }
+  { value: 'stores', label: '小店集市', icon: '🏪' }
 ]
 
 // 排序选项
@@ -254,7 +360,7 @@ function saveCache(categoryId, sortKey) {
   })
 }
 
-// 计算属�?
+// 计算属性
 const categories = computed(() => shopStore.categories)
 const products = computed(() => shopStore.products)
 const currentCategory = computed(() => shopStore.currentCategory)
@@ -389,6 +495,15 @@ async function recoverProductsIfNeeded() {
 
 // 初始化
 onMounted(async () => {
+  const querySection = String(route.query.section || '').trim()
+  if (sectionTabs.some(tab => tab.value === querySection)) {
+    activeSection.value = querySection
+  }
+  // 检查是否需要显示迁移提醒
+  if (shouldShowMigrationNotice()) {
+    showMigrationNotice.value = true
+  }
+  
   updateGridColumns()
   window.addEventListener('resize', updateGridColumns)
   
@@ -475,13 +590,187 @@ function setupInfiniteScroll() {
   padding-bottom: 80px;
 }
 
+/* ========== 迁移提醒弹窗 ========== */
+.migration-notice-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.migration-notice-card {
+  width: 100%;
+  max-width: 640px;
+  background: #fff8f2;
+  border: 2px solid #f59e0b;
+  border-radius: 18px;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.25);
+  padding: 20px;
+}
+
+.notice-title {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #9a3412;
+}
+
+.notice-desc {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #7c2d12;
+}
+
+.notice-desc.warning {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.notice-steps {
+  margin: 14px 0 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  font-size: 14px;
+  color: #7c2d12;
+}
+
+.step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.step-item:hover {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.step-item input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: #16a34a;
+  flex-shrink: 0;
+}
+
+.step-item .step-text {
+  flex: 1;
+  line-height: 1.5;
+}
+
+.step-item.completed {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.step-item.completed .step-text {
+  text-decoration: line-through;
+  color: #6b7280;
+}
+
+.step-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #9a3412;
+  font-style: italic;
+}
+
+.notice-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.notice-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notice-btn.primary {
+  background: #15803d;
+  color: #fff;
+}
+
+.notice-btn.primary:hover {
+  filter: brightness(0.95);
+}
+
+.notice-btn.danger {
+  background: #b91c1c;
+  color: #fff;
+}
+
+.notice-btn.danger:hover {
+  filter: brightness(0.95);
+}
+
+.notice-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed #f59e0b;
+}
+
+.step-progress {
+  font-size: 14px;
+  color: #9a3412;
+  font-weight: 500;
+}
+
+.notice-btn.confirm {
+  background: #d97706;
+  color: #fff;
+  padding: 10px 24px;
+}
+
+.notice-btn.confirm:hover {
+  filter: brightness(0.95);
+}
+
+.notice-btn.confirm-done {
+  background: #16a34a;
+  color: #fff;
+  padding: 10px 24px;
+}
+
+.notice-btn.confirm-done:hover {
+  filter: brightness(0.95);
+}
+
 .page-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 16px;
 }
 
-/* Banner - 液态玻璃效�?*/
+/* Banner - 液态玻璃效果 */
 .home-banner {
   position: relative;
   background: var(--glass-bg-light);
@@ -646,7 +935,7 @@ function setupInfiniteScroll() {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 分类筛�?*/
+/* 分类筛选 */
 .filter-section {
   margin-bottom: 12px;
 }
@@ -690,7 +979,7 @@ function setupInfiniteScroll() {
   font-weight: 500;
 }
 
-/* 库存筛�?*/
+/* 库存筛选 */
 .stock-filter {
   display: flex;
   align-items: center;

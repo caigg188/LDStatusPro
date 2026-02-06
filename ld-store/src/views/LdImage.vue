@@ -27,6 +27,14 @@
         </Transition>
       </div>
 
+      <!-- 维护提示（非免费用户） -->
+      <div v-if="isLoggedIn && !isFreeUser && isMaintenance" class="maintenance-notice">
+        <div class="maintenance-icon">🔧</div>
+        <h3>图床服务维护中</h3>
+        <p>付费上传功能正在维护，预计很快恢复。给您带来不便，敬请谅解。</p>
+        <p class="maintenance-hint">如有紧急需求，请联系管理员。</p>
+      </div>
+
       <!-- 未登录提示 -->
       <div v-if="!isLoggedIn" class="login-prompt">
         <div class="prompt-icon">🔐</div>
@@ -35,8 +43,8 @@
         <router-link to="/login" class="login-btn">立即登录</router-link>
       </div>
 
-      <!-- 已登录 -->
-      <template v-else>
+      <!-- 已登录（免费用户不受维护影响） -->
+      <template v-else-if="!isMaintenance || isFreeUser">
         <!-- 上传区域 -->
         <div class="upload-section">
           <div 
@@ -302,6 +310,9 @@ const showNotice = ref(false)
 
 // 阶梯定价展开状态
 const showTiers = ref(false)
+
+// 维护状态（非免费用户暂停服务）
+const isMaintenance = ref(true)
 
 // 价格信息
 const priceInfo = ref(null)
@@ -803,6 +814,60 @@ onMounted(() => {
   font-size: 14px;
   color: var(--text-secondary);
   margin: 0;
+}
+
+/* 维护提示 */
+.maintenance-notice {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  border-radius: 20px;
+  padding: 48px 24px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid #ffcc80;
+  margin-bottom: 24px;
+}
+
+.maintenance-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+
+.maintenance-notice h3 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #e65100;
+  margin: 0 0 12px;
+}
+
+.maintenance-notice p {
+  font-size: 15px;
+  color: #bf360c;
+  margin: 0 0 8px;
+  line-height: 1.6;
+}
+
+.maintenance-hint {
+  font-size: 13px;
+  color: #8d6e63;
+  margin-top: 16px !important;
+}
+
+/* 暗色模式维护提示 */
+:root.dark .maintenance-notice {
+  background: linear-gradient(135deg, #3e2723 0%, #4e342e 100%);
+  border-color: #6d4c41;
+}
+
+:root.dark .maintenance-notice h3 {
+  color: #ffab91;
+}
+
+:root.dark .maintenance-notice p {
+  color: #ffccbc;
+}
+
+:root.dark .maintenance-hint {
+  color: #a1887f;
 }
 
 /* 未登录提示 */

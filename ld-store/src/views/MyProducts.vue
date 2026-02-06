@@ -166,7 +166,7 @@
             </div>
           </div>
           
-          <!-- CDK 筛选 -->
+          <!-- CDK 筛选和操作 -->
           <div class="cdk-filter">
             <select v-model="cdkStatusFilter" class="filter-select" @change="loadCdkList">
               <option value="">全部状态</option>
@@ -174,6 +174,13 @@
               <option value="locked">锁定</option>
               <option value="sold">已售</option>
             </select>
+            <button
+              class="clear-all-btn"
+              @click="clearAllCdks"
+              :disabled="clearingAllCdks || (cdkStats.available || 0) === 0"
+            >
+              {{ clearingAllCdks ? '清空中...' : '🗑️ 一键清空全部可删CDK' }}
+            </button>
           </div>
           
           <!-- CDK 列表 -->
@@ -260,6 +267,7 @@ const addingCdk = ref(false)
 const cdkLoading = ref(false)
 const cdkStatusFilter = ref('')
 const deletingCdkId = ref(null)
+const clearingAllCdks = ref(false)
 const productAction = ref({ id: null, type: '' })
 
 // 计算即将添加的 CDK 数量
@@ -677,6 +685,53 @@ function getCdkKey(cdk) {
 
 function isDeletingCdk(cdk) {
   return deletingCdkId.value === getCdkKey(cdk)
+}
+
+// 一键清空全部可删 CDK
+async function clearAllCdks() {
+  if (clearingAllCdks.value) return
+  
+  const availableCount = cdkStats.value.available || 0
+  if (availableCount === 0) {
+    toast.info('没有可删除的 CDK')
+    return
+  }
+  
+  const confirmed = await dialog.confirm(
+    `确定要删除全部 ${availableCount} 个可用的 CDK 吗？\n\n此操作不可恢复！已锁定和已售出的 CDK 不会被删除。`,
+    {
+      title: '⚠️ 一键清空 CDK',
+      icon: '🗑️',
+      danger: true
+    }
+  )
+  
+  if (!confirmed) return
+  
+  clearingAllCdks.value = true
+  const loadingId = toast.loading('正在清空 CDK...')
+  
+  try {
+    const result = await shopStore.clearCdk(currentProduct.value.id)
+    
+    // 重新加载 CDK 列表和统计
+    await loadCdkList()
+    
+    toast.success(`已清空 ${result?.deleted || availableCount} 个 CDK`)
+    
+    // 更新产品库存
+    const index = products.value.findIndex(p => p.id === currentProduct.value.id)
+    if (index !== -1) {
+      products.value[index].availableStock = 0
+      products.value[index].stock = result?.stock || 0
+    }
+  } catch (error) {
+    console.error('Clear CDK error:', error)
+    toast.error('清空 CDK 失败: ' + (error.message || '未知错误'))
+  } finally {
+    toast.close(loadingId)
+    clearingAllCdks.value = false
+  }
 }
 
 function isProductBusy(product) {
@@ -1318,6 +1373,9 @@ onMounted(() => {
 
 /* CDK 筛选 */
 .cdk-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
@@ -1334,6 +1392,29 @@ onMounted(() => {
 
 .filter-select:focus {
   border-color: var(--color-primary);
+}
+
+.clear-all-btn {
+  flex: 1;
+  padding: 8px 14px;
+  border: 1px solid #dc2626;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #dc2626;
+  background: #fef2f2;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clear-all-btn:hover:not(:disabled) {
+  background: #dc2626;
+  color: #fff;
+}
+
+.clear-all-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* CDK 列表 */

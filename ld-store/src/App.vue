@@ -1,10 +1,10 @@
 <template>
   <div class="app-container min-h-screen">
     <!-- 涂鸦背景 -->
-    <DoodleBackground :isVisible="showDoodleBg" />
+    <DoodleBackground v-if="!isMaintenanceRoute" :isVisible="showDoodleBg" />
     
     <!-- 顶部导航栏 -->
-    <AppHeader />
+    <AppHeader v-if="!isMaintenanceRoute" />
     
     <!-- 主内容区域 -->
     <main class="main-content">
@@ -18,10 +18,10 @@
     </main>
     
     <!-- 底部导航栏（移动端） -->
-    <AppFooter />
+    <AppFooter v-if="!isMaintenanceRoute" />
     
     <!-- 涂鸦背景开关 -->
-    <CornerActionMenu v-model="showDoodleBg" />
+    <CornerActionMenu v-if="!isMaintenanceRoute" v-model="showDoodleBg" />
     
     <!-- 全局消息提示 -->
     <Toast />
@@ -35,8 +35,8 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { initTheme } from '@/composables/useTheme'
 import AppHeader from '@/components/layout/AppHeader.vue'
@@ -47,9 +47,9 @@ import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 import DoodleBackground from '@/components/common/DoodleBackground.vue'
 import CornerActionMenu from '@/components/common/CornerActionMenu.vue'
 
-const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const isMaintenanceRoute = computed(() => route.name === 'Maintenance')
 
 // 需要缓存的页面组件名称
 // Home = 首页(物品广场), Category = 分类页(小店集市等)

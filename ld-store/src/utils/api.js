@@ -1,9 +1,11 @@
 import { storage } from './storage'
-import { sanitize } from './security'
+import { MAINTENANCE_MODE } from '@/config/maintenance'
 
 // API 基础地址
 // 开发环境使用相对路径（通过 Vite 代理），生产环境使用完整 URL
-const API_BASE = import.meta.env.DEV ? '' : 'https://api.ldspro.qzz.io'
+const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.DEV ? '' : 'https://api2.ldspro.qzz.io')
+const AUTH_API_BASE = import.meta.env.VITE_AUTH_API_BASE || (import.meta.env.DEV ? '' : 'https://api.ldspro.qzz.io')
+const IMAGE_API_BASE = import.meta.env.VITE_IMAGE_API_BASE || (import.meta.env.DEV ? '' : 'https://api.ldspro.qzz.io')
 
 // Linux.do LDC API 基础地址
 export const LDC_API_BASE = 'https://linux.do'
@@ -23,11 +25,31 @@ const ERROR_MESSAGES = {
   503: '服务正在维护中',
 }
 
+function isWriteMethod(method) {
+  return !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase())
+}
+
+function maintenanceBlockedResponse() {
+  return {
+    success: false,
+    error: '站点维护中，暂时关闭新增和修改操作',
+    status: 503
+  }
+}
+
 /**
  * 发起 HTTP 请求
  */
 async function request(url, options = {}) {
-  const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`
+  const method = (options.method || 'GET').toUpperCase()
+  if (MAINTENANCE_MODE && isWriteMethod(method)) {
+    return maintenanceBlockedResponse()
+  }
+
+  const base = url.startsWith('/api/image')
+    ? IMAGE_API_BASE
+    : (url.startsWith('/api/auth') ? AUTH_API_BASE : API_BASE)
+  const fullUrl = url.startsWith('http') ? url : `${base}${url}`
   
   // 获取 token
   const token = storage.get('token')
@@ -50,7 +72,7 @@ async function request(url, options = {}) {
   
   try {
     const response = await fetch(fullUrl, {
-      method: options.method || 'GET',
+      method,
       headers,
       body: options.body ? JSON.stringify(options.body) : undefined,
       signal: controller.signal,
@@ -138,7 +160,12 @@ function del(url, options = {}) {
  * 上传文件（FormData 请求）
  */
 async function upload(url, formData, options = {}) {
-  const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`
+  if (MAINTENANCE_MODE) {
+    return maintenanceBlockedResponse()
+  }
+
+  const base = url.startsWith('/api/image') ? IMAGE_API_BASE : API_BASE
+  const fullUrl = url.startsWith('http') ? url : `${base}${url}`
   
   // 获取 token
   const token = storage.get('token')

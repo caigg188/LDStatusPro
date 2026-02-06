@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { MAINTENANCE_MODE } from '@/config/maintenance'
 
 // 路由配置
 const routes = [
@@ -119,6 +120,12 @@ const routes = [
     meta: { title: '支持 LDStatus Pro - LD士多' }
   },
   {
+    path: '/maintenance',
+    name: 'Maintenance',
+    component: () => import('@/views/Maintenance.vue'),
+    meta: { title: '系统维护中 - LD士多' }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/NotFound.vue'),
@@ -155,6 +162,16 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach(async (to, from, next) => {
+  if (MAINTENANCE_MODE) {
+    if (to.name !== 'Maintenance') {
+      next({ name: 'Maintenance', replace: true })
+      return
+    }
+  } else if (to.name === 'Maintenance') {
+    next({ name: 'Home', replace: true })
+    return
+  }
+
   // 更新页面标题
   if (to.meta.title) {
     document.title = to.meta.title

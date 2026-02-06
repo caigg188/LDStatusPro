@@ -319,9 +319,31 @@ onMounted(() => {
 
 <style scoped>
 .settings-page {
+  --settings-tone-sage-bg: #edf2ec;
+  --settings-tone-sage-text: #647c6a;
+  --settings-tone-sage-border: #d8e2d7;
+  --settings-tone-amber-bg: #f5efe6;
+  --settings-tone-amber-text: #8d7456;
+  --settings-tone-amber-border: #e7d8c4;
+  --settings-tone-rose-bg: #f4eae7;
+  --settings-tone-rose-text: #91645f;
+  --settings-tone-rose-border: #e6d3cf;
+
   min-height: 100vh;
   padding-bottom: 80px;
   background: var(--bg-primary);
+}
+
+html.dark .settings-page {
+  --settings-tone-sage-bg: rgba(111, 136, 116, 0.18);
+  --settings-tone-sage-text: #9ab49f;
+  --settings-tone-sage-border: rgba(111, 136, 116, 0.3);
+  --settings-tone-amber-bg: rgba(143, 121, 92, 0.2);
+  --settings-tone-amber-text: #c9ae8d;
+  --settings-tone-amber-border: rgba(143, 121, 92, 0.32);
+  --settings-tone-rose-bg: rgba(145, 100, 95, 0.2);
+  --settings-tone-rose-text: #c7a09a;
+  --settings-tone-rose-border: rgba(145, 100, 95, 0.34);
 }
 
 .page-container {
@@ -377,7 +399,8 @@ onMounted(() => {
 
 /* 统计卡片 */
 .stats-card {
-  background: var(--color-success-light);
+  background: var(--settings-tone-sage-bg);
+  border: 1px solid var(--settings-tone-sage-border);
   border-radius: 16px;
   padding: 20px;
   margin-bottom: 16px;
@@ -386,7 +409,7 @@ onMounted(() => {
 .stats-card .card-title {
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-success);
+  color: var(--settings-tone-sage-text);
   margin: 0 0 16px;
 }
 
@@ -443,21 +466,25 @@ onMounted(() => {
   border-radius: 20px;
   font-size: 11px;
   font-weight: 500;
+  border: 1px solid transparent;
 }
 
 .status-badge.verified {
-  background: var(--color-success-light);
-  color: var(--color-success);
+  background: var(--settings-tone-sage-bg);
+  color: var(--settings-tone-sage-text);
+  border-color: var(--settings-tone-sage-border);
 }
 
 .status-badge.pending {
-  background: var(--color-warning-light);
-  color: var(--color-warning);
+  background: var(--settings-tone-amber-bg);
+  color: var(--settings-tone-amber-text);
+  border-color: var(--settings-tone-amber-border);
 }
 
 .status-badge.active {
-  background: var(--color-success-light);
-  color: var(--color-success);
+  background: var(--settings-tone-sage-bg);
+  color: var(--settings-tone-sage-text);
+  border-color: var(--settings-tone-sage-border);
 }
 
 .status-badge.inactive {
@@ -595,19 +622,18 @@ onMounted(() => {
   flex: 1;
   min-width: 100px;
   padding: 12px 16px;
-  background: var(--color-danger-light);
-  border: none;
+  background: var(--settings-tone-rose-bg);
+  border: 1px solid var(--settings-tone-rose-border);
   border-radius: 12px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--color-danger);
+  color: var(--settings-tone-rose-text);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .delete-btn:hover {
-  background: var(--color-danger-light);
-  filter: brightness(0.95);
+  filter: brightness(0.98);
 }
 
 /* 帮助内容 */
@@ -679,12 +705,12 @@ onMounted(() => {
 
 /* 警告卡片 */
 .warning-card {
-  background: var(--color-warning-light);
-  border: 1px solid var(--border-color);
+  background: var(--settings-tone-amber-bg);
+  border: 1px solid var(--settings-tone-amber-border);
 }
 
 .warning-card .card-title {
-  color: var(--color-warning);
+  color: var(--settings-tone-amber-text);
 }
 
 .warning-list {

@@ -196,6 +196,11 @@ export const useShopStore = defineStore('shop', () => {
     return deleteCdk(productId, cdkId)
   }
 
+  // 一键清空商品可删除 CDK (别名)
+  async function clearProductCdks(productId) {
+    return clearCdk(productId)
+  }
+
   // 搜索商品
   async function searchProducts(query) {
     if (!query.trim()) {
@@ -340,6 +345,19 @@ export const useShopStore = defineStore('shop', () => {
   async function deleteCdk(productId, cdkId) {
     try {
       const result = await api.delete(`/api/shop/products/${productId}/cdk/${cdkId}`)
+      return result
+    } catch (e) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  // 一键清空可删除 CDK（available / disabled）
+  async function clearCdk(productId) {
+    try {
+      const result = await api.post(`/api/shop/products/${productId}/cdk/clear`)
+      if (result.success) {
+        invalidateCache()
+      }
       return result
     } catch (e) {
       return { success: false, error: e.message }
@@ -549,6 +567,7 @@ export const useShopStore = defineStore('shop', () => {
     fetchCdkList,
     addCdk,
     deleteCdk,
+    clearCdk,
     fetchMyOrders,
     fetchSellerOrders,
     fetchOrders,
@@ -558,6 +577,7 @@ export const useShopStore = defineStore('shop', () => {
     fetchProductCdks,
     addProductCdks,
     deleteProductCdk,
+    clearProductCdks,
     createOrder,
     cancelOrder,
     refreshOrderStatus,
@@ -569,3 +589,4 @@ export const useShopStore = defineStore('shop', () => {
     fetchPublicStats
   }
 })
+

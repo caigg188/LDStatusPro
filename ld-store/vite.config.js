@@ -13,8 +13,20 @@ export default defineConfig({
     port: 3001,
     open: true,
     proxy: {
-      '/api': {
+      '/api/auth': {
         target: 'https://api.ldspro.qzz.io',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path
+      },
+      '/api/image': {
+        target: 'https://api.ldspro.qzz.io',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path
+      },
+      '/api': {
+        target: 'https://api2.ldspro.qzz.io',
         changeOrigin: true,
         secure: true,
         rewrite: (path) => path

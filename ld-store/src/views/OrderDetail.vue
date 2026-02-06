@@ -187,6 +187,11 @@
             </div>
           </div>
         </div>
+
+        <!-- 支持 LD 士多 -->
+        <div class="support-cta">
+          <router-link to="/support" class="support-btn"><span class="support-heart">💖</span> 支持 LD 士多 </router-link>
+        </div>
         
         <!-- 操作按钮 -->
         <div class="actions" v-if="showActions">
@@ -565,6 +570,12 @@ onMounted(() => {
   border-bottom: none;
 }
 
+.support-heart {
+  display: inline-block;
+  animation: heart-beat 1.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(239, 122, 122, 0.5));
+}
+
 .info-label {
   font-size: 14px;
   color: var(--text-tertiary);
@@ -707,6 +718,12 @@ onMounted(() => {
   border: none;
 }
 
+/* Support button */
+.support-cta {
+  margin: 8px 0 24px;
+  text-align: center;
+}
+
 /* 操作按钮 */
 .actions {
   position: fixed;
@@ -719,7 +736,7 @@ onMounted(() => {
   text-align: center;
 }
 
-.pay-btn {
+.support-btn {
   display: inline-block;
   width: 100%;
   max-width: 568px;
@@ -734,7 +751,7 @@ onMounted(() => {
   transition: all 0.2s;
 }
 
-.pay-btn:hover {
+.support-btn:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-primary);
 }
