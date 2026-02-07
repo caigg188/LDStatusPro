@@ -1,7 +1,7 @@
 <template>
   <div class="doc-content">
     <h1>🛒 购买指南</h1>
-    <p class="lead">在 LD士多 购买商品非常简单，本文将介绍完整的购买流程和注意事项。</p>
+    <p class="lead">在 LD士多 兑换物品非常简单，本文将介绍完整的购买流程和注意事项。</p>
     
     <h2>购买前准备</h2>
     
@@ -16,15 +16,15 @@
       <div class="step">
         <div class="step-num">2</div>
         <div class="step-content">
-          <h4>确认余额</h4>
+          <h4>确认积分余额</h4>
           <p>在 <a href="https://credit.linux.do" target="_blank" rel="noopener">credit.linux.do</a> 确认你的 LDC 余额充足</p>
         </div>
       </div>
     </div>
     
-    <h2>购买外链物品</h2>
+    <h2>兑换外链物品</h2>
     
-    <p>外链物品的购买流程：</p>
+    <p>外链物品的兑换流程：</p>
     
     <div class="flow-diagram">
       <div class="flow-step">
@@ -39,7 +39,7 @@
       <span class="flow-arrow">→</span>
       <div class="flow-step">
         <span class="step-icon">🔗</span>
-        <span>点击购买</span>
+        <span>点击兑换</span>
       </div>
       <span class="flow-arrow">→</span>
       <div class="flow-step">
@@ -51,19 +51,19 @@
     <h3>详细步骤</h3>
     
     <ol class="numbered-list">
-      <li><strong>浏览商品</strong>：在首页或分类页面找到想要的商品</li>
-      <li><strong>查看详情</strong>：点击商品卡片进入详情页，了解商品信息</li>
-      <li><strong>点击购买</strong>：点击「立即购买」按钮</li>
+      <li><strong>浏览物品</strong>：在首页或分类页面找到想要的物品</li>
+      <li><strong>查看详情</strong>：点击物品卡片进入详情页，了解物品信息</li>
+      <li><strong>点击兑换</strong>：点击「立即兑换」按钮</li>
       <li><strong>跳转支付</strong>：自动跳转到 <code>credit.linux.do</code> 支付页面</li>
       <li><strong>确认支付</strong>：核对金额后完成支付</li>
-      <li><strong>联系卖家</strong>：支付成功后，按商品描述中的方式联系卖家获取商品</li>
+      <li><strong>联系卖家</strong>：支付成功后，按物品描述中的方式联系卖家获取物品</li>
     </ol>
     
     <div class="highlight-box warning">
       <div class="box-icon">⚠️</div>
       <div class="box-content">
         <strong>注意事项</strong>
-        <p>外链物品的交易在平台外完成，请仔细阅读商品描述，了解获取商品的方式。如有疑问，先联系卖家确认后再支付。</p>
+        <p>外链物品的交易在平台外完成，请仔细阅读物品描述，了解获取物品的方式。如有疑问，先联系卖家确认后再支付。</p>
       </div>
     </div>
     

@@ -21,7 +21,7 @@
           </label>
           <label :class="['step-item', { completed: stepCompleted.relist }]">
             <input type="checkbox" v-model="stepCompleted.relist" />
-            <span class="step-text">3. 清空可用 CDK，补充新 CDK 后再重新上架商品</span>
+            <span class="step-text">3. 清空可用 CDK，补充新 CDK 后再重新上架物品</span>
           </label>
           <p class="step-note">若你购买的是加密后的自动发货代码，请联系卖家获取原始内容</p>
         </div>
@@ -53,7 +53,7 @@
           <p class="banner-subtitle">
             快使用你的
             <a href="https://credit.linux.do/" target="_blank" class="highlight-yellow link-credit">社区积分</a>
-            兑换商品吧
+            兑换物品吧
           </p>
         </div>
         <div class="banner-stats">
@@ -133,15 +133,15 @@
           </label>
         </div>
         
-        <!-- 商品统计 -->
+        <!-- 物品统计 -->
         <div class="products-header">
           <span class="products-count">
-            {{ currentCategoryName }} 共 <strong>{{ total }}</strong> 件商品
+            {{ currentCategoryName }} 共 <strong>{{ total }}</strong> 件物品
             <span v-if="inStockOnly" class="filter-tag">有库存</span>
           </span>
         </div>
         
-        <!-- 商品列表 -->
+        <!-- 物品列表 -->
         <div v-if="initialLoading" class="products-loading">
           <Skeleton type="card" :count="6" :columns="gridColumns" />
         </div>
@@ -169,12 +169,12 @@
         <EmptyState
           v-else
           icon="🛒"
-          text="暂无商品"
-          hint="快来发布第一个商品吧~"
+          text="暂无物品"
+          hint="快来发布第一个物品吧~"
         >
           <template #action>
             <router-link to="/publish" class="btn btn-primary mt-4">
-              ➕ 发布商品
+              ➕ 发布物品
             </router-link>
           </template>
         </EmptyState>
@@ -329,7 +329,7 @@ const hasInitialized = ref(false)
 // 滚动位置保存
 let savedScrollPosition = 0
 
-// 分类商品缓存 { categoryId: { products, total, hasMore, page, timestamp } }
+// 分类物品缓存 { categoryId: { products, total, hasMore, page, timestamp } }
 const categoryCache = ref(new Map())
 const CATEGORY_CACHE_TTL = 5 * 60 * 1000 // 5分钟缓存
 
@@ -379,7 +379,7 @@ const marketCategories = computed(() =>
   categories.value.filter(c => c.name !== '小店' && c.name !== '友情小店')
 )
 
-// 物品广场的商品（排除小店类型）
+// 物品广场的物品（排除小店类型）
 const marketProducts = computed(() => 
   products.value.filter(p => p.product_type !== 'store')
 )
@@ -476,7 +476,7 @@ async function handleToggleInStock() {
   setupInfiniteScroll()
 }
 
-// 恢复首先分配的商品分类关键功能使不表示空商品
+// 恢复首先分配的物品分类关键功能使不表示空物品
 async function recoverProductsIfNeeded() {
   if (loading.value || initialLoading.value) return
   if (marketProducts.value.length > 0) return
@@ -513,7 +513,7 @@ onMounted(async () => {
     return
   }
   
-  // 获取分类和商品
+  // 获取分类和物品
   await shopStore.fetchCategories()
   await shopStore.fetchProducts('', true)
   saveCache(shopStore.currentCategory, shopStore.currentSort)
@@ -1022,7 +1022,7 @@ function setupInfiniteScroll() {
   border-color: var(--color-primary);
 }
 
-/* 商品头部 */
+/* 物品头部 */
 .products-header {
   margin-bottom: 16px;
 }
@@ -1065,7 +1065,7 @@ function setupInfiniteScroll() {
   grid-gap: 16px;
 }
 
-/* 商品网格 */
+/* 物品网格 */
 .products-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

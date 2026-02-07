@@ -49,13 +49,13 @@
           
           <router-link to="/user/products" class="menu-item">
             <span class="menu-icon">📦</span>
-            <span class="menu-label">我的商品</span>
+            <span class="menu-label">我的物品</span>
             <span class="menu-arrow">→</span>
           </router-link>
           
           <router-link to="/publish" class="menu-item">
             <span class="menu-icon">➕</span>
-            <span class="menu-label">发布商品</span>
+            <span class="menu-label">发布物品</span>
             <span class="menu-arrow">→</span>
           </router-link>
           

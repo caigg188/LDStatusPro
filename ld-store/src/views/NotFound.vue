@@ -18,8 +18,8 @@
         <p class="suggestions-title">您可以尝试：</p>
         <ul class="suggestions-list">
           <li>检查网址是否正确</li>
-          <li>返回首页浏览商品</li>
-          <li>使用搜索查找商品</li>
+          <li>返回首页浏览物品</li>
+          <li>使用搜索查找物品</li>
         </ul>
       </div>
     </div>

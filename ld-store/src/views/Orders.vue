@@ -38,10 +38,10 @@
         v-else-if="orders.length === 0"
         icon="📋"
         title="暂无订单"
-        :description="currentRole === 'buyer' ? '您还没有购买任何商品' : '您还没有收到任何订单'"
+        :description="currentRole === 'buyer' ? '您还没有购买任何物品' : '您还没有收到任何订单'"
       >
         <router-link to="/" class="browse-btn">
-          浏览商品
+          浏览物品
         </router-link>
       </EmptyState>
       
@@ -69,6 +69,7 @@
               <span class="order-seller" v-else>
                 买家: {{ order.buyer_username || order.buyer?.username || '未知' }}
               </span>
+              <span v-if="order.status === 'pending'" class="order-expire-inline">{{ getExpireCountdownText(order) }}</span>
             </div>
           </div>
           
@@ -170,7 +171,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
 import { useToast } from '@/composables/useToast'
@@ -196,6 +197,8 @@ const deliverFormOrderId = ref(null)
 const deliverContent = ref('')
 const deliveringOrderId = ref(null)
 const payingOrderId = ref(null)
+const nowTs = ref(Date.now())
+let countdownTimer = null
 
 // 切换角色
 async function switchRole(role) {
@@ -248,6 +251,68 @@ function loadMore() {
 
 function getOrderKey(order) {
   return order.order_no || order.orderNo || order.id
+}
+
+function parseDateTimeToTimestamp(value) {
+  if (value == null || value === '') return NaN
+
+  if (typeof value === 'number') {
+    return value > 1e12 ? value : value * 1000
+  }
+
+  const raw = String(value).trim()
+  if (!raw) return NaN
+
+  if (/^\d+$/.test(raw)) {
+    const num = Number(raw)
+    return num > 1e12 ? num : num * 1000
+  }
+
+  // Backend stores Beijing time like: YYYY-MM-DD HH:mm:ss
+  const beijingMatch = raw.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})(?::(\d{2}))?$/)
+  if (beijingMatch) {
+    const seconds = beijingMatch[3] || '00'
+    return new Date(`${beijingMatch[1]}T${beijingMatch[2]}:${seconds}+08:00`).getTime()
+  }
+
+  return new Date(raw).getTime()
+}
+
+function getOrderExpireTimestamp(order) {
+  const directExpire = order.pay_expired_at || order.payExpiredAt || order.expire_at || order.expireAt
+  const directTs = parseDateTimeToTimestamp(directExpire)
+  if (!Number.isNaN(directTs) && directTs > 0) return directTs
+
+  const createdTs = parseDateTimeToTimestamp(order.created_at || order.createdAt)
+  if (!Number.isNaN(createdTs) && createdTs > 0) {
+    // Fallback: pending orders are valid for 30 minutes.
+    return createdTs + 30 * 60 * 1000
+  }
+
+  return NaN
+}
+
+function getExpireCountdownText(order) {
+  if (order.status !== 'pending') return ''
+
+  const expireTs = getOrderExpireTimestamp(order)
+  if (Number.isNaN(expireTs) || expireTs <= 0) return '即将过期'
+
+  const diff = expireTs - nowTs.value
+  if (diff <= 0) return '已过期，等待状态同步'
+
+  const totalSeconds = Math.floor(diff / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+
+  if (hours > 0) {
+    return `支付剩余 ${hours}小时${minutes}分`
+  }
+  if (minutes > 0) {
+    return `支付剩余 ${minutes}分${seconds}秒`
+  }
+  return `支付剩余 ${seconds}秒`
 }
 
 function getOrderPaidAt(order) {
@@ -426,7 +491,7 @@ async function handleRepay(order) {
 // 取消订单
 
 async function handleCancelOrder(order) {
-  const productName = order.product?.name || order.product_name || '该商品'
+  const productName = order.product?.name || order.product_name || '该物品'
   const confirmed = await dialog.confirm(`确定要取消订单「${productName}」吗？`, {
     title: '取消订单',
     confirmText: '确定取消',
@@ -485,7 +550,17 @@ async function submitManualDeliver(order) {
 }
 
 onMounted(() => {
+  countdownTimer = setInterval(() => {
+    nowTs.value = Date.now()
+  }, 1000)
   loadOrders()
+})
+
+onUnmounted(() => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
 })
 </script>
 
@@ -701,9 +776,18 @@ onMounted(() => {
 
 .order-info {
   display: flex;
-  gap: 16px;
+  align-items: center;
+  gap: 12px;
   font-size: 13px;
   color: var(--text-tertiary);
+}
+
+.order-expire-inline {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-warning);
+  white-space: nowrap;
+  margin-left: auto;
 }
 
 /* CDK 显示区域 */

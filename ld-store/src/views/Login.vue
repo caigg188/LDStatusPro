@@ -20,11 +20,11 @@
         <ul class="login-features">
           <li>
             <span class="feature-icon">🛒</span>
-            <span>使用 LDC 积分兑换商品</span>
+            <span>使用 LDC 积分兑换物品</span>
           </li>
           <li>
             <span class="feature-icon">📦</span>
-            <span>发布和管理您的商品</span>
+            <span>发布和管理您的物品</span>
           </li>
           <li>
             <span class="feature-icon">📋</span>

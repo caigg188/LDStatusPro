@@ -10,7 +10,7 @@
             v-model="keyword"
             type="text"
             class="search-input"
-            placeholder="搜索商品..."
+            placeholder="搜索物品..."
             @input="handleSearch"
             @keyup.enter="doSearch"
           />
@@ -69,14 +69,14 @@
         <EmptyState
           v-else-if="results.length === 0 && hasSearched"
           icon="🔍"
-          title="未找到相关商品"
-          :description="`没有找到与「${keyword}」相关的商品`"
+          title="未找到相关物品"
+          :description="`没有找到与「${keyword}」相关的物品`"
         />
         
         <!-- 结果列表 -->
         <div v-else-if="results.length > 0" class="results-list">
           <div class="results-header">
-            <span class="results-count">找到 {{ results.length }} 个商品</span>
+            <span class="results-count">找到 {{ results.length }} 个物品</span>
           </div>
           <div class="products-grid">
             <ProductCard
@@ -196,7 +196,7 @@ function clearSearch() {
   searchInput.value?.focus()
 }
 
-// 查看商品
+// 查看物品
 function viewProduct(product) {
   router.push(`/product/${product.id}`)
 }

@@ -115,7 +115,7 @@ const navGroups = [
     ]
   },
   {
-    title: '商品管理',
+    title: '物品管理',
     items: [
       { id: 'product-types', title: '物品类型', icon: '📦' },
       { id: 'publish-link', title: '发布外链物品', icon: '🔗' },

@@ -32,7 +32,7 @@
         </router-link>
       </EmptyState>
       
-      <!-- 商品列表 -->
+      <!-- 物品列表 -->
       <div class="products-list" v-else>
         <div
           v-for="product in products"
@@ -47,7 +47,7 @@
           
           <!-- 主体内容 -->
           <div class="product-main" @click="viewProduct(product)">
-            <!-- 商品图片 -->
+            <!-- 物品图片 -->
             <div class="product-image" :style="getImageStyle(product)">
               <img
                 v-if="product.image_url"
@@ -62,7 +62,7 @@
               </span>
             </div>
             
-            <!-- 商品信息 -->
+            <!-- 物品信息 -->
             <div class="product-info">
               <h3 class="product-name">{{ product.name }}</h3>
               <p class="product-desc">{{ product.description || '暂无描述' }}</p>
@@ -349,12 +349,12 @@ function loadMore() {
   loadProducts(true)
 }
 
-// 查看商品
+// 查看物品
 function viewProduct(product) {
   router.push(`/product/${product.id}`)
 }
 
-// 编辑商品
+// 编辑物品
 function editProduct(product) {
   router.push(`/edit/${product.id}`)
 }
@@ -380,7 +380,7 @@ async function toggleStatus(product) {
   if (!confirmed) return
 
   productAction.value = { id: product.id, type: isActive ? 'offline' : 'online' }
-  const loadingId = toast.loading(isActive ? '正在下架商品...' : '正在上架商品...')
+  const loadingId = toast.loading(isActive ? '正在下架物品...' : '正在上架物品...')
 
   try {
     if (isActive) {
@@ -506,7 +506,7 @@ async function addCdks() {
   }
 }
 
-// 获取商品状态（处理多种字段名和状态值）
+// 获取物品状态（处理多种字段名和状态值）
 function getProductStatus(product) {
   const status = product.status || 'pending'
   // 将后端状态映射为显示状态
@@ -514,7 +514,7 @@ function getProductStatus(product) {
   return status
 }
 
-// 获取商品类型（处理多种字段名）
+// 获取物品类型（处理多种字段名）
 function getProductType(product) {
   return product.product_type || product.type || product.productType || 'cdk'
 }
@@ -871,14 +871,14 @@ onMounted(() => {
   background: var(--color-primary-hover);
 }
 
-/* 商品列表 */
+/* 物品列表 */
 .products-list {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-/* 商品卡片 */
+/* 物品卡片 */
 .product-card {
   position: relative;
   background: var(--bg-card);
@@ -984,7 +984,7 @@ onMounted(() => {
   cursor: pointer;
 }
 
-/* 商品图片 */
+/* 物品图片 */
 .product-image {
   position: relative;
   width: 88px;
@@ -1025,7 +1025,7 @@ onMounted(() => {
   box-shadow: var(--shadow-sm);
 }
 
-/* 商品信息 */
+/* 物品信息 */
 .product-info {
   flex: 1;
   min-width: 0;

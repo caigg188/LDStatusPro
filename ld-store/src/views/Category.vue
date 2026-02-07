@@ -6,7 +6,7 @@
         <h1 class="page-title">
           {{ categoryIcon }} {{ categoryName }}
         </h1>
-        <p class="page-subtitle">共 {{ total }} 个商品</p>
+        <p class="page-subtitle">共 {{ total }} 个物品</p>
       </div>
       
       <!-- 筛选排序 -->
@@ -27,15 +27,15 @@
       <EmptyState
         v-else-if="products.length === 0"
         icon="📦"
-        title="暂无商品"
-        :description="`该分类下暂无商品`"
+        title="暂无物品"
+        :description="`该分类下暂无物品`"
       >
         <router-link to="/" class="back-btn">
-          浏览全部商品
+          浏览全部物品
         </router-link>
       </EmptyState>
       
-      <!-- 商品列表 -->
+      <!-- 物品列表 -->
       <div v-else class="products-grid">
         <ProductCard
           v-for="product in products"
@@ -112,7 +112,7 @@ const category = computed(() => route.params.name || '')
 const categoryName = computed(() => categoryConfig[category.value]?.name || category.value)
 const categoryIcon = computed(() => categoryConfig[category.value]?.icon || '📦')
 
-// 加载商品
+// 加载物品
 async function loadProducts(append = false) {
   try {
     if (!append) {
@@ -157,7 +157,7 @@ function changeSort(sort) {
   loadProducts()
 }
 
-// 查看商品
+// 查看物品
 function viewProduct(product) {
   router.push(`/product/${product.id}`)
 }
@@ -254,7 +254,7 @@ onDeactivated(() => {
   background: var(--color-primary-hover);
 }
 
-/* 商品网格 */
+/* 物品网格 */
 .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

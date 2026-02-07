@@ -20,7 +20,7 @@
         </div>
       </div>
       
-      <!-- 商品不存在 -->
+      <!-- 物品不存在 -->
       <EmptyState
         v-else-if="!product"
         icon="🔍"
@@ -372,12 +372,12 @@ function getTypeName(type) {
   return map[type] || '未知'
 }
 
-// 获取商品类型
+// 获取物品类型
 function getProductType(prod) {
   return prod?.product_type || prod?.type || prod?.productType || 'link'
 }
 
-// 加载商品 (使用 my-products API，可获取任意状态的商品)
+// 加载物品 (使用 my-products API，可获取任意状态的物品)
 async function loadProduct() {
   try {
     loading.value = true
@@ -443,7 +443,7 @@ async function submitForm() {
     return
   }
   
-  // 根据商品类型验证
+  // 根据物品类型验证
   const productType = getProductType(product.value)
   if (productType === 'link') {
     if (!form.value.paymentLink.trim()) {
@@ -505,7 +505,7 @@ async function submitForm() {
       updateData.paymentLink = form.value.paymentLink.trim()
     }
     
-    // 更新商品
+    // 更新物品
     const result = await shopStore.updateProduct(product.value.id, updateData)
     
     // 检查返回结果

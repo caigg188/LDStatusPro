@@ -33,20 +33,20 @@
           </div>
         </div>
         
-        <!-- 商品信息 -->
+        <!-- 物品信息 -->
         <div class="info-card">
-          <h3 class="card-title">商品信息</h3>
+          <h3 class="card-title">物品信息</h3>
           
           <div class="info-row">
-            <span class="info-label">商品名称</span>
+            <span class="info-label">物品名称</span>
             <span class="info-value">{{ order.product?.name || order.product_name || order.productName }}</span>
           </div>
           
           <div class="info-row">
-            <span class="info-label">商品类型</span>
+            <span class="info-label">物品分类</span>
             <span class="info-value">
-              <span :class="['type-badge', getProductType(order)]">
-                {{ getOrderTypeText(getProductType(order)) }}
+              <span class="order-category-badge">
+                {{ getProductCategoryText(order) }}
               </span>
             </span>
           </div>
@@ -105,7 +105,7 @@
           </div>
         </div>
         
-        <!-- CDK 使用说明（显示商品描述） -->
+        <!-- CDK 使用说明（显示物品描述） -->
         <div class="info-card" v-if="getProductType(order) === 'cdk' && getProductDescription(order)">
           <h3 class="card-title">📝 使用说明</h3>
           <div class="description-content">{{ getProductDescription(order) }}</div>
@@ -113,7 +113,7 @@
         
         <!-- 链接信息 -->
         <div class="info-card" v-if="getProductType(order) === 'link' && order.link">
-          <h3 class="card-title">商品链接</h3>
+          <h3 class="card-title">物品链接</h3>
           
           <div class="link-box">
             <a :href="order.link" target="_blank" rel="noopener" class="link-url">
@@ -255,9 +255,54 @@ const canRepay = computed(() => {
   return currentRole.value === 'buyer' && order.value?.status === 'pending' && getProductType(order.value) === 'cdk'
 })
 
-// 获取商品类型
+const categoryNameMap = computed(() => {
+  const map = new Map()
+  const list = Array.isArray(shopStore.categories) ? shopStore.categories : []
+  for (const cat of list) {
+    if (cat?.id == null) continue
+    map.set(String(cat.id), cat.name || '')
+  }
+  return map
+})
+
+// 获取物品类型
+function normalizeProductType(type) {
+  const normalized = String(type || '').trim().toLowerCase()
+  return normalized || 'cdk'
+}
+
 function getProductType(orderData) {
-  return orderData?.product_type || orderData?.product?.product_type || orderData?.productType || 'cdk'
+  return normalizeProductType(
+    orderData?.product_type ||
+    orderData?.product?.product_type ||
+    orderData?.productType
+  )
+}
+
+function getProductCategoryText(orderData) {
+  const directName =
+    orderData?.category_name ||
+    orderData?.categoryName ||
+    orderData?.product?.category_name ||
+    orderData?.product?.categoryName ||
+    orderData?.product?.category?.name
+
+  if (directName) return directName
+
+  const categoryId =
+    orderData?.category_id ??
+    orderData?.categoryId ??
+    orderData?.product?.category_id ??
+    orderData?.product?.categoryId ??
+    orderData?.product?.category?.id
+
+  if (categoryId != null) {
+    const mappedName = categoryNameMap.value.get(String(categoryId))
+    if (mappedName) return mappedName
+    return `分类 #${categoryId}`
+  }
+
+  return '未知'
 }
 
 // 获取CDK内容（处理多种可能的字段名）
@@ -265,9 +310,9 @@ function getCdkContent(orderData) {
   return orderData?.cdk || orderData?.delivery_content || orderData?.deliveryContent || ''
 }
 
-// 获取商品描述（使用说明）
+// 获取物品描述（使用说明）
 function getProductDescription(orderData) {
-  // 从商品快照或直接字段获取描述
+  // 从物品快照或直接字段获取描述
   return orderData?.product?.description || 
          orderData?.productDescription || 
          orderData?.product_description || 
@@ -365,12 +410,14 @@ function getStatusClass(status) {
 
 // 订单类型
 function getOrderTypeText(type) {
+  const normalized = normalizeProductType(type)
   const map = {
     cdk: 'CDK',
     link: '链接',
-    store: '寄存'
+    store: '寄存',
+    service: '服务'
   }
-  return map[type] || type || '未知'
+  return map[normalized] || normalized || '未知'
 }
 
 // 格式化日期时间
@@ -452,7 +499,7 @@ async function handleRepay() {
 
 // 取消订单
 async function handleCancelOrder() {
-  const productName = order.value?.product?.name || order.value?.product_name || '该商品'
+  const productName = order.value?.product?.name || order.value?.product_name || '该物品'
   const confirmed = await dialog.confirm(`确定要取消订单「${productName}」吗？`, {
     title: '取消订单',
     confirmText: '确定取消',
@@ -475,8 +522,11 @@ async function handleCancelOrder() {
   }
 }
 
-onMounted(() => {
-  loadOrder()
+onMounted(async () => {
+  await Promise.all([
+    loadOrder(),
+    shopStore.fetchCategories().catch(() => null)
+  ])
 })
 </script>
 
@@ -664,27 +714,46 @@ onMounted(() => {
   color: #cfa76f;
 }
 
-/* 类型标签 */
-.type-badge {
+/* 订单类型标签（避免和全局 .type-badge 冲突） */
+.order-type-badge {
+  position: static;
+  display: inline-flex;
+  align-items: center;
   padding: 4px 10px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
 }
 
-.type-badge.cdk {
+.order-category-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.order-type-badge.cdk {
   background: #e8f5e8;
   color: #5a8c5a;
 }
 
-.type-badge.link {
+.order-type-badge.link {
   background: #e8f0f5;
   color: #778d9c;
 }
 
-.type-badge.store {
+.order-type-badge.store {
   background: var(--color-warning-bg);
   color: var(--color-warning);
+}
+
+.order-type-badge.service {
+  background: #ece7f8;
+  color: #6f5a96;
 }
 
 /* CDK 展示框 */

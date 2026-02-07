@@ -50,7 +50,7 @@
             </div>
             <div class="guide-modal-body">
               <p class="guide-modal-text">
-                测试模式下，<strong>只有您自己可以购买此商品</strong>，其他用户将无法购买。
+                测试模式下，<strong>只有您自己可以购买此物品</strong>，其他用户将无法购买。
               </p>
               <div class="test-mode-tips">
                 <p class="tip-item">✅ 用于测试 LDC 支付回调通知是否正常</p>
@@ -317,7 +317,7 @@
               </span>
             </label>
             <p class="form-hint test-mode-hint">
-              开启后仅您自己可以购买此商品，用于测试 LDC 通知回调是否正常工作。
+              开启后仅您自己可以购买此物品，用于测试 LDC 通知回调是否正常工作。
             </p>
           </div>
           
@@ -676,7 +676,7 @@ const imageUrlError = computed(() => {
 
 const imageDisplayError = computed(() => {
   const url = form.value.imageUrl?.trim()
-  if (!url) return submitAttempted.value ? '请填写商品图片链接' : ''
+  if (!url) return submitAttempted.value ? '请填写物品图片链接' : ''
   if (imageLoadError.value) return imageLoadError.value
   return imageUrlError.value || ''
 })
@@ -802,7 +802,7 @@ async function submitForm() {
   submitting.value = true
   
   try {
-    // 构建商品数据（与客户端脚本保持一致）
+    // 构建物品数据（与客户端脚本保持一致）
     const productData = {
       name: form.value.name.trim(),
       categoryId: form.value.categoryId,
@@ -827,7 +827,7 @@ async function submitForm() {
       }
     }
     
-    // 创建商品
+    // 创建物品
     const result = await shopStore.createProduct(productData)
     
     if (!result.success) {

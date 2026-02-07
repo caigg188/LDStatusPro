@@ -6,7 +6,7 @@
         <Skeleton type="detail" />
       </div>
       
-      <!-- 商品详情 -->
+      <!-- 物品详情 -->
       <template v-else-if="product">
         <!-- 顶部导航 -->
         <div class="detail-nav">
@@ -42,7 +42,7 @@
           
           <!-- 右侧：信息 -->
           <div class="detail-info-panel">
-            <!-- 商品名称 -->
+            <!-- 物品名称 -->
             <h1 class="detail-name">{{ product.name }}</h1>
             
             <!-- 价格区域 -->
@@ -56,10 +56,10 @@
             <!-- 测试模式提示 -->
             <div v-if="isTestMode" class="test-mode-banner">
               <span class="test-badge">🧪 测试模式</span>
-              <span class="test-desc">{{ isSeller ? '只有您可以购买此商品' : '该商品为测试模式，仅卖家可购买' }}</span>
+              <span class="test-desc">{{ isSeller ? '只有您可以购买此物品' : '该物品为测试模式，仅卖家可购买' }}</span>
             </div>
             
-            <!-- 商品状态信息 -->
+            <!-- 物品状态信息 -->
             <div class="status-row">
               <div class="status-item">
                 <span class="status-icon">👁</span>
@@ -119,7 +119,7 @@
                   class="buy-btn disabled test-only"
                   disabled
                 >
-                  🧪 测试商品
+                  🧪 测试物品
                 </button>
                 <button
                   v-else-if="!canPurchase"
@@ -150,7 +150,7 @@
           </div>
         </div>
         
-        <!-- 商品描述区域 -->
+        <!-- 物品描述区域 -->
         <div class="detail-description">
           <h2 class="section-title">📝 物品详情</h2>
           <div class="description-content">{{ product.description || '暂无描述' }}</div>
@@ -181,7 +181,7 @@
               class="buy-btn disabled test-only"
               disabled
             >
-              🧪 测试商品
+              🧪 测试物品
             </button>
             <button
               v-else-if="!canPurchase"
@@ -271,7 +271,7 @@ const product = ref(null)
 const purchasing = ref(false)
 const showImagePreview = ref(false)
 
-// 商品类型
+// 物品类型
 const productType = computed(() => product.value?.product_type || 'link')
 const isCdk = computed(() => productType.value === 'cdk')
 const isStore = computed(() => productType.value === 'store')
@@ -347,7 +347,7 @@ const coverStyle = computed(() => {
   return { background: colors[id % colors.length] }
 })
 
-// 加载商品
+// 加载物品
 onMounted(async () => {
   const productId = route.params.id
   if (!productId) {
@@ -358,7 +358,7 @@ onMounted(async () => {
   // 获取分类
   await shopStore.fetchCategories()
   
-  // 获取商品详情
+  // 获取物品详情
   const data = await shopStore.fetchProduct(productId)
   if (data) {
     product.value = data
@@ -417,7 +417,7 @@ function handleEscKey(e) {
 async function handleBuyCdk() {
   // 检查登录
   if (!userStore.isLoggedIn) {
-    const confirmed = await dialog.confirm('请先登录后再兑换商品', {
+    const confirmed = await dialog.confirm('请先登录后再兑换物品', {
       title: '需要登录',
       icon: '🔐',
       confirmText: '去登录'
