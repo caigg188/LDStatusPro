@@ -31,6 +31,7 @@ export const useShopStore = defineStore('shop', () => {
   const productCache = new Map()
   const categoryCache = ref({ data: null, time: 0 })
   const CACHE_TTL = 60000 // 1分钟缓存
+  let latestProductsRequestId = 0
 
   // 计算属性
   const currentCategoryName = computed(() => {
@@ -76,11 +77,14 @@ export const useShopStore = defineStore('shop', () => {
 
   // 获取商品列表
   async function fetchProducts(categoryId = '', forceRefresh = false, sort = '') {
-    if (loading.value) return
-
     // 切换分类或排序时重置状态
     const sortChanged = sort && sort !== currentSort.value
-    if (categoryId !== currentCategory.value || forceRefresh || sortChanged) {
+    const shouldReset = categoryId !== currentCategory.value || forceRefresh || sortChanged
+
+    // 同一上下文加载中时不重复发起请求，避免翻页多次打点
+    if (loading.value && !shouldReset) return
+
+    if (shouldReset) {
       currentCategory.value = categoryId
       if (sort) currentSort.value = sort
       page.value = 1
@@ -88,42 +92,54 @@ export const useShopStore = defineStore('shop', () => {
       products.value = []
     }
 
+    const requestPage = page.value
+    const requestCategory = currentCategory.value
+    const requestSort = currentSort.value
+    const requestInStockOnly = inStockOnly.value
+    const requestId = ++latestProductsRequestId
     loading.value = true
 
     try {
-      let url = `/api/shop/products?page=${page.value}&pageSize=${pageSize}`
-      if (categoryId) {
-        url += `&categoryId=${encodeURIComponent(categoryId)}`
+      let url = `/api/shop/products?page=${requestPage}&pageSize=${pageSize}`
+      if (requestCategory) {
+        url += `&categoryId=${encodeURIComponent(requestCategory)}`
       }
-      
+
       // 添加排序参数
-      const sortConfig = sortMapping[currentSort.value] || sortMapping.default
+      const sortConfig = sortMapping[requestSort] || sortMapping.default
       url += `&sortBy=${sortConfig.sortBy}&sortOrder=${sortConfig.sortOrder}`
-      
+
       // 添加库存筛选
-      if (inStockOnly.value) {
+      if (requestInStockOnly) {
         url += '&inStock=true'
       }
 
       const result = await api.get(url)
+
+      // 忽略过时请求，避免旧分类结果覆盖新分类
+      if (requestId !== latestProductsRequestId) return
+
       if (result.success && result.data?.products) {
         const newProducts = result.data.products
         total.value = result.data.pagination?.total || result.data.total || newProducts.length
-        hasMore.value = (page.value * pageSize) < total.value
+        hasMore.value = (requestPage * pageSize) < total.value
 
-        if (page.value === 1) {
+        if (requestPage === 1) {
           products.value = newProducts
         } else {
           products.value = [...products.value, ...newProducts]
         }
       }
     } catch (e) {
-      console.error('Fetch products failed:', e)
+      if (requestId === latestProductsRequestId) {
+        console.error('Fetch products failed:', e)
+      }
     } finally {
-      loading.value = false
+      if (requestId === latestProductsRequestId) {
+        loading.value = false
+      }
     }
   }
-
   // 从缓存恢复分类状态（前端缓存用）
   function restoreFromCache(categoryId, cachedProducts, cachedTotal, cachedHasMore, cachedPage, cachedSort = 'default') {
     currentCategory.value = categoryId

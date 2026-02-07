@@ -328,6 +328,7 @@ const hasInitialized = ref(false)
 
 // 滚动位置保存
 let savedScrollPosition = 0
+let latestCatalogActionId = 0
 
 // 分类物品缓存 { categoryId: { products, total, hasMore, page, timestamp } }
 const categoryCache = ref(new Map())
@@ -425,44 +426,62 @@ async function loadShops() {
 
 // 分类选择
 async function handleCategorySelect(categoryId) {
+  const actionId = ++latestCatalogActionId
   const sortKey = shopStore.currentSort || 'default'
 
   if (tryRestoreFromCache(categoryId, sortKey)) {
+    if (actionId !== latestCatalogActionId) return
     await nextTick()
+    if (actionId !== latestCatalogActionId) return
     setupInfiniteScroll()
     return
   }
 
   initialLoading.value = true
   await shopStore.fetchProducts(categoryId, true)
+  if (actionId !== latestCatalogActionId) return
   initialLoading.value = false
 
-  saveCache(categoryId, shopStore.currentSort)
+  const shouldCache =
+    String(shopStore.currentCategory) === String(categoryId) &&
+    (shopStore.currentSort || 'default') === sortKey
+  if (shouldCache) {
+    saveCache(categoryId, sortKey)
+  }
 
   await nextTick()
+  if (actionId !== latestCatalogActionId) return
   setupInfiniteScroll()
 }
-
 // 排序变更
 async function handleSortChange(sort) {
+  const actionId = ++latestCatalogActionId
   const categoryId = shopStore.currentCategory
 
   if (tryRestoreFromCache(categoryId, sort)) {
+    if (actionId !== latestCatalogActionId) return
     await nextTick()
+    if (actionId !== latestCatalogActionId) return
     setupInfiniteScroll()
     return
   }
 
   initialLoading.value = true
   await shopStore.fetchProducts(categoryId, true, sort)
+  if (actionId !== latestCatalogActionId) return
   initialLoading.value = false
 
-  saveCache(categoryId, sort)
+  const shouldCache =
+    String(shopStore.currentCategory) === String(categoryId) &&
+    (shopStore.currentSort || 'default') === (sort || 'default')
+  if (shouldCache) {
+    saveCache(categoryId, sort)
+  }
 
   await nextTick()
+  if (actionId !== latestCatalogActionId) return
   setupInfiniteScroll()
 }
-
 // 切换只看有库存
 async function handleToggleInStock() {
   // 清除缓存，因为库存筛选条件变化
