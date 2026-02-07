@@ -196,11 +196,20 @@
         <!-- 操作按钮 -->
         <div class="actions" v-if="showActions">
           <div class="actions-row">
+            <button
+              v-if="canRepay"
+              class="pay-btn"
+              @click="handleRepay"
+              :disabled="paying || cancelling"
+            >
+              {{ paying ? '跳转中...' : '立即支付' }}
+            </button>
             <button 
               v-if="order.status === 'pending'" 
-              class="cancel-btn full-width" 
+              class="cancel-btn" 
+              :class="{ 'full-width': !canRepay }"
               @click="handleCancelOrder"
-              :disabled="cancelling"
+              :disabled="cancelling || paying"
             >
               {{ cancelling ? '取消中...' : '取消订单' }}
             </button>
@@ -218,6 +227,8 @@ import { useShopStore } from '@/stores/shop'
 import { useToast } from '@/composables/useToast'
 import { useDialog } from '@/composables/useDialog'
 import EmptyState from '@/components/common/EmptyState.vue'
+import { isValidLdcPaymentUrl } from '@/utils/security'
+import { prepareNewTab, openInNewTab, cleanupPreparedTab } from '@/utils/newTab'
 
 const route = useRoute()
 const router = useRouter()
@@ -230,6 +241,7 @@ const order = ref(null)
 const orderLogs = ref([])
 const showCdk = ref(false)
 const cancelling = ref(false)
+const paying = ref(false)
 
 // 当前用户角色（买家/卖家）
 const currentRole = computed(() => route.query.role || 'buyer')
@@ -237,6 +249,10 @@ const currentRole = computed(() => route.query.role || 'buyer')
 // 是否显示操作按钮区域（买家和卖家都可以取消待支付订单）
 const showActions = computed(() => {
   return order.value?.status === 'pending'
+})
+
+const canRepay = computed(() => {
+  return currentRole.value === 'buyer' && order.value?.status === 'pending' && getProductType(order.value) === 'cdk'
 })
 
 // 获取商品类型
@@ -384,6 +400,53 @@ function copyLink() {
   if (order.value?.link) {
     navigator.clipboard.writeText(order.value.link)
     toast.success('链接已复制')
+  }
+}
+
+function extractErrorMessage(result, fallback) {
+  if (typeof result?.error === 'string') return result.error
+  if (result?.error?.message) return result.error.message
+  if (result?.error?.code) return result.error.code
+  return fallback
+}
+
+async function handleRepay() {
+  if (!canRepay.value || !order.value) return
+
+  const orderNo = order.value?.order_no || order.value?.orderNo
+  if (!orderNo || paying.value) return
+
+  const loadingId = toast.loading('正在获取支付链接...')
+  const preparedWindow = prepareNewTab()
+  paying.value = true
+
+  try {
+    const result = await shopStore.getPaymentUrl(orderNo)
+    const paymentUrl = result?.data?.paymentUrl
+
+    if (!result?.success || !paymentUrl) {
+      cleanupPreparedTab(preparedWindow)
+      toast.error(extractErrorMessage(result, '获取支付链接失败'))
+      return
+    }
+
+    if (!isValidLdcPaymentUrl(paymentUrl)) {
+      cleanupPreparedTab(preparedWindow)
+      toast.error('支付链接异常，请稍后重试')
+      return
+    }
+
+    const opened = openInNewTab(paymentUrl, preparedWindow)
+    if (!opened) {
+      cleanupPreparedTab(preparedWindow)
+    }
+    toast.success('支付页面已打开')
+  } catch (error) {
+    cleanupPreparedTab(preparedWindow)
+    toast.error(error?.message || '获取支付链接失败')
+  } finally {
+    toast.close(loadingId)
+    paying.value = false
   }
 }
 
@@ -761,6 +824,28 @@ onMounted(() => {
   gap: 12px;
   max-width: 568px;
   margin: 0 auto;
+}
+
+.pay-btn {
+  flex: 1;
+  padding: 16px 32px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pay-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.pay-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .cancel-btn {

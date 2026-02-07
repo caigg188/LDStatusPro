@@ -107,9 +107,17 @@
               <!-- CDK 待支付订单操作按钮（买家和卖家都可以取消） -->
               <template v-else-if="order.status === 'pending'">
                 <button
+                  v-if="canRepay(order)"
+                  class="action-btn pay-btn"
+                  @click.stop="handleRepay(order)"
+                  :disabled="payingOrderId === getOrderKey(order)"
+                >
+                  {{ payingOrderId === getOrderKey(order) ? '跳转中...' : '立即支付' }}
+                </button>
+                <button
                   class="action-btn cancel-btn"
                   @click.stop="handleCancelOrder(order)"
-                  :disabled="cancellingOrderId === getOrderKey(order)"
+                  :disabled="cancellingOrderId === getOrderKey(order) || payingOrderId === getOrderKey(order)"
                 >
                   {{ cancellingOrderId === getOrderKey(order) ? '取消中...' : '取消订单' }}
                 </button>
@@ -168,6 +176,8 @@ import { useShopStore } from '@/stores/shop'
 import { useToast } from '@/composables/useToast'
 import { useDialog } from '@/composables/useDialog'
 import EmptyState from '@/components/common/EmptyState.vue'
+import { isValidLdcPaymentUrl } from '@/utils/security'
+import { prepareNewTab, openInNewTab, cleanupPreparedTab } from '@/utils/newTab'
 
 const router = useRouter()
 const shopStore = useShopStore()
@@ -185,6 +195,7 @@ const cancellingOrderId = ref(null)
 const deliverFormOrderId = ref(null)
 const deliverContent = ref('')
 const deliveringOrderId = ref(null)
+const payingOrderId = ref(null)
 
 // 切换角色
 async function switchRole(role) {
@@ -268,6 +279,17 @@ function openDeliverForm(order) {
 function closeDeliverForm() {
   deliverFormOrderId.value = null
   deliverContent.value = ''
+}
+
+function canRepay(order) {
+  return currentRole.value === 'buyer' && isCdkOrder(order)
+}
+
+function extractErrorMessage(result, fallback) {
+  if (typeof result?.error === 'string') return result.error
+  if (result?.error?.message) return result.error.message
+  if (result?.error?.code) return result.error.code
+  return fallback
 }
 
 // 查看订单详情
@@ -360,6 +382,44 @@ function copyCdk(order) {
   if (content) {
     navigator.clipboard.writeText(content)
     toast.success('CDK 已复制到剪贴板')
+  }
+}
+
+async function handleRepay(order) {
+  const orderNo = getOrderKey(order)
+  if (!orderNo || payingOrderId.value === orderNo) return
+
+  const loadingId = toast.loading('正在获取支付链接...')
+  const preparedWindow = prepareNewTab()
+  payingOrderId.value = orderNo
+
+  try {
+    const result = await shopStore.getPaymentUrl(orderNo)
+    const paymentUrl = result?.data?.paymentUrl
+
+    if (!result?.success || !paymentUrl) {
+      cleanupPreparedTab(preparedWindow)
+      toast.error(extractErrorMessage(result, '获取支付链接失败'))
+      return
+    }
+
+    if (!isValidLdcPaymentUrl(paymentUrl)) {
+      cleanupPreparedTab(preparedWindow)
+      toast.error('支付链接异常，请稍后重试')
+      return
+    }
+
+    const opened = openInNewTab(paymentUrl, preparedWindow)
+    if (!opened) {
+      cleanupPreparedTab(preparedWindow)
+    }
+    toast.success('支付页面已打开')
+  } catch (error) {
+    cleanupPreparedTab(preparedWindow)
+    toast.error(error?.message || '获取支付链接失败')
+  } finally {
+    toast.close(loadingId)
+    payingOrderId.value = null
   }
 }
 
