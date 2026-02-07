@@ -285,8 +285,8 @@ function getOrderExpireTimestamp(order) {
 
   const createdTs = parseDateTimeToTimestamp(order.created_at || order.createdAt)
   if (!Number.isNaN(createdTs) && createdTs > 0) {
-    // Fallback: pending orders are valid for 30 minutes.
-    return createdTs + 30 * 60 * 1000
+    // Fallback: pending orders are valid for 5 minutes.
+    return createdTs + 5 * 60 * 1000
   }
 
   return NaN

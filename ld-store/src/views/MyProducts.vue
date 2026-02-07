@@ -170,8 +170,8 @@
           <div class="cdk-filter">
             <select v-model="cdkStatusFilter" class="filter-select" @change="loadCdkList">
               <option value="">全部状态</option>
-              <option value="available">可用</option>
               <option value="locked">锁定</option>
+              <option value="available">可用</option>
               <option value="sold">已售</option>
             </select>
             <button
@@ -190,15 +190,15 @@
               <div
                 v-for="cdk in cdkList"
                 :key="cdk.id || cdk.code"
-                :class="['cdk-item', cdk.status || 'available']"
+                :class="['cdk-item', normalizeCdkStatus(cdk.status)]"
               >
                 <code class="cdk-code">{{ cdk.code }}</code>
                 <div class="cdk-actions">
-                  <span :class="['cdk-status', cdk.status || 'available']">
-                    {{ getCdkStatusText(cdk.status) }}
+                  <span :class="['cdk-status', normalizeCdkStatus(cdk.status)]">
+                    {{ getCdkStatusText(normalizeCdkStatus(cdk.status)) }}
                   </span>
                   <button 
-                    v-if="cdk.status !== 'sold'" 
+                    v-if="isCdkDeletable(cdk)" 
                     class="cdk-delete-btn"
                     @click="deleteCdkItem(cdk)"
                     :disabled="isDeletingCdk(cdk)"
@@ -492,7 +492,7 @@ async function addCdks() {
     newCdkText.value = ''
     
     // 刷新 CDK 列表
-    cdkList.value = await shopStore.fetchProductCdks(currentProduct.value.id)
+    cdkList.value = sortCdkListByStatus(await shopStore.fetchProductCdks(currentProduct.value.id))
     
     // 更新库存
     const index = products.value.findIndex(p => p.id === currentProduct.value.id)
@@ -624,9 +624,50 @@ function canToggleStatus(product) {
   return product.status !== 'pending' && product.status !== 'rejected'
 }
 
+const CDK_STATUS_PRIORITY = {
+  locked: 0,
+  available: 1,
+  sold: 2
+}
+
+function normalizeCdkStatus(status) {
+  const normalized = String(status || '').trim().toLowerCase()
+  if (normalized === 'locked' || normalized === 'available' || normalized === 'sold') {
+    return normalized
+  }
+  return 'available'
+}
+
+function sortCdkListByStatus(list) {
+  return [...(list || [])].sort((a, b) => {
+    const statusA = normalizeCdkStatus(a?.status)
+    const statusB = normalizeCdkStatus(b?.status)
+    const priorityA = CDK_STATUS_PRIORITY[statusA] ?? 999
+    const priorityB = CDK_STATUS_PRIORITY[statusB] ?? 999
+    if (priorityA !== priorityB) return priorityA - priorityB
+
+    const timeA = new Date(a?.created_at || 0).getTime()
+    const timeB = new Date(b?.created_at || 0).getTime()
+    if (!Number.isNaN(timeA) && !Number.isNaN(timeB) && timeA !== timeB) {
+      return timeB - timeA
+    }
+
+    return (b?.id || 0) - (a?.id || 0)
+  })
+}
+
 // CDK 状态文本
 function getCdkStatusText(status) {
-  return status === 'sold' ? '已售出' : '可用'
+  const map = {
+    locked: '锁定中',
+    available: '可用',
+    sold: '已售出'
+  }
+  return map[status] || '可用'
+}
+
+function isCdkDeletable(cdk) {
+  return normalizeCdkStatus(cdk?.status) === 'available'
 }
 
 // 加载 CDK 列表
@@ -637,7 +678,7 @@ async function loadCdkList() {
   try {
     // fetchCdkList 返回 { cdks, stats, batches, pagination }
     const result = await shopStore.fetchCdkList(currentProduct.value.id, { status: cdkStatusFilter.value })
-    cdkList.value = result?.cdks || []
+    cdkList.value = sortCdkListByStatus(result?.cdks || [])
     cdkStats.value = result?.stats || { total: 0, available: 0, locked: 0, sold: 0 }
   } catch (error) {
     toast.error('加载 CDK 列表失败')
@@ -1349,6 +1390,14 @@ onMounted(() => {
   color: var(--color-success);
 }
 
+.stat-item.locked {
+  background: #fff7e6;
+}
+
+.stat-item.locked .stat-value {
+  color: #d48806;
+}
+
 .stat-item.sold {
   background: var(--bg-secondary);
 }
@@ -1458,6 +1507,10 @@ onMounted(() => {
   background: var(--color-success-light);
 }
 
+.cdk-item.locked {
+  background: #fff7e6;
+}
+
 .cdk-item.sold {
   background: var(--bg-secondary);
 }
@@ -1493,6 +1546,11 @@ onMounted(() => {
 .cdk-status.available {
   background: var(--color-success-light);
   color: var(--color-success);
+}
+
+.cdk-status.locked {
+  background: #fff7e6;
+  color: #d48806;
 }
 
 .cdk-status.sold {

@@ -18,7 +18,7 @@
             <ul class="notice-list">
               <li><strong>✅ CF-R2存储</strong>：配有域名和证书，稳定、安全、高效。</li>
               <li><strong>🚫 禁止上传</strong>：色情、暴力、血腥、政治敏感、侵权等违规内容</li>
-              <li><strong>📏 文件限制</strong>：单张图片最大 5MB，支持 jpg/png/gif/webp 格式</li>
+              <li><strong>📏 文件限制</strong>：按阶梯限制单图大小（5MB / 10MB / 15MB），支持 jpg/png/gif/webp 格式</li>
               <li><strong>💾 存储说明</strong>：图片永久存储，删除后不可恢复</li>
               <li><strong>🔗 外链使用</strong>：可直接引用图片 URL，支持 Markdown 格式</li>
               <li><strong>⚠️ 违规处理</strong>：上传违规内容将被删除并封禁账号</li>
@@ -28,7 +28,7 @@
       </div>
 
       <!-- 维护提示（非免费用户） -->
-      <div v-if="isLoggedIn && !isFreeUser && isMaintenance" class="maintenance-notice">
+      <div v-if="isLoggedIn && !isMaintenanceTester && isMaintenance" class="maintenance-notice">
         <div class="maintenance-icon">🔧</div>
         <h3>图床服务维护中</h3>
         <p>付费上传功能正在维护，预计很快恢复。给您带来不便，敬请谅解。</p>
@@ -44,7 +44,7 @@
       </div>
 
       <!-- 已登录（免费用户不受维护影响） -->
-      <template v-else-if="!isMaintenance || isFreeUser">
+      <template v-else-if="!isMaintenance || isMaintenanceTester">
         <!-- 上传区域 -->
         <div class="upload-section">
           <div 
@@ -74,7 +74,7 @@
             <div v-else class="upload-hint">
               <div class="upload-icon">📤</div>
               <p class="hint-text">点击选择图片、拖拽或 Ctrl+V 粘贴</p>
-              <p class="hint-sub">支持 jpg、png、gif、webp，最大 5MB</p>
+              <p class="hint-sub">支持 jpg、png、gif、webp，当前最大 {{ currentMaxSizeMB }}MB</p>
             </div>
           </div>
 
@@ -82,10 +82,12 @@
           <div class="fee-notice">
             <span class="fee-icon">💰</span>
             <span class="fee-text">
-              <template v-if="isFreeUser">您是管理员，免费上传</template>
+              <template v-if="isFreeUser">
+                您是免费用户，免支付上传（当前单图上限 {{ currentMaxSizeMB }}MB）
+              </template>
               <template v-else-if="priceInfo">
                 当前费用：<strong>{{ priceInfo.currentPrice }} LDC</strong> / 张
-                <span class="upload-count">(已上传 {{ priceInfo.uploadCount }} 张)</span>
+                <span class="upload-count">(已上传 {{ priceInfo.uploadCount }} 张，单图上限 {{ currentMaxSizeMB }}MB)</span>
               </template>
               <template v-else>加载中...</template>
             </span>
@@ -108,10 +110,11 @@
                   <span class="tier-range">
                     {{ tier.min }}-{{ tier.max || '∞' }} 张
                   </span>
-                  <span class="tier-price">{{ tier.price }} LDC/张</span>
+                  <span class="tier-price">{{ tier.price }} LDC/张 · {{ tier.maxSizeMB }}MB</span>
                 </div>
                 <p v-if="priceInfo.nextTierAt" class="next-tier-hint">
-                  还需上传 {{ priceInfo.nextTierAt - priceInfo.uploadCount }} 张后进入下一档(¥{{ priceInfo.nextPrice }})
+                  还需上传 {{ priceInfo.nextTierAt - priceInfo.uploadCount }} 张后进入下一档
+                  （{{ priceInfo.nextPrice }} LDC / 张，{{ priceInfo.nextMaxSizeMB }}MB）
                 </p>
               </div>
             </Transition>
@@ -311,8 +314,8 @@ const showNotice = ref(false)
 // 阶梯定价展开状态
 const showTiers = ref(false)
 
-// 维护状态（非免费用户暂停服务）
-const isMaintenance = ref(true)
+// 维护状态（当前已开放）
+const isMaintenance = ref(false)
 
 // 价格信息
 const priceInfo = ref(null)
@@ -323,11 +326,11 @@ const uploadCredential = ref('')
 
 // 计算属性
 const isLoggedIn = computed(() => userStore.isLoggedIn)
+const isMaintenanceTester = computed(() => userStore.user?.username === 'JackyLiii')
 const isFreeUser = computed(() => {
-  // JackyLiii 免费
-  return userStore.user?.username === 'JackyLiii'
-    return userStore.user?.is_admin === true
+  return Boolean(priceInfo.value?.isFree)
 })
+const currentMaxSizeMB = computed(() => Number(priceInfo.value?.currentMaxSizeMB || 5))
 const canUpload = computed(() => {
   return selectedFile.value && uploadStatus.value === 'idle'
 })
@@ -342,7 +345,6 @@ function isCurrentTier(tier) {
 
 // 加载价格信息
 async function loadPriceInfo() {
-  if (isFreeUser.value) return
   priceLoading.value = true
   try {
     const result = await api.get('/api/image/price-info')
@@ -350,7 +352,6 @@ async function loadPriceInfo() {
       priceInfo.value = result.data
     }
   } catch (e) {
-    cleanupPreparedTab(preparedWindow)
     console.error('Load price info failed:', e)
   } finally {
     priceLoading.value = false
@@ -406,9 +407,11 @@ function validateAndSetFile(file) {
     return
   }
 
-  // 验证大小 (5MB)
-  if (file.size > 5 * 1024 * 1024) {
-    toast.error('图片大小不能超过 5MB')
+  // 验证大小（按阶梯限制）
+  const maxSizeMB = currentMaxSizeMB.value
+  const maxSizeBytes = maxSizeMB * 1024 * 1024
+  if (file.size > maxSizeBytes) {
+    toast.error(`图片大小不能超过 ${maxSizeMB}MB`)
     return
   }
 
