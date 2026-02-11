@@ -480,6 +480,7 @@
                 actionVisibility: 'action_visibility',
                 actionOrder: 'action_order',
                 readingGoalHours: 'reading_goal_hours',
+                fontSizeLevel: 'font_size_level',
                 readingLevels: 'reading_levels', readingLevelsTime: 'reading_levels_time',
                 websiteUrl: 'website_url', websiteUrlDate: 'website_url_date'
             },
@@ -3587,7 +3588,7 @@
             },
 
             _css(c) {
-                return `
+                const css = `
     #ldsp-panel{--dur-fast:120ms;--dur:200ms;--dur-slow:350ms;--ease:cubic-bezier(.22,1,.36,1);--ease-circ:cubic-bezier(.85,0,.15,1);--ease-spring:cubic-bezier(.175,.885,.32,1.275);--ease-out:cubic-bezier(0,.55,.45,1);--bg:#12131a;--bg-card:rgba(24,26,36,.92);--bg-hover:rgba(38,42,56,.95);--bg-el:rgba(32,35,48,.88);--bg-glass:rgba(255,255,255,.02);--txt:#e4e6ed;--txt-sec:#9499ad;--txt-mut:#5d6275;--accent:#6b8cef;--accent-light:#8aa4f4;--accent2:#5bb5a6;--accent2-light:#7cc9bc;--accent3:#e07a8d;--grad:linear-gradient(135deg,#5a7de0 0%,#4a6bc9 100%);--grad-accent:linear-gradient(135deg,#4a6bc9,#3d5aaa);--grad-warm:linear-gradient(135deg,#e07a8d,#c9606e);--grad-gold:linear-gradient(135deg,#d4a853 0%,#c49339 100%);--ok:#5bb5a6;--ok-light:#7cc9bc;--ok-bg:rgba(91,181,166,.12);--err:#e07a8d;--err-light:#ea9aa8;--err-bg:rgba(224,122,141,.12);--warn:#d4a853;--warn-bg:rgba(212,168,83,.12);--border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.1);--border-accent:rgba(107,140,239,.3);--border-panel:rgba(0,0,0,.25);--shadow:0 1.25rem 3rem rgba(0,0,0,.4);--shadow-lg:0 1.5rem 4rem rgba(0,0,0,.5),0 0 2rem rgba(107,140,239,.06);--shadow-glow:0 0 1.25rem rgba(107,140,239,.15);--glow-accent:0 0 1rem rgba(107,140,239,.2);--scrollbar:rgba(140,150,175,.5);--scrollbar-hover:rgba(140,150,175,.7);--r-xs:0.25em;--r-sm:0.5em;--r-md:0.75em;--r-lg:1em;--r-xl:1.25em;--w:${c.width}px;--h:${c.maxHeight}px;--fs:${c.fontSize}px;--pd:${c.padding}px;--av:${c.avatarSize}px;--ring:${c.ringSize}px;--min-w:220px;--max-w:420px;--min-h:300px;display:flex;flex-direction:column;position:fixed;left:0.5vw;top:${c.top}px;right:auto;width:var(--w);max-height:var(--h);min-width:var(--min-w);max-width:var(--max-w);min-height:var(--min-h);background:var(--bg);border-radius:var(--r-lg);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Noto Sans SC',sans-serif;font-size:var(--fs);color:var(--txt);box-shadow:var(--shadow);z-index:99999;overflow:hidden;border:none;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
     #ldsp-panel,#ldsp-panel *{transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease);user-select:none;-webkit-font-smoothing:antialiased}
     #ldsp-panel{transform:translateZ(0);backface-visibility:hidden}
@@ -3679,6 +3680,14 @@
     .ldsp-settings-goal-unit{font-size:10px;color:var(--txt-mut)}
     .ldsp-settings-goal-range{width:100%;accent-color:var(--accent)}
     .ldsp-settings-goal-hint{font-size:10px;color:var(--txt-mut);line-height:1.35;padding:0 2px}
+    .ldsp-settings-font-wrap{display:flex;flex-direction:column;gap:8px;padding:2px}
+    .ldsp-settings-font-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:9px;background:var(--bg-el);border:1px solid transparent}
+    .ldsp-settings-font-label{font-size:11px;font-weight:600;color:var(--txt)}
+    .ldsp-settings-font-value{font-size:11px;font-weight:700;color:var(--accent)}
+    .ldsp-settings-font-range{width:100%;accent-color:var(--accent)}
+    .ldsp-settings-font-levels{display:flex;justify-content:space-between;gap:4px;font-size:9px;color:var(--txt-mut);padding:0 2px}
+    .ldsp-settings-font-levels>span{flex:1;text-align:center}
+    .ldsp-settings-font-hint{font-size:10px;color:var(--txt-mut);line-height:1.35;padding:0 2px}
     .ldsp-settings-order-tip{font-size:10px;color:var(--txt-mut);line-height:1.4;padding:2px 4px 8px}
     .ldsp-settings-order-list{display:flex;flex-direction:column;gap:6px}
     .ldsp-settings-order-item{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg-el);border:1px solid transparent;border-radius:9px;cursor:grab;transition:background .15s,border-color .15s,transform .15s}
@@ -3689,7 +3698,7 @@
     .ldsp-settings-order-label{font-size:11px;font-weight:600;color:var(--txt);min-width:0;flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .ldsp-settings-order-reset{width:100%;margin-top:10px;padding:8px 10px;border:1px solid var(--border2);border-radius:9px;background:var(--bg-el);color:var(--txt-sec);font-size:11px;font-weight:600;transition:background .15s,border-color .15s,color .15s}
     .ldsp-settings-order-reset:hover{background:var(--bg-hover);border-color:var(--accent);color:var(--accent)}
-    @media (max-width:480px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{top:30px;left:6px;right:auto;width:calc(100% - 12px);min-width:0;max-width:calc(100vw - 16px);max-height:min(320px,calc(var(--h) - 48px));padding:6px}.ldsp-settings-view{max-height:calc(var(--h) - 64px);padding:1px}.ldsp-settings-head{padding:5px 2px 8px;margin-bottom:6px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:7px 8px;font-size:10px}.ldsp-settings-nav-value{max-width:76px;font-size:9px}.ldsp-settings-option-label{font-size:10px}.ldsp-settings-option-desc,.ldsp-settings-order-tip,.ldsp-settings-goal-hint{font-size:9px}.ldsp-settings-goal-row{padding:7px 8px;gap:6px}.ldsp-settings-goal-number{width:64px;padding:4px 6px;font-size:10px}}
+    @media (max-width:480px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{top:30px;left:6px;right:auto;width:calc(100% - 12px);min-width:0;max-width:calc(100vw - 16px);max-height:min(320px,calc(var(--h) - 48px));padding:6px}.ldsp-settings-view{max-height:calc(var(--h) - 64px);padding:1px}.ldsp-settings-head{padding:5px 2px 8px;margin-bottom:6px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:7px 8px;font-size:10px}.ldsp-settings-nav-value{max-width:76px;font-size:9px}.ldsp-settings-option-label{font-size:10px}.ldsp-settings-option-desc,.ldsp-settings-order-tip,.ldsp-settings-goal-hint,.ldsp-settings-font-hint{font-size:9px}.ldsp-settings-goal-row{padding:7px 8px;gap:6px}.ldsp-settings-goal-number{width:64px;padding:4px 6px;font-size:10px}}
     @media (max-width:320px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{top:28px;left:4px;right:auto;width:calc(100% - 8px);min-width:0;max-width:calc(100vw - 10px);max-height:min(280px,calc(var(--h) - 40px));padding:5px}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}.ldsp-settings-head-title{font-size:11px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px;font-size:9px}.ldsp-settings-nav-main{gap:6px}.ldsp-settings-goal-label{min-width:46px;font-size:10px}.ldsp-settings-goal-number{width:56px;font-size:9px}.ldsp-settings-order-reset{padding:7px 8px;font-size:10px}}
     @media (max-height:620px){.ldsp-settings-menu{top:30px;max-height:min(280px,calc(var(--h) - 40px))}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}}
     @media (max-height:500px){.ldsp-settings-menu{top:26px;max-height:min(240px,calc(var(--h) - 28px))}.ldsp-settings-head{padding:4px 2px 6px;margin-bottom:5px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px}}
@@ -5620,6 +5629,10 @@
     #ldsp-panel.light .ldsp-tooltip{background:linear-gradient(135deg,rgba(255,255,255,.98),rgba(248,250,254,.98));color:#2d3148;box-shadow:0 4px 16px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.06)}
     #ldsp-panel.light .ldsp-tooltip.heatmap{background:rgba(255,255,255,.98);color:#1e2030;border-color:rgba(0,0,0,.08);box-shadow:0 4px 12px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.05)}
     #ldsp-panel.light .ldsp-tooltip::before{box-shadow:-1px -1px 0 rgba(0,0,0,.04)}`;
+
+                return css
+                    .replace('font-size:var(--fs);', 'font-size:calc(var(--fs) * var(--ldsp-font-scale,1));')
+                    .replace(/font-size\s*:\s*(\d+(?:\.\d+)?)px/g, 'font-size:calc($1px * var(--ldsp-font-scale,1))');
             }
         };
         
@@ -13899,6 +13912,14 @@ a:hover{text-decoration:underline;}
                 this._actionOrder = this._loadActionOrder();
                 this._orderDragDirty = false;
                 this.themeMode = 'light';
+                this._fontSizeLevels = [
+                    { level: 1, label: '较小', scale: 0.90 },
+                    { level: 2, label: '小', scale: 0.96 },
+                    { level: 3, label: '标准', scale: 1.00 },
+                    { level: 4, label: '较大', scale: 1.08 },
+                    { level: 5, label: '大', scale: 1.16 }
+                ];
+                this.fontSizeLevel = this._loadFontSizeLevel();
                 this.readingGoalHours = this._loadReadingGoalHours();
                 
                 // 我的活动相关状态
@@ -14149,6 +14170,11 @@ a:hover{text-decoration:underline;}
                                         <span class="ldsp-settings-nav-value" data-settings-goal-value></span>
                                         <span class="ldsp-settings-nav-arrow">›</span>
                                     </button>
+                                    <button class="ldsp-settings-nav" data-settings-open="font-size">
+                                        <span class="ldsp-settings-nav-main">🔤 字体调节</span>
+                                        <span class="ldsp-settings-nav-value" data-settings-font-value></span>
+                                        <span class="ldsp-settings-nav-arrow">›</span>
+                                    </button>
                                     <button class="ldsp-settings-nav" data-settings-open="actions-root">
                                         <span class="ldsp-settings-nav-main">🔘 功能按钮</span>
                                         <span class="ldsp-settings-nav-value" data-settings-actions-value></span>
@@ -14195,6 +14221,27 @@ a:hover{text-decoration:underline;}
                                         </div>
                                         <input class="ldsp-settings-goal-range" type="range" min="0.5" max="20" step="0.5" data-reading-goal-input="range">
                                         <div class="ldsp-settings-goal-hint">范围 0.5 - 20 小时，步进 0.5 小时</div>
+                                    </div>
+                                </div>
+                                <div class="ldsp-settings-view" data-settings-view="font-size">
+                                    <div class="ldsp-settings-head">
+                                        <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
+                                        <span class="ldsp-settings-head-title">字体调节</span>
+                                    </div>
+                                    <div class="ldsp-settings-font-wrap">
+                                        <div class="ldsp-settings-font-row">
+                                            <span class="ldsp-settings-font-label">当前档位</span>
+                                            <span class="ldsp-settings-font-value" data-settings-font-name>标准</span>
+                                        </div>
+                                        <input class="ldsp-settings-font-range" type="range" min="1" max="5" step="1" data-font-level-input="range">
+                                        <div class="ldsp-settings-font-levels">
+                                            <span>较小</span>
+                                            <span>小</span>
+                                            <span>标准</span>
+                                            <span>较大</span>
+                                            <span>大</span>
+                                        </div>
+                                        <div class="ldsp-settings-font-hint">五档滑杆：较小 / 小 / 标准 / 较大 / 大</div>
                                     </div>
                                 </div>
                                 <div class="ldsp-settings-view" data-settings-view="actions-root">
@@ -14373,11 +14420,14 @@ a:hover{text-decoration:underline;}
                     settingsViews: this.el.querySelectorAll('.ldsp-settings-view'),
                     settingsThemeValues: this.el.querySelectorAll('[data-settings-theme-value]'),
                     settingsGoalValues: this.el.querySelectorAll('[data-settings-goal-value]'),
+                    settingsFontValues: this.el.querySelectorAll('[data-settings-font-value]'),
                     settingsActionsValues: this.el.querySelectorAll('[data-settings-actions-value]'),
                     settingsThemeOptions: this.el.querySelectorAll('.ldsp-settings-option[data-theme-mode]'),
                     settingsActionInputs: this.el.querySelectorAll('.ldsp-settings-toggle input[data-action-key]'),
                     settingsGoalRange: this.el.querySelector('.ldsp-settings-goal-range'),
                     settingsGoalNumber: this.el.querySelector('.ldsp-settings-goal-number'),
+                    settingsFontRange: this.el.querySelector('.ldsp-settings-font-range'),
+                    settingsFontName: this.el.querySelector('[data-settings-font-name]'),
                     settingsOrderList: this.el.querySelector('.ldsp-settings-order-list'),
                     settingsOrderReset: this.el.querySelector('.ldsp-settings-order-reset'),
                     updateBubble: this.el.querySelector('.ldsp-update-bubble'),
@@ -14552,6 +14602,11 @@ a:hover{text-decoration:underline;}
                         this._setReadingGoalHours(goalInput.value);
                         return;
                     }
+                    const fontInput = e.target.closest('input[data-font-level-input]');
+                    if (fontInput) {
+                        this._setFontSizeLevel(fontInput.value);
+                        return;
+                    }
                     const input = e.target.closest('input[data-action-key]');
                     if (!input) return;
                     const key = input.dataset.actionKey;
@@ -14560,8 +14615,13 @@ a:hover{text-decoration:underline;}
                 });
                 this.$.settingsMenu?.addEventListener('input', e => {
                     const goalInput = e.target.closest('input[data-reading-goal-input]');
-                    if (!goalInput || goalInput.dataset.readingGoalInput !== 'range') return;
-                    this._setReadingGoalHours(goalInput.value, { persist: true, rerender: true });
+                    if (goalInput && goalInput.dataset.readingGoalInput === 'range') {
+                        this._setReadingGoalHours(goalInput.value, { persist: true, rerender: true });
+                        return;
+                    }
+                    const fontInput = e.target.closest('input[data-font-level-input]');
+                    if (!fontInput || fontInput.dataset.fontLevelInput !== 'range') return;
+                    this._setFontSizeLevel(fontInput.value, { persist: true });
                 });
                 this.$.settingsOrderList?.addEventListener('dragstart', e => {
                     const item = e.target.closest('.ldsp-settings-order-item[data-order-key]');
@@ -15004,6 +15064,7 @@ a:hover{text-decoration:underline;}
                 const legacyTheme = this.storage.getGlobal('theme', 'light');
                 const initThemeMode = storedThemeMode || (legacyTheme === 'dark' ? 'dark' : 'light');
                 this._setThemeMode(initThemeMode, { persist: false });
+                this._applyFontScale();
                 this._applyActionVisibility();
                 this._syncSettingsMenuState();
 
@@ -15232,6 +15293,58 @@ a:hover{text-decoration:underline;}
                 return labelMap[mode] || labelMap.light;
             }
 
+            _getDefaultFontSizeLevel() {
+                return 3;
+            }
+
+            _normalizeFontSizeLevel(level) {
+                const fallback = this._getDefaultFontSizeLevel();
+                const num = Utils.toSafeInt(level, fallback);
+                const maxLevel = this._fontSizeLevels?.length || 5;
+                return Math.min(maxLevel, Math.max(1, num));
+            }
+
+            _getFontSizeLevelMeta(level = this.fontSizeLevel) {
+                const normalized = this._normalizeFontSizeLevel(level);
+                const fallback = this._fontSizeLevels[this._getDefaultFontSizeLevel() - 1];
+                return this._fontSizeLevels.find(item => item.level === normalized) || fallback;
+            }
+
+            _getFontSizeScale(level = this.fontSizeLevel) {
+                return this._getFontSizeLevelMeta(level).scale;
+            }
+
+            _getFontSizeLabel(level = this.fontSizeLevel) {
+                return this._getFontSizeLevelMeta(level).label;
+            }
+
+            _loadFontSizeLevel() {
+                const saved = this.storage.getGlobal('fontSizeLevel', this._getDefaultFontSizeLevel());
+                return this._normalizeFontSizeLevel(saved);
+            }
+
+            _setFontSizeLevel(level, { persist = true } = {}) {
+                const normalized = this._normalizeFontSizeLevel(level);
+                const changed = normalized !== this.fontSizeLevel;
+                this.fontSizeLevel = normalized;
+
+                if (persist && changed) {
+                    this.storage.setGlobalNow('fontSizeLevel', normalized);
+                }
+
+                this._applyFontScale();
+                this._syncSettingsMenuState();
+                return normalized;
+            }
+
+            _applyFontScale() {
+                this._applyPanelSize('font-scale');
+                if (!this.$) return;
+                this._scheduleActionsOverflowCheck();
+                this._updateMainTabIndicator();
+                this._updateSubtabIndicator(this.el?.querySelector('.ldsp-section.active'));
+            }
+
             _getDefaultReadingGoalHours() {
                 return 3;
             }
@@ -15306,6 +15419,17 @@ a:hover{text-decoration:underline;}
                 }
                 if (this.$.settingsGoalNumber) {
                     this.$.settingsGoalNumber.value = String(this.readingGoalHours);
+                }
+
+                const fontLabel = this._getFontSizeLabel();
+                this.$.settingsFontValues?.forEach(el => {
+                    el.textContent = fontLabel;
+                });
+                if (this.$.settingsFontRange) {
+                    this.$.settingsFontRange.value = String(this.fontSizeLevel);
+                }
+                if (this.$.settingsFontName) {
+                    this.$.settingsFontName.textContent = fontLabel;
                 }
 
                 let enabledCount = 0;
@@ -15418,14 +15542,16 @@ a:hover{text-decoration:underline;}
                 const cfg = this._getPanelSizeConfig();
                 const el = this.el;
                 if (!el) return;
+                const fontScale = this._getFontSizeScale();
                 
-                const key = `${cfg.width}|${cfg.maxHeight}|${cfg.fontSize}|${cfg.padding}|${cfg.avatarSize}|${cfg.ringSize}`;
+                const key = `${cfg.width}|${cfg.maxHeight}|${cfg.fontSize}|${cfg.padding}|${cfg.avatarSize}|${cfg.ringSize}|${fontScale}`;
                 if (this._lastSizeKey === key) return;
                 this._lastSizeKey = key;
                 
                 el.style.setProperty('--w', `${cfg.width}px`);
                 el.style.setProperty('--h', `${cfg.maxHeight}px`);
                 el.style.setProperty('--fs', `${cfg.fontSize}px`);
+                el.style.setProperty('--ldsp-font-scale', String(fontScale));
                 el.style.setProperty('--pd', `${cfg.padding}px`);
                 el.style.setProperty('--av', `${cfg.avatarSize}px`);
                 el.style.setProperty('--ring', `${cfg.ringSize}px`);
