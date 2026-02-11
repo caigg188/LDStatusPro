@@ -182,6 +182,15 @@ export const useShopStore = defineStore('shop', () => {
     return fetchProduct(id)
   }
 
+  async function reportProduct(id, reason) {
+    try {
+      const result = await api.post(`/api/shop/products/${id}/report`, { reason })
+      return result
+    } catch (e) {
+      return { success: false, error: e.message }
+    }
+  }
+
   // 获取自己的商品详情 (需要登录，可获取任意状态的商品)
   async function fetchMyProductDetail(id) {
     try {
@@ -589,6 +598,7 @@ export const useShopStore = defineStore('shop', () => {
     fetchOrders,
     fetchOrderDetail,
     fetchProductDetail,
+    reportProduct,
     fetchMyProductDetail,
     fetchProductCdks,
     addProductCdks,

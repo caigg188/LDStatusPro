@@ -13,10 +13,19 @@
           <button class="back-btn" @click="goBack">
             ← 返回
           </button>
-          <div class="nav-tags">
-            <span class="nav-category">{{ categoryIcon }} {{ categoryName }}</span>
-            <span v-if="isCdk" class="nav-type cdk">🎫 CDK自动发货</span>
-            <span v-else-if="isStore" class="nav-type store">🏬 友情小店</span>
+                    <div class="nav-right">
+            <div class="nav-tags">
+                          <span class="nav-category">{{ categoryIcon }} {{ categoryName }}</span>
+                          <span v-if="isCdk" class="nav-type cdk">🎫 CDK自动发货</span>
+                          <span v-else-if="isStore" class="nav-type store">🏬 友情小店</span>
+                        </div>
+            <button
+              class="nav-report-btn"
+              :disabled="reportSubmitting"
+              @click="openReportModal"
+            >
+              &#128680; &#20030;&#25253;
+            </button>
           </div>
         </div>
         
@@ -94,62 +103,63 @@
               </div>
             </div>
             
-            <!-- 购买按钮（桌面端显示在右侧） -->
+            
+            
             <div class="action-section desktop-only">
               <template v-if="isStore">
-                <a
-                  :href="product.payment_link"
-                  target="_blank"
-                  rel="noopener"
-                  class="buy-btn store"
-                >
-                  🏪 立即前往
-                </a>
-              </template>
-              <template v-else-if="isCdk">
-                <button
-                  v-if="isOutOfStock"
-                  class="buy-btn disabled"
-                  disabled
-                >
-                  😢 已售罄
-                </button>
-                <button
-                  v-else-if="isTestMode && !isSeller"
-                  class="buy-btn disabled test-only"
-                  disabled
-                >
-                  🧪 测试物品
-                </button>
-                <button
-                  v-else-if="!canPurchase"
-                  class="buy-btn disabled"
-                  disabled
-                >
-                  🚫 暂停销售
-                </button>
-                <button
-                  v-else
-                  class="buy-btn"
-                  :class="{ test: isTestMode && isSeller }"
-                  :disabled="purchasing"
-                  @click="handleBuyCdk"
-                >
-                  {{ purchasing ? '创建订单中...' : `🛒 立即兑换 (${finalPrice} LDC)` }}
-                </button>
-              </template>
-              <template v-else>
-                <button
-                  class="buy-btn"
-                  @click="handleBuyLink"
-                >
-                  🛒 立即兑换
-                </button>
-              </template>
+                                            <a
+                                              :href="product.payment_link"
+                                              target="_blank"
+                                              rel="noopener"
+                                              class="buy-btn store"
+                                            >
+                                              🏪 立即前往
+                                            </a>
+                                          </template>
+                                          <template v-else-if="isCdk">
+                                            <button
+                                              v-if="isOutOfStock"
+                                              class="buy-btn disabled"
+                                              disabled
+                                            >
+                                              😢 已售罄
+                                            </button>
+                                            <button
+                                              v-else-if="isTestMode && !isSeller"
+                                              class="buy-btn disabled test-only"
+                                              disabled
+                                            >
+                                              🧪 测试物品
+                                            </button>
+                                            <button
+                                              v-else-if="!canPurchase"
+                                              class="buy-btn disabled"
+                                              disabled
+                                            >
+                                              🚫 暂停销售
+                                            </button>
+                                            <button
+                                              v-else
+                                              class="buy-btn"
+                                              :class="{ test: isTestMode && isSeller }"
+                                              :disabled="purchasing"
+                                              @click="handleBuyCdk"
+                                            >
+                                              {{ purchasing ? '创建订单中...' : `🛒 立即兑换 (${finalPrice} LDC)` }}
+                                            </button>
+                                          </template>
+                                          <template v-else>
+                                            <button
+                                              class="buy-btn"
+                                              @click="handleBuyLink"
+                                            >
+                                              🛒 立即兑换
+                                            </button>
+                                          </template>
             </div>
           </div>
         </div>
-        
+
         <!-- 物品描述区域 -->
         <div class="detail-description">
           <h2 class="section-title">📝 物品详情</h2>
@@ -157,57 +167,57 @@
         </div>
         
         <!-- 底部购买按钮（移动端固定底部） -->
-        <div class="action-bottom mobile-only">
+                <div class="action-bottom mobile-only">
           <template v-if="isStore">
-            <a
-              :href="product.payment_link"
-              target="_blank"
-              rel="noopener"
-              class="buy-btn store"
-            >
-              🏪 立即前往
-            </a>
-          </template>
-          <template v-else-if="isCdk">
-            <button
-              v-if="isOutOfStock"
-              class="buy-btn disabled"
-              disabled
-            >
-              😢 已售罄
-            </button>
-            <button
-              v-else-if="isTestMode && !isSeller"
-              class="buy-btn disabled test-only"
-              disabled
-            >
-              🧪 测试物品
-            </button>
-            <button
-              v-else-if="!canPurchase"
-              class="buy-btn disabled"
-              disabled
-            >
-              🚫 暂停销售
-            </button>
-            <button
-              v-else
-              class="buy-btn"
-              :class="{ test: isTestMode && isSeller }"
-              :disabled="purchasing"
-              @click="handleBuyCdk"
-            >
-              {{ purchasing ? '创建订单中...' : `🛒 立即兑换 (${finalPrice} LDC)` }}
-            </button>
-          </template>
-          <template v-else>
-            <button
-              class="buy-btn"
-              @click="handleBuyLink"
-            >
-              🛒 立即兑换
-            </button>
-          </template>
+                                <a
+                                  :href="product.payment_link"
+                                  target="_blank"
+                                  rel="noopener"
+                                  class="buy-btn store"
+                                >
+                                  🏪 立即前往
+                                </a>
+                              </template>
+                              <template v-else-if="isCdk">
+                                <button
+                                  v-if="isOutOfStock"
+                                  class="buy-btn disabled"
+                                  disabled
+                                >
+                                  😢 已售罄
+                                </button>
+                                <button
+                                  v-else-if="isTestMode && !isSeller"
+                                  class="buy-btn disabled test-only"
+                                  disabled
+                                >
+                                  🧪 测试物品
+                                </button>
+                                <button
+                                  v-else-if="!canPurchase"
+                                  class="buy-btn disabled"
+                                  disabled
+                                >
+                                  🚫 暂停销售
+                                </button>
+                                <button
+                                  v-else
+                                  class="buy-btn"
+                                  :class="{ test: isTestMode && isSeller }"
+                                  :disabled="purchasing"
+                                  @click="handleBuyCdk"
+                                >
+                                  {{ purchasing ? '创建订单中...' : `🛒 立即兑换 (${finalPrice} LDC)` }}
+                                </button>
+                              </template>
+                              <template v-else>
+                                <button
+                                  class="buy-btn"
+                                  @click="handleBuyLink"
+                                >
+                                  🛒 立即兑换
+                                </button>
+                              </template>
         </div>
       </template>
       
@@ -242,11 +252,55 @@
         <div class="preview-hint">点击空白处或按 ESC 关闭</div>
       </div>
     </Teleport>
+    <Teleport to="body">
+      <div
+        v-if="showReportModal"
+        class="report-modal-overlay"
+        @click.self="closeReportModal"
+      >
+        <div class="report-modal">
+          <div class="report-modal-header">
+            <h3>举报物品</h3>
+            <button class="report-modal-close" @click="closeReportModal">&times;</button>
+          </div>
+          <p class="report-modal-desc">请描述你遇到的问题（例如收款配置错误、测试模式未关闭、支付链接异常等）。</p>
+          <textarea
+            v-model="reportReason"
+            class="report-textarea"
+            maxlength="500"
+            placeholder="请填写举报原因（5-500字）"
+          ></textarea>
+          <div class="report-quick-list">
+            <button
+              v-for="item in quickReportReasons"
+              :key="item"
+              class="report-quick-item"
+              @click="applyQuickReason(item)"
+            >
+              {{ item }}
+            </button>
+          </div>
+          <div class="report-modal-footer">
+            <span class="report-count">{{ reportReason.trim().length }}/500</span>
+            <div class="report-actions">
+              <button class="report-cancel-btn" @click="closeReportModal">取消</button>
+              <button
+                class="report-submit-btn"
+                :disabled="reportSubmitting || reportReason.trim().length < 5"
+                @click="submitReport"
+              >
+                {{ reportSubmitting ? '提交中...' : '提交举报' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
 import { useUserStore } from '@/stores/user'
@@ -270,6 +324,17 @@ const loading = ref(true)
 const product = ref(null)
 const purchasing = ref(false)
 const showImagePreview = ref(false)
+const showReportModal = ref(false)
+const reportReason = ref('')
+const reportSubmitting = ref(false)
+
+const quickReportReasons = [
+  '收款配置缺失，无法生成支付链接',
+  '商品仍处于测试模式，无法正常购买',
+  '支付链接无效或跳转异常',
+  '价格或描述与实际不符',
+  '疑似无法交付或存在欺诈风险'
+]
 
 // 物品类型
 const productType = computed(() => product.value?.product_type || 'link')
@@ -369,6 +434,11 @@ onMounted(async () => {
   loading.value = false
 })
 
+onUnmounted(() => {
+  document.body.style.overflow = ''
+  document.removeEventListener('keydown', handleEscKey)
+})
+
 // 方法
 function goBack() {
   if (window.history.length > 1) {
@@ -393,24 +463,107 @@ function handleAvatarError(e) {
 }
 
 // 图片预览
+// 图片预览
 function openImagePreview() {
   if (product.value?.image_url) {
     showImagePreview.value = true
-    document.body.style.overflow = 'hidden'
-    // ESC 键关闭
-    document.addEventListener('keydown', handleEscKey)
+    syncModalState()
   }
 }
 
 function closeImagePreview() {
   showImagePreview.value = false
-  document.body.style.overflow = ''
-  document.removeEventListener('keydown', handleEscKey)
+  syncModalState()
 }
 
 function handleEscKey(e) {
   if (e.key === 'Escape') {
-    closeImagePreview()
+    if (showReportModal.value) {
+      closeReportModal()
+      return
+    }
+    if (showImagePreview.value) {
+      closeImagePreview()
+    }
+  }
+}
+
+function syncModalState() {
+  const opened = showImagePreview.value || showReportModal.value
+  document.body.style.overflow = opened ? 'hidden' : ''
+  document.removeEventListener('keydown', handleEscKey)
+  if (opened) {
+    document.addEventListener('keydown', handleEscKey)
+  }
+}
+
+async function openReportModal() {
+  if (!product.value) return
+
+  if (isSeller.value) {
+    toast.error('不能举报自己的商品')
+    return
+  }
+
+  if (!userStore.isLoggedIn) {
+    const confirmed = await dialog.confirm('举报商品需要先登录，是否前往登录？', {
+      title: '需要登录',
+      icon: '🔐',
+      confirmText: '去登录',
+      cancelText: '取消'
+    })
+    if (confirmed) {
+      router.push({ name: 'Login', query: { redirect: route.fullPath } })
+    }
+    return
+  }
+
+  showReportModal.value = true
+  syncModalState()
+}
+
+function closeReportModal() {
+  showReportModal.value = false
+  reportReason.value = ''
+  syncModalState()
+}
+
+function applyQuickReason(text) {
+  const current = reportReason.value.trim()
+  if (!current) {
+    reportReason.value = text
+    return
+  }
+  if (!current.includes(text)) {
+    reportReason.value = `${current}；${text}`
+  }
+}
+
+async function submitReport() {
+  if (!product.value?.id || reportSubmitting.value) return
+
+  const reason = reportReason.value.trim()
+  if (reason.length < 5 || reason.length > 500) {
+    toast.error('举报原因需为 5-500 个字符')
+    return
+  }
+
+  reportSubmitting.value = true
+  try {
+    const result = await shopStore.reportProduct(product.value.id, reason)
+    if (result?.success) {
+      toast.success('举报已提交，感谢反馈')
+      closeReportModal()
+      return
+    }
+    const message = typeof result?.error === 'object'
+      ? (result.error.message || result.error.code || '举报提交失败')
+      : (result?.error || result?.message || '举报提交失败')
+    toast.error(message)
+  } catch (error) {
+    toast.error(`举报提交失败：${error.message}`)
+  } finally {
+    reportSubmitting.value = false
   }
 }
 
@@ -552,6 +705,38 @@ async function handleBuyLink() {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.nav-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.nav-report-btn {
+  padding: 8px 14px;
+  border: 1px solid #f3d6dc;
+  border-radius: 20px;
+  background: #fdf0f2;
+  color: #a85a64;
+  font-size: 13px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-report-btn:hover {
+  background: #f9e2e7;
+  border-color: #eec0c9;
+  color: #8f4550;
+}
+
+.nav-report-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .nav-category {
@@ -716,6 +901,136 @@ async function handleBuyLink() {
   font-size: 13px;
 }
 
+.report-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.report-modal {
+  width: min(640px, 96vw);
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--bg-card);
+  border-radius: 16px;
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-md);
+  padding: 16px;
+}
+
+.report-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.report-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.report-modal-close {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.report-modal-desc {
+  margin: 10px 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.report-textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.report-quick-list {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.report-quick-item {
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.report-quick-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.report-modal-footer {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.report-count {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.report-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.report-cancel-btn,
+.report-submit-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.report-cancel-btn {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.report-submit-btn {
+  background: #b91c1c;
+  color: #fff;
+}
+
+.report-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* 没有图片时使用正方形占位 */
 .media-wrapper:has(.media-placeholder) {
   aspect-ratio: 1 / 1;
@@ -869,10 +1184,10 @@ async function handleBuyLink() {
 .seller-hint {
   font-size: 12px;
   color: var(--text-tertiary);
-  margin-top: 4px;
+  margin-top: 0;
 }
 
-/* 桌面端购买按钮 */
+/* 妗岄潰绔喘涔版寜閽?*/
 .action-section {
   margin-top: auto;
   padding-top: 10px;
@@ -1057,5 +1372,6 @@ async function handleBuyLink() {
   .detail-description {
     padding: 20px;
   }
+
 }
 </style>
