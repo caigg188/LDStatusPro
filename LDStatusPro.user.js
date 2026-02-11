@@ -3808,6 +3808,7 @@
     .ldsp-tab.active .ldsp-tab-icon{transform:scale(1.08)}
     #ldsp-panel.light .ldsp-tab.active{background:transparent;color:#173263;border-color:transparent;text-shadow:none}
     @container (max-width:260px){.ldsp-tab{font-size:10px;padding:6px 5px;gap:2px}.ldsp-tab .ldsp-tab-icon{display:none}}
+    @container (max-width:220px){.ldsp-tabs{overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:var(--scrollbar) transparent;-webkit-overflow-scrolling:touch}.ldsp-tab{flex:0 0 auto;min-width:max-content}.ldsp-tab .ldsp-tab-text{overflow:visible;text-overflow:clip;white-space:nowrap}}
     @container (max-width:200px){.ldsp-tab{font-size:9px;padding:5px 3px}}
     @media (max-width:340px){.ldsp-tabs{padding:6px 8px;gap:4px;margin:7px 8px 5px}.ldsp-tab{font-size:10px;padding:6px 6px;gap:2px}.ldsp-tab .ldsp-tab-icon{display:none}}
     @media (max-width:280px){.ldsp-tabs{padding:5px 6px;gap:3px;margin:6px 6px 4px}.ldsp-tab{font-size:9px;padding:5px 4px}}
@@ -3880,7 +3881,7 @@
     @keyframes pop{from{transform:scale(0) rotate(-10deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
     .ldsp-item-chg.up{background:var(--ok-bg);color:var(--ok);box-shadow:0 2px 8px rgba(16,185,129,.2)}
     .ldsp-item-chg.down{background:var(--err-bg);color:var(--err);box-shadow:0 2px 8px rgba(244,63,94,.2)}
-    .ldsp-subtabs{position:relative;display:flex;align-items:center;gap:6px;padding:6px 10px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:var(--scrollbar) transparent;-webkit-overflow-scrolling:touch;background:rgba(30,34,48,.56);backdrop-filter:blur(18px) saturate(170%);-webkit-backdrop-filter:blur(18px) saturate(170%);border:1px solid rgba(255,255,255,.1);border-radius:14px;box-shadow:0 5px 16px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.14)}
+    .ldsp-subtabs{position:relative;display:flex;align-items:center;gap:6px;padding:6px 10px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:var(--scrollbar) transparent;-webkit-overflow-scrolling:touch;background:rgba(30,34,48,.56);backdrop-filter:blur(18px) saturate(170%);-webkit-backdrop-filter:blur(18px) saturate(170%);border:1px solid rgba(255,255,255,.1);border-radius:14px;box-shadow:0 5px 16px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.14);container-type:inline-size}
     .ldsp-subtab-indicator{position:absolute;top:5px;left:0;height:calc(100% - 10px);border-radius:11px;pointer-events:none;z-index:0;opacity:0;transform:translateX(0);transition:transform .42s cubic-bezier(.32,1.2,.32,1),width .32s cubic-bezier(.32,.72,0,1),opacity .22s ease}
     .ldsp-subtab-indicator.show{opacity:1}
     .ldsp-subtab-indicator-glass{position:absolute;inset:0;border-radius:inherit;background:rgba(255,255,255,.14);box-shadow:0 6px 14px rgba(34,54,104,.24),inset 0 1px 0 rgba(255,255,255,.28),inset 0 -1px 0 rgba(0,0,0,.16);border:1px solid rgba(138,164,244,.38)}
@@ -3918,7 +3919,10 @@
     #ldsp-panel.light .ldsp-trend-subtabs .ldsp-subtab.active{background:transparent;border-color:transparent;color:#0d3f8f;text-shadow:none}
     .ldsp-trend-subtabs.ldsp-subtabs-scroll .ldsp-subtab{flex:0 0 auto;min-width:68px;padding:7px 12px}
     .ldsp-trend-tab-icon{font-size:11px;line-height:1;flex-shrink:0}
-    .ldsp-trend-tab-text{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis}
+    .ldsp-trend-tab-text{display:block;min-width:1em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    @container (max-width:280px){.ldsp-trend-subtabs .ldsp-subtab{gap:2px;padding:6px 8px}.ldsp-trend-subtabs .ldsp-trend-tab-icon{display:none}.ldsp-trend-subtabs.ldsp-subtabs-scroll .ldsp-subtab{min-width:56px;padding:6px 9px}}
+    @container (max-width:240px){.ldsp-trend-subtabs .ldsp-subtab{flex:0 0 auto;min-width:max-content}.ldsp-trend-subtabs.ldsp-subtabs-scroll .ldsp-subtab{min-width:max-content}.ldsp-trend-tab-text{overflow:visible;text-overflow:clip;white-space:nowrap}}
+    @container (max-width:220px){.ldsp-trend-subtabs .ldsp-subtab{font-size:9px;padding:5px 6px}.ldsp-trend-subtabs.ldsp-subtabs-scroll .ldsp-subtab{padding:5px 7px}}
     .ldsp-chart{background:var(--trend-surface);border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid var(--trend-border-soft);position:relative;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.14);animation:trend-rise .22s var(--ease-out)}
     #ldsp-panel.light .ldsp-chart{box-shadow:0 6px 16px rgba(15,98,230,.08)}
     .ldsp-chart::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--trend-blue);opacity:.9}
