@@ -3802,7 +3802,7 @@
     @container (max-width:200px){.ldsp-tab{font-size:9px;padding:5px 3px}}
     @media (max-width:340px){.ldsp-tabs{padding:6px 8px;gap:4px;margin:7px 8px 5px}.ldsp-tab{font-size:10px;padding:6px 6px;gap:2px}.ldsp-tab .ldsp-tab-icon{display:none}}
     @media (max-width:280px){.ldsp-tabs{padding:5px 6px;gap:3px;margin:6px 6px 4px}.ldsp-tab{font-size:9px;padding:5px 4px}}
-    .ldsp-content{flex:1 1 auto;min-height:0;max-height:calc(var(--h) - 180px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:transparent transparent}
+    .ldsp-content{flex:1 1 auto;min-height:0;max-height:calc(var(--h) - 180px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:transparent transparent;scrollbar-gutter:stable}
     .ldsp-content.scrolling{scrollbar-color:var(--scrollbar) transparent}
     .ldsp-content::-webkit-scrollbar{width:6px;background:transparent}
     .ldsp-content::-webkit-scrollbar-track{background:transparent}
@@ -3811,6 +3811,7 @@
     .ldsp-content::-webkit-scrollbar-button{width:0;height:0;display:none}
     .ldsp-section{display:none;padding:10px}
     .ldsp-section.active{display:block;animation:enter var(--dur) var(--ease-out)}
+    #ldsp-trends.ldsp-section.active{animation:none}
     @keyframes enter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
     .ldsp-ring{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg-card);border-radius:var(--r-md);margin-bottom:10px;position:relative;overflow:hidden;border:1px solid var(--border);gap:12px}
     .ldsp-ring::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(107,140,239,.08) 0%,transparent 70%);pointer-events:none}
@@ -3973,7 +3974,7 @@
     .ldsp-today-stat-lbl{font-size:10px;color:var(--trend-muted);margin-top:4px;font-weight:600}
     .ldsp-time-info{font-size:10px;color:var(--trend-muted);text-align:center;padding:8px 10px;background:var(--trend-surface);border-radius:var(--r-sm);margin-bottom:10px;border:1px solid var(--trend-border-soft);font-weight:600}
     .ldsp-time-info span{color:var(--trend-blue);font-weight:700}
-    .ldsp-year-heatmap{padding:10px 14px 10px 0;overflow-x:hidden;overflow-y:auto;max-height:320px;scrollbar-width:thin;scrollbar-color:transparent transparent}
+    .ldsp-year-heatmap{padding:10px 14px 10px 0;overflow-x:hidden;overflow-y:auto;max-height:320px;scrollbar-width:thin;scrollbar-color:transparent transparent;scrollbar-gutter:stable;overflow-anchor:none}
     .ldsp-year-heatmap.scrolling{scrollbar-color:var(--scrollbar) transparent}
     .ldsp-year-heatmap::-webkit-scrollbar{width:6px;background:transparent}
     .ldsp-year-heatmap::-webkit-scrollbar-track{background:transparent}
@@ -3993,13 +3994,6 @@
     .ldsp-year-cell.l4{background:linear-gradient(135deg,#6dcfa5,#50c090);border-color:#6dcfa5;box-shadow:0 0 8px rgba(109,207,165,.4)}
     .ldsp-year-cell.empty{background:0 0;border-color:transparent;cursor:default}
     .ldsp-year-cell.empty:hover{transform:none;box-shadow:none}
-    .ldsp-year-tip{position:absolute;left:50%;transform:translateX(-50%);background:var(--bg-card);color:var(--txt);padding:4px 8px;border-radius:6px;font-size:9px;white-space:nowrap;opacity:0;visibility:hidden;pointer-events:none;border:1px solid var(--border);z-index:1000;line-height:1.3;box-shadow:0 4px 12px rgba(0,0,0,.15);font-weight:500;transition:opacity .15s,visibility .15s}
-    .ldsp-year-cell:hover .ldsp-year-tip{opacity:1;visibility:visible}
-    .ldsp-year-cell .ldsp-year-tip{bottom:100%;margin-bottom:4px}
-    .ldsp-year-row:nth-child(-n+3) .ldsp-year-tip{bottom:auto;top:100%;margin-top:4px;margin-bottom:0}
-    .ldsp-year-heatmap.few-rows .ldsp-year-tip{bottom:auto;top:100%;margin-top:4px;margin-bottom:0}
-    .ldsp-year-heatmap.few-rows{overflow:visible;padding-bottom:40px}
-    .ldsp-year-cell:nth-child(13) .ldsp-year-tip,.ldsp-year-cell:nth-child(14) .ldsp-year-tip{left:auto;right:0;transform:translateX(0)}
     .ldsp-heatmap-legend{display:flex;align-items:center;gap:6px;justify-content:center;font-size:9px;color:var(--txt-mut);padding:8px 0;font-weight:500}
     .ldsp-heatmap-legend-cell{width:10px;height:10px;border-radius:2px;border:1px solid var(--border)}
     .ldsp-empty,.ldsp-loading{text-align:center;padding:30px 16px;color:var(--trend-muted)}
@@ -5617,12 +5611,14 @@
     .ldsp-activity-placeholder-text{font-size:11px}
     .ldsp-tooltip{position:fixed;z-index:2147483647;max-width:220px;padding:6px 10px;background:linear-gradient(135deg,rgba(30,32,48,.96),rgba(24,26,38,.98));color:#e8eaf0;font-size:11px;font-weight:500;line-height:1.4;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.3),0 0 0 1px rgba(255,255,255,.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .15s ease,transform .15s ease;white-space:pre-line;word-break:break-word}
     .ldsp-tooltip.show{opacity:1;transform:translateY(0)}
+    .ldsp-tooltip.heatmap{max-width:none;padding:4px 8px;border-radius:6px;font-size:9px;line-height:1.3;background:rgba(24,26,36,.96);color:#e4e6ed;border:1px solid rgba(255,255,255,.08);box-shadow:0 4px 12px rgba(0,0,0,.18),0 0 0 1px rgba(255,255,255,.04)}
     .ldsp-tooltip::before{content:'';position:absolute;width:8px;height:8px;background:inherit;transform:rotate(45deg);box-shadow:-1px -1px 0 rgba(255,255,255,.06)}
     .ldsp-tooltip.top::before{bottom:-4px;left:50%;margin-left:-4px}
     .ldsp-tooltip.bottom::before{top:-4px;left:50%;margin-left:-4px}
     .ldsp-tooltip.left::before{bottom:-4px;right:12px}
     .ldsp-tooltip.right::before{bottom:-4px;left:12px}
     #ldsp-panel.light .ldsp-tooltip{background:linear-gradient(135deg,rgba(255,255,255,.98),rgba(248,250,254,.98));color:#2d3148;box-shadow:0 4px 16px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.06)}
+    #ldsp-panel.light .ldsp-tooltip.heatmap{background:rgba(255,255,255,.98);color:#1e2030;border-color:rgba(0,0,0,.08);box-shadow:0 4px 12px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.05)}
     #ldsp-panel.light .ldsp-tooltip::before{box-shadow:-1px -1px 0 rgba(0,0,0,.04)}`;
             }
         };
@@ -5647,7 +5643,9 @@
                 this.timer = setTimeout(() => {
                     if (this.currentTarget !== target) return;
                     this.el.textContent = text;
-                    this.el.classList.remove('show', 'top', 'bottom', 'left', 'right');
+                    this.el.classList.remove('show', 'top', 'bottom', 'left', 'right', 'heatmap', 'light-theme');
+                    const isHeatmapCell = target.classList?.contains('ldsp-year-cell');
+                    if (isHeatmapCell) this.el.classList.add('heatmap');
                     
                     // 先显示以获取尺寸
                     this.el.style.visibility = 'hidden';
@@ -5725,7 +5723,10 @@
                             target.dataset.tip = text;
                             target.removeAttribute('title');
                         }
-                        this.show(target, text);
+                        const delay = target.dataset.tipDelay !== undefined
+                            ? Math.max(0, Utils.toSafeInt(target.dataset.tipDelay, 400))
+                            : 400;
+                        this.show(target, text, delay);
                     }
                 }, true);
                 
@@ -12968,9 +12969,10 @@ a:hover{text-decoration:underline;}
                     if (!labels.has(mid)) labels.set(mid, CONFIG.MONTHS[m]);
                 });
 
-                // v3.5.2.9: 当行数少于4行时添加 few-rows 类，让tooltip向下显示避免被遮挡
-                const fewRowsClass = rows.length < 4 ? ' few-rows' : '';
-                let html = `<div class="ldsp-chart"><div class="ldsp-chart-title">⏱️ 本年阅读时间<span class="ldsp-chart-sub">共 ${Utils.formatReadingTime(total)}</span></div><div class="ldsp-year-heatmap${fewRowsClass}"><div class="ldsp-year-wrap">`;
+                const getTipText = (day) => Utils
+                    .escapeHtml(`${day.month + 1}/${day.day}\n${Utils.formatReadingTime(day.mins)}`)
+                    .replace(/\n/g, '&#10;');
+                let html = `<div class="ldsp-chart"><div class="ldsp-chart-title">⏱️ 本年阅读时间<span class="ldsp-chart-sub">共 ${Utils.formatReadingTime(total)}</span></div><div class="ldsp-year-heatmap"><div class="ldsp-year-wrap">`;
 
                 rows.forEach((row, i) => {
                     const lbl = labels.get(i) || '';
@@ -12980,7 +12982,7 @@ a:hover{text-decoration:underline;}
                             html += `<div class="ldsp-year-cell empty"></div>`;
                         } else {
                             const lv = Utils.getHeatmapLevel(day.mins);
-                            html += `<div class="ldsp-year-cell l${lv}"><div class="ldsp-year-tip">${day.month + 1}/${day.day}<br>${Utils.formatReadingTime(day.mins)}</div></div>`;
+                            html += `<div class="ldsp-year-cell l${lv}" data-tip="${getTipText(day)}" data-tip-delay="0"></div>`;
                         }
                     });
                     html += `</div></div>`;
@@ -14801,6 +14803,7 @@ a:hover{text-decoration:underline;}
                 // 标签页切换
                 this.$.tabs.forEach((tab, i) => {
                     tab.addEventListener('click', () => {
+                        this._suppressScrollIndicatorUntil = Date.now() + 450;
                         this.$.tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
                         this.$.sections.forEach(s => s.classList.remove('active'));
                         tab.classList.add('active');
@@ -14844,12 +14847,27 @@ a:hover{text-decoration:underline;}
             _initScrollbarAutoHide() {
                 // 使用闭包存储状态，避免污染实例属性
                 const timers = new WeakMap();
+                const SCROLL_INTENT_WINDOW = 1200;
+                let lastUserScrollIntent = 0;
+                const markUserScrollIntent = () => { lastUserScrollIntent = Date.now(); };
                 const showScrollbar = (el) => {
                     if (this._programmaticScroll) return; // 忽略程序性滚动
+                    const now = Date.now();
+                    if (now < (this._suppressScrollIndicatorUntil || 0)) return;
+                    if ((now - lastUserScrollIntent) > SCROLL_INTENT_WINDOW) return;
                     el.classList.add('scrolling');
                     clearTimeout(timers.get(el));
                     timers.set(el, setTimeout(() => el.classList.remove('scrolling'), 800));
                 };
+                // 标记“用户主动滚动意图”，避免布局变化触发的伪滚动导致滚动条闪烁
+                ['wheel', 'touchstart', 'pointerdown', 'mousedown'].forEach(evt => {
+                    this.el.addEventListener(evt, markUserScrollIntent, { capture: true, passive: true });
+                });
+                this.el.addEventListener('keydown', (e) => {
+                    if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ', 'Spacebar'].includes(e.key)) {
+                        markUserScrollIntent();
+                    }
+                }, { capture: true });
                 // 事件委托：捕获所有可滚动元素的滚动事件
                 this.el.addEventListener('scroll', (e) => {
                     const t = e.target;
@@ -16914,6 +16932,7 @@ a:hover{text-decoration:underline;}
             _renderTrendContent(history, reqs) {
                 const container = this.$.trends.querySelector('.ldsp-trend-content');
                 if (!container) return;
+                this._suppressScrollIndicatorUntil = Date.now() + 300;
                 container.dataset.view = this.trendTab;
 
                 if (this.trendTab === 'year') {
