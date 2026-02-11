@@ -381,11 +381,11 @@
                 STORAGE_DEBOUNCE: 1000,    // 存储防抖
                 READING_UPDATE: 2000,      // 阅读时间UI更新（2秒，减少更新频率避免动画闪烁）
                 LEADERBOARD_SYNC: 900000,  // 排行榜同步（15分钟，原10分钟）
-                CLOUD_UPLOAD: 3600000,     // 云同步上传（60分钟，原30分钟）
-                CLOUD_DOWNLOAD: 43200000,  // 云同步下载（12小时，原6小时）
-                CLOUD_CHECK: 600000,       // 云同步检查（10分钟，原5分钟）
-                REQ_SYNC_INCREMENTAL: 3600000, // 升级要求增量同步（1小时）
-                REQ_SYNC_FULL: 43200000,   // 升级要求全量同步（12小时，与reading同步间隔一致）
+                CLOUD_UPLOAD: 7200000,     // 云同步上传（120分钟，降低频率）
+                CLOUD_DOWNLOAD: 86400000,  // 云同步下载（24小时）
+                CLOUD_CHECK: 1800000,      // 云同步检查（30分钟）
+                REQ_SYNC_INCREMENTAL: 7200000, // 升级要求增量同步（2小时）
+                REQ_SYNC_FULL: 86400000,   // 升级要求全量同步（24小时）
                 SYNC_RETRY_DELAY: 60000    // 同步失败后重试延迟（1分钟）
             },
             // 缓存配置
@@ -469,7 +469,7 @@
             ]),
             // 存储键
             STORAGE_KEYS: {
-                position: 'position', collapsed: 'collapsed', theme: 'theme',
+                position: 'position', collapsed: 'collapsed', theme: 'theme', themeMode: 'theme_mode',
                 trendTab: 'trend_tab', history: 'history', milestones: 'milestones',
                 lastNotify: 'last_notify', lastVisit: 'last_visit', todayData: 'today_data',
                 userAvatar: 'user_avatar', readingTime: 'reading_time', currentUser: 'current_user',
@@ -477,6 +477,9 @@
                 lastUploadHash: 'last_upload_hash', leaderboardToken: 'leaderboard_token',
                 leaderboardUser: 'leaderboard_user', leaderboardJoined: 'leaderboard_joined',
                 leaderboardTab: 'leaderboard_tab',
+                actionVisibility: 'action_visibility',
+                actionOrder: 'action_order',
+                readingGoalHours: 'reading_goal_hours',
                 readingLevels: 'reading_levels', readingLevelsTime: 'reading_levels_time',
                 websiteUrl: 'website_url', websiteUrlDate: 'website_url_date'
             },
@@ -799,13 +802,35 @@
             _cacheTime: 0,
             _cacheVw: 0,
             _cacheVh: 0,
+            _cacheOffsetTop: 0,
+            _cacheOffsetLeft: 0,
+
+            // 获取可视视口尺寸（优先 visualViewport，兼容 iOS Safari 地址栏变化）
+            getViewport() {
+                const vv = window.visualViewport;
+                if (vv && Number.isFinite(vv.width) && Number.isFinite(vv.height)) {
+                    return {
+                        vw: Math.round(Math.max(0, vv.width)),
+                        vh: Math.round(Math.max(0, vv.height)),
+                        offsetTop: Math.round(Math.max(0, Number.isFinite(vv.offsetTop) ? vv.offsetTop : 0)),
+                        offsetLeft: Math.round(Math.max(0, Number.isFinite(vv.offsetLeft) ? vv.offsetLeft : 0))
+                    };
+                }
+                return {
+                    vw: window.innerWidth || document.documentElement?.clientWidth || 0,
+                    vh: window.innerHeight || document.documentElement?.clientHeight || 0,
+                    offsetTop: 0,
+                    offsetLeft: 0
+                };
+            },
 
             // 动态计算面板配置 - 基于视口尺寸的相对计算
             // 确保面板始终在窗口内显示，针对移动设备优化
             getConfig() {
                 const now = Date.now();
-                const { innerWidth: vw, innerHeight: vh } = window;
+                const { vw, vh, offsetTop, offsetLeft } = this.getViewport();
                 if (this._cache && this._cacheVw === vw && this._cacheVh === vh &&
+                    this._cacheOffsetTop === offsetTop && this._cacheOffsetLeft === offsetLeft &&
                     (now - this._cacheTime) < CONFIG.CACHE.SCREEN_TTL) {
                     return this._cache;
                 }
@@ -866,6 +891,8 @@
                     top: topMargin,
                     vw,
                     vh,
+                    offsetTop,
+                    offsetLeft,
                     isMobile,
                     isVerySmall
                 };
@@ -873,6 +900,8 @@
                 this._cacheTime = now;
                 this._cacheVw = vw;
                 this._cacheVh = vh;
+                this._cacheOffsetTop = offsetTop;
+                this._cacheOffsetLeft = offsetLeft;
                 return config;
             }
         };
@@ -915,27 +944,71 @@
                 this._valueCacheTime = new Map();
             }
 
+            _normalizeUsername(username) {
+                if (typeof username !== 'string') return null;
+                const cleaned = username.trim();
+                if (!cleaned || cleaned.length > 60) return null;
+                return /^[A-Za-z0-9_.-]+$/.test(cleaned) ? cleaned : null;
+            }
+
+            _getUserFromDom() {
+                const selectors = [
+                    '.current-user a[href^="/u/"]',
+                    '.d-header-icons .current-user a[href^="/u/"]',
+                    '.header-dropdown-toggle.current-user[href^="/u/"]'
+                ];
+                for (const selector of selectors) {
+                    const link = document.querySelector(selector);
+                    if (!link) continue;
+                    const href = link.getAttribute('href') || '';
+                    const match = href.match(PATTERNS.USERNAME);
+                    const fromHref = this._normalizeUsername(match?.[1] || '');
+                    if (fromHref) return fromHref;
+                    const fromCard = this._normalizeUsername(link.getAttribute('data-user-card') || '');
+                    if (fromCard) return fromCard;
+                }
+                return null;
+            }
+
+            _getUserFromDiscourse() {
+                const discourseUser = Utils.safeCall(() => window.Discourse?.User?.current?.(), null);
+                return this._normalizeUsername(discourseUser?.username || '');
+            }
+
+            _isForumAnonymous() {
+                const html = document.documentElement;
+                const body = document.body;
+                const isAnon = html?.classList?.contains('anon') || body?.classList?.contains('anon');
+                const isLoggedIn = html?.classList?.contains('logged-in') || body?.classList?.contains('logged-in');
+                return !!isAnon && !isLoggedIn;
+            }
+
+            _saveResolvedUser(username) {
+                if (this._user === username) return username;
+                this._user = username;
+                this._keyCache.clear();  // 用户变化时清除 key 缓存
+                GM_setValue(this._globalKey('currentUser'), username);
+                return username;
+            }
+
             // 获取当前用户
             getUser() {
-                if (this._user) return this._user;
-                const link = document.querySelector('.current-user a[href^="/u/"]');
-                if (link) {
-                    const match = link.getAttribute('href').match(PATTERNS.USERNAME);
-                    if (match) {
-                        this._user = match[1];
-                        GM_setValue(this._globalKey('currentUser'), this._user);
-                        return this._user;
-                    }
+                const liveUser = this._getUserFromDom() || this._getUserFromDiscourse();
+                if (liveUser) {
+                    return this._saveResolvedUser(liveUser);
                 }
-                return this._user = GM_getValue(this._globalKey('currentUser'), null);
+
+                // 已确认匿名状态时，不再回退旧缓存，避免显示过期用户名
+                if (this._isForumAnonymous()) {
+                    return this._saveResolvedUser(null);
+                }
+
+                const cached = this._normalizeUsername(GM_getValue(this._globalKey('currentUser'), null));
+                return this._saveResolvedUser(cached);
             }
 
             setUser(username) {
-                if (this._user !== username) {
-                    this._user = username;
-                    this._keyCache.clear();  // 用户变化时清除 key 缓存
-                    GM_setValue(this._globalKey('currentUser'), username);
-                }
+                this._saveResolvedUser(this._normalizeUsername(username));
             }
 
             // 生成全局键
@@ -2904,13 +2977,27 @@
                 }
             }
 
-            async upload() {
+            async upload({ force = false } = {}) {
                 // 前置检查：登录状态 + 同步状态 + 数据有效性
                 if (!this.oauth.isLoggedIn() || this._syncing) return null;
                 
                 const local = this.storage.get('readingTime', null);
                 if (!local?.dailyData || Object.keys(local.dailyData).length === 0) {
                     return null;
+                }
+
+                const now = Date.now();
+                const uploadInterval = CONFIG.INTERVALS.CLOUD_UPLOAD || 7200000; // 2小时
+                const currentHash = this._getDataHash();
+                if (!force) {
+                    // 无变化时不上传
+                    if (!currentHash || currentHash === this._lastHash) {
+                        return null;
+                    }
+                    // 上传间隔内不重复请求
+                    if ((now - this._lastUpload) < uploadInterval) {
+                        return null;
+                    }
                 }
                 
                 // 检查退避延迟
@@ -2951,7 +3038,9 @@
 
                     if (result.success) {
                         this._lastUpload = Date.now();
+                        this._lastHash = currentHash || this._getDataHash();
                         this.storage.setGlobalNow('lastCloudSync', this._lastUpload);
+                        this.storage.setGlobalNow('lastUploadHash', this._lastHash);
                         this._recordSuccess('reading');
                         return result.data;
                     }
@@ -3233,7 +3322,7 @@
                 // 仅标签页主节点执行，避免多标签重复请求
                 if (!TabLeader.isLeader()) return null;
                 
-                const INCREMENTAL_INTERVAL = CONFIG.INTERVALS.REQ_SYNC_INCREMENTAL || 3600000; // 1小时
+                const INCREMENTAL_INTERVAL = CONFIG.INTERVALS.REQ_SYNC_INCREMENTAL || 7200000; // 2小时
                 const now = Date.now();
                 const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
                 const lastIncremental = this._reqLastIncrementalSync || 0;
@@ -3357,8 +3446,8 @@
              * 仅 trust_level >= 2 的用户可用
              * 
              * 优化策略（v3.3.1）：
-             * 1. 增量同步：默认只同步当天数据（1小时间隔）
-             * 2. 全量同步：仅在以下情况触发（12小时间隔）：
+             * 1. 增量同步：默认只同步当天数据（2小时间隔）
+             * 2. 全量同步：仅在以下情况触发（24小时间隔）：
              *    - 首次登录（从未下载过云端数据）
              *    - 本地数据天数与云端不一致
              */
@@ -3369,8 +3458,8 @@
 
                 const now = Date.now();
                 const localHistory = this._historyMgr.getHistory();
-                const INCREMENTAL_INTERVAL = CONFIG.INTERVALS.REQ_SYNC_INCREMENTAL || 3600000; // 1小时
-                const FULL_INTERVAL = CONFIG.INTERVALS.REQ_SYNC_FULL || 43200000; // 12小时
+                const INCREMENTAL_INTERVAL = CONFIG.INTERVALS.REQ_SYNC_INCREMENTAL || 7200000; // 2小时
+                const FULL_INTERVAL = CONFIG.INTERVALS.REQ_SYNC_FULL || 86400000; // 24小时
                 
                 // ========== 判断是否需要全量同步 ==========
                 const isFirstTime = this._reqLastDownload === 0;
@@ -3539,13 +3628,67 @@
     .ldsp-ver-num{background:rgba(255,255,255,.2);padding:2px 8px;border-radius:10px;color:#fff;font-weight:600;font-size:9px;backdrop-filter:blur(4px)}
     .ldsp-site-ver{font-size:9px;color:#fff;text-align:center;font-weight:700;background:rgba(0,0,0,.25);padding:1px 5px;border-radius:5px;letter-spacing:.02em}
     .ldsp-hdr-btns{display:flex;gap:4px;flex-shrink:0;position:relative;z-index:1;margin-left:auto}
-    .ldsp-hdr-btns button{width:28px;height:28px;border:none;background:rgba(255,255,255,.12);color:#fff;border-radius:var(--r-sm);font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;outline:none;-webkit-tap-highlight-color:transparent;backdrop-filter:blur(4px);transition:transform .25s var(--ease),background .15s,box-shadow .2s,opacity .2s,visibility .2s}
-    .ldsp-hdr-btns button:hover{background:rgba(255,255,255,.25);transform:translateY(-2px) scale(1.05);box-shadow:0 4px 12px rgba(0,0,0,.2)}
-    .ldsp-hdr-btns button:active{transform:translateY(0) scale(.95)}
-    .ldsp-hdr-btns button:focus{outline:none}
-    .ldsp-hdr-btns button:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
-    .ldsp-hdr-btns button.has-update{background:linear-gradient(135deg,var(--ok),var(--ok-light));animation:pulse-update 3s ease-in-out infinite;position:relative;box-shadow:0 0 15px rgba(16,185,129,.4)}
-    .ldsp-hdr-btns button.has-update::after{content:'';position:absolute;top:-3px;right:-3px;width:10px;height:10px;background:var(--err);border-radius:50%;border:2px solid rgba(0,0,0,.2);animation:pulse-dot 2.5s ease infinite}
+    .ldsp-hdr-btns>button{width:28px;height:28px;border:none;background:rgba(255,255,255,.12);color:#fff;border-radius:var(--r-sm);font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;outline:none;-webkit-tap-highlight-color:transparent;backdrop-filter:blur(4px);transition:transform .25s var(--ease),background .15s,box-shadow .2s,opacity .2s,visibility .2s}
+    .ldsp-hdr-btns>button:hover{background:rgba(255,255,255,.25);transform:translateY(-2px) scale(1.05);box-shadow:0 4px 12px rgba(0,0,0,.2)}
+    .ldsp-hdr-btns>button:active{transform:translateY(0) scale(.95)}
+    .ldsp-hdr-btns>button:focus{outline:none}
+    .ldsp-hdr-btns>button:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+    .ldsp-hdr-btns>button.has-update{background:linear-gradient(135deg,var(--ok),var(--ok-light));animation:pulse-update 3s ease-in-out infinite;position:relative;box-shadow:0 0 15px rgba(16,185,129,.4)}
+    .ldsp-hdr-btns>button.has-update::after{content:'';position:absolute;top:-3px;right:-3px;width:10px;height:10px;background:var(--err);border-radius:50%;border:2px solid rgba(0,0,0,.2);animation:pulse-dot 2.5s ease infinite}
+    .ldsp-settings-menu{position:absolute;top:34px;right:8px;width:min(250px,calc(100% - 16px));max-width:calc(100vw - 24px);max-height:min(360px,calc(var(--h) - 56px));overflow:hidden;padding:8px;box-sizing:border-box;background:var(--bg-card);border:1px solid var(--border2);border-radius:12px;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transform:translateY(-8px) scale(.98);transition:opacity .2s var(--ease),transform .2s var(--ease);z-index:30}
+    .ldsp-settings-menu.show{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
+    .ldsp-settings-menu button{font:inherit;line-height:1.2;cursor:pointer}
+    .ldsp-settings-view{display:none;max-height:calc(var(--h) - 72px);overflow:auto;padding:2px;scrollbar-width:thin;scrollbar-color:var(--scrollbar) transparent}
+    .ldsp-settings-view.active{display:block;animation:enter var(--dur-fast) var(--ease-out)}
+    .ldsp-settings-view::-webkit-scrollbar{width:5px}
+    .ldsp-settings-view::-webkit-scrollbar-track{background:transparent}
+    .ldsp-settings-view::-webkit-scrollbar-thumb{background:var(--scrollbar);border-radius:4px}
+    .ldsp-settings-head{display:flex;align-items:center;gap:8px;padding:6px 4px 10px;border-bottom:1px solid var(--border);margin-bottom:8px}
+    .ldsp-settings-head-title{font-size:12px;font-weight:700;color:var(--txt)}
+    .ldsp-settings-back{width:24px;height:24px;border:none;border-radius:7px;background:var(--bg-el);color:var(--txt-sec);font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s}
+    .ldsp-settings-back:hover{background:var(--bg-hover);color:var(--accent)}
+    .ldsp-settings-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:9px 10px;margin-bottom:6px;border:1px solid transparent;border-radius:9px;background:var(--bg-el);color:var(--txt);font-size:11px;text-align:left;transition:background .15s,border-color .15s,transform .15s}
+    .ldsp-settings-nav:hover{background:var(--bg-hover);border-color:var(--border2);transform:translateY(-1px)}
+    .ldsp-settings-nav-main{display:flex;align-items:center;gap:8px;font-weight:600}
+    .ldsp-settings-nav-value{font-size:10px;color:var(--txt-mut);max-width:92px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ldsp-settings-nav-arrow{font-size:13px;color:var(--txt-mut)}
+    .ldsp-settings-title{font-size:11px;font-weight:700;color:var(--txt-sec);margin:2px 0 8px;padding:0 2px}
+    .ldsp-settings-option{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;border:1px solid transparent;background:var(--bg-el);color:var(--txt);padding:8px 10px;border-radius:9px;font-size:11px;transition:border-color .15s,background .15s,transform .15s}
+    .ldsp-settings-option+.ldsp-settings-option{margin-top:6px}
+    .ldsp-settings-option:hover{background:var(--bg-hover);border-color:var(--border2);transform:translateY(-1px)}
+    .ldsp-settings-option.active{border-color:var(--accent);background:rgba(107,140,239,.18)}
+    .ldsp-settings-option-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+    .ldsp-settings-option-label{font-size:11px;font-weight:600;color:var(--txt)}
+    .ldsp-settings-option-desc{font-size:9px;color:var(--txt-mut);line-height:1.3}
+    .ldsp-settings-option-check{font-size:12px;color:var(--accent);opacity:0;transform:scale(.8);transition:opacity .15s,transform .15s}
+    .ldsp-settings-option.active .ldsp-settings-option-check{opacity:1;transform:scale(1)}
+    .ldsp-settings-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:var(--txt);padding:8px 10px;border-radius:9px;background:var(--bg-el);border:1px solid transparent;transition:border-color .15s,background .15s}
+    .ldsp-settings-toggle+.ldsp-settings-toggle{margin-top:6px}
+    .ldsp-settings-toggle:hover{background:var(--bg-hover);border-color:var(--border2)}
+    .ldsp-settings-toggle input{accent-color:var(--accent);cursor:pointer}
+    .ldsp-settings-goal-wrap{display:flex;flex-direction:column;gap:8px;padding:2px}
+    .ldsp-settings-goal-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;background:var(--bg-el);border:1px solid transparent}
+    .ldsp-settings-goal-label{font-size:11px;font-weight:600;color:var(--txt);min-width:52px}
+    .ldsp-settings-goal-number{width:72px;padding:5px 7px;border-radius:7px;border:1px solid var(--border2);background:var(--bg-card);color:var(--txt);font-size:11px}
+    .ldsp-settings-goal-number:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(107,140,239,.16)}
+    .ldsp-settings-goal-unit{font-size:10px;color:var(--txt-mut)}
+    .ldsp-settings-goal-range{width:100%;accent-color:var(--accent)}
+    .ldsp-settings-goal-hint{font-size:10px;color:var(--txt-mut);line-height:1.35;padding:0 2px}
+    .ldsp-settings-order-tip{font-size:10px;color:var(--txt-mut);line-height:1.4;padding:2px 4px 8px}
+    .ldsp-settings-order-list{display:flex;flex-direction:column;gap:6px}
+    .ldsp-settings-order-item{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg-el);border:1px solid transparent;border-radius:9px;cursor:grab;transition:background .15s,border-color .15s,transform .15s}
+    .ldsp-settings-order-item:hover{background:var(--bg-hover);border-color:var(--border2)}
+    .ldsp-settings-order-item:active{cursor:grabbing}
+    .ldsp-settings-order-item.dragging{opacity:.7;border-color:var(--accent);background:rgba(107,140,239,.18);transform:scale(.98)}
+    .ldsp-settings-order-handle{font-size:12px;line-height:1;color:var(--txt-mut);letter-spacing:1px;user-select:none}
+    .ldsp-settings-order-label{font-size:11px;font-weight:600;color:var(--txt)}
+    .ldsp-settings-order-reset{width:100%;margin-top:10px;padding:8px 10px;border:1px solid var(--border2);border-radius:9px;background:var(--bg-el);color:var(--txt-sec);font-size:11px;font-weight:600;transition:background .15s,border-color .15s,color .15s}
+    .ldsp-settings-order-reset:hover{background:var(--bg-hover);border-color:var(--accent);color:var(--accent)}
+    @media (max-width:480px){.ldsp-settings-menu{top:30px;right:6px;width:calc(100% - 12px);max-width:calc(100vw - 16px);max-height:min(320px,calc(var(--h) - 48px));padding:6px}.ldsp-settings-view{max-height:calc(var(--h) - 64px);padding:1px}.ldsp-settings-head{padding:5px 2px 8px;margin-bottom:6px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:7px 8px;font-size:10px}.ldsp-settings-nav-value{max-width:76px;font-size:9px}.ldsp-settings-option-label{font-size:10px}.ldsp-settings-option-desc,.ldsp-settings-order-tip,.ldsp-settings-goal-hint{font-size:9px}.ldsp-settings-goal-row{padding:7px 8px;gap:6px}.ldsp-settings-goal-number{width:64px;padding:4px 6px;font-size:10px}}
+    @media (max-width:320px){.ldsp-settings-menu{top:28px;right:4px;width:calc(100% - 8px);max-width:calc(100vw - 10px);max-height:min(280px,calc(var(--h) - 40px));padding:5px}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}.ldsp-settings-head-title{font-size:11px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px;font-size:9px}.ldsp-settings-nav-main{gap:6px}.ldsp-settings-goal-label{min-width:46px;font-size:10px}.ldsp-settings-goal-number{width:56px;font-size:9px}.ldsp-settings-order-reset{padding:7px 8px;font-size:10px}}
+    @media (max-height:620px){.ldsp-settings-menu{top:30px;max-height:min(280px,calc(var(--h) - 40px))}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}}
+    @media (max-height:500px){.ldsp-settings-menu{top:26px;max-height:min(240px,calc(var(--h) - 28px))}.ldsp-settings-head{padding:4px 2px 6px;margin-bottom:5px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px}}
+    #ldsp-panel.collapsed .ldsp-settings-menu{display:none!important}
     @keyframes pulse-update{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
     @keyframes pulse-dot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:.8}}
     .ldsp-update-bubble{position:absolute;top:52px;left:50%;transform:translateX(-50%) translateY(-10px);background:var(--bg-card);border:1px solid var(--border-accent);border-radius:var(--r-md);padding:16px 18px;text-align:center;z-index:100;box-shadow:var(--shadow-lg),var(--glow-accent);opacity:0;pointer-events:none;transition:transform .3s var(--ease-spring),opacity .3s var(--ease);max-width:calc(100% - 24px);width:220px;backdrop-filter:blur(16px);will-change:transform,opacity}
@@ -3568,6 +3711,7 @@
     .ldsp-announcement.success{background:linear-gradient(90deg,rgba(16,185,129,.12),rgba(34,197,94,.08))}
     .ldsp-announcement-inner{display:flex;align-items:center;height:24px;white-space:nowrap;animation:marquee var(--marquee-duration,20s) linear var(--marquee-iteration,infinite)}
     .ldsp-announcement-inner:hover{animation-play-state:paused}
+    .ldsp-announcement-inner.paused{animation-play-state:paused!important}
     .ldsp-announcement-text{font-size:11px;font-weight:500;color:var(--txt-sec);display:flex;align-items:center;gap:6px;padding-right:50px}
     .ldsp-announcement-text::before{content:'📢';font-size:12px}
     .ldsp-announcement.warning .ldsp-announcement-text::before{content:'⚠️'}
@@ -12588,11 +12732,14 @@ a:hover{text-decoration:underline;}
                 return CONFIG.TREND_FIELDS.map(f => { const r = reqs.find(x => x.name.includes(f.search)); return r ? {...f, req: r, name: r.name} : null; }).filter(Boolean);
             }
 
-            renderTodayTrend(reqs, rt, td) {
+            renderTodayTrend(reqs, rt, td, goalHours = 3) {
                 if (!td) return `<div class="ldsp-empty"><div class="ldsp-empty-icon">☀️</div><div class="ldsp-empty-txt">今日首次访问<br>数据将从现在开始统计</div></div>`;
-                const now = new Date(), start = new Date(td.startTs), lv = Utils.getReadingLevel(rt), pct = Math.min(rt/600*100,100);
+                const normalizedGoal = Math.min(20, Math.max(0.5, Math.round(Utils.toSafeNumber(goalHours, 3) * 2) / 2));
+                const targetMinutes = Math.max(1, normalizedGoal * 60);
+                const now = new Date(), start = new Date(td.startTs), lv = Utils.getReadingLevel(rt), pct = Math.min(rt / targetMinutes * 100, 100);
+                const goalText = Number.isInteger(normalizedGoal) ? `${normalizedGoal}` : normalizedGoal.toFixed(1);
                 const startStr = `${start.getHours()}:${String(start.getMinutes()).padStart(2,'0')}`, nowStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
-                let h = `<div class="ldsp-time-info">今日 00:00 ~ ${nowStr} (首次记录于 ${startStr})</div><div class="ldsp-rd-stats" style="background:${lv.bg.replace('0.15','0.08')}"><div class="ldsp-rd-stats-icon">${lv.icon}</div><div class="ldsp-rd-stats-info"><div class="ldsp-rd-stats-val">${Utils.formatReadingTime(rt)}</div><div class="ldsp-rd-stats-lbl">今日累计阅读</div></div><div class="ldsp-rd-stats-badge" style="background:${lv.bg};color:${lv.color};box-shadow:0 3px 12px ${lv.bg.replace('0.15','0.4')},inset 0 1px 0 rgba(255,255,255,.25)">${lv.label}</div></div><div class="ldsp-rd-prog"><div class="ldsp-rd-prog-hdr"><span class="ldsp-rd-prog-title">📖 阅读目标 (10小时)</span><span class="ldsp-rd-prog-val">${Math.round(pct)}%</span></div><div class="ldsp-rd-prog-bar"><div class="ldsp-rd-prog-fill" style="width:${pct}%;background:${lv.bg.replace('0.15','1')}"></div></div></div>`;
+                let h = `<div class="ldsp-time-info">今日 00:00 ~ ${nowStr} (首次记录于 ${startStr})</div><div class="ldsp-rd-stats" style="background:${lv.bg.replace('0.15','0.08')}"><div class="ldsp-rd-stats-icon">${lv.icon}</div><div class="ldsp-rd-stats-info"><div class="ldsp-rd-stats-val">${Utils.formatReadingTime(rt)}</div><div class="ldsp-rd-stats-lbl">今日累计阅读</div></div><div class="ldsp-rd-stats-badge" style="background:${lv.bg};color:${lv.color};box-shadow:0 3px 12px ${lv.bg.replace('0.15','0.4')},inset 0 1px 0 rgba(255,255,255,.25)">${lv.label}</div></div><div class="ldsp-rd-prog"><div class="ldsp-rd-prog-hdr"><span class="ldsp-rd-prog-title">📖 阅读目标 (${goalText}小时)</span><span class="ldsp-rd-prog-val">${Math.round(pct)}%</span></div><div class="ldsp-rd-prog-bar"><div class="ldsp-rd-prog-fill" style="width:${pct}%;background:${lv.bg.replace('0.15','1')}"></div></div></div>`;
                 if (reqs?.length) {
                     const chgs = reqs.map(r=>({name:Utils.simplifyName(r.name),diff:r.currentValue-(td.startData[r.name]||0)})).filter(c=>c.diff!==0).sort((a,b)=>b.diff-a.diff);
                     const pos = chgs.filter(c=>c.diff>0).length, neg = chgs.filter(c=>c.diff<0).length;
@@ -13661,6 +13808,33 @@ a:hover{text-decoration:underline;}
                 this._actionsCheckRaf = null;
                 this._actionsRowHeight = 0;
                 this._lastSizeKey = null;
+                this._themeMediaQuery = null;
+                this._themeMediaHandler = null;
+                this._docClickHandler = null;
+                this._escKeyHandler = null;
+                this._settingsView = 'root';
+                this._announcementItems = [];
+                this._announcementIndex = 0;
+                this._announcementEndHandler = null;
+                this._announcementPaused = false;
+                this._announcementTimer = null;
+
+                this._actionOptions = [
+                    { key: 'login', label: '登录按钮', ref: 'loginBtn' },
+                    { key: 'logout', label: '注销按钮', ref: 'logoutBtn' },
+                    { key: 'ticket', label: '工单按钮', ref: 'ticketBtn' },
+                    { key: 'melon', label: '总结按钮', ref: 'melonBtn' },
+                    { key: 'export', label: '导出按钮', ref: 'exportBtn' },
+                    { key: 'ldc', label: 'LDC 按钮', ref: 'ldcBtn' },
+                    { key: 'shop', label: '士多按钮', ref: 'shopBtn' },
+                    { key: 'cdk', label: 'CDK 按钮', ref: 'cdkBtn' }
+                ];
+                this._actionOrderDefaults = ['shop', 'ldc', 'cdk', 'melon', 'export', 'ticket'];
+                this._actionVisibility = this._loadActionVisibility();
+                this._actionOrder = this._loadActionOrder();
+                this._orderDragDirty = false;
+                this.themeMode = 'light';
+                this.readingGoalHours = this._loadReadingGoalHours();
                 
                 // 我的活动相关状态
                 this.activitySubTab = 'read';  // 默认子tab
@@ -13680,6 +13854,7 @@ a:hover{text-decoration:underline;}
                 LDSPDialog.init(this.el);
                 // 管理器改为按需懒加载，减少首屏开销
                 this._loadAvatarFromCache();
+                this._syncForumIdentityDisplay();
                 // 轻量预取关注/粉丝/入站天数（空闲时执行，不阻塞首屏）
                 requestIdleCallback(() => {
                     const fm = this._ensureFollowManager();
@@ -13815,6 +13990,18 @@ a:hover{text-decoration:underline;}
                 // 窗口大小变化
                 this._resizeHandler = Utils.debounce(() => this._onResize(), 250);
                 window.addEventListener('resize', this._resizeHandler);
+                window.addEventListener('orientationchange', this._resizeHandler);
+
+                // iOS Safari：地址栏/键盘变化时 visualViewport 会触发 resize/scroll
+                if (window.visualViewport) {
+                    this._visualViewportHandler = Utils.debounce(() => this._onResize(), 100);
+                    window.visualViewport.addEventListener('resize', this._visualViewportHandler);
+                    window.visualViewport.addEventListener('scroll', this._visualViewportHandler);
+                }
+
+                // iOS bfcache 恢复后强制重算布局
+                this._pageShowResizeHandler = () => requestAnimationFrame(() => this._onResize());
+                window.addEventListener('pageshow', this._pageShowResizeHandler);
                 
                 // 订阅 Token 过期事件
                 EventBus.on('auth:expired', () => {
@@ -13881,7 +14068,113 @@ a:hover{text-decoration:underline;}
                             <button class="ldsp-update" title="检查更新" aria-label="检查更新">🔍</button>
                             <button class="ldsp-cloud-sync" title="云同步" aria-label="云同步" style="display:none">☁️</button>
                             <button class="ldsp-refresh" title="刷新数据" aria-label="刷新数据">🔄</button>
-                            <button class="ldsp-theme" title="切换主题" aria-label="切换主题">🌓</button>
+                            <button class="ldsp-settings" title="设置" aria-label="设置">⚙️</button>
+                            <div class="ldsp-settings-menu" aria-hidden="true">
+                                <div class="ldsp-settings-view active" data-settings-view="root">
+                                    <div class="ldsp-settings-head">
+                                        <span class="ldsp-settings-head-title">设置</span>
+                                    </div>
+                                    <button class="ldsp-settings-nav" data-settings-open="theme">
+                                        <span class="ldsp-settings-nav-main">🎨 外观设置</span>
+                                        <span class="ldsp-settings-nav-value" data-settings-theme-value></span>
+                                        <span class="ldsp-settings-nav-arrow">›</span>
+                                    </button>
+                                    <button class="ldsp-settings-nav" data-settings-open="reading-goal">
+                                        <span class="ldsp-settings-nav-main">🎯 阅读目标</span>
+                                        <span class="ldsp-settings-nav-value" data-settings-goal-value></span>
+                                        <span class="ldsp-settings-nav-arrow">›</span>
+                                    </button>
+                                    <button class="ldsp-settings-nav" data-settings-open="actions-root">
+                                        <span class="ldsp-settings-nav-main">🔘 功能按钮</span>
+                                        <span class="ldsp-settings-nav-value" data-settings-actions-value></span>
+                                        <span class="ldsp-settings-nav-arrow">›</span>
+                                    </button>
+                                </div>
+                                <div class="ldsp-settings-view" data-settings-view="theme">
+                                    <div class="ldsp-settings-head">
+                                        <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
+                                        <span class="ldsp-settings-head-title">外观设置</span>
+                                    </div>
+                                    <button class="ldsp-settings-option" data-theme-mode="auto">
+                                        <span class="ldsp-settings-option-main">
+                                            <span class="ldsp-settings-option-label">跟随系统</span>
+                                            <span class="ldsp-settings-option-desc">根据系统外观自动切换</span>
+                                        </span>
+                                        <span class="ldsp-settings-option-check">✔</span>
+                                    </button>
+                                    <button class="ldsp-settings-option" data-theme-mode="light">
+                                        <span class="ldsp-settings-option-main">
+                                            <span class="ldsp-settings-option-label">浅色</span>
+                                            <span class="ldsp-settings-option-desc">高亮清爽，适合白天阅读</span>
+                                        </span>
+                                        <span class="ldsp-settings-option-check">✔</span>
+                                    </button>
+                                    <button class="ldsp-settings-option" data-theme-mode="dark">
+                                        <span class="ldsp-settings-option-main">
+                                            <span class="ldsp-settings-option-label">深色</span>
+                                            <span class="ldsp-settings-option-desc">夜间护眼，减少眩光干扰</span>
+                                        </span>
+                                        <span class="ldsp-settings-option-check">✔</span>
+                                    </button>
+                                </div>
+                                <div class="ldsp-settings-view" data-settings-view="reading-goal">
+                                    <div class="ldsp-settings-head">
+                                        <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
+                                        <span class="ldsp-settings-head-title">阅读目标设置</span>
+                                    </div>
+                                    <div class="ldsp-settings-goal-wrap">
+                                        <div class="ldsp-settings-goal-row">
+                                            <span class="ldsp-settings-goal-label">目标时长</span>
+                                            <input class="ldsp-settings-goal-number" type="number" min="0.5" max="20" step="0.5" data-reading-goal-input="number">
+                                            <span class="ldsp-settings-goal-unit">小时</span>
+                                        </div>
+                                        <input class="ldsp-settings-goal-range" type="range" min="0.5" max="20" step="0.5" data-reading-goal-input="range">
+                                        <div class="ldsp-settings-goal-hint">范围 0.5 - 20 小时，步进 0.5 小时</div>
+                                    </div>
+                                </div>
+                                <div class="ldsp-settings-view" data-settings-view="actions-root">
+                                    <div class="ldsp-settings-head">
+                                        <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
+                                        <span class="ldsp-settings-head-title">功能按钮</span>
+                                    </div>
+                                    <button class="ldsp-settings-nav" data-settings-open="actions-order">
+                                        <span class="ldsp-settings-nav-main">↕️ 按钮排序</span>
+                                        <span class="ldsp-settings-nav-arrow">›</span>
+                                    </button>
+                                    <button class="ldsp-settings-nav" data-settings-open="actions-toggle">
+                                        <span class="ldsp-settings-nav-main">✅ 功能启用</span>
+                                        <span class="ldsp-settings-nav-arrow">›</span>
+                                    </button>
+                                </div>
+                                <div class="ldsp-settings-view" data-settings-view="actions-toggle">
+                                    <div class="ldsp-settings-head">
+                                        <button class="ldsp-settings-back" data-settings-back="actions-root" aria-label="返回">‹</button>
+                                        <span class="ldsp-settings-head-title">功能启用</span>
+                                    </div>
+                                    <label class="ldsp-settings-toggle"><span>登录按钮</span><input type="checkbox" data-action-key="login" checked></label>
+                                    <label class="ldsp-settings-toggle"><span>注销按钮</span><input type="checkbox" data-action-key="logout" checked></label>
+                                    <label class="ldsp-settings-toggle"><span>工单按钮</span><input type="checkbox" data-action-key="ticket" checked></label>
+                                    <label class="ldsp-settings-toggle"><span>总结按钮</span><input type="checkbox" data-action-key="melon" checked></label>
+                                    <label class="ldsp-settings-toggle"><span>导出按钮</span><input type="checkbox" data-action-key="export" checked></label>
+                                    ${CURRENT_SITE.domain === 'linux.do' ? '<label class="ldsp-settings-toggle"><span>LDC 按钮</span><input type="checkbox" data-action-key="ldc" checked></label><label class="ldsp-settings-toggle"><span>士多按钮</span><input type="checkbox" data-action-key="shop" checked></label><label class="ldsp-settings-toggle"><span>CDK 按钮</span><input type="checkbox" data-action-key="cdk" checked></label>' : ''}
+                                </div>
+                                <div class="ldsp-settings-view" data-settings-view="actions-order">
+                                    <div class="ldsp-settings-head">
+                                        <button class="ldsp-settings-back" data-settings-back="actions-root" aria-label="返回">‹</button>
+                                        <span class="ldsp-settings-head-title">按钮排序</span>
+                                    </div>
+                                    <div class="ldsp-settings-order-tip">可拖动调整：士多、LDC、CDK、总结、导出、工单。登录和注销顺序固定。</div>
+                                    <div class="ldsp-settings-order-list">
+                                        ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-settings-order-item" draggable="true" data-order-key="shop"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">士多按钮</span></div>' : ''}
+                                        ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-settings-order-item" draggable="true" data-order-key="ldc"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">LDC 按钮</span></div>' : ''}
+                                        ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-settings-order-item" draggable="true" data-order-key="cdk"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">CDK 按钮</span></div>' : ''}
+                                        <div class="ldsp-settings-order-item" draggable="true" data-order-key="melon"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">总结按钮</span></div>
+                                        <div class="ldsp-settings-order-item" draggable="true" data-order-key="export"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">导出按钮</span></div>
+                                        <div class="ldsp-settings-order-item" draggable="true" data-order-key="ticket"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">工单按钮</span></div>
+                                    </div>
+                                    <button class="ldsp-settings-order-reset" type="button">恢复默认顺序</button>
+                                </div>
+                            </div>
                             <button class="ldsp-toggle" title="折叠面板" aria-label="折叠面板"><span class="ldsp-toggle-arrow">◀</span><svg class="ldsp-toggle-logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ldsp-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#8fa8f8"/><stop offset="100%" stop-color="#7ed4c4"/></linearGradient></defs><path d="M 31,4 A 28,28 0 1,1 11,52" fill="none" stroke="url(#ldsp-logo-grad)" stroke-width="8" stroke-linecap="round"/><rect x="25" y="26" width="12" height="12" rx="3" fill="url(#ldsp-logo-grad)" transform="rotate(45 31 32)"/></svg></button>
                         </div>
                     </div>
@@ -14007,9 +14300,20 @@ a:hover{text-decoration:underline;}
                     activity: this.el.querySelector('#ldsp-activity'),
                     btnToggle: this.el.querySelector('.ldsp-toggle'),
                     btnRefresh: this.el.querySelector('.ldsp-refresh'),
-                    btnTheme: this.el.querySelector('.ldsp-theme'),
+                    btnSettings: this.el.querySelector('.ldsp-settings'),
                     btnUpdate: this.el.querySelector('.ldsp-update'),
                     btnCloudSync: this.el.querySelector('.ldsp-cloud-sync'),
+                    settingsMenu: this.el.querySelector('.ldsp-settings-menu'),
+                    settingsViews: this.el.querySelectorAll('.ldsp-settings-view'),
+                    settingsThemeValues: this.el.querySelectorAll('[data-settings-theme-value]'),
+                    settingsGoalValues: this.el.querySelectorAll('[data-settings-goal-value]'),
+                    settingsActionsValues: this.el.querySelectorAll('[data-settings-actions-value]'),
+                    settingsThemeOptions: this.el.querySelectorAll('.ldsp-settings-option[data-theme-mode]'),
+                    settingsActionInputs: this.el.querySelectorAll('.ldsp-settings-toggle input[data-action-key]'),
+                    settingsGoalRange: this.el.querySelector('.ldsp-settings-goal-range'),
+                    settingsGoalNumber: this.el.querySelector('.ldsp-settings-goal-number'),
+                    settingsOrderList: this.el.querySelector('.ldsp-settings-order-list'),
+                    settingsOrderReset: this.el.querySelector('.ldsp-settings-order-reset'),
                     updateBubble: this.el.querySelector('.ldsp-update-bubble'),
                     updateBubbleVer: this.el.querySelector('.ldsp-update-bubble-ver'),
                     updateBubbleBtn: this.el.querySelector('.ldsp-update-bubble-btn'),
@@ -14028,7 +14332,8 @@ a:hover{text-decoration:underline;}
                 let dragStartStyles = null;
                 
                 const startDrag = e => {
-                    if (!this.el.classList.contains('collapsed') && e.target.closest('button')) return;
+                    if (!this.el.classList.contains('collapsed') &&
+                        (e.target.closest('button') || e.target.closest('.ldsp-settings-menu'))) return;
                     const p = getPos(e);
                     dragging = true;
                     moved = false;
@@ -14057,10 +14362,13 @@ a:hover{text-decoration:underline;}
                     if (!dragging) return;
                     const p = getPos(e);
                     if (Math.abs(p.x - sx) > THRESHOLD || Math.abs(p.y - sy) > THRESHOLD) moved = true;
-                    const { innerWidth: vw, innerHeight: vh } = window;
+                    const { vw, vh } = Screen.getViewport();
+                    const margin = 8;
                     const w = this.el.offsetWidth, h = this.el.offsetHeight;
-                    this.el.style.left = Math.max(8, Math.min(p.x - ox, vw - w - 8)) + 'px';
-                    this.el.style.top = Math.max(8, Math.min(p.y - oy, vh - h - 8)) + 'px';
+                    const maxLeft = Math.max(margin, vw - w - margin);
+                    const maxTop = Math.max(margin, vh - h - margin);
+                    this.el.style.left = Math.max(margin, Math.min(p.x - ox, maxLeft)) + 'px';
+                    this.el.style.top = Math.max(margin, Math.min(p.y - oy, maxTop)) + 'px';
                 };
 
                 const endDrag = () => {
@@ -14083,7 +14391,7 @@ a:hover{text-decoration:underline;}
                     
                     // 根据最终位置决定定位模式和展开方向
                     const rect = this.el.getBoundingClientRect();
-                    const { innerWidth: vw } = window;
+                    const { vw } = Screen.getViewport();
                     const centerX = rect.left + rect.width / 2;
                     const alignRight = centerX > vw / 2;
                     
@@ -14114,7 +14422,7 @@ a:hover{text-decoration:underline;}
                 this.$.header.addEventListener('touchstart', e => !this.el.classList.contains('collapsed') && startDrag(e), { passive: false });
                 this.el.addEventListener('touchstart', e => this.el.classList.contains('collapsed') && startDrag(e), { passive: false });
                 document.addEventListener('touchmove', updateDrag, { passive: false });
-                document.addEventListener('touchend', e => {
+                const handleTouchEnd = () => {
                     const wasDragging = dragging;
                     const isCollapsed = this.el.classList.contains('collapsed');
                     endDrag();
@@ -14127,7 +14435,9 @@ a:hover{text-decoration:underline;}
                         this.el.classList.add('no-hover-effect');
                         setTimeout(() => this.el.classList.remove('no-hover-effect'), 50);
                     }
-                });
+                };
+                document.addEventListener('touchend', handleTouchEnd);
+                document.addEventListener('touchcancel', handleTouchEnd);
 
                 // 按钮事件
                 this.$.btnToggle.addEventListener('click', e => {
@@ -14144,7 +14454,108 @@ a:hover{text-decoration:underline;}
                     this.ticketManager?._checkUnread();
                 });
 
-                this.$.btnTheme.addEventListener('click', () => this._switchTheme());
+                this.$.btnSettings?.addEventListener('click', e => {
+                    e.stopPropagation();
+                    this._toggleSettingsMenu();
+                });
+                this.$.settingsMenu?.addEventListener('click', e => {
+                    e.stopPropagation();
+
+                    const openBtn = e.target.closest('[data-settings-open]');
+                    if (openBtn) {
+                        const targetView = openBtn.dataset.settingsOpen;
+                        if (targetView) this._setSettingsView(targetView);
+                        return;
+                    }
+
+                    const backBtn = e.target.closest('[data-settings-back]');
+                    if (backBtn) {
+                        this._setSettingsView(backBtn.dataset.settingsBack || 'root');
+                        return;
+                    }
+
+                    const themeOption = e.target.closest('.ldsp-settings-option[data-theme-mode]');
+                    if (themeOption) {
+                        const mode = themeOption.dataset.themeMode;
+                        if (mode) this._setThemeMode(mode);
+                    }
+                });
+                this.$.settingsMenu?.addEventListener('change', e => {
+                    const goalInput = e.target.closest('input[data-reading-goal-input]');
+                    if (goalInput) {
+                        this._setReadingGoalHours(goalInput.value);
+                        return;
+                    }
+                    const input = e.target.closest('input[data-action-key]');
+                    if (!input) return;
+                    const key = input.dataset.actionKey;
+                    if (!key) return;
+                    this._setActionVisibility(key, !!input.checked);
+                });
+                this.$.settingsMenu?.addEventListener('input', e => {
+                    const goalInput = e.target.closest('input[data-reading-goal-input]');
+                    if (!goalInput || goalInput.dataset.readingGoalInput !== 'range') return;
+                    this._setReadingGoalHours(goalInput.value, { persist: true, rerender: true });
+                });
+                this.$.settingsOrderList?.addEventListener('dragstart', e => {
+                    const item = e.target.closest('.ldsp-settings-order-item[data-order-key]');
+                    if (!item) return;
+                    this._orderDragDirty = false;
+                    item.classList.add('dragging');
+                    if (e.dataTransfer) {
+                        e.dataTransfer.effectAllowed = 'move';
+                        try { e.dataTransfer.setData('text/plain', item.dataset.orderKey || ''); } catch {}
+                    }
+                });
+                this.$.settingsOrderList?.addEventListener('dragover', e => {
+                    const list = this.$.settingsOrderList;
+                    if (!list) return;
+                    const dragging = list.querySelector('.ldsp-settings-order-item.dragging');
+                    if (!dragging) return;
+                    e.preventDefault();
+
+                    const target = e.target.closest('.ldsp-settings-order-item[data-order-key]');
+                    if (!target || target === dragging) return;
+
+                    const rect = target.getBoundingClientRect();
+                    const before = e.clientY < rect.top + rect.height / 2;
+                    list.insertBefore(dragging, before ? target : target.nextSibling);
+                    this._orderDragDirty = true;
+                });
+                this.$.settingsOrderList?.addEventListener('drop', e => {
+                    const list = this.$.settingsOrderList;
+                    if (!list || !list.querySelector('.ldsp-settings-order-item.dragging')) return;
+                    e.preventDefault();
+                    this._persistActionOrderFromList();
+                });
+                this.$.settingsOrderList?.addEventListener('dragend', () => {
+                    const list = this.$.settingsOrderList;
+                    if (!list) return;
+                    list.querySelectorAll('.ldsp-settings-order-item.dragging').forEach(item => item.classList.remove('dragging'));
+                    if (this._orderDragDirty) {
+                        this._persistActionOrderFromList();
+                    }
+                    this._orderDragDirty = false;
+                });
+                this.$.settingsOrderReset?.addEventListener('click', e => {
+                    e.stopPropagation();
+                    this._actionOrder = this._getDefaultActionOrder();
+                    this._saveActionOrder();
+                    this._renderActionOrderList();
+                    this._applyActionOrder();
+                    this._scheduleActionsOverflowCheck();
+                    this.renderer?.showToast('✅ 已恢复默认顺序');
+                });
+                this._docClickHandler = e => {
+                    if (!this.$.settingsMenu?.classList.contains('show')) return;
+                    if (e.target.closest('.ldsp-settings-menu') || e.target.closest('.ldsp-settings')) return;
+                    this._hideSettingsMenu();
+                };
+                this._escKeyHandler = e => {
+                    if (e.key === 'Escape') this._hideSettingsMenu();
+                };
+                document.addEventListener('mousedown', this._docClickHandler);
+                document.addEventListener('keydown', this._escKeyHandler);
                 this.$.btnUpdate.addEventListener('click', () => this._checkUpdate());
                 
                 // 彩蛋：点击头像打开GitHub仓库
@@ -14461,9 +14872,12 @@ a:hover{text-decoration:underline;}
                     this.el.classList.add('collapsed');
                 }
 
-                const theme = this.storage.getGlobal('theme', 'light');
-                if (theme === 'light') this.el.classList.add('light');
-                this.$.btnTheme.textContent = theme === 'dark' ? '🌓' : '☀️';
+                const storedThemeMode = this.storage.getGlobal('themeMode', null);
+                const legacyTheme = this.storage.getGlobal('theme', 'light');
+                const initThemeMode = storedThemeMode || (legacyTheme === 'dark' ? 'dark' : 'light');
+                this._setThemeMode(initThemeMode, { persist: false });
+                this._applyActionVisibility();
+                this._syncSettingsMenuState();
 
                 requestAnimationFrame(() => {
                     // _restorePosition 会设置位置和 expand-left/expand-right 类
@@ -14473,10 +14887,348 @@ a:hover{text-decoration:underline;}
                 });
             }
 
+            _normalizeThemeMode(mode) {
+                return ['auto', 'light', 'dark'].includes(mode) ? mode : 'light';
+            }
+
+            _setThemeMode(mode, { persist = true } = {}) {
+                const normalizedMode = this._normalizeThemeMode(mode);
+                this.themeMode = normalizedMode;
+
+                const systemIsDark = typeof window.matchMedia === 'function' &&
+                    window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const shouldUseDark = normalizedMode === 'dark' || (normalizedMode === 'auto' && systemIsDark);
+                this.el.classList.toggle('light', !shouldUseDark);
+
+                this._bindThemeMediaListener(normalizedMode === 'auto');
+
+                if (persist) {
+                    this.storage.setGlobalNow('themeMode', normalizedMode);
+                    // 保留旧 key，兼容历史版本主题读取逻辑
+                    this.storage.setGlobalNow('theme', shouldUseDark ? 'dark' : 'light');
+                }
+
+                this._syncSettingsMenuState();
+            }
+
+            _bindThemeMediaListener(enable) {
+                if (!window.matchMedia) return;
+                if (!this._themeMediaQuery) {
+                    this._themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                }
+
+                if (enable) {
+                    if (this._themeMediaHandler) return;
+                    this._themeMediaHandler = () => {
+                        if (this.themeMode === 'auto') {
+                            this._setThemeMode('auto', { persist: false });
+                        }
+                    };
+                    if (typeof this._themeMediaQuery.addEventListener === 'function') {
+                        this._themeMediaQuery.addEventListener('change', this._themeMediaHandler);
+                    } else if (typeof this._themeMediaQuery.addListener === 'function') {
+                        this._themeMediaQuery.addListener(this._themeMediaHandler);
+                    }
+                    return;
+                }
+
+                if (!this._themeMediaHandler) return;
+                if (typeof this._themeMediaQuery.removeEventListener === 'function') {
+                    this._themeMediaQuery.removeEventListener('change', this._themeMediaHandler);
+                } else if (typeof this._themeMediaQuery.removeListener === 'function') {
+                    this._themeMediaQuery.removeListener(this._themeMediaHandler);
+                }
+                this._themeMediaHandler = null;
+            }
+
+            _getDefaultActionVisibility() {
+                const defaults = {};
+                this._actionOptions.forEach(({ key }) => { defaults[key] = true; });
+                return defaults;
+            }
+
+            _loadActionVisibility() {
+                const defaults = this._getDefaultActionVisibility();
+                const saved = this.storage.getGlobal('actionVisibility', null);
+                if (!saved || typeof saved !== 'object') {
+                    return defaults;
+                }
+                return { ...defaults, ...saved };
+            }
+
+            _getDefaultActionOrder() {
+                return [...this._actionOrderDefaults];
+            }
+
+            _normalizeActionOrder(order) {
+                const defaults = this._getDefaultActionOrder();
+                const normalized = [];
+                if (Array.isArray(order)) {
+                    order.forEach(key => {
+                        if (defaults.includes(key) && !normalized.includes(key)) {
+                            normalized.push(key);
+                        }
+                    });
+                }
+                defaults.forEach(key => {
+                    if (!normalized.includes(key)) {
+                        normalized.push(key);
+                    }
+                });
+                return normalized;
+            }
+
+            _loadActionOrder() {
+                const saved = this.storage.getGlobal('actionOrder', null);
+                return this._normalizeActionOrder(saved);
+            }
+
+            _saveActionVisibility() {
+                this.storage.setGlobalNow('actionVisibility', { ...this._actionVisibility });
+            }
+
+            _saveActionOrder() {
+                this.storage.setGlobalNow('actionOrder', [...this._actionOrder]);
+            }
+
+            _isActionVisible(key) {
+                return this._actionVisibility[key] !== false;
+            }
+
+            _setActionVisibility(key, visible) {
+                if (!(key in this._actionVisibility)) return;
+                this._actionVisibility[key] = !!visible;
+                this._saveActionVisibility();
+                this._applyActionVisibility();
+                this._syncSettingsMenuState();
+                this._scheduleActionsOverflowCheck();
+            }
+
+            _applyActionOrder() {
+                const area = this.$.actionsArea;
+                if (!area) return;
+
+                const ordered = [];
+                const added = new Set();
+                const optionByKey = new Map(this._actionOptions.map(opt => [opt.key, opt]));
+                const pushByKey = key => {
+                    const ref = optionByKey.get(key)?.ref;
+                    const el = ref ? this.$[ref] : null;
+                    if (el && el.parentElement === area && !added.has(el)) {
+                        ordered.push(el);
+                        added.add(el);
+                    }
+                };
+
+                // 登录/注销顺序固定，不参与自定义
+                pushByKey('login');
+                pushByKey('logout');
+                this._actionOrder.forEach(pushByKey);
+
+                // 兜底：附加未覆盖按钮
+                area.querySelectorAll('.ldsp-action-btn').forEach(el => {
+                    if (!added.has(el)) ordered.push(el);
+                });
+
+                ordered.forEach(el => area.appendChild(el));
+            }
+
+            _renderActionOrderList() {
+                const list = this.$.settingsOrderList;
+                if (!list) return;
+
+                const itemMap = new Map();
+                list.querySelectorAll('.ldsp-settings-order-item[data-order-key]').forEach(item => {
+                    itemMap.set(item.dataset.orderKey, item);
+                });
+
+                this._normalizeActionOrder(this._actionOrder)
+                    .filter(key => itemMap.has(key))
+                    .forEach(key => list.appendChild(itemMap.get(key)));
+            }
+
+            _persistActionOrderFromList() {
+                const list = this.$.settingsOrderList;
+                if (!list) return;
+
+                const order = Array.from(list.querySelectorAll('.ldsp-settings-order-item[data-order-key]'))
+                    .map(item => item.dataset.orderKey)
+                    .filter(Boolean);
+                const normalized = this._normalizeActionOrder(order);
+                const changed = normalized.join('|') !== this._actionOrder.join('|');
+                this._actionOrder = normalized;
+
+                if (!changed) return;
+                this._saveActionOrder();
+                this._applyActionOrder();
+                this._syncSettingsMenuState();
+                this._scheduleActionsOverflowCheck();
+            }
+
+            _setElementVisible(el, visible) {
+                if (!el) return;
+                el.style.display = visible ? '' : 'none';
+            }
+
+            _applyActionVisibility() {
+                const logged = this.hasLeaderboard && !!this.oauth?.isLoggedIn();
+
+                this._setElementVisible(this.$.melonBtn, this._isActionVisible('melon'));
+                this._setElementVisible(this.$.exportBtn, this._isActionVisible('export'));
+
+                if (CURRENT_SITE.domain === 'linux.do') {
+                    this._setElementVisible(this.$.ldcBtn, this._isActionVisible('ldc'));
+                    this._setElementVisible(this.$.shopBtn, this._isActionVisible('shop'));
+                    this._setElementVisible(this.$.cdkBtn, this._isActionVisible('cdk'));
+                }
+
+                if (!this.hasLeaderboard) {
+                    this._setElementVisible(this.$.loginBtn, false);
+                    this._setElementVisible(this.$.logoutBtn, false);
+                    this._setElementVisible(this.$.ticketBtn, false);
+                } else {
+                    this._setElementVisible(this.$.loginBtn, !logged && this._isActionVisible('login'));
+                    this._setElementVisible(this.$.logoutBtn, logged && this._isActionVisible('logout'));
+                    this._setElementVisible(this.$.ticketBtn, logged && this._isActionVisible('ticket'));
+                }
+
+                this._applyActionOrder();
+            }
+
+            _getThemeModeLabel(mode = this.themeMode) {
+                const labelMap = {
+                    auto: '跟随系统',
+                    light: '浅色',
+                    dark: '深色'
+                };
+                return labelMap[mode] || labelMap.light;
+            }
+
+            _getDefaultReadingGoalHours() {
+                return 3;
+            }
+
+            _normalizeReadingGoalHours(hours) {
+                const fallback = this._getDefaultReadingGoalHours();
+                const num = Utils.toSafeNumber(hours, fallback);
+                const snapped = Math.round(num * 2) / 2;
+                return Math.min(20, Math.max(0.5, snapped));
+            }
+
+            _formatReadingGoalHours(hours = this.readingGoalHours) {
+                const normalized = this._normalizeReadingGoalHours(hours);
+                return Number.isInteger(normalized) ? String(normalized) : normalized.toFixed(1);
+            }
+
+            _loadReadingGoalHours() {
+                const saved = this.storage.getGlobal('readingGoalHours', this._getDefaultReadingGoalHours());
+                return this._normalizeReadingGoalHours(saved);
+            }
+
+            _setReadingGoalHours(hours, { persist = true, rerender = true } = {}) {
+                const normalized = this._normalizeReadingGoalHours(hours);
+                const changed = normalized !== this.readingGoalHours;
+                this.readingGoalHours = normalized;
+
+                if (persist && changed) {
+                    this.storage.setGlobalNow('readingGoalHours', normalized);
+                }
+
+                this._syncSettingsMenuState();
+
+                if (rerender && this.trendTab === 'today' && this.$?.trends) {
+                    const history = this.historyMgr?.getHistory?.() || [];
+                    this._renderTrendContent(history, this.cachedReqs || []);
+                }
+
+                return normalized;
+            }
+
+            _setSettingsView(view = 'root') {
+                const menu = this.$.settingsMenu;
+                if (!menu) return;
+                const target = menu.querySelector(`.ldsp-settings-view[data-settings-view="${view}"]`) ? view : 'root';
+                this._settingsView = target;
+                this.$.settingsViews?.forEach(panel => {
+                    panel.classList.toggle('active', panel.dataset.settingsView === target);
+                });
+                menu.dataset.view = target;
+                if (target === 'actions-order') {
+                    this._renderActionOrderList();
+                }
+            }
+
+            _syncSettingsMenuState() {
+                this.$.settingsThemeOptions?.forEach(btn => {
+                    const active = btn.dataset.themeMode === this.themeMode;
+                    btn.classList.toggle('active', active);
+                });
+
+                const themeLabel = this._getThemeModeLabel();
+                this.$.settingsThemeValues?.forEach(el => {
+                    el.textContent = themeLabel;
+                });
+
+                const goalLabel = `${this._formatReadingGoalHours()}小时`;
+                this.$.settingsGoalValues?.forEach(el => {
+                    el.textContent = goalLabel;
+                });
+                if (this.$.settingsGoalRange) {
+                    this.$.settingsGoalRange.value = String(this.readingGoalHours);
+                }
+                if (this.$.settingsGoalNumber) {
+                    this.$.settingsGoalNumber.value = String(this.readingGoalHours);
+                }
+
+                let enabledCount = 0;
+                let totalCount = 0;
+                this.$.settingsActionInputs?.forEach(input => {
+                    const key = input.dataset.actionKey;
+                    const enabled = !!key && this._isActionVisible(key);
+                    input.checked = enabled;
+                    totalCount++;
+                    if (enabled) enabledCount++;
+                });
+                const actionSummary = totalCount > 0 ? `${enabledCount}/${totalCount} 开启` : '';
+                this.$.settingsActionsValues?.forEach(el => {
+                    el.textContent = actionSummary;
+                });
+
+                this._renderActionOrderList();
+            }
+
+            _showSettingsMenu() {
+                const menu = this.$.settingsMenu;
+                if (!menu || this.el.classList.contains('collapsed')) return;
+                this._syncSettingsMenuState();
+                this._setSettingsView('root');
+                menu.classList.add('show');
+                menu.setAttribute('aria-hidden', 'false');
+            }
+
+            _hideSettingsMenu() {
+                const menu = this.$.settingsMenu;
+                if (!menu) return;
+                menu.classList.remove('show');
+                menu.setAttribute('aria-hidden', 'true');
+                this._setSettingsView('root');
+            }
+
+            _toggleSettingsMenu() {
+                const menu = this.$.settingsMenu;
+                if (!menu) return;
+                if (menu.classList.contains('show')) {
+                    this._hideSettingsMenu();
+                } else {
+                    this._showSettingsMenu();
+                }
+            }
+
             _updateExpandDir() {
                 const rect = this.el.getBoundingClientRect();
                 const center = rect.left + rect.width / 2;
-                const alignRight = center > innerWidth / 2;
+                const { vw } = Screen.getViewport();
+                const alignRight = center > vw / 2;
                 this.el.classList.toggle('expand-left', alignRight);
                 this.el.classList.toggle('expand-right', !alignRight);
             }
@@ -14506,7 +15258,7 @@ a:hover{text-decoration:underline;}
             
             _getPanelSizeConfig() {
                 const cfg = Screen.getConfig();
-                const { innerWidth: vw, innerHeight: vh } = window;
+                const { vw, vh } = Screen.getViewport();
                 const custom = this.storage.getGlobal('customSize', null);
                 const bounds = this._getPanelSizeBounds(cfg, vw, vh);
                 
@@ -14573,7 +15325,7 @@ a:hover{text-decoration:underline;}
             _savePosition() {
                 const el = this.el;
                 const rect = el.getBoundingClientRect();
-                const { innerWidth: vw, innerHeight: vh } = window;
+                const { vw, vh } = Screen.getViewport();
                 
                 const centerX = rect.left + rect.width / 2;
                 const alignRight = centerX > vw / 2;
@@ -14589,7 +15341,7 @@ a:hover{text-decoration:underline;}
                 }
                 
                 this.storage.setGlobalNow('position', { 
-                    topRatio: rect.top / vh,
+                    topRatio: vh > 0 ? Math.max(0, Math.min(1, rect.top / vh)) : 0,
                     anchorX,
                     alignRight 
                 });
@@ -14602,7 +15354,7 @@ a:hover{text-decoration:underline;}
             _restorePosition() {
                 const el = this.el;
                 const pos = this.storage.getGlobal('position');
-                const { innerWidth: vw, innerHeight: vh } = window;
+                const { vw, vh } = Screen.getViewport();
                 const margin = 8;
                 const isCollapsed = el.classList.contains('collapsed');
                 const cfg = Screen.getConfig();
@@ -14637,8 +15389,12 @@ a:hover{text-decoration:underline;}
                 }
                 
                 // 确保在视口内
-                top = Math.max(margin, Math.min(top, vh - panelHeight - margin));
-                anchorX = Math.max(margin, Math.min(anchorX, vw - panelWidth - margin));
+                const maxTop = Math.max(margin, vh - panelHeight - margin);
+                const maxAnchorX = Math.max(margin, vw - panelWidth - margin);
+                top = Utils.toSafeNumber(top, maxTop);
+                anchorX = Utils.toSafeNumber(anchorX, margin);
+                top = Math.max(margin, Math.min(top, maxTop));
+                anchorX = Math.max(margin, Math.min(anchorX, maxAnchorX));
                 
                 // 取整避免精度问题
                 anchorX = Math.round(anchorX);
@@ -14786,12 +15542,17 @@ a:hover{text-decoration:underline;}
              */
             _toggle() {
                 if (this._toggleAnimating) return;
+                this._hideSettingsMenu();
                 this._toggleAnimating = true;
                 
                 const el = this.el;
                 const isCurrentlyCollapsed = el.classList.contains('collapsed');
                 const willCollapse = !isCurrentlyCollapsed;
-                const { innerWidth: vw } = window;
+                const { vw } = Screen.getViewport();
+
+                if (willCollapse) {
+                    this._pauseAnnouncements();
+                }
                 
                 // 从已保存的位置获取对齐方向，避免因面板尺寸变化导致判断不一致
                 const savedPos = this.storage.getGlobal('position');
@@ -14867,6 +15628,7 @@ a:hover{text-decoration:underline;}
                     if (!willCollapse) {
                         this.animRing = true;
                         this.cachedReqs.length && setTimeout(() => this.renderer.renderReqs(this.cachedReqs), 100);
+                        setTimeout(() => this._resumeAnnouncements(), 260);
                     }
 
                     // 7. 动画结束后清理状态
@@ -14885,7 +15647,7 @@ a:hover{text-decoration:underline;}
              */
             _savePositionKeepAlign(alignRight) {
                 const el = this.el;
-                const { innerWidth: vw, innerHeight: vh } = window;
+                const { vw, vh } = Screen.getViewport();
                 
                 // 直接从 inline style 读取锚点位置
                 let anchorX;
@@ -14910,11 +15672,12 @@ a:hover{text-decoration:underline;}
                 }
                 
                 // 确保 anchorX 在合理范围内（防止保存无效值）
-                anchorX = Math.max(8, anchorX);
+                const maxAnchorX = Math.max(8, vw - el.offsetWidth - 8);
+                anchorX = Math.max(8, Math.min(anchorX, maxAnchorX));
                 
                 // top 也从 style 读取，避免动画期间 getBoundingClientRect 的不稳定
                 const styleTop = parseFloat(el.style.top);
-                const topRatio = !isNaN(styleTop) ? styleTop / vh : undefined;
+                const topRatio = (!isNaN(styleTop) && vh > 0) ? styleTop / vh : undefined;
                 
                 // 如果有有效的 topRatio，则保存；否则保留之前的值
                 if (topRatio !== undefined) {
@@ -14934,10 +15697,43 @@ a:hover{text-decoration:underline;}
                 }
             }
 
-            _switchTheme() {
-                const light = this.el.classList.toggle('light');
-                this.$.btnTheme.textContent = light ? '☀️' : '🌓';
-                this.storage.setGlobalNow('theme', light ? 'light' : 'dark');
+            _getPageAvatarUrl() {
+                const selectors = [
+                    '.current-user img.avatar',
+                    '.current-user .avatar img',
+                    '.d-header-icons .current-user img.avatar',
+                    '.header-dropdown-toggle.current-user img.avatar'
+                ];
+                for (const selector of selectors) {
+                    const img = document.querySelector(selector);
+                    if (!img) continue;
+                    const src = img.getAttribute('src') || img.getAttribute('data-src') || '';
+                    if (src) return src;
+                }
+
+                const discourseUser = Utils.safeCall(() => window.Discourse?.User?.current?.(), null);
+                const avatarTemplate = discourseUser?.avatar_template;
+                if (typeof avatarTemplate === 'string' && avatarTemplate.trim()) {
+                    let avatarUrl = avatarTemplate.replace('{size}', '128');
+                    if (avatarUrl.startsWith('/')) avatarUrl = `${location.origin}${avatarUrl}`;
+                    return avatarUrl;
+                }
+
+                return '';
+            }
+
+            _syncForumIdentityDisplay() {
+                const forumUsername = this.storage.getUser();
+                const oauthLoggedIn = !!(this.hasLeaderboard && this.oauth?.isLoggedIn());
+
+                if (forumUsername && !oauthLoggedIn) {
+                    this.$.userDisplayName.textContent = forumUsername;
+                    this.$.userHandle.textContent = '';
+                    this.$.userHandle.style.display = 'none';
+                }
+
+                const pageAvatar = this._getPageAvatarUrl();
+                if (pageAvatar) this._updateAvatar(pageAvatar);
             }
 
             // 从缓存加载头像（优先动态头像）
@@ -14953,10 +15749,8 @@ a:hover{text-decoration:underline;}
                     return;
                 }
                 // 3. 都没有则尝试从页面获取
-                const el = document.querySelector('.current-user img.avatar');
-                if (el) {
-                    this._updateAvatar(el.src);
-                }
+                const pageAvatar = this._getPageAvatarUrl();
+                if (pageAvatar) this._updateAvatar(pageAvatar);
             }
 
             // 更新普通头像（从页面获取时调用）
@@ -15041,6 +15835,7 @@ a:hover{text-decoration:underline;}
                 this._startReadingUpdate();
                 this.readingTime = this.tracker.getTodayTime();
                 this.renderer.renderReading(this.readingTime, this.tracker.isActive);
+                this._syncForumIdentityDisplay();
                 
                 Logger.log(`阅读追踪器已降级初始化: ${username || 'anonymous'}`);
             }
@@ -16016,7 +16811,7 @@ a:hover{text-decoration:underline;}
 
                 const fns = {
                     // 使用 tracker.getTodayTime() 获取实时阅读时间，而不是缓存的 this.readingTime
-                    today: () => this.renderer.renderTodayTrend(reqs, this.tracker.getTodayTime(), this._getTodayData()),
+                    today: () => this.renderer.renderTodayTrend(reqs, this.tracker.getTodayTime(), this._getTodayData(), this.readingGoalHours),
                     week: () => this.renderer.renderWeekTrend(history, reqs, this.historyMgr, this.tracker),
                     month: () => this.renderer.renderMonthTrend(history, reqs, this.historyMgr, this.tracker),
                     all: () => this.renderer.renderAllTrend(history, reqs, this.tracker)
@@ -16090,6 +16885,35 @@ a:hover{text-decoration:underline;}
              * 显示多条公告轮播
              * @param {Array} items - 公告数组 [{content, type, expiresAt}, ...]
              */
+            _clearAnnouncementAnimationListener() {
+                const inner = this.$.announcement?.querySelector('.ldsp-announcement-inner');
+                if (inner && this._announcementEndHandler) {
+                    inner.removeEventListener('animationend', this._announcementEndHandler);
+                }
+                this._announcementEndHandler = null;
+            }
+
+            _pauseAnnouncements() {
+                this._announcementPaused = true;
+                this._clearAnnouncementAnimationListener();
+                const inner = this.$.announcement?.querySelector('.ldsp-announcement-inner');
+                if (inner) {
+                    inner.classList.add('paused');
+                }
+            }
+
+            _resumeAnnouncements() {
+                if (!this._announcementItems?.length) return;
+                this._announcementPaused = false;
+                const inner = this.$.announcement?.querySelector('.ldsp-announcement-inner');
+                if (inner) {
+                    inner.classList.remove('paused');
+                }
+                requestAnimationFrame(() => {
+                    this._displayCurrentAnnouncement({ force: true });
+                });
+            }
+
             _showAnnouncements(items) {
                 if (!this.$.announcement || !this.$.announcementText) return;
                 
@@ -16098,16 +16922,18 @@ a:hover{text-decoration:underline;}
                     clearTimeout(this._announcementTimer);
                     this._announcementTimer = null;
                 }
+                this._clearAnnouncementAnimationListener();
                 
                 this._announcementItems = items;
                 this._announcementIndex = 0;
-                
-                // 显示第一条公告
-                this._displayCurrentAnnouncement();
-                
-                // 显示公告栏
+                this._announcementPaused = false;
+
+                this.$.announcement.classList.add('active');
                 requestAnimationFrame(() => {
-                    this.$.announcement.classList.add('active');
+                    this._displayCurrentAnnouncement({ force: true });
+                    if (this.el.classList.contains('collapsed')) {
+                        this._pauseAnnouncements();
+                    }
                 });
             }
             
@@ -16115,20 +16941,19 @@ a:hover{text-decoration:underline;}
              * 安排下一条公告的切换（使用动画结束事件）
              */
             _scheduleNextAnnouncement() {
-                if (this._announcementItems.length <= 1) return;
+                if (this._announcementItems.length <= 1 || this._announcementPaused || this.el.classList.contains('collapsed')) return;
                 
                 const inner = this.$.announcement.querySelector('.ldsp-announcement-inner');
                 if (!inner) return;
                 
                 // 移除旧的监听器
-                if (this._announcementEndHandler) {
-                    inner.removeEventListener('animationend', this._announcementEndHandler);
-                }
+                this._clearAnnouncementAnimationListener();
                 
                 // 添加新的动画结束监听器
                 this._announcementEndHandler = () => {
+                    if (this._announcementPaused || this.el.classList.contains('collapsed')) return;
                     this._announcementIndex = (this._announcementIndex + 1) % this._announcementItems.length;
-                    this._displayCurrentAnnouncement();
+                    this._displayCurrentAnnouncement({ force: true });
                 };
                 inner.addEventListener('animationend', this._announcementEndHandler, { once: true });
             }
@@ -16136,7 +16961,7 @@ a:hover{text-decoration:underline;}
             /**
              * 显示当前索引的公告
              */
-            _displayCurrentAnnouncement() {
+            _displayCurrentAnnouncement({ force = false } = {}) {
                 const item = this._announcementItems[this._announcementIndex];
                 if (!item) return;
                 
@@ -16157,10 +16982,23 @@ a:hover{text-decoration:underline;}
                 if (inner) {
                     inner.style.animation = 'none';
                     inner.offsetHeight; // 触发重排
-                    
+
+                    const canAnimate = force &&
+                        !this._announcementPaused &&
+                        !this.el.classList.contains('collapsed');
+
+                    if (!canAnimate) {
+                        inner.classList.add('paused');
+                        inner.style.animation = '';
+                        this._clearAnnouncementAnimationListener();
+                        return;
+                    }
+
+                    inner.classList.remove('paused');
+
                     // 计算文字实际宽度和容器宽度
-                    const textWidth = this.$.announcementText.scrollWidth;
-                    const containerWidth = this.$.announcement.clientWidth;
+                    const textWidth = Math.max(40, this.$.announcementText.scrollWidth || 0);
+                    const containerWidth = Math.max(60, this.$.announcement.clientWidth || 0);
                     
                     // 计算滚动距离：从容器右侧开始，滚动到文字完全离开左侧
                     // 起点：100%（容器宽度）
@@ -16169,9 +17007,9 @@ a:hover{text-decoration:underline;}
                     this.$.announcement.style.setProperty('--start-x', '100%');
                     this.$.announcement.style.setProperty('--end-x', `${endX}%`);
                     
-                    // 根据总滚动距离设置速度（每秒约 50px）
+                    // 根据总滚动距离设置速度（每秒约 42px）
                     const totalDistance = containerWidth + textWidth;
-                    const duration = Math.max(8, Math.min(60, totalDistance / 50));
+                    const duration = Math.max(12, Math.min(80, totalDistance / 42));
                     this.$.announcement.style.setProperty('--marquee-duration', `${duration}s`);
                     
                     // 单条公告无限循环，多条公告播放一次后切换
@@ -16289,34 +17127,17 @@ a:hover{text-decoration:underline;}
             // ========== 登录相关 ==========
 
             _updateLoginUI() {
-                // 无排行榜站点隐藏登录相关按钮
-                if (!this.hasLeaderboard) {
-                    if (this.$.btnCloudSync) this.$.btnCloudSync.style.display = 'none';
-                    if (this.$.logoutBtn) this.$.logoutBtn.style.display = 'none';
-                    if (this.$.ticketBtn) this.$.ticketBtn.style.display = 'none';
-                    if (this.$.loginBtn) this.$.loginBtn.style.display = 'none';
-                    return;
-                }
-                const logged = this.oauth.isLoggedIn();
+                const logged = this.hasLeaderboard && this.oauth.isLoggedIn();
                 const forumLogged = !!this.storage.getUser();  // 论坛登录状态
-                this.$.user.classList.toggle('not-logged', !logged);
+                // 用户信息样式按论坛登录状态控制，避免“仅未云登录”时误显示未登录样式
+                this.$.user.classList.toggle('not-logged', !forumLogged);
 
                 // 显示/隐藏云同步按钮
                 if (this.$.btnCloudSync) {
-                    this.$.btnCloudSync.style.display = logged ? '' : 'none';
+                    this.$.btnCloudSync.style.display = this.hasLeaderboard && logged ? '' : 'none';
                 }
 
-                // 显示/隐藏注销按钮和工单按钮（未登录时都隐藏）
-                if (this.$.logoutBtn) {
-                    this.$.logoutBtn.style.display = logged ? '' : 'none';
-                }
-                if (this.$.ticketBtn) {
-                    this.$.ticketBtn.style.display = logged ? '' : 'none';
-                }
-                // 显示/隐藏登录按钮（已登录时隐藏）
-                if (this.$.loginBtn) {
-                    this.$.loginBtn.style.display = logged ? 'none' : '';
-                }
+                this._applyActionVisibility();
                 
                 // 显示/隐藏关注粉丝和天数（论坛未登录时隐藏整个容器）
                 const userMeta = this.el.querySelector('.ldsp-user-meta');
@@ -16324,9 +17145,13 @@ a:hover{text-decoration:underline;}
                     userMeta.style.display = forumLogged ? '' : 'none';
                 }
 
-                if (!logged) {
+                // 只有论坛未登录时，点击头像/用户名才触发登录引导
+                if (!logged && this.hasLeaderboard && !forumLogged) {
                     this._bindUserLogin();
                 }
+
+                // 云同步未登录时也保持本地用户名/头像可见
+                this._syncForumIdentityDisplay();
                 
                 // 登录状态变化后重新计算按钮区域折叠状态
                 this._scheduleActionsOverflowCheck();
@@ -17472,11 +18297,36 @@ a:hover{text-decoration:underline;}
                 // 清理事件监听器
                 if (this._resizeHandler) {
                     window.removeEventListener('resize', this._resizeHandler);
+                    window.removeEventListener('orientationchange', this._resizeHandler);
+                    this._resizeHandler = null;
                 }
+                if (this._visualViewportHandler && window.visualViewport) {
+                    window.visualViewport.removeEventListener('resize', this._visualViewportHandler);
+                    window.visualViewport.removeEventListener('scroll', this._visualViewportHandler);
+                    this._visualViewportHandler = null;
+                }
+                if (this._pageShowResizeHandler) {
+                    window.removeEventListener('pageshow', this._pageShowResizeHandler);
+                    this._pageShowResizeHandler = null;
+                }
+                if (this._docClickHandler) {
+                    document.removeEventListener('mousedown', this._docClickHandler);
+                    this._docClickHandler = null;
+                }
+                if (this._escKeyHandler) {
+                    document.removeEventListener('keydown', this._escKeyHandler);
+                    this._escKeyHandler = null;
+                }
+                this._bindThemeMediaListener(false);
                 if (this._actionsCheckRaf) {
                     cancelAnimationFrame(this._actionsCheckRaf);
                     this._actionsCheckRaf = null;
                 }
+                if (this._announcementTimer) {
+                    clearTimeout(this._announcementTimer);
+                    this._announcementTimer = null;
+                }
+                this._clearAnnouncementAnimationListener();
                 
                 // 清理阅读追踪器
                 this.tracker?.destroy();
