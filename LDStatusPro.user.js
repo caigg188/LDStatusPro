@@ -14946,24 +14946,24 @@ a:hover{text-decoration:underline;}
                 requestAnimationFrame(() => { this._programmaticScroll = false; });
             }
 
-            _updateMainTabIndicator() {
+            _updateMainTabIndicator(immediate = false) {
                 const container = this.el?.querySelector('.ldsp-tabs');
                 if (!container) return;
                 requestAnimationFrame(() => {
-                    this._updateLiquidIndicator(container, '.ldsp-tab', '.ldsp-tab-indicator');
+                    this._updateLiquidIndicator(container, '.ldsp-tab', '.ldsp-tab-indicator', { immediate });
                 });
             }
 
-            _updateSubtabIndicator(scopeEl = null) {
+            _updateSubtabIndicator(scopeEl = null, immediate = false) {
                 const root = scopeEl || this.el;
                 const container = root?.querySelector('.ldsp-subtabs');
                 if (!container) return;
                 requestAnimationFrame(() => {
-                    this._updateLiquidIndicator(container, '.ldsp-subtab', '.ldsp-subtab-indicator');
+                    this._updateLiquidIndicator(container, '.ldsp-subtab', '.ldsp-subtab-indicator', { immediate });
                 });
             }
 
-            _updateLiquidIndicator(container, tabSelector, indicatorSelector) {
+            _updateLiquidIndicator(container, tabSelector, indicatorSelector, { immediate = false } = {}) {
                 const indicator = container?.querySelector(indicatorSelector);
                 if (!indicator) return;
 
@@ -14983,9 +14983,22 @@ a:hover{text-decoration:underline;}
                     return;
                 }
 
+                const prevTransition = indicator.style.transition;
+                if (immediate) {
+                    indicator.style.transition = 'none';
+                }
                 indicator.style.width = `${width}px`;
                 indicator.style.transform = `translateX(${left}px)`;
                 indicator.classList.add('show');
+                if (immediate) {
+                    void indicator.offsetWidth;
+                    indicator.style.transition = prevTransition;
+                }
+            }
+
+            _hideIndicators() {
+                this.el?.querySelector('.ldsp-tab-indicator')?.classList.remove('show');
+                this.el?.querySelectorAll('.ldsp-subtab-indicator')?.forEach(ind => ind.classList.remove('show'));
             }
             
             // 检查按钮区域是否需要展开/收起功能
@@ -15881,20 +15894,26 @@ a:hover{text-decoration:underline;}
                     
                     // 保存折叠状态
                     this.storage.setGlobalNow('collapsed', willCollapse);
+
+                    const syncActiveIndicators = (immediate = false) => {
+                        this._updateMainTabIndicator(immediate);
+                        this._updateSubtabIndicator(this.el?.querySelector('.ldsp-section.active'), immediate);
+                    };
                     
                     // 展开时的额外处理
                     if (!willCollapse) {
+                        this._hideIndicators();
                         this.animRing = true;
                         this.cachedReqs.length && setTimeout(() => this.renderer.renderReqs(this.cachedReqs), 100);
-                        setTimeout(() => {
-                            this._updateMainTabIndicator();
-                            this._updateSubtabIndicator(this.el?.querySelector('.ldsp-section.active'));
-                        }, 120);
                         setTimeout(() => this._resumeAnnouncements(), 260);
                     }
 
                     // 7. 动画结束后清理状态
                     setTimeout(() => {
+                        // 展开动画结束后再校准一次，避免折叠->展开期间的中间尺寸导致指示器偏移
+                        if (!willCollapse) {
+                            syncActiveIndicators(true);
+                        }
                         el.classList.remove('anim');
                         // 保存位置（保持当前的 alignRight，只更新 anchorX 和 top）
                         this._savePositionKeepAlign(alignRight);
