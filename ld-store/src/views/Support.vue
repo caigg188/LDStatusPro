@@ -175,6 +175,7 @@ const supportTiers = [
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+  isolation: isolate;
   animation: support-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -187,6 +188,7 @@ const supportTiers = [
   height: 220px;
   background: radial-gradient(circle, rgba(239, 122, 122, 0.12), transparent 70%);
   opacity: 0.6;
+  z-index: 0;
 }
 
 .support-hero::after {
@@ -196,6 +198,7 @@ const supportTiers = [
   background: radial-gradient(circle at 15% 15%, rgba(255, 255, 255, 0.5), transparent 45%);
   opacity: 0.7;
   pointer-events: none;
+  z-index: 0;
 }
 
 .support-hero-title {
@@ -207,6 +210,7 @@ const supportTiers = [
   align-items: center;
   gap: 10px;
   margin-bottom: 8px;
+  z-index: 2;
 }
 
 
@@ -221,6 +225,7 @@ const supportTiers = [
   filter: drop-shadow(0 12px 24px rgba(239, 122, 122, 0.18));
   transform: rotate(6deg);
   pointer-events: none;
+  z-index: 1;
 }
 
 .support-heart {
@@ -234,13 +239,16 @@ const supportTiers = [
   font-size: 14px;
   color: var(--text-secondary);
   line-height: 1.6;
+  z-index: 2;
 }
 
 .support-hero-points {
+  position: relative;
   margin-top: 16px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  z-index: 2;
 }
 
 .support-point {
