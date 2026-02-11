@@ -1,7 +1,7 @@
  // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.4.17
+    // @version      3.5.4.18
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -453,8 +453,13 @@
             NAME_MAP: new Map([
                 ['已读帖子（所有时间）', '已读帖子'],
                 ['浏览的话题（所有时间）', '浏览话题'],
+                ['浏览的话题', '浏览话题'],
+                ['回复的话题', '回复'],
+                ['访问次数', '访问天数'],
                 ['获赞：点赞用户数量', '点赞用户'],
                 ['获赞：单日最高数量', '获赞天数'],
+                ['被举报的帖子', '被举报帖子'],
+                ['发起举报的用户', '发起举报'],
                 ['被禁言（过去 6 个月）', '禁言'],
                 ['被封禁（过去 6 个月）', '封禁'],
                 ['发帖数量', '发帖'],
@@ -4558,6 +4563,8 @@
     .ldsp-shop-detail-header{display:flex;align-items:center;gap:8px;flex-shrink:0}
     .ldsp-shop-back-btn{padding:5px 10px;background:var(--bg-el);border:1px solid var(--border);border-radius:var(--r-sm);font-size:11px;color:var(--txt-sec);cursor:pointer;transition:all .15s;flex-shrink:0}
     .ldsp-shop-back-btn:hover{background:var(--bg-hover);border-color:var(--accent);color:var(--accent)}
+    .ldsp-shop-share-btn{padding:5px 10px;background:var(--bg-el);border:1px solid var(--border);border-radius:var(--r-sm);font-size:11px;color:var(--txt-sec);cursor:pointer;transition:all .15s;flex-shrink:0}
+    .ldsp-shop-share-btn:hover{background:var(--bg-hover);border-color:var(--accent);color:var(--accent)}
     .ldsp-shop-detail-category{font-size:9px;color:#fff;padding:2px 8px;background:linear-gradient(135deg,var(--accent),#8b5cf6);border-radius:4px;font-weight:500}
     .ldsp-shop-detail-img-wrap{width:100%;aspect-ratio:16/9;max-height:180px;flex-shrink:0;position:relative;border-radius:var(--r-md);overflow:hidden}
     .ldsp-shop-detail-img{width:100%;height:100%;object-fit:cover;background:var(--bg-el)}
@@ -8601,6 +8608,7 @@ a:hover{text-decoration:underline;}
                                 <button class="ldsp-shop-back-btn">←</button>
                                 <span class="ldsp-shop-detail-category">🏪 小店</span>
                                 <span class="ldsp-shop-detail-type-badge store">🏬 友情小店</span>
+                                <button class="ldsp-shop-share-btn" data-action="share-product" data-product-id="${product.id}" title="复制分享链接">🔗 分享</button>
                             </div>
                             ${hasImg ? 
                                 `<div class="ldsp-shop-detail-img-wrap"><img class="ldsp-shop-detail-img" src="${Utils.escapeHtml(product.image_url)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="ldsp-shop-detail-placeholder" style="display:none;background:${bgColor}">🏪</div></div>` : 
@@ -8641,6 +8649,7 @@ a:hover{text-decoration:underline;}
                             <button class="ldsp-shop-back-btn">←</button>
                             <span class="ldsp-shop-detail-category">${catIcon} ${Utils.escapeHtml(catName)}</span>
                             ${isCdk ? '<span class="ldsp-shop-detail-type-badge cdk">🎫 CDK自动发货</span>' : ''}
+                            <button class="ldsp-shop-share-btn"${isCdk ? '' : ' style="margin-left:auto"'} data-action="share-product" data-product-id="${product.id}" title="复制分享链接">🔗 分享</button>
                         </div>
                         ${hasImg ? 
                             `<div class="ldsp-shop-detail-img-wrap"><img class="ldsp-shop-detail-img" src="${Utils.escapeHtml(product.image_url)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="ldsp-shop-detail-placeholder" style="display:none;background:${bgColor}">${catIcon}</div></div>` : 
@@ -8676,6 +8685,28 @@ a:hover{text-decoration:underline;}
             }
 
             _bindProductDetailEvents(body) {
+                const copyText = async (text) => {
+                    if (!text) return false;
+                    if (navigator.clipboard?.writeText) {
+                        try {
+                            await navigator.clipboard.writeText(text);
+                            return true;
+                        } catch { /* fallback */ }
+                    }
+                    try {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        textarea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        const ok = document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        return !!ok;
+                    } catch {
+                        return false;
+                    }
+                };
+
                 // 返回按钮
                 body.querySelector('.ldsp-shop-back-btn')?.addEventListener('click', () => {
                     this._shopProduct = null;
@@ -8691,6 +8722,30 @@ a:hover{text-decoration:underline;}
                                 newBody.scrollTop = this._shopListScrollTop;
                             }
                         });
+                    }
+                });
+
+                // 分享按钮：复制固定格式分享链接
+                body.querySelector('[data-action="share-product"]')?.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const btn = e.currentTarget;
+                    const productId = parseInt(btn?.dataset?.productId || this._shopProduct?.id);
+                    if (!productId) {
+                        LDSPDialog.error('未找到物品 ID，无法生成分享链接');
+                        return;
+                    }
+
+                    const shareUrl = `https://ldst0re.qzz.io/product/${productId}`;
+                    const copied = await copyText(shareUrl);
+                    if (copied) {
+                        const originalText = btn.textContent;
+                        btn.textContent = '✅ 已复制';
+                        this.renderer?.showToast('✅ 分享链接已复制');
+                        setTimeout(() => {
+                            btn.textContent = originalText;
+                        }, 1500);
+                    } else {
+                        LDSPDialog.error('复制失败，请手动复制：' + shareUrl);
                     }
                 });
                 
@@ -15275,16 +15330,58 @@ a:hover{text-decoration:underline;}
                 try {
                     const baseUrl = `https://${CURRENT_SITE.domain}`;
                     const data = {};
+                    const applySummaryStats = stats => {
+                        if (!stats || typeof stats !== 'object') return false;
+                        // 显式无权限时直接返回 false（避免误用空数据）
+                        if (stats.can_see_summary_stats === false) return false;
+
+                        // 映射 Discourse API 字段到显示名称
+                        if (stats.days_visited !== undefined) data['访问天数'] = stats.days_visited;
+                        if (stats.topics_entered !== undefined) data['浏览话题'] = stats.topics_entered;
+                        if (stats.posts_read_count !== undefined) data['已读帖子'] = stats.posts_read_count;
+                        if (stats.likes_given !== undefined) data['送出赞'] = stats.likes_given;
+                        if (stats.likes_received !== undefined) data['获赞'] = stats.likes_received;
+                        if (stats.post_count !== undefined) data['回复'] = stats.post_count;
+                        if (stats.topic_count !== undefined) data['创建话题'] = stats.topic_count;
+                        // 额外字段：秒转分钟
+                        if (stats.time_read !== undefined) data['阅读时间'] = Math.round(stats.time_read / 60);
+
+                        return Object.keys(data).length > 0;
+                    };
+                    const extractSummaryStats = payload => {
+                        if (!payload || typeof payload !== 'object') return null;
+                        if (payload.user_summary && typeof payload.user_summary === 'object') return payload.user_summary;
+                        if (payload.data?.user_summary && typeof payload.data.user_summary === 'object') return payload.data.user_summary;
+                        // 少量场景可能直接返回 stats 对象
+                        if (payload.days_visited !== undefined || payload.posts_read_count !== undefined) return payload;
+                        return null;
+                    };
                     
                     // 优先使用 summary.json API（Discourse 标准 API）的 user_summary 字段
                     const jsonUrl = `${baseUrl}/u/${encodeURIComponent(username)}/summary.json`;
+
+                    // 方法0: 使用 fetchJson（同源优先原生 fetch + include cookie，鉴权最稳定）
+                    try {
+                        const json = await this.network.fetchJson(jsonUrl, {
+                            timeout: 10000,
+                            headers: buildAuthHeaders(jsonUrl, { 'Accept': 'application/json' })
+                        });
+                        const stats = extractSummaryStats(json);
+                        if (applySummaryStats(stats)) {
+                            return data;
+                        }
+                    } catch (e) { /* fetchJson 失败，继续后备方案 */ }
                     
                     // 尝试多种方式获取数据，兼容不同的用户脚本管理器
                     let jsonText = null;
                     
                     // 方法1: 使用 GM_xmlhttpRequest
                     try {
-                        jsonText = await this.network.fetch(jsonUrl, { maxRetries: 2, timeout: 10000, headers: buildAuthHeaders(jsonUrl) });
+                        jsonText = await this.network.fetch(jsonUrl, {
+                            maxRetries: 2,
+                            timeout: 10000,
+                            headers: buildAuthHeaders(jsonUrl, { 'Accept': 'application/json' })
+                        });
                     } catch (e) { /* GM fetch 失败 */ }
                     
                     // 方法2: 如果 GM 方式失败，尝试原生 fetch（同源请求更可靠）
@@ -15303,26 +15400,12 @@ a:hover{text-decoration:underline;}
                     
                     if (jsonText) {
                         try {
-                            const json = JSON.parse(jsonText);
-                            
-                            // 从 user_summary 字段提取统计数据
-                            const stats = json?.user_summary;
-                            if (stats) {
-                                // 映射 Discourse API 字段到显示名称
-                                if (stats.days_visited !== undefined) data['访问天数'] = stats.days_visited;
-                                if (stats.topics_entered !== undefined) data['浏览话题'] = stats.topics_entered;
-                                if (stats.posts_read_count !== undefined) data['已读帖子'] = stats.posts_read_count;
-                                if (stats.likes_given !== undefined) data['送出赞'] = stats.likes_given;
-                                if (stats.likes_received !== undefined) data['获赞'] = stats.likes_received;
-                                if (stats.post_count !== undefined) data['回复'] = stats.post_count;
-                                if (stats.topic_count !== undefined) data['创建话题'] = stats.topic_count;
-                                // 额外有用的字段
-                                if (stats.time_read !== undefined) data['阅读时间'] = Math.round(stats.time_read / 60); // 秒转分钟
-                                
-                                if (Object.keys(data).length > 0) {
-                                    return data;
-                                }
+                            if (/<!doctype|<html[\s>]/i.test(jsonText)) {
+                                throw new Error('summary.json returned html');
                             }
+                            const json = JSON.parse(jsonText);
+                            const stats = extractSummaryStats(json);
+                            if (applySummaryStats(stats)) return data;
                         } catch (e) { /* JSON 解析失败 */ }
                     }
                     
@@ -15573,12 +15656,136 @@ a:hover{text-decoration:underline;}
                 
                 return true;
             }
+
+            _normalizeConnectRequirementName(name) {
+                const rawName = Utils.sanitize((name || '').trim(), 100);
+                if (!rawName) return '';
+
+                const aliasMap = {
+                    '访问天数': '访问次数',
+                    '浏览话题': '浏览的话题',
+                    '浏览帖子': '已读帖子',
+                    '回复话题': '回复的话题',
+                    '获赞天数': '获赞：单日最高数量',
+                    '获赞用户': '获赞：点赞用户数量',
+                    '被举报帖子': '被举报的帖子',
+                    '举报用户': '发起举报的用户',
+                    '被禁言': '被禁言（过去 6 个月）',
+                    '被封禁': '被封禁（过去 6 个月）'
+                };
+
+                return aliasMap[rawName] || rawName;
+            }
+
+            _parseConnectMetricNumber(text) {
+                if (text === null || text === undefined) return 0;
+                const cleaned = String(text).replace(/[,，\s]/g, '');
+                const match = cleaned.match(/-?\d+/);
+                return match ? (parseInt(match[0], 10) || 0) : 0;
+            }
+
+            _parseConnectMetricPair(text) {
+                if (!text) return [0, 0];
+                const cleaned = String(text).replace(/[,，\s]/g, '');
+                const values = cleaned.match(/-?\d+/g) || [];
+                const currentValue = values[0] ? (parseInt(values[0], 10) || 0) : 0;
+                const requiredValue = values[1] ? (parseInt(values[1], 10) || 0) : 0;
+                return [currentValue, requiredValue];
+            }
+
+            _extractConnectRequirements(section) {
+                const reqMap = new Map();
+                const parseStyleMetric = (el, key) => {
+                    if (!el) return 0;
+                    const styleText = el.getAttribute('style') || '';
+                    const match = styleText.match(new RegExp(`--${key}:\\s*([^;]+)`));
+                    return match ? this._parseConnectMetricNumber(match[1]) : 0;
+                };
+                const parseStatus = el => {
+                    if (!el) return null;
+                    if (el.classList.contains('met')) return true;
+                    if (el.classList.contains('unmet')) return false;
+                    return null;
+                };
+                const pushReq = (rawName, currentValue, requiredValue, explicitSuccess = null) => {
+                    const name = this._normalizeConnectRequirementName(rawName);
+                    if (!name) return;
+
+                    const current = Utils.toSafeInt(currentValue, 0);
+                    const required = Utils.toSafeInt(requiredValue, 0);
+                    const isReverse = PATTERNS.REVERSE.test(name);
+                    const isSuccess = typeof explicitSuccess === 'boolean'
+                        ? explicitSuccess
+                        : (isReverse ? current <= required : current >= required);
+                    const prev = this.prevReqs.find(p => p.name === name);
+
+                    reqMap.set(name, {
+                        name,
+                        currentValue: current,
+                        requiredValue: required,
+                        isSuccess,
+                        change: prev ? current - prev.currentValue : 0,
+                        isReverse
+                    });
+                };
+
+                // 旧版 connect：表格结构
+                const rows = section.querySelectorAll('table tr');
+                for (let i = 1; i < rows.length; i++) {
+                    const cells = rows[i].querySelectorAll('td');
+                    if (cells.length < 3) continue;
+
+                    const name = cells[0].textContent.trim();
+                    const currentValue = this._parseConnectMetricNumber(cells[1].textContent);
+                    const requiredValue = this._parseConnectMetricNumber(cells[2].textContent);
+                    const isSuccess = cells[1].classList.contains('text-green-500');
+                    pushReq(name, currentValue, requiredValue, isSuccess);
+                }
+
+                // 新版 connect：环形指标
+                section.querySelectorAll('.tl3-ring').forEach(item => {
+                    const name = item.querySelector('.tl3-ring-label')?.textContent?.trim();
+                    const ringCircle = item.querySelector('.tl3-ring-circle');
+                    let currentValue = this._parseConnectMetricNumber(item.querySelector('.tl3-ring-current')?.textContent);
+                    let requiredValue = this._parseConnectMetricNumber(item.querySelector('.tl3-ring-target')?.textContent);
+                    if (!currentValue) currentValue = parseStyleMetric(ringCircle, 'val');
+                    if (!requiredValue) requiredValue = parseStyleMetric(ringCircle, 'max');
+                    pushReq(name, currentValue, requiredValue, parseStatus(ringCircle));
+                });
+
+                // 新版 connect：条形指标
+                section.querySelectorAll('.tl3-bar-item').forEach(item => {
+                    const name = item.querySelector('.tl3-bar-label')?.textContent?.trim();
+                    const numsEl = item.querySelector('.tl3-bar-nums');
+                    const fillEl = item.querySelector('.tl3-bar-fill');
+                    let [currentValue, requiredValue] = this._parseConnectMetricPair(numsEl?.textContent);
+                    if (!currentValue) currentValue = parseStyleMetric(fillEl, 'val');
+                    if (!requiredValue) requiredValue = parseStyleMetric(fillEl, 'max');
+                    pushReq(name, currentValue, requiredValue, parseStatus(numsEl) ?? parseStatus(fillEl));
+                });
+
+                // 新版 connect：配额指标
+                section.querySelectorAll('.tl3-quota-card').forEach(item => {
+                    const name = item.querySelector('.tl3-quota-label')?.textContent?.trim();
+                    const [currentValue, requiredValue] = this._parseConnectMetricPair(item.querySelector('.tl3-quota-nums')?.textContent);
+                    pushReq(name, currentValue, requiredValue, parseStatus(item));
+                });
+
+                // 新版 connect：一票否决项（要求固定为 0）
+                section.querySelectorAll('.tl3-veto-item').forEach(item => {
+                    const name = item.querySelector('.tl3-veto-label')?.textContent?.trim();
+                    const currentValue = this._parseConnectMetricNumber(item.querySelector('.tl3-veto-value')?.textContent);
+                    pushReq(name, currentValue, 0, parseStatus(item));
+                });
+
+                return [...reqMap.values()];
+            }
             
             async _parse(html) {
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 
                 // 尝试获取用户名（即使没有升级要求数据也可能有用户信息）
-                const avatarEl = doc.querySelector('img[src*="avatar"]');
+                const avatarEl = doc.querySelector('img[src*="avatar"], .user-avatar-img');
                 
                 // 尝试从页面提取用户名和信任等级
                 let username = null;
@@ -15601,9 +15808,26 @@ a:hover{text-decoration:underline;}
                 if (!username && avatarEl?.alt) {
                     username = avatarEl.alt;
                 }
+
+                // 2.1 从用户菜单信息解析用户名和等级（新版 connect）
+                const userInfoText = doc.querySelector('.user-menu-info div:last-child')?.textContent?.trim() || '';
+                if (userInfoText) {
+                    const userInfoMatch = userInfoText.match(/@([^@\s·|]+).*?(?:信任级别|trust\s*level)\s*(\d+)/i);
+                    if (userInfoMatch) {
+                        if (!username) username = userInfoMatch[1];
+                        if (connectLevel === null) {
+                            connectLevel = parseInt(userInfoMatch[2]) || 0;
+                            level = connectLevel.toString();
+                        }
+                    }
+                }
                 
                 // 3. 查找包含信任级别的区块获取更多信息
-                const section = [...doc.querySelectorAll('.bg-white.p-6.rounded-lg')].find(d => d.querySelector('h2')?.textContent.includes('信任级别'));
+                const section = [...doc.querySelectorAll('.bg-white.p-6.rounded-lg, .card')].find(d => {
+                    const titleText = d.querySelector('h2, .card-title')?.textContent || '';
+                    return /信任级别|trust\s*level/i.test(titleText) ||
+                        !!d.querySelector('.tl3-rings, .tl3-bars, .tl3-quota, .tl3-veto');
+                });
                 
 
                 
@@ -15635,13 +15859,28 @@ a:hover{text-decoration:underline;}
                 }
                 
                 if (section) {
-                    const heading = section.querySelector('h2').textContent;
-                    const match = heading.match(PATTERNS.TRUST_LEVEL);
-                    if (match) {
-                        if (!username) username = match[1];
+                    const heading = section.querySelector('h2, .card-title')?.textContent?.trim() || '';
+                    const oldMatch = heading.match(PATTERNS.TRUST_LEVEL);
+                    if (oldMatch) {
+                        if (!username) username = oldMatch[1];
                         if (connectLevel === null) {
-                            connectLevel = parseInt(match[2]) || 0;
-                            level = match[2];
+                            connectLevel = parseInt(oldMatch[2]) || 0;
+                            level = oldMatch[2];
+                        }
+                    }
+
+                    const levelMatch = heading.match(/(?:信任级别|trust\s*level)\s*(\d+)/i);
+                    if (levelMatch && connectLevel === null) {
+                        connectLevel = parseInt(levelMatch[1]) || 0;
+                        level = connectLevel.toString();
+                    }
+
+                    // 新版 connect 从副标题解析用户名：@username · 过去 100 天内的数据
+                    if (!username) {
+                        const subtitle = section.querySelector('.card-subtitle')?.textContent || '';
+                        const subtitleMatch = subtitle.match(/@([^@\s·|]+)/);
+                        if (subtitleMatch) {
+                            username = subtitleMatch[1];
                         }
                     }
                 }
@@ -15668,35 +15907,25 @@ a:hover{text-decoration:underline;}
                     this._updateTrustLevel(connectLevel);
                 }
                 
-                // 如果没有找到升级要求区块，fallback 到 summary 数据
-                if (!section) {
+                const reqs = this._extractConnectRequirements(section);
+                if (!reqs.length) {
                     return await this._showFallbackStats(username, level);
                 }
-
-                const rows = section.querySelectorAll('table tr');
-                const reqs = [];
-
-                for (let i = 1; i < rows.length; i++) {
-                    const cells = rows[i].querySelectorAll('td');
-                    if (cells.length < 3) continue;
-
-                    const name = cells[0].textContent.trim();
-                    const curMatch = cells[1].textContent.match(PATTERNS.NUMBER);
-                    const reqMatch = cells[2].textContent.match(PATTERNS.NUMBER);
-                    const currentValue = curMatch ? +curMatch[1] : 0;
-                    const requiredValue = reqMatch ? +reqMatch[1] : 0;
-                    const isSuccess = cells[1].classList.contains('text-green-500');
-                    const prev = this.prevReqs.find(p => p.name === name);
-
-                    reqs.push({
-                        name, currentValue, requiredValue, isSuccess,
-                        change: prev ? currentValue - prev.currentValue : 0,
-                        isReverse: PATTERNS.REVERSE.test(name)
-                    });
-                }
-
                 const orderedReqs = Utils.reorderRequirements(reqs);
-                const isOK = !section.querySelector('p.text-red-500');
+                let isOK = orderedReqs.every(r => r.isSuccess);
+                const statusEl = section.querySelector('.badge, .status-met, .status-unmet, p[class*="status"]');
+                if (statusEl) {
+                    const statusText = statusEl.textContent || '';
+                    const isMet = statusEl.classList.contains('badge-success') ||
+                        statusEl.classList.contains('status-met') ||
+                        /已达到|已满足|达标|met/i.test(statusText);
+                    const isUnmet = statusEl.classList.contains('badge-danger') ||
+                        statusEl.classList.contains('badge-warning') ||
+                        statusEl.classList.contains('status-unmet') ||
+                        /未达到|未满足|未达标|unmet|未完成/i.test(statusText);
+                    if (isMet) isOK = true;
+                    if (isUnmet) isOK = false;
+                }
 
                 this.notifier.check(orderedReqs);
 
