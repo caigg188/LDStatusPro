@@ -6,10 +6,18 @@ Todo.md
 !DOCS.md
 !update_log.md
 !prd.md
+PROJECT_STRUCTURE.md
 backend
+ld-store-backend
 admin-panel
 /docs
 scripts
+node_modules
+ld-store-server
+.prettierrc.json
+*_pre
+*.sql
+*.db
 
 # website 构建产物和依赖
 !website/docs/*.md
