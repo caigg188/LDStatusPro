@@ -3635,7 +3635,11 @@
     .ldsp-hdr-btns>button:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
     .ldsp-hdr-btns>button.has-update{background:linear-gradient(135deg,var(--ok),var(--ok-light));animation:pulse-update 3s ease-in-out infinite;position:relative;box-shadow:0 0 15px rgba(16,185,129,.4)}
     .ldsp-hdr-btns>button.has-update::after{content:'';position:absolute;top:-3px;right:-3px;width:10px;height:10px;background:var(--err);border-radius:50%;border:2px solid rgba(0,0,0,.2);animation:pulse-dot 2.5s ease infinite}
-    .ldsp-settings-menu{position:absolute;top:34px;right:8px;width:min(250px,calc(100% - 16px));max-width:calc(100vw - 24px);max-height:min(360px,calc(var(--h) - 56px));overflow:hidden;padding:8px;box-sizing:border-box;background:var(--bg-card);border:1px solid var(--border2);border-radius:12px;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transform:translateY(-8px) scale(.98);transition:opacity .2s var(--ease),transform .2s var(--ease);z-index:30}
+    #ldsp-panel.settings-open{overflow:visible}
+    .ldsp-settings-menu{position:absolute;top:34px;left:8px;right:auto;width:clamp(240px,26vw,300px);min-width:230px;max-width:min(300px,calc(100vw - 24px));max-height:min(360px,calc(var(--h) - 56px));overflow:hidden;padding:8px;box-sizing:border-box;background:var(--bg-card);border:1px solid var(--border2);border-radius:12px;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transform:translateY(-8px) scale(.98);transition:opacity .2s var(--ease),transform .2s var(--ease);z-index:30}
+    #ldsp-panel.expand-left .ldsp-settings-menu{left:auto;right:8px}
+    #ldsp-panel.settings-open .ldsp-hdr{border-top-left-radius:var(--r-lg);border-top-right-radius:var(--r-lg)}
+    #ldsp-panel.settings-open .ldsp-hdr::before,#ldsp-panel.settings-open .ldsp-hdr::after{border-top-left-radius:inherit;border-top-right-radius:inherit}
     .ldsp-settings-menu.show{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
     .ldsp-settings-menu button{font:inherit;line-height:1.2;cursor:pointer}
     .ldsp-settings-view{display:none;max-height:calc(var(--h) - 72px);overflow:auto;padding:2px;scrollbar-width:thin;scrollbar-color:var(--scrollbar) transparent}
@@ -3649,20 +3653,21 @@
     .ldsp-settings-back:hover{background:var(--bg-hover);color:var(--accent)}
     .ldsp-settings-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:9px 10px;margin-bottom:6px;border:1px solid transparent;border-radius:9px;background:var(--bg-el);color:var(--txt);font-size:11px;text-align:left;transition:background .15s,border-color .15s,transform .15s}
     .ldsp-settings-nav:hover{background:var(--bg-hover);border-color:var(--border2);transform:translateY(-1px)}
-    .ldsp-settings-nav-main{display:flex;align-items:center;gap:8px;font-weight:600}
-    .ldsp-settings-nav-value{font-size:10px;color:var(--txt-mut);max-width:92px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ldsp-settings-nav-main{display:flex;align-items:center;gap:8px;font-weight:600;min-width:0;flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ldsp-settings-nav-value{font-size:10px;color:var(--txt-mut);max-width:132px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto}
     .ldsp-settings-nav-arrow{font-size:13px;color:var(--txt-mut)}
     .ldsp-settings-title{font-size:11px;font-weight:700;color:var(--txt-sec);margin:2px 0 8px;padding:0 2px}
     .ldsp-settings-option{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;border:1px solid transparent;background:var(--bg-el);color:var(--txt);padding:8px 10px;border-radius:9px;font-size:11px;transition:border-color .15s,background .15s,transform .15s}
     .ldsp-settings-option+.ldsp-settings-option{margin-top:6px}
     .ldsp-settings-option:hover{background:var(--bg-hover);border-color:var(--border2);transform:translateY(-1px)}
     .ldsp-settings-option.active{border-color:var(--accent);background:rgba(107,140,239,.18)}
-    .ldsp-settings-option-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+    .ldsp-settings-option-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
     .ldsp-settings-option-label{font-size:11px;font-weight:600;color:var(--txt)}
     .ldsp-settings-option-desc{font-size:9px;color:var(--txt-mut);line-height:1.3}
     .ldsp-settings-option-check{font-size:12px;color:var(--accent);opacity:0;transform:scale(.8);transition:opacity .15s,transform .15s}
     .ldsp-settings-option.active .ldsp-settings-option-check{opacity:1;transform:scale(1)}
     .ldsp-settings-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:var(--txt);padding:8px 10px;border-radius:9px;background:var(--bg-el);border:1px solid transparent;transition:border-color .15s,background .15s}
+    .ldsp-settings-toggle>span{min-width:0;flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .ldsp-settings-toggle+.ldsp-settings-toggle{margin-top:6px}
     .ldsp-settings-toggle:hover{background:var(--bg-hover);border-color:var(--border2)}
     .ldsp-settings-toggle input{accent-color:var(--accent);cursor:pointer}
@@ -3681,11 +3686,11 @@
     .ldsp-settings-order-item:active{cursor:grabbing}
     .ldsp-settings-order-item.dragging{opacity:.7;border-color:var(--accent);background:rgba(107,140,239,.18);transform:scale(.98)}
     .ldsp-settings-order-handle{font-size:12px;line-height:1;color:var(--txt-mut);letter-spacing:1px;user-select:none}
-    .ldsp-settings-order-label{font-size:11px;font-weight:600;color:var(--txt)}
+    .ldsp-settings-order-label{font-size:11px;font-weight:600;color:var(--txt);min-width:0;flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .ldsp-settings-order-reset{width:100%;margin-top:10px;padding:8px 10px;border:1px solid var(--border2);border-radius:9px;background:var(--bg-el);color:var(--txt-sec);font-size:11px;font-weight:600;transition:background .15s,border-color .15s,color .15s}
     .ldsp-settings-order-reset:hover{background:var(--bg-hover);border-color:var(--accent);color:var(--accent)}
-    @media (max-width:480px){.ldsp-settings-menu{top:30px;right:6px;width:calc(100% - 12px);max-width:calc(100vw - 16px);max-height:min(320px,calc(var(--h) - 48px));padding:6px}.ldsp-settings-view{max-height:calc(var(--h) - 64px);padding:1px}.ldsp-settings-head{padding:5px 2px 8px;margin-bottom:6px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:7px 8px;font-size:10px}.ldsp-settings-nav-value{max-width:76px;font-size:9px}.ldsp-settings-option-label{font-size:10px}.ldsp-settings-option-desc,.ldsp-settings-order-tip,.ldsp-settings-goal-hint{font-size:9px}.ldsp-settings-goal-row{padding:7px 8px;gap:6px}.ldsp-settings-goal-number{width:64px;padding:4px 6px;font-size:10px}}
-    @media (max-width:320px){.ldsp-settings-menu{top:28px;right:4px;width:calc(100% - 8px);max-width:calc(100vw - 10px);max-height:min(280px,calc(var(--h) - 40px));padding:5px}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}.ldsp-settings-head-title{font-size:11px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px;font-size:9px}.ldsp-settings-nav-main{gap:6px}.ldsp-settings-goal-label{min-width:46px;font-size:10px}.ldsp-settings-goal-number{width:56px;font-size:9px}.ldsp-settings-order-reset{padding:7px 8px;font-size:10px}}
+    @media (max-width:480px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{top:30px;left:6px;right:auto;width:calc(100% - 12px);min-width:0;max-width:calc(100vw - 16px);max-height:min(320px,calc(var(--h) - 48px));padding:6px}.ldsp-settings-view{max-height:calc(var(--h) - 64px);padding:1px}.ldsp-settings-head{padding:5px 2px 8px;margin-bottom:6px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:7px 8px;font-size:10px}.ldsp-settings-nav-value{max-width:76px;font-size:9px}.ldsp-settings-option-label{font-size:10px}.ldsp-settings-option-desc,.ldsp-settings-order-tip,.ldsp-settings-goal-hint{font-size:9px}.ldsp-settings-goal-row{padding:7px 8px;gap:6px}.ldsp-settings-goal-number{width:64px;padding:4px 6px;font-size:10px}}
+    @media (max-width:320px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{top:28px;left:4px;right:auto;width:calc(100% - 8px);min-width:0;max-width:calc(100vw - 10px);max-height:min(280px,calc(var(--h) - 40px));padding:5px}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}.ldsp-settings-head-title{font-size:11px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px;font-size:9px}.ldsp-settings-nav-main{gap:6px}.ldsp-settings-goal-label{min-width:46px;font-size:10px}.ldsp-settings-goal-number{width:56px;font-size:9px}.ldsp-settings-order-reset{padding:7px 8px;font-size:10px}}
     @media (max-height:620px){.ldsp-settings-menu{top:30px;max-height:min(280px,calc(var(--h) - 40px))}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}}
     @media (max-height:500px){.ldsp-settings-menu{top:26px;max-height:min(240px,calc(var(--h) - 28px))}.ldsp-settings-head{padding:4px 2px 6px;margin-bottom:5px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px}}
     #ldsp-panel.collapsed .ldsp-settings-menu{display:none!important}
@@ -3858,6 +3863,13 @@
     .ldsp-subtab{padding:6px 12px;border:1px solid var(--border2);background:var(--bg-card);color:var(--txt-sec);border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap;flex-shrink:0;transition:background .15s,color .15s,border-color .15s}
     .ldsp-subtab:hover{border-color:var(--accent);color:var(--accent);background:rgba(107,140,239,.08);transform:translateY(-1px)}
     .ldsp-subtab.active{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 4px 12px rgba(107,140,239,.25)}
+    .ldsp-trend-subtabs{padding:8px 10px 6px;gap:7px}
+    .ldsp-trend-subtabs .ldsp-subtab{display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;padding:7px 10px;flex:1 1 0;border-color:rgba(37,99,235,.3);background:rgba(37,99,235,.08);color:#1d4ed8}
+    .ldsp-trend-subtabs .ldsp-subtab:hover{border-color:#2563eb;color:#1e40af;background:rgba(37,99,235,.16)}
+    .ldsp-trend-subtabs .ldsp-subtab.active{background:#2563eb;border-color:#2563eb;color:#fff;box-shadow:0 6px 14px rgba(37,99,235,.35)}
+    .ldsp-trend-subtabs.ldsp-subtabs-scroll .ldsp-subtab{flex:0 0 auto;min-width:68px;padding:7px 12px}
+    .ldsp-trend-tab-icon{font-size:11px;line-height:1;flex-shrink:0}
+    .ldsp-trend-tab-text{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis}
     .ldsp-chart{background:var(--bg-card);border-radius:var(--r-md);padding:12px;margin-bottom:10px;border:1px solid var(--border);position:relative;overflow:hidden}
     .ldsp-chart::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.2}
     .ldsp-chart:last-child{margin-bottom:0}
@@ -12725,7 +12737,7 @@ a:hover{text-decoration:underline;}
 
             renderTrends(tab) {
                 const tabs = [['today','☀️','今日'],['week','📅','本周'],['month','📊','本月'],['year','📈','本年'],['all','🌐','全部']];
-                this.panel.$.trends.innerHTML = `<div class="ldsp-subtabs">${tabs.map(([id,i,l])=>`<div class="ldsp-subtab${tab===id?' active':''}" data-tab="${id}">${i} ${l}</div>`).join('')}</div><div class="ldsp-trend-content"></div>`;
+                this.panel.$.trends.innerHTML = `<div class="ldsp-subtabs ldsp-trend-subtabs">${tabs.map(([id,i,l])=>`<div class="ldsp-subtab${tab===id?' active':''}" data-tab="${id}"><span class="ldsp-trend-tab-icon">${i}</span><span class="ldsp-trend-tab-text">${l}</span></div>`).join('')}</div><div class="ldsp-trend-content"></div>`;
             }
 
             getTrendFields(reqs) {
@@ -12990,8 +13002,8 @@ a:hover{text-decoration:underline;}
             }
 
             renderLeaderboard(tab) {
-                const tabs = [['daily','📅 日榜'],['weekly','📊 周榜'],['monthly','📈 月榜']];
-                this.panel.$.leaderboard.innerHTML = `<div class="ldsp-subtabs">${tabs.map(([id,l])=>`<div class="ldsp-subtab${tab===id?' active':''}" data-lb="${id}">${l}</div>`).join('')}</div><div class="ldsp-lb-content"></div>`;
+                const tabs = [['daily','📅','日榜'],['weekly','📊','周榜'],['monthly','📈','月榜']];
+                this.panel.$.leaderboard.innerHTML = `<div class="ldsp-subtabs ldsp-trend-subtabs ldsp-subtabs-scroll">${tabs.map(([id,i,l])=>`<div class="ldsp-subtab${tab===id?' active':''}" data-lb="${id}"><span class="ldsp-trend-tab-icon">${i}</span><span class="ldsp-trend-tab-text">${l}</span></div>`).join('')}</div><div class="ldsp-lb-content"></div>`;
             }
             renderLeaderboardLogin() { return `<div class="ldsp-lb-login"><div class="ldsp-lb-login-icon">🔐</div><div class="ldsp-lb-login-title">需要登录</div><div class="ldsp-lb-login-desc">登录后可以：<br>☁️ 阅读数据云端同步<br>🏆 查看/加入排行榜</div><button class="ldsp-lb-btn primary" id="ldsp-lb-login">🚀 立即登录</button><div class="ldsp-privacy-note"><span>🔒</span><span>仅获取基本信息，用于数据同步</span></div></div>`; }
             renderLeaderboardJoin() { return `<div class="ldsp-join-prompt"><div class="ldsp-join-prompt-icon">🏆</div><div class="ldsp-join-prompt-title">加入阅读排行榜</div><div class="ldsp-join-prompt-desc">加入后可以查看排行榜，你的阅读时间将与其他用户一起展示<br>这是完全可选的，随时可以退出</div><button class="ldsp-lb-btn primary" id="ldsp-lb-join">✨ 加入排行榜</button><div class="ldsp-privacy-note"><span>🔒</span><span>仅展示用户名和阅读时间</span></div></div>`; }
@@ -13021,7 +13033,7 @@ a:hover{text-decoration:underline;}
 
             renderActivity(tab) {
                 const tabs = [['read','📖','已读'],['bookmarks','⭐','收藏'],['replies','💬','回复'],['reactions','🤝','互动'],['likes','❤️','赞过'],['topics','📝','我的话题']];
-                this.panel.$.activity.innerHTML = `<div class="ldsp-subtabs">${tabs.map(([id,i,l])=>`<div class="ldsp-subtab${tab===id?' active':''}" data-activity="${id}">${i} ${l}</div>`).join('')}</div><div class="ldsp-activity-content"></div>`;
+                this.panel.$.activity.innerHTML = `<div class="ldsp-subtabs ldsp-trend-subtabs ldsp-subtabs-scroll">${tabs.map(([id,i,l])=>`<div class="ldsp-subtab${tab===id?' active':''}" data-activity="${id}"><span class="ldsp-trend-tab-icon">${i}</span><span class="ldsp-trend-tab-text">${l}</span></div>`).join('')}</div><div class="ldsp-activity-content"></div>`;
             }
             renderActivityLoading() { return `<div class="ldsp-mini-loader"><div class="ldsp-mini-spin"></div><div class="ldsp-mini-txt">加载中...</div></div>`; }
             renderActivityEmpty(icon, msg) { return `<div class="ldsp-lb-empty"><div class="ldsp-lb-empty-icon">${icon}</div><div class="ldsp-lb-empty-txt">${msg}</div></div>`; }
@@ -15202,6 +15214,7 @@ a:hover{text-decoration:underline;}
                 if (!menu || this.el.classList.contains('collapsed')) return;
                 this._syncSettingsMenuState();
                 this._setSettingsView('root');
+                this.el.classList.add('settings-open');
                 menu.classList.add('show');
                 menu.setAttribute('aria-hidden', 'false');
             }
@@ -15211,6 +15224,7 @@ a:hover{text-decoration:underline;}
                 if (!menu) return;
                 menu.classList.remove('show');
                 menu.setAttribute('aria-hidden', 'true');
+                this.el.classList.remove('settings-open');
                 this._setSettingsView('root');
             }
 
