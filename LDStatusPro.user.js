@@ -13900,6 +13900,11 @@ a:hover{text-decoration:underline;}
                 this._announcementEndHandler = null;
                 this._announcementPaused = false;
                 this._announcementTimer = null;
+                this._indicatorRefreshRaf = null;
+                this._indicatorRefreshTimer = null;
+                this._pendingIndicatorImmediate = false;
+                this._indicatorResizeObserver = null;
+                this._indicatorResizeObserverHandler = null;
 
                 this._actionOptions = [
                     { key: 'login', label: '登录按钮', ref: 'loginBtn' },
@@ -14092,6 +14097,9 @@ a:hover{text-decoration:underline;}
                 // iOS bfcache 恢复后强制重算布局
                 this._pageShowResizeHandler = () => requestAnimationFrame(() => this._onResize());
                 window.addEventListener('pageshow', this._pageShowResizeHandler);
+
+                // 监听面板自身尺寸变化，保证液态玻璃指示器在容器尺寸变化后及时校准
+                this._initIndicatorResizeObserver();
                 
                 // 订阅 Token 过期事件
                 EventBus.on('auth:expired', () => {
@@ -14896,7 +14904,7 @@ a:hover{text-decoration:underline;}
                         }
                     });
                 });
-                requestAnimationFrame(() => this._updateMainTabIndicator());
+                this._scheduleIndicatorRefresh(true);
                 
                 // 监听 Token 过期事件，刷新 UI
                 window.addEventListener('ldsp_token_expired', () => {
@@ -14950,6 +14958,40 @@ a:hover{text-decoration:underline;}
                 requestAnimationFrame(() => { this._programmaticScroll = false; });
             }
 
+            _syncActiveIndicators(immediate = false) {
+                this._updateMainTabIndicator(immediate);
+                this._updateSubtabIndicator(this.el?.querySelector('.ldsp-section.active'), immediate);
+            }
+
+            _scheduleIndicatorRefresh(immediate = false) {
+                if (this._destroyed) return;
+                if (immediate) this._pendingIndicatorImmediate = true;
+                if (this._indicatorRefreshRaf) return;
+
+                this._indicatorRefreshRaf = requestAnimationFrame(() => {
+                    this._indicatorRefreshRaf = null;
+                    const useImmediate = !!this._pendingIndicatorImmediate;
+                    this._pendingIndicatorImmediate = false;
+                    this._syncActiveIndicators(useImmediate);
+
+                    // 二次校准：等待 container query / 回流稳定后再更新一次
+                    if (this._indicatorRefreshTimer) clearTimeout(this._indicatorRefreshTimer);
+                    this._indicatorRefreshTimer = setTimeout(() => {
+                        this._indicatorRefreshTimer = null;
+                        this._syncActiveIndicators(true);
+                    }, 120);
+                });
+            }
+
+            _initIndicatorResizeObserver() {
+                if (typeof ResizeObserver !== 'function' || !this.el) return;
+                this._indicatorResizeObserverHandler = Utils.debounce(() => this._scheduleIndicatorRefresh(true), 80);
+                this._indicatorResizeObserver = new ResizeObserver(() => {
+                    this._indicatorResizeObserverHandler();
+                });
+                this._indicatorResizeObserver.observe(this.el);
+            }
+
             _updateMainTabIndicator(immediate = false) {
                 const container = this.el?.querySelector('.ldsp-tabs');
                 if (!container) return;
@@ -14977,10 +15019,16 @@ a:hover{text-decoration:underline;}
                     return;
                 }
 
-                const containerRect = container.getBoundingClientRect();
-                const tabRect = activeTab.getBoundingClientRect();
-                const width = Math.round(tabRect.width);
-                const left = Math.round(tabRect.left - containerRect.left + container.scrollLeft);
+                let width = Math.round(activeTab.offsetWidth || 0);
+                let left = Math.round(activeTab.offsetLeft || 0);
+
+                // 兜底：offset 系列不可用或 offsetParent 变化时回退到 rect 计算
+                if (activeTab.offsetParent !== container || width <= 0 || !Number.isFinite(left)) {
+                    const containerRect = container.getBoundingClientRect();
+                    const tabRect = activeTab.getBoundingClientRect();
+                    width = Math.round(tabRect.width);
+                    left = Math.round(tabRect.left - containerRect.left + container.scrollLeft);
+                }
 
                 if (!Number.isFinite(left) || width <= 0) {
                     indicator.classList.remove('show');
@@ -15358,8 +15406,7 @@ a:hover{text-decoration:underline;}
                 this._applyPanelSize('font-scale');
                 if (!this.$) return;
                 this._scheduleActionsOverflowCheck();
-                this._updateMainTabIndicator();
-                this._updateSubtabIndicator(this.el?.querySelector('.ldsp-section.active'));
+                this._scheduleIndicatorRefresh(true);
             }
 
             _getDefaultReadingGoalHours() {
@@ -15587,8 +15634,7 @@ a:hover{text-decoration:underline;}
                 
                 // 重新检测按钮区域溢出（延迟执行以确保布局已更新）
                 this._scheduleActionsOverflowCheck();
-                this._updateMainTabIndicator();
-                this._updateSubtabIndicator(this.el?.querySelector('.ldsp-section.active'));
+                this._scheduleIndicatorRefresh(true);
             }
             
             /**
@@ -15728,6 +15774,7 @@ a:hover{text-decoration:underline;}
                         el.style.maxHeight = `${newH}px`;
                         el.style.setProperty('--h', `${newH}px`);
                     }
+                    this._scheduleIndicatorRefresh(true);
                 };
                 
                 const onMouseUp = () => {
@@ -15767,6 +15814,7 @@ a:hover{text-decoration:underline;}
                     // 保存位置（保持 alignRight 不变）
                     this._savePositionKeepAlign(!!alignRight);
                     this._lastSizeKey = null;
+                    this._scheduleIndicatorRefresh(true);
                 };
                 
                 handles.forEach(handle => {
@@ -18616,6 +18664,23 @@ a:hover{text-decoration:underline;}
                     cancelAnimationFrame(this._actionsCheckRaf);
                     this._actionsCheckRaf = null;
                 }
+                if (this._indicatorRefreshRaf) {
+                    cancelAnimationFrame(this._indicatorRefreshRaf);
+                    this._indicatorRefreshRaf = null;
+                }
+                if (this._indicatorRefreshTimer) {
+                    clearTimeout(this._indicatorRefreshTimer);
+                    this._indicatorRefreshTimer = null;
+                }
+                if (this._indicatorResizeObserver) {
+                    this._indicatorResizeObserver.disconnect();
+                    this._indicatorResizeObserver = null;
+                }
+                if (this._indicatorResizeObserverHandler?.cancel) {
+                    this._indicatorResizeObserverHandler.cancel();
+                }
+                this._indicatorResizeObserverHandler = null;
+                this._pendingIndicatorImmediate = false;
                 if (this._announcementTimer) {
                     clearTimeout(this._announcementTimer);
                     this._announcementTimer = null;
