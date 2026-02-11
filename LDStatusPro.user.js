@@ -1,7 +1,7 @@
 ﻿ // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.5.0
+    // @version      3.5.5.1
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -3807,6 +3807,12 @@
     .ldsp-tab.active::after{opacity:.68}
     .ldsp-tab.active .ldsp-tab-icon{transform:scale(1.08)}
     #ldsp-panel.light .ldsp-tab.active{background:transparent;color:#173263;border-color:transparent;text-shadow:none}
+    .ldsp-tabs-auto:not(.ldsp-main-tabs-scroll) .ldsp-tab{flex:1 1 0;min-width:0}
+    .ldsp-tabs-auto.ldsp-main-tabs-scroll{justify-content:flex-start;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:var(--scrollbar) transparent;-webkit-overflow-scrolling:touch}
+    .ldsp-tabs-auto.ldsp-main-tabs-scroll .ldsp-tab{flex:0 0 auto;min-width:max-content}
+    .ldsp-tabs-auto.ldsp-main-tabs-scroll .ldsp-tab .ldsp-tab-text{overflow:visible;text-overflow:clip;white-space:nowrap}
+    .ldsp-tabs-auto.ldsp-main-icons-hidden .ldsp-tab{gap:2px;padding-left:6px;padding-right:6px}
+    .ldsp-tabs-auto.ldsp-main-icons-hidden .ldsp-tab .ldsp-tab-icon{display:none}
     @container (max-width:260px){.ldsp-tab{font-size:10px;padding:6px 5px;gap:2px}.ldsp-tab .ldsp-tab-icon{display:none}}
     @container (max-width:220px){.ldsp-tabs{overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:var(--scrollbar) transparent;-webkit-overflow-scrolling:touch}.ldsp-tab{flex:0 0 auto;min-width:max-content}.ldsp-tab .ldsp-tab-text{overflow:visible;text-overflow:clip;white-space:nowrap}}
     @container (max-width:200px){.ldsp-tab{font-size:9px;padding:5px 3px}}
@@ -3918,6 +3924,10 @@
     .ldsp-trend-subtabs .ldsp-subtab.active .ldsp-trend-tab-icon,.ldsp-trend-subtabs .ldsp-subtab.active .ldsp-trend-tab-text{color:inherit}
     #ldsp-panel.light .ldsp-trend-subtabs .ldsp-subtab.active{background:transparent;border-color:transparent;color:#0d3f8f;text-shadow:none}
     .ldsp-trend-subtabs.ldsp-subtabs-scroll .ldsp-subtab{flex:0 0 auto;min-width:68px;padding:7px 12px}
+    .ldsp-trend-subtabs-auto.ldsp-trend-icons-hidden .ldsp-subtab{gap:0;padding-left:8px;padding-right:8px}
+    .ldsp-trend-subtabs-auto.ldsp-trend-icons-hidden .ldsp-trend-tab-icon{display:none}
+    .ldsp-trend-subtabs-auto.ldsp-trend-icons-hidden.ldsp-subtabs-scroll .ldsp-subtab{padding-left:10px;padding-right:10px}
+    .ldsp-trend-subtabs-auto.ldsp-subtabs-scroll .ldsp-trend-tab-text{overflow:visible;text-overflow:clip}
     .ldsp-trend-tab-icon{font-size:11px;line-height:1;flex-shrink:0}
     .ldsp-trend-tab-text{display:block;min-width:1em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     @container (max-width:280px){.ldsp-trend-subtabs .ldsp-subtab{gap:2px;padding:6px 8px}.ldsp-trend-subtabs .ldsp-trend-tab-icon{display:none}.ldsp-trend-subtabs.ldsp-subtabs-scroll .ldsp-subtab{min-width:56px;padding:6px 9px}}
@@ -12806,7 +12816,7 @@ a:hover{text-decoration:underline;}
 
             renderTrends(tab) {
                 const tabs = [['today','☀️','今日'],['week','📅','本周'],['month','📊','本月'],['year','📈','本年'],['all','🌐','全部']];
-                this.panel.$.trends.innerHTML = `<div class="ldsp-subtabs ldsp-trend-subtabs"><div class="ldsp-subtab-indicator"><div class="ldsp-subtab-indicator-glass"></div><div class="ldsp-subtab-indicator-shine"></div></div>${tabs.map(([id,i,l])=>`<div class="ldsp-subtab${tab===id?' active':''}" data-tab="${id}"><span class="ldsp-trend-tab-icon">${i}</span><span class="ldsp-trend-tab-text">${l}</span></div>`).join('')}</div><div class="ldsp-trend-content"></div>`;
+                this.panel.$.trends.innerHTML = `<div class="ldsp-subtabs ldsp-trend-subtabs ldsp-trend-subtabs-auto"><div class="ldsp-subtab-indicator"><div class="ldsp-subtab-indicator-glass"></div><div class="ldsp-subtab-indicator-shine"></div></div>${tabs.map(([id,i,l])=>`<div class="ldsp-subtab${tab===id?' active':''}" data-tab="${id}"><span class="ldsp-trend-tab-icon">${i}</span><span class="ldsp-trend-tab-text">${l}</span></div>`).join('')}</div><div class="ldsp-trend-content"></div>`;
             }
 
             getTrendFields(reqs) {
@@ -14353,7 +14363,7 @@ a:hover{text-decoration:underline;}
                                 <span class="ldsp-reading-label">今日阅读</span>
                             </div>
                         </div>
-                        <div class="ldsp-tabs">
+                        <div class="ldsp-tabs ldsp-tabs-auto">
                             <div class="ldsp-tab-indicator"><div class="ldsp-tab-indicator-glass"></div><div class="ldsp-tab-indicator-shine"></div></div>
                             <button class="ldsp-tab active" data-tab="reqs"><span class="ldsp-tab-icon">📋</span><span class="ldsp-tab-text">要求</span></button>
                             <button class="ldsp-tab" data-tab="trends"><span class="ldsp-tab-icon">📈</span><span class="ldsp-tab-text">趋势</span></button>
@@ -14996,8 +15006,73 @@ a:hover{text-decoration:underline;}
                 const container = this.el?.querySelector('.ldsp-tabs');
                 if (!container) return;
                 requestAnimationFrame(() => {
-                    this._updateLiquidIndicator(container, '.ldsp-tab', '.ldsp-tab-indicator', { immediate });
+                    const layoutChanged = this._syncMainTabLayout(container);
+                    this._updateLiquidIndicator(container, '.ldsp-tab', '.ldsp-tab-indicator', { immediate: immediate || layoutChanged });
                 });
+            }
+
+            _syncMainTabLayout(container) {
+                if (!container?.classList?.contains('ldsp-tabs-auto')) return false;
+
+                const hasTextOverflow = () => {
+                    const textEls = container.querySelectorAll('.ldsp-tab-text');
+                    for (const el of textEls) {
+                        if (!el || el.offsetParent === null) continue;
+                        if ((el.scrollWidth - el.clientWidth) > 1) return true;
+                    }
+                    return false;
+                };
+
+                const prevHidden = container.classList.contains('ldsp-main-icons-hidden');
+                const prevScroll = container.classList.contains('ldsp-main-tabs-scroll');
+
+                container.classList.remove('ldsp-main-icons-hidden');
+                container.classList.remove('ldsp-main-tabs-scroll');
+
+                // 强制回流，确保溢出检测基于最新布局
+                void container.offsetWidth;
+
+                if (hasTextOverflow()) {
+                    container.classList.add('ldsp-main-icons-hidden');
+                    if (hasTextOverflow()) {
+                        container.classList.add('ldsp-main-tabs-scroll');
+                    }
+                }
+
+                return prevHidden !== container.classList.contains('ldsp-main-icons-hidden') ||
+                    prevScroll !== container.classList.contains('ldsp-main-tabs-scroll');
+            }
+
+            _syncTrendSubtabLayout(container) {
+                if (!container?.classList?.contains('ldsp-trend-subtabs-auto')) return false;
+
+                const hasTextOverflow = () => {
+                    const textEls = container.querySelectorAll('.ldsp-trend-tab-text');
+                    for (const el of textEls) {
+                        if (!el || el.offsetParent === null) continue;
+                        if ((el.scrollWidth - el.clientWidth) > 1) return true;
+                    }
+                    return false;
+                };
+
+                const prevHidden = container.classList.contains('ldsp-trend-icons-hidden');
+                const prevScroll = container.classList.contains('ldsp-subtabs-scroll');
+
+                container.classList.remove('ldsp-trend-icons-hidden');
+                container.classList.remove('ldsp-subtabs-scroll');
+
+                // 强制回流，确保接下来的溢出检测读取到最新布局
+                void container.offsetWidth;
+
+                if (hasTextOverflow()) {
+                    container.classList.add('ldsp-trend-icons-hidden');
+                    if (hasTextOverflow()) {
+                        container.classList.add('ldsp-subtabs-scroll');
+                    }
+                }
+
+                return prevHidden !== container.classList.contains('ldsp-trend-icons-hidden') ||
+                    prevScroll !== container.classList.contains('ldsp-subtabs-scroll');
             }
 
             _updateSubtabIndicator(scopeEl = null, immediate = false) {
@@ -15005,7 +15080,8 @@ a:hover{text-decoration:underline;}
                 const container = root?.querySelector('.ldsp-subtabs');
                 if (!container) return;
                 requestAnimationFrame(() => {
-                    this._updateLiquidIndicator(container, '.ldsp-subtab', '.ldsp-subtab-indicator', { immediate });
+                    const layoutChanged = this._syncTrendSubtabLayout(container);
+                    this._updateLiquidIndicator(container, '.ldsp-subtab', '.ldsp-subtab-indicator', { immediate: immediate || layoutChanged });
                 });
             }
 
