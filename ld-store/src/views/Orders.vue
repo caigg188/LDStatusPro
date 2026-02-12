@@ -69,6 +69,9 @@
               <span class="order-seller" v-else>
                 买家: {{ order.buyer_username || order.buyer?.username || '未知' }}
               </span>
+              <span v-if="isCdkOrder(order)" class="order-quantity">
+                x{{ getOrderQuantity(order) }}
+              </span>
               <span v-if="order.status === 'pending'" class="order-expire-inline">{{ getExpireCountdownText(order) }}</span>
             </div>
           </div>
@@ -79,13 +82,27 @@
             class="cdk-display"
             @click.stop
           >
-            <div class="cdk-label">🔑 CDK 密钥</div>
+            <div class="cdk-label">
+              🔑 CDK 密钥
+              <span v-if="getDeliveryCodes(order).length > 1" class="cdk-count">
+                共 {{ getDeliveryCodes(order).length }} 个
+              </span>
+            </div>
             <div class="cdk-content-wrapper">
               <code 
                 class="cdk-code"
                 :class="{ hidden: !order._showCdk }"
               >
-                {{ order._showCdk ? getDeliveryContent(order) : '••••••••••••••••' }}
+                <template v-if="order._showCdk">
+                  <span
+                    v-for="(code, index) in getDeliveryCodes(order)"
+                    :key="`${getOrderKey(order)}-${index}`"
+                    class="cdk-line"
+                  >
+                    {{ getDeliveryCodes(order).length > 1 ? `${index + 1}. ` : '' }}{{ code }}
+                  </span>
+                </template>
+                <template v-else>••••••••••••••••</template>
               </code>
               <div class="cdk-actions">
                 <button class="cdk-btn" @click="toggleCdkVisibility(order)">
@@ -99,7 +116,10 @@
           </div>
           
           <div class="order-footer">
-            <span class="order-amount">{{ order.total_price || order.amount }} LDC</span>
+            <div class="order-amount-wrap">
+              <span class="order-amount">{{ order.total_price || order.amount }} LDC</span>
+              <span v-if="isCdkOrder(order)" class="order-count">共 {{ getOrderQuantity(order) }} 个</span>
+            </div>
             <div class="order-actions">
               <!-- 图床订单 -->
               <template v-if="order.order_type === 'image'">
@@ -426,6 +446,11 @@ function isCdkOrder(order) {
   return type === 'cdk'
 }
 
+function getOrderQuantity(order) {
+  const quantity = Number(order?.quantity ?? order?.product_quantity ?? 1)
+  return Number.isInteger(quantity) && quantity > 0 ? quantity : 1
+}
+
 // 是否有发货内容
 function hasDeliveryContent(order) {
   return !!(order.cdk || order.delivery_content || order.deliveryContent)
@@ -434,6 +459,14 @@ function hasDeliveryContent(order) {
 // 获取发货内容
 function getDeliveryContent(order) {
   return order.cdk || order.delivery_content || order.deliveryContent || ''
+}
+
+function getDeliveryCodes(order) {
+  const content = getDeliveryContent(order)
+  if (!content) return []
+  return String(content)
+    .split(/\r?\n/g)
+    .filter((item) => item.trim().length > 0)
 }
 
 // 切换CDK显示
@@ -777,9 +810,15 @@ onUnmounted(() => {
 .order-info {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   font-size: 13px;
   color: var(--text-tertiary);
+}
+
+.order-quantity {
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .order-expire-inline {
@@ -799,15 +838,23 @@ onUnmounted(() => {
 }
 
 .cdk-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
   font-weight: 500;
   color: var(--color-success);
   margin-bottom: 8px;
 }
 
+.cdk-count {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
 .cdk-content-wrapper {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 }
 
@@ -819,12 +866,21 @@ onUnmounted(() => {
   font-family: 'Monaco', 'Consolas', monospace;
   font-size: 13px;
   color: var(--text-primary);
-  word-break: break-all;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .cdk-code.hidden {
+  display: block;
   color: var(--text-tertiary);
   letter-spacing: 2px;
+}
+
+.cdk-line {
+  line-height: 1.5;
 }
 
 .cdk-actions {
@@ -859,10 +915,21 @@ onUnmounted(() => {
   border-top: 1px solid var(--border-light);
 }
 
+.order-amount-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .order-amount {
   font-size: 18px;
   font-weight: 700;
   color: var(--color-warning);
+}
+
+.order-count {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 .order-action {

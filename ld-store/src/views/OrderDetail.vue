@@ -50,6 +50,11 @@
               </span>
             </span>
           </div>
+
+          <div class="info-row" v-if="getProductType(order) === 'cdk'">
+            <span class="info-label">购买数量</span>
+            <span class="info-value">x{{ getOrderQuantity(order) }}</span>
+          </div>
           
           <div class="info-row" v-if="order.original_price && order.original_price !== order.amount">
             <span class="info-label">原价</span>
@@ -95,7 +100,21 @@
           <h3 class="card-title">🔑 CDK 密钥</h3>
           
           <div class="cdk-box">
-            <code class="cdk-code">{{ showCdk ? getCdkContent(order) : '••••••••••••' }}</code>
+            <div class="cdk-head">
+              <span class="cdk-total">共 {{ getCdkList(order).length }} 个</span>
+            </div>
+            <code class="cdk-code">
+              <template v-if="showCdk">
+                <span
+                  v-for="(code, index) in getCdkList(order)"
+                  :key="`cdk-${index}`"
+                  class="cdk-line"
+                >
+                  {{ getCdkList(order).length > 1 ? `${index + 1}. ` : '' }}{{ code }}
+                </span>
+              </template>
+              <template v-else>••••••••••••</template>
+            </code>
             <div class="cdk-actions">
               <button class="icon-btn" @click="showCdk = !showCdk">
                 {{ showCdk ? '🙈' : '👁️' }}
@@ -310,6 +329,19 @@ function getCdkContent(orderData) {
   return orderData?.cdk || orderData?.delivery_content || orderData?.deliveryContent || ''
 }
 
+function getCdkList(orderData) {
+  const content = getCdkContent(orderData)
+  if (!content) return []
+  return String(content)
+    .split(/\r?\n/g)
+    .filter((item) => item.trim().length > 0)
+}
+
+function getOrderQuantity(orderData) {
+  const quantity = Number(orderData?.quantity ?? orderData?.product_quantity ?? 1)
+  return Number.isInteger(quantity) && quantity > 0 ? quantity : 1
+}
+
 // 获取物品描述（使用说明）
 function getProductDescription(orderData) {
   // 从物品快照或直接字段获取描述
@@ -435,7 +467,7 @@ function formatDateTime(date) {
 
 // 复制 CDK
 function copyCdk() {
-  const content = getCdkContent(order.value)
+  const content = getCdkList(order.value).join('\n')
   if (content) {
     navigator.clipboard.writeText(content)
     toast.success('CDK 已复制')
@@ -759,24 +791,44 @@ onMounted(async () => {
 /* CDK 展示框 */
 .cdk-box {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 12px;
   padding: 16px;
   background: var(--bg-secondary);
   border-radius: 12px;
 }
 
+.cdk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cdk-total {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
 .cdk-code {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   font-family: 'Monaco', 'Consolas', monospace;
   font-size: 14px;
   color: var(--text-primary);
-  word-break: break-all;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.cdk-line {
+  line-height: 1.5;
 }
 
 .cdk-actions {
   display: flex;
   gap: 8px;
+  justify-content: flex-end;
 }
 
 .icon-btn {

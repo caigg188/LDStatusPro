@@ -305,6 +305,35 @@
               <span v-if="cdkCount > 0">已输入 {{ cdkCount }} 个 CDK</span>
             </p>
           </div>
+
+          <div class="form-group">
+            <label class="toggle-switch limit-toggle" @click.prevent="form.limitEnabled = !form.limitEnabled">
+              <span class="toggle-track" :class="{ active: form.limitEnabled }">
+                <span class="toggle-thumb"></span>
+              </span>
+              <span class="toggle-label">
+                设置单人单次购买上限
+                <span class="toggle-help" v-if="!form.limitEnabled">（默认不限制）</span>
+              </span>
+            </label>
+            <p class="form-hint">开启后，每位用户单次下单最多只能购买您设置的数量。</p>
+
+            <div v-if="form.limitEnabled" class="limit-input-row">
+              <input
+                v-model="form.maxPurchaseQuantity"
+                ref="maxPurchaseQuantityInput"
+                type="number"
+                class="form-input"
+                :class="{ 'input-error': !!maxPurchaseQuantityError }"
+                min="1"
+                max="1000"
+                step="1"
+                placeholder="例如：5"
+              />
+              <span class="limit-unit">个 / 单</span>
+            </div>
+            <p v-if="maxPurchaseQuantityError" class="form-error">{{ maxPurchaseQuantityError }}</p>
+          </div>
           
           <!-- 测试模式开关 -->
           <div class="form-group test-mode-group">
@@ -373,6 +402,7 @@ const priceInput = ref(null)
 const discountInput = ref(null)
 const imageInput = ref(null)
 const paymentLinkInput = ref(null)
+const maxPurchaseQuantityInput = ref(null)
 
 const fieldRefs = {
   name: nameInput,
@@ -380,7 +410,8 @@ const fieldRefs = {
   price: priceInput,
   discount: discountInput,
   image: imageInput,
-  paymentLink: paymentLinkInput
+  paymentLink: paymentLinkInput,
+  maxPurchaseQuantity: maxPurchaseQuantityInput
 }
 
 function markTouched(field) {
@@ -423,7 +454,9 @@ const form = ref({
   productType: 'link', // 默认链接类型
   paymentLink: '',
   cdkCodes: '',
-  isTestMode: false    // 测试模式（仅 CDK 类型可用）
+  isTestMode: false,   // 测试模式（仅 CDK 类型可用）
+  limitEnabled: false,
+  maxPurchaseQuantity: ''
 })
 
 // 测试模式弹窗提示
@@ -663,6 +696,16 @@ const paymentLinkError = computed(() => {
   return ''
 })
 
+const maxPurchaseQuantityError = computed(() => {
+  if (form.value.productType !== 'cdk' || !form.value.limitEnabled) return ''
+  const raw = String(form.value.maxPurchaseQuantity ?? '').trim()
+  if (!raw) return '请输入单人单次购买上限'
+  const value = Number(raw)
+  if (!Number.isInteger(value) || value < 1) return '单人单次购买上限必须是大于 0 的整数'
+  if (value > 1000) return '单人单次购买上限不能超过 1000'
+  return ''
+})
+
 
 
 function showError(field, err) {
@@ -696,6 +739,7 @@ const canSubmit = computed(() => {
   if (imageUrlError.value) return false
   if (ruzhanPriceError.value) return false
   if (form.value.productType === 'link' && paymentLinkError.value) return false
+  if (maxPurchaseQuantityError.value) return false
   return true
 })
 
@@ -757,6 +801,11 @@ async function submitForm() {
     if (!merchantConfigured.value) {
       toast.warning('请先在「收款设置」中配置 LDC 收款信息')
       router.push('/user/settings')
+      return
+    }
+    if (maxPurchaseQuantityError.value) {
+      toast.error(maxPurchaseQuantityError.value)
+      focusField('maxPurchaseQuantity')
       return
     }
   }
@@ -821,6 +870,9 @@ async function submitForm() {
     if (form.value.productType === 'link') {
       productData.paymentLink = form.value.paymentLink.trim()
     } else if (form.value.productType === 'cdk') {
+      productData.maxPurchaseQuantity = form.value.limitEnabled
+        ? Number(form.value.maxPurchaseQuantity)
+        : 0
       // CDK 可以直接在创建时填入
       if (form.value.cdkCodes.trim()) {
         productData.cdkCodes = form.value.cdkCodes.trim()
@@ -1614,6 +1666,27 @@ onMounted(async () => {
   font-size: 12px;
   color: var(--color-info);
   font-weight: 400;
+}
+
+.limit-toggle {
+  margin-bottom: 8px;
+}
+
+.limit-input-row {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.limit-input-row .form-input {
+  flex: 1;
+}
+
+.limit-unit {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
 }
 
 .test-mode-hint {

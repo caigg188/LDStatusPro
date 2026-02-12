@@ -88,7 +88,27 @@
               </div>
             </div>
             
-            <!-- 卖家信息 -->
+            <div
+              v-if="isCdk && !isOutOfStock && canPurchase && (!isTestMode || isSeller)"
+              class="quantity-section"
+            >
+              <div class="quantity-title">购买数量</div>
+              <div class="quantity-controls">
+                <button type="button" class="qty-btn" @click="decreaseQuantity">-</button>
+                <input
+                  v-model.number="selectedQuantity"
+                  type="number"
+                  min="1"
+                  :max="maxSelectableQuantity"
+                  class="qty-input"
+                  @input="handleQuantityInput"
+                />
+                <button type="button" class="qty-btn" @click="increaseQuantity">+</button>
+              </div>
+              <div class="quantity-summary">预计支付 {{ totalPrice }} LDC</div>
+              <div v-if="quantityHint" class="quantity-hint">{{ quantityHint }}</div>
+            </div>
+
             <div class="seller-card" @click="goToSeller">
               <img
                 :src="sellerAvatar"
@@ -145,7 +165,7 @@
                                               :disabled="purchasing"
                                               @click="handleBuyCdk"
                                             >
-                                              {{ purchasing ? '创建订单中...' : `🛒 立即兑换 (${finalPrice} LDC)` }}
+                                              {{ purchasing ? '创建订单中...' : buyButtonText }}
                                             </button>
                                           </template>
                                           <template v-else>
@@ -207,7 +227,7 @@
                                   :disabled="purchasing"
                                   @click="handleBuyCdk"
                                 >
-                                  {{ purchasing ? '创建订单中...' : `🛒 立即兑换 (${finalPrice} LDC)` }}
+                                  {{ purchasing ? '创建订单中...' : buyButtonText }}
                                 </button>
                               </template>
                               <template v-else>
@@ -300,7 +320,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
 import { useUserStore } from '@/stores/user'
@@ -327,6 +347,7 @@ const showImagePreview = ref(false)
 const showReportModal = ref(false)
 const reportReason = ref('')
 const reportSubmitting = ref(false)
+const selectedQuantity = ref(1)
 
 const quickReportReasons = [
   '收款配置缺失，无法生成支付链接',
@@ -379,6 +400,57 @@ const canPurchase = computed(() => {
   return product.value.canPurchase !== false
 })
 const soldCount = computed(() => parseInt(product.value?.sold_count) || 0)
+const maxPurchaseQuantity = computed(() => {
+  const raw = Number(product.value?.max_purchase_quantity ?? product.value?.maxPurchaseQuantity ?? 0)
+  if (!Number.isInteger(raw) || raw < 0) return 0
+  return raw
+})
+
+const maxSelectableQuantity = computed(() => {
+  const limits = [1000]
+
+  if (maxPurchaseQuantity.value > 0) {
+    limits.push(maxPurchaseQuantity.value)
+  }
+
+  if (stock.value !== -1) {
+    limits.push(Math.max(0, Number(availableStock.value) || 0))
+  } else {
+    const available = Number(availableStock.value)
+    if (Number.isFinite(available) && available > 0) {
+      limits.push(available)
+    }
+  }
+
+  const minLimit = Math.min(...limits)
+  return minLimit > 0 ? minLimit : 1
+})
+
+const totalPrice = computed(() =>
+  formatPrice(price.value * discount.value * selectedQuantity.value)
+)
+
+const buyButtonText = computed(() => {
+  if (selectedQuantity.value > 1) {
+    return `🛒 立即兑换 ${selectedQuantity.value} 个 (${totalPrice.value} LDC)`
+  }
+  return `🛒 立即兑换 (${totalPrice.value} LDC)`
+})
+
+const quantityHint = computed(() => {
+  const hints = []
+
+  if (maxPurchaseQuantity.value > 0) {
+    hints.push(`单次最多购买 ${maxPurchaseQuantity.value} 个`)
+  }
+
+  if (stock.value !== -1) {
+    const canBuyNow = Math.max(0, Number(availableStock.value) || 0)
+    hints.push(`当前可购买 ${canBuyNow} 个`)
+  }
+
+  return hints.join('，')
+})
 
 // 分类
 const categoryIcon = computed(() => product.value?.category_icon || '📦')
@@ -439,6 +511,24 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleEscKey)
 })
 
+watch(
+  () => [
+    product.value?.id,
+    maxSelectableQuantity.value,
+    isCdk.value,
+    isOutOfStock.value,
+    canPurchase.value
+  ],
+  () => {
+    if (!isCdk.value || isOutOfStock.value || !canPurchase.value) {
+      selectedQuantity.value = 1
+      return
+    }
+    selectedQuantity.value = clampQuantity(selectedQuantity.value)
+  },
+  { immediate: true }
+)
+
 // 方法
 function goBack() {
   if (window.history.length > 1) {
@@ -460,6 +550,27 @@ function handleImageError(e) {
 
 function handleAvatarError(e) {
   e.target.src = 'https://linux.do/favicon.ico'
+}
+
+function clampQuantity(value) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return 1
+  const intValue = Math.floor(parsed)
+  if (intValue < 1) return 1
+  if (intValue > maxSelectableQuantity.value) return maxSelectableQuantity.value
+  return intValue
+}
+
+function handleQuantityInput() {
+  selectedQuantity.value = clampQuantity(selectedQuantity.value)
+}
+
+function increaseQuantity() {
+  selectedQuantity.value = clampQuantity(selectedQuantity.value + 1)
+}
+
+function decreaseQuantity() {
+  selectedQuantity.value = clampQuantity(selectedQuantity.value - 1)
 }
 
 // 图片预览
@@ -581,9 +692,18 @@ async function handleBuyCdk() {
     return
   }
   
+  if (isOutOfStock.value || !canPurchase.value) {
+    toast.error('当前商品暂不可购买')
+    return
+  }
+
+  const quantity = clampQuantity(selectedQuantity.value)
+  selectedQuantity.value = quantity
+  const totalAmount = formatPrice(price.value * discount.value * quantity)
+
   // 确认兑换
   const confirmed = await dialog.confirm(
-    `确认兑换「${escapeHtml(product.value.name)}」？<br><br>💰 价格：<strong>${finalPrice.value} LDC</strong><br><br>支付后系统将自动发放 CDK 到您的订单中。`,
+    `确认兑换「${escapeHtml(product.value.name)}」？<br><br>📦 数量：<strong>${quantity}</strong><br>💰 总价：<strong>${totalAmount} LDC</strong><br><br>支付后系统将自动发放 CDK 到您的订单中。`,
     { title: '确认兑换', icon: '🛒' }
   )
   
@@ -596,7 +716,7 @@ async function handleBuyCdk() {
   purchasing.value = true
   
   try {
-    const result = await shopStore.createOrder(product.value.id, 1)
+    const result = await shopStore.createOrder(product.value.id, quantity)
     
     if (result.success && result.data?.paymentUrl) {
       // 跳转支付
@@ -1142,6 +1262,72 @@ async function handleBuyLink() {
   font-weight: 500;
 }
 
+/* 数量选择 */
+.quantity-section {
+  padding: 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quantity-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.qty-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.qty-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+.qty-input {
+  width: 88px;
+  height: 34px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 14px;
+  text-align: center;
+  padding: 0 6px;
+}
+
+.qty-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.quantity-summary {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-warning);
+}
+
+.quantity-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
 /* 卖家卡片 */
 .seller-card {
   display: flex;
@@ -1375,3 +1561,4 @@ async function handleBuyLink() {
 
 }
 </style>
+

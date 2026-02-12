@@ -163,6 +163,35 @@
         <!-- CDK 类型提示 -->
         <div class="form-card" v-if="getProductType(product) === 'cdk'">
           <h3 class="card-title">CDK 管理</h3>
+          <div class="form-group">
+            <label class="toggle-switch limit-toggle" @click.prevent="form.limitEnabled = !form.limitEnabled">
+              <span class="toggle-track" :class="{ active: form.limitEnabled }">
+                <span class="toggle-thumb"></span>
+              </span>
+              <span class="toggle-label">
+                设置单人单次购买上限
+                <span class="toggle-help" v-if="!form.limitEnabled">（默认不限制）</span>
+              </span>
+            </label>
+            <p class="form-hint">开启后，每位用户单次下单最多只能购买您设置的数量。</p>
+
+            <div v-if="form.limitEnabled" class="limit-input-row">
+              <input
+                v-model="form.maxPurchaseQuantity"
+                ref="maxPurchaseQuantityInput"
+                type="number"
+                class="form-input"
+                :class="{ 'input-error': !!maxPurchaseQuantityError }"
+                min="1"
+                max="1000"
+                step="1"
+                placeholder="例如：5"
+              />
+              <span class="limit-unit">个 / 单</span>
+            </div>
+            <p v-if="maxPurchaseQuantityError" class="form-error">{{ maxPurchaseQuantityError }}</p>
+          </div>
+
           <p class="cdk-hint">
             请在「我的物品」页面管理 CDK 库存
           </p>
@@ -206,6 +235,7 @@ const imageValidating = ref(false)
 const imageValidated = ref(false)
 const imageLoadError = ref('')
 const imagePreviewUrl = ref('')
+const maxPurchaseQuantityInput = ref(null)
 let lastValidatedUrl = ''
 // 分类 - 从API获取或使用默认
 const categories = ref([
@@ -223,7 +253,9 @@ const form = ref({
   price: '',
   discount: 1,
   imageUrl: '',
-  paymentLink: ''
+  paymentLink: '',
+  limitEnabled: false,
+  maxPurchaseQuantity: ''
 })
 
 // 加载分类
@@ -268,6 +300,16 @@ const imageUrlError = computed(() => {
 })
 
 // 图片预加载验证
+const maxPurchaseQuantityError = computed(() => {
+  if (getProductType(product.value) !== 'cdk' || !form.value.limitEnabled) return ''
+  const raw = String(form.value.maxPurchaseQuantity ?? '').trim()
+  if (!raw) return '请输入单人单次购买上限'
+  const value = Number(raw)
+  if (!Number.isInteger(value) || value < 1) return '单人单次购买上限必须是大于 0 的整数'
+  if (value > 1000) return '单人单次购买上限不能超过 1000'
+  return ''
+})
+
 function preloadImage(url) {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -349,6 +391,8 @@ const canSubmit = computed(() => {
   if (type === 'link') {
     if (!form.value.paymentLink.trim()) return false
     if (!form.value.paymentLink.startsWith('https://credit.linux.do/')) return false
+  } else if (type === 'cdk') {
+    if (maxPurchaseQuantityError.value) return false
   }
   
   return true
@@ -393,7 +437,11 @@ async function loadProduct() {
         price: product.value.price || '',
         discount: product.value.discount || 1,
         imageUrl: product.value.image_url || product.value.imageUrl || '',
-        paymentLink: product.value.payment_link || product.value.paymentLink || ''
+        paymentLink: product.value.payment_link || product.value.paymentLink || '',
+        limitEnabled: Number(product.value.max_purchase_quantity || product.value.maxPurchaseQuantity || 0) > 0,
+        maxPurchaseQuantity: Number(product.value.max_purchase_quantity || product.value.maxPurchaseQuantity || 0) > 0
+          ? Number(product.value.max_purchase_quantity || product.value.maxPurchaseQuantity)
+          : ''
       }
       
       // 如果已有图片，自动验证
@@ -454,6 +502,12 @@ async function submitForm() {
       toast.error('积分流转链接必须是 credit.linux.do 的链接')
       return
     }
+  } else if (productType === 'cdk') {
+    if (maxPurchaseQuantityError.value) {
+      toast.error(maxPurchaseQuantityError.value)
+      maxPurchaseQuantityInput.value?.focus?.()
+      return
+    }
   }
   
   // 验证图片URL（必填）
@@ -503,6 +557,10 @@ async function submitForm() {
     // 类型特定数据
     if (productType === 'link') {
       updateData.paymentLink = form.value.paymentLink.trim()
+    } else if (productType === 'cdk') {
+      updateData.maxPurchaseQuantity = form.value.limitEnabled
+        ? Number(form.value.maxPurchaseQuantity)
+        : 0
     }
     
     // 更新物品
@@ -838,6 +896,76 @@ onMounted(async () => {
 }
 
 /* CDK 管理提示 */
+.toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-track {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  transition: background 0.2s;
+}
+
+.toggle-track.active {
+  background: var(--color-info);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-track.active .toggle-thumb {
+  transform: translateX(20px);
+}
+
+.toggle-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.toggle-help {
+  font-size: 12px;
+  color: var(--color-info);
+  font-weight: 400;
+}
+
+.limit-toggle {
+  margin-bottom: 8px;
+}
+
+.limit-input-row {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.limit-input-row .form-input {
+  flex: 1;
+}
+
+.limit-unit {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
 .cdk-hint {
   font-size: 14px;
   color: var(--text-tertiary);
@@ -893,3 +1021,4 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 </style>
+
