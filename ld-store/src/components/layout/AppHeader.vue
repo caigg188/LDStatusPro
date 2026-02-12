@@ -13,12 +13,15 @@
       
       <!-- 搜索框和GitHub（桌面端） -->
       <div class="header-center" v-if="!isMobile">
-        <div class="header-search">
+        <div class="header-search" ref="searchBoxRef">
           <input
             v-model="searchQuery"
             type="text"
             class="search-input"
             placeholder="搜索商品..."
+            @focus="openSearchPanel"
+            @input="handleSearchInput"
+            @keydown.esc="closeSearchPanel"
             @keyup.enter="handleSearch"
           />
           <button class="search-btn" @click="handleSearch">
@@ -27,6 +30,45 @@
               <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
           </button>
+          <div v-if="showSearchPanel" class="search-panel">
+            <div v-if="filteredSearchHistory.length > 0" class="search-section">
+              <div class="search-section-header">
+                <span>搜索记录</span>
+                <button class="search-clear-btn" @mousedown.prevent="clearSearchHistory">清空</button>
+              </div>
+              <div class="search-tags">
+                <button
+                  v-for="item in filteredSearchHistory"
+                  :key="`history-${item}`"
+                  class="search-tag history"
+                  @mousedown.prevent="selectKeyword(item)"
+                >
+                  {{ item }}
+                </button>
+              </div>
+            </div>
+            <div v-if="filteredRecommendedKeywords.length > 0" class="search-section">
+              <div class="search-section-header">
+                <span>推荐搜索</span>
+              </div>
+              <div class="search-tags">
+                <button
+                  v-for="item in filteredRecommendedKeywords"
+                  :key="`recommended-${item}`"
+                  class="search-tag"
+                  @mousedown.prevent="selectKeyword(item)"
+                >
+                  {{ item }}
+                </button>
+              </div>
+            </div>
+            <div
+              v-if="filteredSearchHistory.length === 0 && filteredRecommendedKeywords.length === 0"
+              class="search-empty"
+            >
+              暂无匹配词
+            </div>
+          </div>
         </div>
         <router-link 
           to="/docs" 
@@ -177,6 +219,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
+import { storage } from '@/utils/storage'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -188,6 +231,10 @@ const showDropdown = ref(false)
 const dropdownRef = ref(null)
 const showMoreMenu = ref(false)
 const moreDropdownRef = ref(null)
+const searchBoxRef = ref(null)
+const showSearchPanel = ref(false)
+const searchHistory = ref([])
+const recommendedKeywords = ['gpt', 'team', '小鸡', 'chatgpt', 'claude', 'vps', 'api', '存储', '代理']
 
 // 默认头像 SVG (data URI)
 const defaultAvatar = `data:image/svg+xml,${encodeURIComponent('<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M326.169 533.554v9.903c0 101.362 82.138 184.083 183.5 184.083s183.501-82.72 183.501-184.083v-9.903h-367.001zm277.872-70.487c22.137 0 40.196-18.06 40.196-40.196s-18.06-40.195-40.196-40.195-40.195 18.059-40.195 40.195 18.059 40.196 40.195 40.196zm-186.996 0c22.137 0 40.196-18.06 40.196-40.196s-18.06-40.195-40.196-40.195-40.195 18.059-40.195 40.195 18.059 40.196 40.195 40.196z" fill="#a686ba"/><path d="M1011.239 512c0-276.708-224.279-501.569-501.569-501.569S8.684 235.292 8.684 512c0 154.956 70.487 293.601 180.588 385.643V543.457c0-177.675 143.305-321.563 320.398-321.563s320.398 143.888 320.398 321.563v354.186C941.334 805.601 1011.239 666.956 1011.239 512z" fill="#a686ba"/><path d="M510.252 221.894c-177.093 0-320.398 143.888-320.398 321.563v354.186c86.799 72.235 198.647 115.926 320.398 115.926s233.6-43.691 320.398-115.926V543.457c0-177.675-143.305-321.563-320.398-321.563zm93.207 160.782c22.136 0 40.195 18.059 40.195 40.195s-18.059 40.196-40.195 40.196-40.196-18.06-40.196-40.196 18.06-40.195 40.196-40.195zm-186.996 0c22.136 0 40.195 18.059 40.195 40.195s-18.059 40.196-40.195 40.196-40.196-18.06-40.196-40.196 18.06-40.195 40.196-40.195zm93.207 344.865c-101.363 0-183.501-82.721-183.501-184.084v-9.903h366.418v9.903c.583 101.363-81.556 184.084-182.917 184.084z" fill="#FFF"/></svg>')}`
@@ -197,6 +244,25 @@ const isLoggedIn = computed(() => userStore.isLoggedIn)
 const username = computed(() => userStore.username)
 const avatar = computed(() => userStore.avatar)
 const trustLevel = computed(() => userStore.trustLevel)
+const normalizedSearchQuery = computed(() => searchQuery.value.trim().toLowerCase())
+const filteredSearchHistory = computed(() => {
+  if (!normalizedSearchQuery.value) {
+    return searchHistory.value.slice(0, 8)
+  }
+  return searchHistory.value
+    .filter(item => item.toLowerCase().includes(normalizedSearchQuery.value))
+    .slice(0, 8)
+})
+const filteredRecommendedKeywords = computed(() => {
+  const historySet = new Set(searchHistory.value.map(item => item.toLowerCase()))
+  if (!normalizedSearchQuery.value) {
+    return recommendedKeywords.filter(item => !historySet.has(item.toLowerCase()))
+  }
+  return recommendedKeywords.filter(item => (
+    item.toLowerCase().includes(normalizedSearchQuery.value)
+    && !historySet.has(item.toLowerCase())
+  ))
+})
 
 // 下拉菜单控制
 function toggleDropdown() {
@@ -225,10 +291,14 @@ function closeMoreMenu() {
 function navigateTo(path) {
   closeDropdown()
   closeMoreMenu()
+  closeSearchPanel()
   router.push(path)
 }
 
 function handleClickOutside(e) {
+  if (searchBoxRef.value && !searchBoxRef.value.contains(e.target)) {
+    closeSearchPanel()
+  }
   if (dropdownRef.value && !dropdownRef.value.contains(e.target)) {
     showDropdown.value = false
   }
@@ -240,23 +310,72 @@ function handleClickOutside(e) {
 // 退出登录
 async function handleLogout() {
   closeDropdown()
+  closeSearchPanel()
   userStore.logout()
   router.push('/')
 }
 
 // 方法
-function handleSearch() {
-  if (searchQuery.value.trim()) {
-    router.push({ name: 'Search', query: { q: searchQuery.value.trim() } })
-    searchQuery.value = ''
+function loadSearchHistory() {
+  const history = storage.get('search_history', [])
+  if (Array.isArray(history)) {
+    searchHistory.value = history
+      .filter(item => typeof item === 'string' && item.trim())
+      .slice(0, 10)
+  } else {
+    searchHistory.value = []
   }
 }
 
+function saveSearchHistory(keyword) {
+  if (!keyword) return
+  const history = searchHistory.value.filter(item => item !== keyword)
+  history.unshift(keyword)
+  searchHistory.value = history.slice(0, 10)
+  storage.set('search_history', searchHistory.value)
+}
+
+function clearSearchHistory() {
+  searchHistory.value = []
+  storage.remove('search_history')
+}
+
+function openSearchPanel() {
+  loadSearchHistory()
+  showSearchPanel.value = true
+}
+
+function closeSearchPanel() {
+  showSearchPanel.value = false
+}
+
+function handleSearchInput() {
+  if (!showSearchPanel.value) {
+    showSearchPanel.value = true
+  }
+}
+
+function selectKeyword(keyword) {
+  searchQuery.value = keyword
+  handleSearch()
+}
+
+function handleSearch() {
+  const keyword = searchQuery.value.trim()
+  if (!keyword) return
+  saveSearchHistory(keyword)
+  closeSearchPanel()
+  router.push({ name: 'Search', query: { q: keyword } })
+  searchQuery.value = ''
+}
+
 function goToSearch() {
+  closeSearchPanel()
   router.push({ name: 'Search' })
 }
 
 function goToPublish() {
+  closeSearchPanel()
   router.push({ name: 'Publish' })
 }
 
@@ -266,6 +385,9 @@ function handleAvatarError(e) {
 
 function checkMobile() {
   isMobile.value = window.innerWidth < 768
+  if (isMobile.value) {
+    closeSearchPanel()
+  }
 }
 
 // 同步不蒜子统计数据到移动端
@@ -286,6 +408,7 @@ function syncBusuanziToMobile() {
 let busuanziObserver = null
 
 onMounted(() => {
+  loadSearchHistory()
   checkMobile()
   window.addEventListener('resize', checkMobile)
   document.addEventListener('click', handleClickOutside)
@@ -406,6 +529,82 @@ onUnmounted(() => {
 
 .search-btn:hover {
   opacity: 1;
+}
+
+.search-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  background: var(--dropdown-bg);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  box-shadow: var(--dropdown-shadow);
+  padding: 10px;
+  z-index: 1010;
+  animation: dropdownFadeIn 0.18s ease;
+}
+
+.search-section + .search-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
+}
+
+.search-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.search-clear-btn {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.search-clear-btn:hover {
+  color: var(--text-secondary);
+}
+
+.search-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.search-tag {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.search-tag:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.search-tag.history {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.search-empty {
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 .docs-btn {
