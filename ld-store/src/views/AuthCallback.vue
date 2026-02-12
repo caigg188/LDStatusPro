@@ -36,21 +36,39 @@ const error = ref('')
  * 解析 URL hash 中的 OAuth 数据
  * 后端回调通过 URL hash 传递登录结果: #ldsp_oauth=base64(json)
  */
+function getRawOAuthParam() {
+  const extract = (source) => {
+    if (!source) return null
+    const match = source.match(/(?:^|&)ldsp_oauth=([^&]*)/)
+    return match ? match[1] : null
+  }
+
+  // 优先从 hash 读取；兼容某些场景参数落在 query 的情况
+  const fromHash = extract(window.location.hash.slice(1))
+  if (fromHash) return fromHash
+
+  return extract(window.location.search.slice(1))
+}
+
 function parseOAuthData() {
-  const hash = window.location.hash
-  if (!hash) return null
-  
-  // 解析 hash 参数
-  const params = new URLSearchParams(hash.slice(1))
-  const encoded = params.get('ldsp_oauth')
-  
-  if (!encoded) return null
-  
+  const raw = getRawOAuthParam()
+  if (!raw) return null
+
   try {
+    // 兼容历史/异常编码: + 被转空格、URL-safe base64、缺失 padding
+    const restored = decodeURIComponent(raw).replace(/\s/g, '+')
+    const normalized = restored.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4)
+
     // base64 解码并解析 JSON
-    const decoded = decodeURIComponent(atob(encoded))
+    let decoded
+    try {
+      decoded = decodeURIComponent(atob(padded))
+    } catch {
+      decoded = atob(padded)
+    }
     const data = JSON.parse(decoded)
-    
+
     // 验证数据结构
     // data: { t: token, u: user, j: isJoined, ts: timestamp }
     if (data.t && data.u) {
