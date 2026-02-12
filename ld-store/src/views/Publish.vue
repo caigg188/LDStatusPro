@@ -55,7 +55,8 @@
               <div class="test-mode-tips">
                 <p class="tip-item">✅ 用于测试 LDC 支付回调通知是否正常</p>
                 <p class="tip-item">✅ 购买后会正常扣款和发放 CDK</p>
-                <p class="tip-item">✅ 测试完成后可在「我的物品」中关闭测试模式</p>
+                <p class="tip-item">✅ 测试完成后请及时下架或删除测试物品</p>
+                <p class="tip-item warning">⏱️ 测试模式商品上架 30 分钟后会自动下架</p>
               </div>
               <p class="guide-modal-warning test-warning">
                 ⚠️ <strong>请确保已在 LDC 应用中开启测试模式</strong>，否则可能无法收到回调通知。
@@ -318,6 +319,9 @@
             </label>
             <p class="form-hint test-mode-hint">
               开启后仅您自己可以购买此物品，用于测试 LDC 通知回调是否正常工作。
+            </p>
+            <p v-if="form.isTestMode" class="test-mode-auto-offline-note">
+              ⚠️ 测试模式商品审核通过并上架后，30 分钟会自动下架；如需继续售卖，请关闭测试模式后重新上架。
             </p>
           </div>
           
@@ -1642,10 +1646,27 @@ onMounted(async () => {
   line-height: 1.6;
 }
 
+.tip-item.warning {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
 .test-warning {
   background: var(--color-warning-bg) !important;
   color: var(--color-warning) !important;
   border: 1px solid var(--color-warning);
   margin-top: 12px !important;
+}
+
+.test-mode-auto-offline-note {
+  margin-top: 8px;
+  margin-left: 56px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning);
 }
 </style>

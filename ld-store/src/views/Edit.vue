@@ -7,7 +7,7 @@
 
       <div class="edit-notice">
         <span class="notice-icon">⏳</span>
-        <span class="notice-text">为避免刷位，1 小时内最多修改 5 次，超过将无法保存。</span>
+        <span class="notice-text">为避免刷位，1 小时内最多修改 3 次，24 小时内最多修改 10 次，超过将无法保存。</span>
       </div>
       
       <!-- 加载中 -->
