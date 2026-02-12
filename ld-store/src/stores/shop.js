@@ -227,18 +227,38 @@ export const useShopStore = defineStore('shop', () => {
   }
 
   // 搜索商品
-  async function searchProducts(query) {
-    if (!query.trim()) {
+  async function searchProducts(query, options = {}) {
+    const keyword = typeof query === 'string' ? query.trim() : ''
+    if (!keyword) {
       searchResults.value = []
       return []
     }
 
-    searchQuery.value = query
+    const {
+      sort = 'default',
+      inStockOnly: onlyInStock = false,
+      page: searchPage = 1,
+      pageSize: searchPageSize = pageSize
+    } = options
+
+    searchQuery.value = keyword
     searchLoading.value = true
 
     try {
+      const sortConfig = sortMapping[sort] || sortMapping.default
+      const params = new URLSearchParams({
+        search: keyword,
+        page: String(searchPage),
+        pageSize: String(searchPageSize),
+        sortBy: sortConfig.sortBy,
+        sortOrder: sortConfig.sortOrder
+      })
+      if (onlyInStock) {
+        params.set('inStock', 'true')
+      }
+
       // 使用已有的 /api/shop/products 端点，通过 search 参数进行搜索
-      const result = await api.get(`/api/shop/products?search=${encodeURIComponent(query)}`)
+      const result = await api.get(`/api/shop/products?${params.toString()}`)
       if (result.success && result.data?.products) {
         searchResults.value = result.data.products
         return result.data.products

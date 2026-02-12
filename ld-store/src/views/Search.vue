@@ -60,6 +60,27 @@
       
       <!-- 搜索结果 -->
       <div v-if="keyword" class="results-section">
+        <!-- 排序和筛选 -->
+        <div class="sort-section">
+          <div class="sort-options">
+            <button
+              v-for="tab in sortTabs"
+              :key="tab.value"
+              class="sort-btn"
+              :class="{ active: currentSort === tab.value }"
+              @click="handleSortChange(tab.value)"
+            >
+              {{ tab.label }}
+            </button>
+          </div>
+          <label class="stock-filter" @click="handleToggleInStock">
+            <span class="checkbox" :class="{ checked: inStockOnly }">
+              <span v-if="inStockOnly" class="checkmark">✓</span>
+            </span>
+            <span class="filter-label">只看有货</span>
+          </label>
+        </div>
+
         <!-- 加载中 -->
         <div v-if="searching" class="loading-state">
           <Skeleton type="product" :count="3" />
@@ -76,7 +97,10 @@
         <!-- 结果列表 -->
         <div v-else-if="results.length > 0" class="results-list">
           <div class="results-header">
-            <span class="results-count">找到 {{ results.length }} 个物品</span>
+            <span class="results-count">
+              找到 {{ results.length }} 个物品
+              <span v-if="inStockOnly" class="filter-tag">有库存</span>
+            </span>
           </div>
           <div class="products-grid">
             <ProductCard
@@ -93,7 +117,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
 import { storage } from '@/utils/storage'
@@ -111,6 +135,14 @@ const searching = ref(false)
 const hasSearched = ref(false)
 const results = ref([])
 const searchHistory = ref([])
+const currentSort = ref('default')
+const inStockOnly = ref(false)
+
+const sortTabs = [
+  { value: 'default', label: '默认' },
+  { value: 'price_asc', label: '价格↑' },
+  { value: 'price_desc', label: '价格↓' }
+]
 
 // 热门搜索（可从后端获取）
 const hotKeywords = ref([
@@ -126,6 +158,7 @@ const hotKeywords = ref([
 
 // 防抖定时器
 let searchTimer = null
+let latestSearchRequestId = 0
 
 // 加载搜索历史
 function loadHistory() {
@@ -150,22 +183,34 @@ function clearHistory() {
 }
 
 // 搜索
-async function doSearch() {
-  if (!keyword.value.trim()) return
-  
-  // 保存历史
-  saveHistory(keyword.value.trim())
-  
+async function doSearch(options = {}) {
+  const trimmedKeyword = keyword.value.trim()
+  if (!trimmedKeyword) return
+
+  if (options.saveHistory !== false) {
+    // 保存历史
+    saveHistory(trimmedKeyword)
+  }
+
+  const requestId = ++latestSearchRequestId
   searching.value = true
   hasSearched.value = true
   
   try {
-    results.value = await shopStore.searchProducts(keyword.value.trim())
+    const searchResults = await shopStore.searchProducts(trimmedKeyword, {
+      sort: currentSort.value,
+      inStockOnly: inStockOnly.value
+    })
+    if (requestId !== latestSearchRequestId) return
+    results.value = searchResults
   } catch (error) {
+    if (requestId !== latestSearchRequestId) return
     console.error('Search error:', error)
     results.value = []
   } finally {
-    searching.value = false
+    if (requestId === latestSearchRequestId) {
+      searching.value = false
+    }
   }
 }
 
@@ -174,8 +219,10 @@ function handleSearch() {
   clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
     if (keyword.value.trim()) {
-      doSearch()
+      doSearch({ saveHistory: false })
     } else {
+      latestSearchRequestId++
+      searching.value = false
       results.value = []
       hasSearched.value = false
     }
@@ -190,10 +237,27 @@ function searchFromHistory(item) {
 
 // 清空搜索
 function clearSearch() {
+  latestSearchRequestId++
+  searching.value = false
   keyword.value = ''
   results.value = []
   hasSearched.value = false
   searchInput.value?.focus()
+}
+
+function handleSortChange(sort) {
+  if (currentSort.value === sort) return
+  currentSort.value = sort
+  if (keyword.value.trim()) {
+    doSearch({ saveHistory: false })
+  }
+}
+
+function handleToggleInStock() {
+  inStockOnly.value = !inStockOnly.value
+  if (keyword.value.trim()) {
+    doSearch({ saveHistory: false })
+  }
 }
 
 // 查看物品
@@ -212,6 +276,11 @@ watch(() => route.query.q, (q) => {
 onMounted(() => {
   loadHistory()
   searchInput.value?.focus()
+})
+
+onBeforeUnmount(() => {
+  clearTimeout(searchTimer)
+  latestSearchRequestId++
 })
 </script>
 
@@ -397,6 +466,86 @@ onMounted(() => {
   min-height: 200px;
 }
 
+.sort-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.sort-options {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sort-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.sort-btn:hover {
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+.sort-btn.active {
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  font-weight: 500;
+}
+
+.stock-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.stock-filter .checkbox {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  transition: all 0.2s ease;
+}
+
+.stock-filter .checkbox.checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.stock-filter .checkmark {
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.stock-filter .filter-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.stock-filter:hover .checkbox {
+  border-color: var(--color-primary);
+}
+
 .loading-state {
   padding-top: 20px;
 }
@@ -410,6 +559,16 @@ onMounted(() => {
   color: var(--text-tertiary);
 }
 
+.results-count .filter-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--color-success);
+  background: var(--color-success-bg);
+  border-radius: 10px;
+}
+
 .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -417,6 +576,10 @@ onMounted(() => {
 }
 
 @media (max-width: 640px) {
+  .sort-section {
+    align-items: flex-start;
+  }
+
   .products-grid {
     grid-template-columns: 1fr;
   }
