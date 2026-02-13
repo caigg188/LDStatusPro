@@ -1,7 +1,7 @@
 ﻿ // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.5.1
+    // @version      3.5.5.2
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -535,6 +535,22 @@
         const Utils = {
             _nameCache: new Map(),
             _htmlEntities: { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;' },
+            _metricCanonicalMap: new Map([
+                ['访问天数', '访问次数'],
+                ['访问次数', '访问次数'],
+                ['浏览话题', '浏览的话题'],
+                ['浏览的话题', '浏览的话题'],
+                ['浏览话题（所有时间）', '浏览的话题（所有时间）'],
+                ['浏览的话题（所有时间）', '浏览的话题（所有时间）'],
+                ['已读帖子', '已读帖子'],
+                ['已读帖子（所有时间）', '已读帖子（所有时间）'],
+                ['回复', '回复的话题'],
+                ['回复话题', '回复的话题'],
+                ['回复的话题', '回复的话题'],
+                ['送出赞', '送出赞'],
+                ['点赞', '送出赞'],
+                ['获赞', '获赞']
+            ]),
 
             // HTML 转义（防止 XSS）
             escapeHtml(str) {
@@ -612,6 +628,59 @@
                 result = result || name;
                 this._nameCache.set(name, result);
                 return result;
+            },
+
+            // 指标名称规范化（用于跨来源字段兼容）
+            normalizeMetricName(name) {
+                if (!name || typeof name !== 'string') return '';
+                return this._metricCanonicalMap.get(name) || name;
+            },
+
+            // 获取同一指标的候选键（原名 / 规范名 / 简化名 / 别名）
+            getMetricCandidates(name) {
+                const raw = (name && typeof name === 'string') ? name : '';
+                if (!raw) return [];
+
+                const canonical = this.normalizeMetricName(raw);
+                const keys = new Set([raw, canonical, this.simplifyName(raw), this.simplifyName(canonical)]);
+
+                // 将映射到同一 canonical 的所有别名加入候选集合
+                this._metricCanonicalMap.forEach((target, alias) => {
+                    if (target === canonical) {
+                        keys.add(alias);
+                        keys.add(this.simplifyName(alias));
+                    }
+                });
+
+                return [...keys].filter(Boolean);
+            },
+
+            // 从数据对象中读取指标值，自动处理别名
+            getMetricValue(data, name, defaultVal = 0) {
+                if (!data || typeof data !== 'object') return defaultVal;
+                const candidates = this.getMetricCandidates(name);
+                for (const key of candidates) {
+                    if (Object.prototype.hasOwnProperty.call(data, key)) {
+                        return this.toSafeNumber(data[key], defaultVal);
+                    }
+                }
+                return defaultVal;
+            },
+
+            // 趋势字段归一化键
+            getTrendKey(name) {
+                const canonical = this.normalizeMetricName(name);
+                const simplified = this.simplifyName(canonical);
+                const map = {
+                    '浏览话题': '浏览话题',
+                    '已读帖子': '已读帖子',
+                    '送出赞': '点赞',
+                    '点赞': '点赞',
+                    '回复': '回复',
+                    '回复的话题': '回复',
+                    '获赞': '获赞'
+                };
+                return map[simplified] || map[canonical] || simplified;
             },
 
             // 格式化日期
@@ -1865,7 +1934,9 @@
                     const latest = byDay.get(day).at(-1);
                     const dayData = {};
                     reqs.forEach(r => {
-                        dayData[r.name] = (latest.data[r.name] || 0) - (prevData?.[r.name] || 0);
+                        const currentVal = Utils.getMetricValue(latest.data, r.name, 0);
+                        const prevVal = Utils.getMetricValue(prevData, r.name, 0);
+                        dayData[r.name] = currentVal - prevVal;
                     });
                     result.set(day, dayData);
                     prevData = { ...latest.data };
@@ -1905,7 +1976,9 @@
                     if (records.length) {
                         const latest = records.at(-1);
                         reqs.forEach(r => {
-                            weekData[r.name] = (latest.data[r.name] || 0) - (prevData?.[r.name] || 0);
+                            const currentVal = Utils.getMetricValue(latest.data, r.name, 0);
+                            const prevVal = Utils.getMetricValue(prevData, r.name, 0);
+                            weekData[r.name] = currentVal - prevVal;
                         });
                         prevData = { ...latest.data };
                     } else {
@@ -1938,7 +2011,9 @@
                     const latest = byMonth.get(month).at(-1);
                     const monthData = {};
                     reqs.forEach(r => {
-                        monthData[r.name] = (latest.data[r.name] || 0) - (prevData?.[r.name] || 0);
+                        const currentVal = Utils.getMetricValue(latest.data, r.name, 0);
+                        const prevVal = Utils.getMetricValue(prevData, r.name, 0);
+                        monthData[r.name] = currentVal - prevVal;
                     });
                     result.set(month, monthData);
                     prevData = { ...latest.data };
@@ -3612,7 +3687,7 @@
     @media (hover:hover){#ldsp-panel.collapsed:hover{transform:scale(1.08);box-shadow:var(--shadow-lg),0 0 35px rgba(120,160,255,.6)}#ldsp-panel.collapsed:hover .ldsp-toggle-logo{filter:brightness(1.6) drop-shadow(0 0 12px rgba(160,200,255,1)) drop-shadow(0 0 20px rgba(140,180,255,.8));transform:scale(1.15) rotate(360deg);transition:filter .3s var(--ease),transform .6s var(--ease-spring)}}
     #ldsp-panel.collapsed:active .ldsp-toggle-logo{filter:brightness(2) drop-shadow(0 0 16px rgba(200,230,255,1)) drop-shadow(0 0 30px rgba(160,200,255,1));transform:scale(0.92)}
     #ldsp-panel.collapsed.no-hover-effect{transform:none!important}#ldsp-panel.collapsed.no-hover-effect .ldsp-toggle-logo{filter:brightness(1.05) drop-shadow(0 0 2px rgba(140,180,255,.2))!important;transform:none!important}
-    .ldsp-hdr{display:flex;align-items:center;padding:10px 12px;background:var(--grad);cursor:move;user-select:none;touch-action:none;position:relative;gap:8px;min-height:52px;box-sizing:border-box;flex-shrink:0}
+    .ldsp-hdr{display:flex;align-items:center;padding:10px 12px;background:var(--grad);cursor:move;user-select:none;touch-action:none;position:relative;gap:8px;min-height:52px;box-sizing:border-box;flex-shrink:0;z-index:20}
     .ldsp-hdr::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.1) 0%,transparent 100%);pointer-events:none}
     .ldsp-hdr::after{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(255,255,255,.1) 0%,transparent 60%);opacity:0;transition:opacity .5s;pointer-events:none}
     .ldsp-hdr:hover::after{opacity:1}
@@ -3637,13 +3712,13 @@
     .ldsp-hdr-btns>button.has-update{background:linear-gradient(135deg,var(--ok),var(--ok-light));animation:pulse-update 3s ease-in-out infinite;position:relative;box-shadow:0 0 15px rgba(16,185,129,.4)}
     .ldsp-hdr-btns>button.has-update::after{content:'';position:absolute;top:-3px;right:-3px;width:10px;height:10px;background:var(--err);border-radius:50%;border:2px solid rgba(0,0,0,.2);animation:pulse-dot 2.5s ease infinite}
     #ldsp-panel.settings-open{overflow:visible}
-    .ldsp-settings-menu{position:absolute;top:34px;left:8px;right:auto;width:clamp(240px,26vw,300px);min-width:230px;max-width:min(300px,calc(100vw - 24px));max-height:min(360px,calc(var(--h) - 56px));overflow:hidden;padding:8px;box-sizing:border-box;background:var(--bg-card);border:1px solid var(--border2);border-radius:12px;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transform:translateY(-8px) scale(.98);transition:opacity .2s var(--ease),transform .2s var(--ease);z-index:30}
+    .ldsp-settings-menu{position:absolute;top:34px;left:8px;right:auto;width:clamp(240px,26vw,300px);min-width:230px;max-width:min(300px,calc(100vw - 24px));max-height:min(360px,calc(var(--h) - 56px));overflow-x:hidden;overflow-y:auto;padding:8px;box-sizing:border-box;background:var(--bg-card);border:1px solid var(--border2);border-radius:12px;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transform:translateY(-8px) scale(.98);transition:opacity .2s var(--ease),transform .2s var(--ease);z-index:120}
     #ldsp-panel.expand-left .ldsp-settings-menu{left:auto;right:8px}
     #ldsp-panel.settings-open .ldsp-hdr{border-top-left-radius:var(--r-lg);border-top-right-radius:var(--r-lg)}
     #ldsp-panel.settings-open .ldsp-hdr::before,#ldsp-panel.settings-open .ldsp-hdr::after{border-top-left-radius:inherit;border-top-right-radius:inherit}
     .ldsp-settings-menu.show{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
     .ldsp-settings-menu button{font:inherit;line-height:1.2;cursor:pointer}
-    .ldsp-settings-view{display:none;max-height:calc(var(--h) - 72px);overflow:auto;padding:2px;scrollbar-width:thin;scrollbar-color:var(--scrollbar) transparent}
+    .ldsp-settings-view{display:none;max-height:none;overflow:visible;padding:2px;scrollbar-width:thin;scrollbar-color:var(--scrollbar) transparent}
     .ldsp-settings-view.active{display:block;animation:enter var(--dur-fast) var(--ease-out)}
     .ldsp-settings-view::-webkit-scrollbar{width:5px}
     .ldsp-settings-view::-webkit-scrollbar-track{background:transparent}
@@ -3718,7 +3793,7 @@
     .ldsp-update-bubble-btn:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 6px 20px rgba(107,140,239,.4)}
     .ldsp-update-bubble-btn:active{transform:translateY(0) scale(.98)}
     .ldsp-update-bubble-btn:disabled{opacity:.6;cursor:not-allowed;transform:none!important}
-    .ldsp-body{background:var(--bg);position:relative;overflow:hidden;display:flex;flex-direction:column;flex:1;min-height:0}
+    .ldsp-body{background:var(--bg);position:relative;overflow:hidden;display:flex;flex-direction:column;flex:1;min-height:0;z-index:1}
     .ldsp-announcement{overflow:hidden;background:linear-gradient(90deg,rgba(59,130,246,.1),rgba(107,140,239,.1));border-bottom:1px solid var(--border);padding:0;height:0;opacity:0;transition:height .3s var(--ease),opacity .3s,padding .3s;flex-shrink:0}
     .ldsp-announcement.active{height:24px;min-height:24px;opacity:1;padding:0 10px}
     .ldsp-announcement.warning{background:linear-gradient(90deg,rgba(245,158,11,.15),rgba(239,68,68,.08))}
@@ -3947,6 +4022,8 @@
     .ldsp-spark-bar{flex:1;background:var(--trend-blue);border-radius:4px 4px 0 0;min-height:3px;opacity:.45;position:relative;transform-origin:bottom center;transition:opacity .2s,height .2s var(--ease),transform .2s var(--ease),box-shadow .2s var(--ease)}
     .ldsp-spark-bar:last-child,.ldsp-spark-bar.ldsp-spark-current{opacity:1}
     .ldsp-spark-bar.ldsp-spark-current{background:var(--trend-green)}
+    .ldsp-spark-bar.ldsp-spark-negative{background:var(--trend-peach)}
+    .ldsp-spark-bar.ldsp-spark-current.ldsp-spark-negative{background:var(--trend-peach)}
     .ldsp-spark-bar:hover{opacity:1;transform:scaleY(1.12);box-shadow:0 -5px 14px rgba(22,119,255,.34)}
     .ldsp-spark-bar::after{content:attr(data-v);position:absolute;bottom:100%;left:50%;transform:translateX(-50%) translateY(5px);font-size:9px;background:var(--trend-tip-bg);color:var(--trend-text);padding:4px 8px;border-radius:6px;opacity:0;visibility:hidden;white-space:nowrap;pointer-events:none;border:1px solid var(--trend-border);box-shadow:0 4px 12px rgba(0,0,0,.2);transition:transform .15s var(--ease),opacity .15s,visibility .15s;z-index:100;font-weight:600}
     #ldsp-panel.light .ldsp-spark-bar::after{box-shadow:0 4px 12px rgba(15,98,230,.18)}
@@ -12820,7 +12897,26 @@ a:hover{text-decoration:underline;}
             }
 
             getTrendFields(reqs) {
-                return CONFIG.TREND_FIELDS.map(f => { const r = reqs.find(x => x.name.includes(f.search)); return r ? {...f, req: r, name: r.name} : null; }).filter(Boolean);
+                return CONFIG.TREND_FIELDS
+                    .map(f => {
+                        const candidates = reqs.filter(x => {
+                            const trendKey = Utils.getTrendKey(x.name);
+                            return trendKey === f.key || x.name.includes(f.search);
+                        });
+                        if (!candidates.length) return null;
+                        const r = candidates.sort((a, b) => {
+                            const score = item => {
+                                let s = 0;
+                                if (Utils.getTrendKey(item.name) === f.key) s += 2;
+                                if (item.name.includes(f.search)) s += 1;
+                                if (!item.name.includes('所有时间')) s += 1;
+                                return s;
+                            };
+                            return score(b) - score(a);
+                        })[0];
+                        return r ? { ...f, req: r, name: r.name } : null;
+                    })
+                    .filter(Boolean);
             }
 
             renderTodayTrend(reqs, rt, td, goalHours = 3) {
@@ -12832,7 +12928,10 @@ a:hover{text-decoration:underline;}
                 const startStr = `${start.getHours()}:${String(start.getMinutes()).padStart(2,'0')}`, nowStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
                 let h = `<div class="ldsp-time-info">今日 00:00 ~ ${nowStr} (首次记录于 ${startStr})</div><div class="ldsp-rd-stats" style="background:${lv.bg.replace('0.15','0.08')}"><div class="ldsp-rd-stats-icon">${lv.icon}</div><div class="ldsp-rd-stats-info"><div class="ldsp-rd-stats-val">${Utils.formatReadingTime(rt)}</div><div class="ldsp-rd-stats-lbl">今日累计阅读</div></div><div class="ldsp-rd-stats-badge" style="background:${lv.bg};color:${lv.color};box-shadow:0 3px 12px ${lv.bg.replace('0.15','0.4')},inset 0 1px 0 rgba(255,255,255,.25)">${lv.label}</div></div><div class="ldsp-rd-prog"><div class="ldsp-rd-prog-hdr"><span class="ldsp-rd-prog-title">📖 阅读目标 (${goalText}小时)</span><span class="ldsp-rd-prog-val">${Math.round(pct)}%</span></div><div class="ldsp-rd-prog-bar"><div class="ldsp-rd-prog-fill" style="width:${pct}%;background:${lv.bg.replace('0.15','1')}"></div></div></div>`;
                 if (reqs?.length) {
-                    const chgs = reqs.map(r=>({name:Utils.simplifyName(r.name),diff:r.currentValue-(td.startData[r.name]||0)})).filter(c=>c.diff!==0).sort((a,b)=>b.diff-a.diff);
+                    const chgs = reqs.map(r=>({
+                        name: Utils.simplifyName(r.name),
+                        diff: Utils.toSafeNumber(r.currentValue, 0) - Utils.getMetricValue(td.startData, r.name, 0)
+                    })).filter(c=>c.diff!==0).sort((a,b)=>b.diff-a.diff);
                     const pos = chgs.filter(c=>c.diff>0).length, neg = chgs.filter(c=>c.diff<0).length;
                     h += `<div class="ldsp-today-stats"><div class="ldsp-today-stat"><div class="ldsp-today-stat-val">${pos}</div><div class="ldsp-today-stat-lbl">📈 增长项</div></div><div class="ldsp-today-stat"><div class="ldsp-today-stat-val">${neg}</div><div class="ldsp-today-stat-lbl">📉 下降项</div></div></div>`;
                     h += chgs.length ? `<div class="ldsp-chart"><div class="ldsp-chart-title">📊 今日变化明细</div><div class="ldsp-changes">${chgs.map(c=>`<div class="ldsp-chg-row"><span class="ldsp-chg-name">${c.name}</span><span class="ldsp-chg-val ${c.diff>0?'up':'down'}">${c.diff>0?'+':''}${c.diff}</span></div>`).join('')}</div></div>` : `<div class="ldsp-no-chg">今日暂无数据变化</div>`;
@@ -12843,16 +12942,13 @@ a:hover{text-decoration:underline;}
             renderWeekTrend(hist, reqs, hm, tracker) {
                 let h = this._renderWeekChart(tracker);
                 if (reqs?.length) {
-                    const recent = hist.filter(x => x.ts > Date.now()-7*86400000);
-                    if (recent.length >= 1) {
-                        const daily = hm.aggregateDaily(recent, reqs, 7), trends = [];
-                        for (const f of this.getTrendFields(reqs)) {
-                            const d = this._calcDailyTrend(daily, f.name, 7);
-                            if (d.values.some(v => v > 0)) trends.push({label: f.label, ...d, current: f.req.currentValue});
-                        }
-                        if (trends.length) {
-                            h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 本周每日增量<span class="ldsp-chart-sub">每日累积量</span></div>${this._renderSparkRows(trends)}${trends[0].dates.length?`<div class="ldsp-date-labels">${trends[0].dates.map(d=>`<span class="ldsp-date-lbl">${d}</span>`).join('')}</div>`:''}</div>`;
-                        }
+                    const daily = hm.aggregateDaily(hist, reqs, 7), trends = [];
+                    for (const f of this.getTrendFields(reqs)) {
+                        const d = this._calcDailyTrend(daily, f.name, 7);
+                        if (d.values.some(v => v !== 0)) trends.push({label: f.label, ...d, current: f.req.currentValue});
+                    }
+                    if (trends.length) {
+                        h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 本周每日增量<span class="ldsp-chart-sub">每日累积量</span></div>${this._renderSparkRows(trends)}${trends[0].dates.length?`<div class="ldsp-date-labels">${trends[0].dates.map(d=>`<span class="ldsp-date-lbl">${d}</span>`).join('')}</div>`:''}</div>`;
                     }
                 }
                 return h;
@@ -12864,7 +12960,7 @@ a:hover{text-decoration:underline;}
                     const weekly = hm.aggregateWeekly(hist, reqs), trends = [];
                     for (const f of this.getTrendFields(reqs)) {
                         const d = this._calcWeeklyTrend(weekly, f.name);
-                        if (d.values.length) trends.push({label: f.label, ...d, current: f.req.currentValue});
+                        if (d.values.some(v => v !== 0)) trends.push({label: f.label, ...d, current: f.req.currentValue});
                     }
                     if (trends.length) {
                         h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 本月每周增量<span class="ldsp-chart-sub">每周累积量</span></div>${this._renderSparkRows(trends,true)}${trends[0].labels?.length?`<div class="ldsp-date-labels" style="padding-left:60px">${trends[0].labels.map(l=>`<span class="ldsp-date-lbl">${l}</span>`).join('')}</div>`:''}</div>`;
@@ -12876,19 +12972,19 @@ a:hover{text-decoration:underline;}
             renderYearTrend(hist, reqs, hm, tracker) {
                 let h = this._renderYearChart(tracker);
                 if (reqs?.length) {
-                    // v3.5.2.9: 只取当前年的数据，而不是过去365天
                     const currentYear = new Date().getFullYear();
-                    const yearStart = new Date(currentYear, 0, 1).getTime();
-                    const recent = hist.filter(x => x.ts >= yearStart);
-                    if (recent.length >= 1) {
-                        const monthly = hm.aggregateMonthly(recent, reqs), trends = [];
+                    if (hist.length >= 1) {
+                        const monthly = hm.aggregateMonthly(hist, reqs), trends = [];
                         for (const f of this.getTrendFields(reqs)) {
-                            const d = this._calcMonthlyTrend(monthly, f.name);
-                            if (d.values.some(v => v > 0)) trends.push({label: f.label, ...d, current: f.req.currentValue});
+                            const d = this._calcMonthlyTrend(monthly, f.name, currentYear);
+                            if (d.values.some(v => v !== 0)) trends.push({label: f.label, ...d, current: f.req.currentValue});
                         }
                         if (trends.length) {
                             h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📊 本年每月增量<span class="ldsp-chart-sub">每月累积量</span></div>`;
-                            trends.forEach(t => { const m = Math.max(...t.values,1); h += `<div class="ldsp-spark-row"><span class="ldsp-spark-lbl">${t.label}</span><div class="ldsp-spark-bars" style="max-width:100%">${t.values.map((v,i)=>`<div class="ldsp-spark-bar" style="height:${Math.max(v/m*16,2)}px" data-v="${i+1}月: ${v}"></div>`).join('')}</div><span class="ldsp-spark-val">${t.current}</span></div>`; });
+                            trends.forEach(t => {
+                                const maxAbs = Math.max(...t.values.map(v => Math.abs(v)), 1);
+                                h += `<div class="ldsp-spark-row"><span class="ldsp-spark-lbl">${t.label}</span><div class="ldsp-spark-bars" style="max-width:100%">${t.values.map((v,i)=>`<div class="ldsp-spark-bar${i===t.values.length-1?' ldsp-spark-current':''}${v<0?' ldsp-spark-negative':''}" style="height:${Math.max(Math.abs(v)/maxAbs*16,2)}px" data-v="${t.dates?.[i] || `${i + 1}月`}: ${v > 0 ? '+' : ''}${v}"></div>`).join('')}</div><span class="ldsp-spark-val">${t.current}</span></div>`;
+                            });
                             h += `</div>`;
                         }
                     }
@@ -12906,11 +13002,19 @@ a:hover{text-decoration:underline;}
                 if (reqs?.length && hist.length >= 1) {
                     const oldest = hist[0], newest = hist.at(-1), rec = hist.length, span = Math.ceil((Date.now()-oldest.ts)/86400000);
                     if (span > days) h = h.replace(`共记录 <span>${days}</span> 天阅读数据`, `共记录 <span>${rec}</span> 天数据${span>rec?` · 跨度 ${span} 天`:''}`);
-                    const chgs = reqs.map(r=>({name:Utils.simplifyName(r.name),diff:(newest.data[r.name]||0)-(oldest.data[r.name]||0),current:r.currentValue,required:r.requiredValue})).filter(c=>c.diff!==0||c.current>0);
+                    const chgs = reqs.map(r=>({
+                        name: Utils.simplifyName(r.name),
+                        diff: Utils.getMetricValue(newest.data, r.name, 0) - Utils.getMetricValue(oldest.data, r.name, 0),
+                        current: r.currentValue,
+                        required: r.requiredValue
+                    })).filter(c=>c.diff!==0||c.current>0);
                     if (chgs.length) h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📊 累计变化 <span style="font-size:9px;color:var(--txt-mut);font-weight:normal">(${rec}天)</span></div><div class="ldsp-changes">${chgs.map(c=>`<div class="ldsp-chg-row"><span class="ldsp-chg-name">${c.name}</span><span class="ldsp-chg-cur">${c.current}/${c.required}</span>${c.diff?`<span class="ldsp-chg-val ${c.diff>0?'up':'down'}">${c.diff>0?'+':''}${c.diff}</span>`:''}</div>`).join('')}</div></div>`;
                     if (rec >= 2) {
-                        const avgChgs = reqs.map(r=>({name:Utils.simplifyName(r.name),avg:Math.round(((newest.data[r.name]||0)-(oldest.data[r.name]||0))/Math.max(rec-1,1)*10)/10})).filter(c=>c.avg>0);
-                        if (avgChgs.length) h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 日均增量</div><div class="ldsp-changes">${avgChgs.map(c=>`<div class="ldsp-chg-row"><span class="ldsp-chg-name">${c.name}</span><span class="ldsp-chg-val up">+${c.avg}</span></div>`).join('')}</div></div>`;
+                        const avgChgs = reqs.map(r=>({
+                            name: Utils.simplifyName(r.name),
+                            avg: Math.round((Utils.getMetricValue(newest.data, r.name, 0) - Utils.getMetricValue(oldest.data, r.name, 0)) / Math.max(rec-1,1) * 10) / 10
+                        })).filter(c=>c.avg!==0);
+                        if (avgChgs.length) h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 日均增量</div><div class="ldsp-changes">${avgChgs.map(c=>`<div class="ldsp-chg-row"><span class="ldsp-chg-name">${c.name}</span><span class="ldsp-chg-val ${c.avg>0?'up':'down'}">${c.avg>0?'+':''}${c.avg}</span></div>`).join('')}</div></div>`;
                     }
                 }
                 return h;
@@ -12920,13 +13024,13 @@ a:hover{text-decoration:underline;}
                 // v3.5.2.9: 为条形图添加悬浮提示（使用 data-v 配合 CSS ::after）
                 // 移除内联 opacity 设置，统一由 CSS 控制，避免气泡提示继承透明度
                 return trends.map(t => { 
-                    const m = Math.max(...t.values,1); 
+                    const maxAbs = Math.max(...t.values.map(v => Math.abs(v)),1); 
                     const tipLabels = isWk ? (t.labels || []) : (t.dates || []);
                     return `<div class="ldsp-spark-row"><span class="ldsp-spark-lbl">${t.label}</span><div class="ldsp-spark-bars">${t.values.map((v,i)=>{
-                        const tip = tipLabels[i] ? `${tipLabels[i]}: ${v}` : `${v}`;
+                        const tip = tipLabels[i] ? `${tipLabels[i]}: ${v > 0 ? '+' : ''}${v}` : `${v > 0 ? '+' : ''}${v}`;
                         const isLast = i === t.values.length - 1;
                         // 使用 class 而非内联 opacity，确保气泡提示不受影响
-                        return `<div class="ldsp-spark-bar${isLast ? ' ldsp-spark-current' : ''}" style="height:${Math.max(v/m*20,2)}px" data-v="${tip}"></div>`;
+                        return `<div class="ldsp-spark-bar${isLast ? ' ldsp-spark-current' : ''}${v < 0 ? ' ldsp-spark-negative' : ''}" style="height:${Math.max(Math.abs(v)/maxAbs*20,2)}px" data-v="${tip}"></div>`;
                     }).join('')}</div><span class="ldsp-spark-val">${t.current}</span></div>`; 
                 }).join('');
             }
@@ -13026,7 +13130,7 @@ a:hover{text-decoration:underline;}
             _calcDailyTrend(daily, name, maxDays) {
                 const sorted = [...daily.keys()].sort((a, b) => new Date(a) - new Date(b)).slice(-maxDays);
                 return {
-                    values: sorted.map(d => Math.max(daily.get(d)[name] || 0, 0)),
+                    values: sorted.map(d => Utils.toSafeNumber(daily.get(d)[name], 0)),
                     dates: sorted.map(d => Utils.formatDate(new Date(d).getTime(), 'short'))
                 };
             }
@@ -13034,15 +13138,17 @@ a:hover{text-decoration:underline;}
             _calcWeeklyTrend(weekly, name) {
                 const sorted = [...weekly.keys()].sort((a, b) => a - b);
                 return {
-                    values: sorted.map(i => Math.max(weekly.get(i).data[name] || 0, 0)),
+                    values: sorted.map(i => Utils.toSafeNumber(weekly.get(i).data[name], 0)),
                     labels: sorted.map(i => weekly.get(i).label)
                 };
             }
 
-            _calcMonthlyTrend(monthly, name) {
-                const sorted = [...monthly.keys()].sort((a, b) => new Date(a) - new Date(b));
+            _calcMonthlyTrend(monthly, name, year = null) {
+                const sorted = [...monthly.keys()]
+                    .sort((a, b) => new Date(a) - new Date(b))
+                    .filter(m => year === null || new Date(m).getFullYear() === year);
                 return {
-                    values: sorted.map(m => Math.max(monthly.get(m)[name] || 0, 0)),
+                    values: sorted.map(m => Utils.toSafeNumber(monthly.get(m)[name], 0)),
                     dates: sorted.map(m => `${new Date(m).getMonth() + 1}月`)
                 };
             }
@@ -14285,8 +14391,6 @@ a:hover{text-decoration:underline;}
                                         <button class="ldsp-settings-back" data-settings-back="actions-root" aria-label="返回">‹</button>
                                         <span class="ldsp-settings-head-title">功能启用</span>
                                     </div>
-                                    <label class="ldsp-settings-toggle"><span>登录按钮</span><input type="checkbox" data-action-key="login" checked></label>
-                                    <label class="ldsp-settings-toggle"><span>注销按钮</span><input type="checkbox" data-action-key="logout" checked></label>
                                     <label class="ldsp-settings-toggle"><span>工单按钮</span><input type="checkbox" data-action-key="ticket" checked></label>
                                     <label class="ldsp-settings-toggle"><span>总结按钮</span><input type="checkbox" data-action-key="melon" checked></label>
                                     <label class="ldsp-settings-toggle"><span>导出按钮</span><input type="checkbox" data-action-key="export" checked></label>
@@ -15280,10 +15384,11 @@ a:hover{text-decoration:underline;}
             _loadActionVisibility() {
                 const defaults = this._getDefaultActionVisibility();
                 const saved = this.storage.getGlobal('actionVisibility', null);
+                const forceVisible = { login: true, logout: true };
                 if (!saved || typeof saved !== 'object') {
-                    return defaults;
+                    return { ...defaults, ...forceVisible };
                 }
-                return { ...defaults, ...saved };
+                return { ...defaults, ...saved, ...forceVisible };
             }
 
             _getDefaultActionOrder() {
@@ -15314,7 +15419,11 @@ a:hover{text-decoration:underline;}
             }
 
             _saveActionVisibility() {
-                this.storage.setGlobalNow('actionVisibility', { ...this._actionVisibility });
+                this.storage.setGlobalNow('actionVisibility', {
+                    ...this._actionVisibility,
+                    login: true,
+                    logout: true
+                });
             }
 
             _saveActionOrder() {
@@ -15322,11 +15431,13 @@ a:hover{text-decoration:underline;}
             }
 
             _isActionVisible(key) {
+                if (key === 'login' || key === 'logout') return true;
                 return this._actionVisibility[key] !== false;
             }
 
             _setActionVisibility(key, visible) {
                 if (!(key in this._actionVisibility)) return;
+                if (key === 'login' || key === 'logout') return;
                 this._actionVisibility[key] = !!visible;
                 this._saveActionVisibility();
                 this._applyActionVisibility();
@@ -15534,6 +15645,7 @@ a:hover{text-decoration:underline;}
                     panel.classList.toggle('active', panel.dataset.settingsView === target);
                 });
                 menu.dataset.view = target;
+                menu.scrollTop = 0;
                 if (target === 'actions-order') {
                     this._renderActionOrderList();
                 }
@@ -17173,8 +17285,11 @@ a:hover{text-decoration:underline;}
                 const today = Utils.getTodayKey();
                 const existing = this._getTodayData();
                 const now = Date.now();
+                const hasIncomingData = !!(data && Object.keys(data).length);
+                const startDataEmpty = !existing?.startData || Object.keys(existing.startData).length === 0;
+                const shouldResetStart = isStart || !existing || (startDataEmpty && hasIncomingData);
 
-                this.storage.set('todayData', isStart || !existing
+                this.storage.set('todayData', shouldResetStart
                     ? { date: today, startData: data, startTs: now, currentData: data, currentTs: now }
                     : { ...existing, currentData: data, currentTs: now }
                 );
