@@ -1,7 +1,7 @@
-﻿ // ==UserScript==
+ // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.5.3
+    // @version      3.5.5.4
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -101,7 +101,8 @@
                 if (match) {
                     console.log('[OAuth] Found ldsp_oauth in hash, decoding...');
                     const encoded = match[1];
-                    const decoded = JSON.parse(decodeURIComponent(atob(encoded)));
+                    const base64 = decodeURIComponent(encoded);
+                    const decoded = JSON.parse(decodeURIComponent(atob(base64)));
                     console.log('[OAuth] Decoded data:', { hasToken: !!decoded.t, hasUser: !!decoded.u, ts: decoded.ts });
                     // 检查时效性（5分钟内有效）
                     if (decoded.ts && Date.now() - decoded.ts < 5 * 60 * 1000) {
@@ -2522,7 +2523,8 @@
                     
                     // 解析 payload (base64url)
                     const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-                    const decoded = JSON.parse(atob(payload));
+                    const paddedPayload = payload + '='.repeat((4 - payload.length % 4) % 4);
+                    const decoded = JSON.parse(atob(paddedPayload));
                     
                     // 检查过期时间 (exp 是秒级时间戳)
                     if (!decoded.exp) return false; // 无过期时间则认为有效
@@ -2553,8 +2555,9 @@
                     if (!match) return null;
                     
                     const encoded = match[1];
-                    // 解码 base64
-                    const decoded = JSON.parse(decodeURIComponent(atob(encoded)));
+                    // 先 URL 解码再 base64 解码，避免 %2B / %3D 等字符导致解码失败
+                    const base64 = decodeURIComponent(encoded);
+                    const decoded = JSON.parse(decodeURIComponent(atob(base64)));
                     
                     // 检查时效性（5分钟内有效）
                     if (decoded.ts && Date.now() - decoded.ts > 5 * 60 * 1000) {
@@ -14844,6 +14847,9 @@ a:hover{text-decoration:underline;}
                         window.open('https://github.com/caigg188/LDStatusPro', '_blank');
                     }
                 });
+
+                // 登录按钮需要始终可点击（即使论坛已登录，仅云端未登录时也要可触发 OAuth）
+                this._bindLoginButton();
                 
                 // 注销登录按钮与确认弹窗
                 const showLogoutConfirm = () => {
@@ -17736,7 +17742,7 @@ a:hover{text-decoration:underline;}
             }
 
             _bindLoginButton() {
-                if (this._loginBtnBound || !this.$.loginBtn) return;
+                if (this._loginBtnBound || !this.$.loginBtn || !this.hasLeaderboard || !this.oauth) return;
                 this._loginBtnBound = true;
                 this.$.loginBtn.addEventListener('click', async (e) => {
                     e.stopPropagation();
