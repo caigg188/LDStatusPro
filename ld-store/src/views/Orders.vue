@@ -19,6 +19,12 @@
         >
           📦 我卖的
         </button>
+        <button
+          :class="['role-tab', { active: currentRole === 'buy' }]"
+          @click="switchRole('buy')"
+        >
+          🌱 求购订单
+        </button>
       </div>
       
       <!-- 加载中 -->
@@ -38,7 +44,7 @@
         v-else-if="orders.length === 0"
         icon="📋"
         title="暂无订单"
-        :description="currentRole === 'buyer' ? '您还没有购买任何物品' : '您还没有收到任何订单'"
+        :description="currentRole === 'buyer' ? '您还没有购买任何物品' : (currentRole === 'seller' ? '您还没有收到任何订单' : '您还没有求购订单')"
       >
         <router-link to="/" class="browse-btn">
           浏览物品
@@ -60,10 +66,13 @@
           </div>
           
           <div class="order-content" @click="viewOrderDetail(order)">
-            <div class="product-name">{{ order.product?.name || order.product_name }}</div>
+            <div class="product-name">{{ getOrderDisplayName(order) }}</div>
             <div class="order-info">
               <!-- <span class="order-type">{{ getOrderTypeText(order.product_type || order.product?.product_type) }}</span> -->
-              <span class="order-seller" v-if="currentRole === 'buyer'">
+              <span class="order-seller" v-if="isBuyRequestOrder(order)">
+                {{ order.myRole === 'requester' ? '服务方' : '求购方' }}: {{ order.counterpartyUsername || '未知' }}
+              </span>
+              <span class="order-seller" v-else-if="currentRole === 'buyer'">
                 卖家: {{ order.seller_username || order.seller?.username || '未知' }}
               </span>
               <span class="order-seller" v-else>
@@ -72,7 +81,7 @@
               <span v-if="isCdkOrder(order)" class="order-quantity">
                 x{{ getOrderQuantity(order) }}
               </span>
-              <span v-if="order.status === 'pending'" class="order-expire-inline">{{ getExpireCountdownText(order) }}</span>
+              <span v-if="order.status === 'pending' && (isCdkOrder(order) || isBuyRequestOrder(order))" class="order-expire-inline">{{ getExpireCountdownText(order) }}</span>
             </div>
           </div>
           
@@ -124,6 +133,27 @@
               <!-- 图床订单 -->
               <template v-if="order.order_type === 'image'">
                 <span class="order-action" @click="viewOrderDetail(order)">查看图床 →</span>
+              </template>
+              <template v-else-if="isBuyRequestOrder(order)">
+                <button
+                  v-if="order.status === 'pending' && order.myRole === 'requester'"
+                  class="action-btn pay-btn"
+                  @click.stop="handleRepay(order)"
+                  :disabled="payingOrderId === getOrderKey(order)"
+                >
+                  {{ payingOrderId === getOrderKey(order) ? '跳转中...' : '立即支付' }}
+                </button>
+                <button
+                  v-if="order.status === 'pending' || order.status === 'paid'"
+                  class="action-btn ghost-btn"
+                  @click.stop="handleRefreshBuyOrder(order)"
+                  :disabled="refreshingBuyOrderId === getOrderKey(order)"
+                >
+                  {{ refreshingBuyOrderId === getOrderKey(order) ? '刷新中...' : '刷新状态' }}
+                </button>
+                <button class="action-btn enter-btn" @click.stop="viewOrderDetail(order)">
+                  进入会话
+                </button>
               </template>
               <!-- CDK 待支付订单操作按钮（买家和卖家都可以取消） -->
               <template v-else-if="order.status === 'pending'">
@@ -192,7 +222,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
 import { useToast } from '@/composables/useToast'
 import { useDialog } from '@/composables/useDialog'
@@ -201,6 +231,7 @@ import { isValidLdcPaymentUrl } from '@/utils/security'
 import { prepareNewTab, openInNewTab, cleanupPreparedTab } from '@/utils/newTab'
 
 const router = useRouter()
+const route = useRoute()
 const shopStore = useShopStore()
 const toast = useToast()
 const dialog = useDialog()
@@ -211,12 +242,13 @@ const orders = ref([])
 const page = ref(1)
 const hasMore = ref(false)
 const pageSize = 20
-const currentRole = ref('buyer')
+const currentRole = ref(route.query.tab === 'buy' ? 'buy' : 'buyer')
 const cancellingOrderId = ref(null)
 const deliverFormOrderId = ref(null)
 const deliverContent = ref('')
 const deliveringOrderId = ref(null)
 const payingOrderId = ref(null)
+const refreshingBuyOrderId = ref(null)
 const nowTs = ref(Date.now())
 let countdownTimer = null
 
@@ -226,6 +258,13 @@ async function switchRole(role) {
   currentRole.value = role
   page.value = 1
   closeDeliverForm()
+  const nextQuery = { ...route.query }
+  if (role === 'buy') {
+    nextQuery.tab = 'buy'
+  } else {
+    delete nextQuery.tab
+  }
+  router.replace({ query: nextQuery }).catch(() => {})
   await loadOrders()
 }
 
@@ -238,23 +277,29 @@ async function loadOrders(append = false) {
       loadingMore.value = true
     }
     
-    let result
-    if (currentRole.value === 'buyer') {
-      result = await shopStore.fetchMyOrders()
+    let ordersList = []
+    if (currentRole.value === 'buy') {
+      const result = await shopStore.fetchMyBuyOrders({ page: page.value, pageSize })
+      ordersList = Array.isArray(result?.orders) ? result.orders : []
+      const totalPages = Number(result?.pagination?.totalPages || 0)
+      hasMore.value = append ? (page.value < totalPages) : (1 < totalPages)
     } else {
-      result = await shopStore.fetchSellerOrders()
-      result = shopStore.sellerOrders
+      let result
+      if (currentRole.value === 'buyer') {
+        result = await shopStore.fetchMyOrders()
+      } else {
+        result = await shopStore.fetchSellerOrders()
+        result = shopStore.sellerOrders
+      }
+      ordersList = Array.isArray(result) ? result : (result?.orders || result || [])
+      hasMore.value = ordersList.length === pageSize
     }
-    
-    const ordersList = Array.isArray(result) ? result : (result?.orders || result || [])
     
     if (append) {
       orders.value.push(...ordersList)
     } else {
       orders.value = ordersList
     }
-    
-    hasMore.value = ordersList.length === pageSize
   } catch (error) {
     toast.error('加载订单失败')
   } finally {
@@ -367,6 +412,9 @@ function closeDeliverForm() {
 }
 
 function canRepay(order) {
+  if (isBuyRequestOrder(order)) {
+    return order.myRole === 'requester'
+  }
   return currentRole.value === 'buyer' && isCdkOrder(order)
 }
 
@@ -384,6 +432,21 @@ function viewOrderDetail(order) {
     router.push('/ld-image')
     return
   }
+
+  if (isBuyRequestOrder(order)) {
+    const requestId = Number(order.requestId || order.request_id || 0)
+    const sessionId = Number(order.sessionId || order.session_id || 0)
+    if (requestId && sessionId) {
+      router.push({
+        path: `/buy-request/${requestId}`,
+        query: { session: String(sessionId) }
+      })
+    } else {
+      router.push('/user/buy-chats')
+    }
+    return
+  }
+
   const orderNo = getOrderKey(order)
   router.push(`/order/${orderNo}?role=${currentRole.value}`)
 }
@@ -429,6 +492,13 @@ function getOrderTypeText(type) {
   return map[type] || type || '未知'
 }
 
+function getOrderDisplayName(order) {
+  if (isBuyRequestOrder(order)) {
+    return order.requestTitle || order.request_title || order.product?.name || '求购订单'
+  }
+  return order.product?.name || order.product_name
+}
+
 // 格式化日期
 function formatDate(date) {
   if (!date) return ''
@@ -444,6 +514,11 @@ function formatDate(date) {
 function isCdkOrder(order) {
   const type = order.product_type || order.product?.product_type || order.productType
   return type === 'cdk'
+}
+
+function isBuyRequestOrder(order) {
+  const type = order.order_type || order.orderType
+  return type === 'buy_request'
 }
 
 function getOrderQuantity(order) {
@@ -492,7 +567,9 @@ async function handleRepay(order) {
   payingOrderId.value = orderNo
 
   try {
-    const result = await shopStore.getPaymentUrl(orderNo)
+    const result = isBuyRequestOrder(order)
+      ? await shopStore.getBuyOrderPaymentUrl(orderNo)
+      : await shopStore.getPaymentUrl(orderNo)
     const paymentUrl = result?.data?.paymentUrl
 
     if (!result?.success || !paymentUrl) {
@@ -518,6 +595,35 @@ async function handleRepay(order) {
   } finally {
     toast.close(loadingId)
     payingOrderId.value = null
+  }
+}
+
+async function handleRefreshBuyOrder(order) {
+  const orderNo = getOrderKey(order)
+  if (!orderNo || refreshingBuyOrderId.value === orderNo) return
+
+  refreshingBuyOrderId.value = orderNo
+  try {
+    const result = await shopStore.refreshBuyOrderStatus(orderNo)
+    if (!result?.success) {
+      toast.error(extractErrorMessage(result, '刷新状态失败'))
+      return
+    }
+
+    const status = result?.data?.status || result?.data?.order?.status
+    if (status === 'completed') {
+      toast.success('订单已完成，联系方式已开放')
+    } else if (status === 'expired') {
+      toast.warning('订单已过期，请重新发起支付')
+    } else {
+      toast.show(result?.data?.message || '订单尚未完成')
+    }
+
+    await loadOrders()
+  } catch (error) {
+    toast.error(error?.message || '刷新状态失败')
+  } finally {
+    refreshingBuyOrderId.value = null
   }
 }
 
@@ -941,6 +1047,8 @@ onUnmounted(() => {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .action-btn {
@@ -985,6 +1093,25 @@ onUnmounted(() => {
 
 .action-btn.pay-btn:hover {
   opacity: 0.9;
+}
+
+.action-btn.ghost-btn {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+}
+
+.action-btn.ghost-btn:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+
+.action-btn.enter-btn {
+  background: var(--color-success);
+  color: #fff;
+}
+
+.action-btn.enter-btn:hover:not(:disabled) {
+  opacity: 0.92;
 }
 
 /* 手动发货 */

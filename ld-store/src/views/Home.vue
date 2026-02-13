@@ -221,7 +221,7 @@
 
       <div v-show="activeSection === 'buy'" class="section-content">
         <div class="buy-header">
-          <p class="buy-desc">求购信息处于<span style="color: #ff6b35;font-weight:bold"> 试运行阶段 </span>，建议先沟通后交易。</p>
+          <p class="buy-desc">求购信息处于<span style="color: #ff6b35;font-weight:bold"> 试运行阶段 </span>。有任何问题请L站私信 <a href="https://linux.do/u/JackyLiii">@JackyLiii</a>。🪧<a href="/docs/buy-request" style="color: green;">查看求购操作指南👈</a></p>
           <button class="buy-publish-btn" @click="publishBuyRequest">+ 发布求购</button>
         </div>
 

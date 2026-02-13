@@ -25,6 +25,7 @@ export const useShopStore = defineStore('shop', () => {
   // 我的订单
   const myOrders = ref([])
   const sellerOrders = ref([])
+  const myBuyOrders = ref([])
   const ordersLoading = ref(false)
 
   // 缓存
@@ -523,6 +524,55 @@ export const useShopStore = defineStore('shop', () => {
     }
   }
 
+  // ======== 求购订单 ========
+
+  async function fetchMyBuyOrders(options = {}) {
+    ordersLoading.value = true
+
+    try {
+      const params = new URLSearchParams()
+      const role = String(options.role || '')
+      const status = String(options.status || '')
+      const search = String(options.search || '').trim()
+      const page = Number(options.page || 1)
+      const pageSize = Number(options.pageSize || 20)
+
+      params.set('page', String(page))
+      params.set('pageSize', String(pageSize))
+      if (role) params.set('role', role)
+      if (status) params.set('status', status)
+      if (search) params.set('search', search)
+
+      const result = await api.get(`/api/shop/buy-orders?${params.toString()}`)
+      if (result.success && result.data) {
+        myBuyOrders.value = result.data.orders || []
+        return result.data
+      }
+      return { orders: [], pagination: { total: 0, page: 1, pageSize, totalPages: 0 } }
+    } catch (e) {
+      console.error('Fetch buy orders failed:', e)
+      return { orders: [], pagination: { total: 0, page: 1, pageSize: Number(options.pageSize || 20), totalPages: 0 } }
+    } finally {
+      ordersLoading.value = false
+    }
+  }
+
+  async function getBuyOrderPaymentUrl(orderNo) {
+    try {
+      return await api.get(`/api/shop/buy-orders/${encodeURIComponent(orderNo)}/payment-url`)
+    } catch (e) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async function refreshBuyOrderStatus(orderNo) {
+    try {
+      return await api.post(`/api/shop/buy-orders/${encodeURIComponent(orderNo)}/refresh`)
+    } catch (e) {
+      return { success: false, error: e.message }
+    }
+  }
+
   // ======== 商户设置 ========
 
   // 获取商户配置
@@ -592,6 +642,7 @@ export const useShopStore = defineStore('shop', () => {
     myProductsLoading,
     myOrders,
     sellerOrders,
+    myBuyOrders,
     ordersLoading,
     // 计算属性
     currentCategoryName,
@@ -629,6 +680,9 @@ export const useShopStore = defineStore('shop', () => {
     refreshOrderStatus,
     getPaymentUrl,
     deliverOrder,
+    fetchMyBuyOrders,
+    getBuyOrderPaymentUrl,
+    refreshBuyOrderStatus,
     fetchMerchantConfig,
     updateMerchantConfig,
     invalidateCache,

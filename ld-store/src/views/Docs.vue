@@ -1,13 +1,11 @@
 <template>
   <div class="docs-page">
     <div class="docs-container">
-      <!-- 移动端菜单按钮 -->
-      <button class="mobile-menu-btn" @click="showSidebar = !showSidebar" v-if="isMobile">
+      <button v-if="isMobile" class="mobile-menu-btn" @click="showSidebar = !showSidebar">
         <span v-if="!showSidebar">☰ 目录</span>
         <span v-else>✕ 关闭</span>
       </button>
-      
-      <!-- 侧边栏导航 -->
+
       <aside :class="['docs-sidebar', { show: showSidebar || !isMobile }]">
         <div class="sidebar-header">
           <router-link to="/docs" class="sidebar-logo">
@@ -15,13 +13,9 @@
             <span class="logo-text">使用文档</span>
           </router-link>
         </div>
-        
+
         <nav class="sidebar-nav">
-          <div 
-            v-for="group in navGroups" 
-            :key="group.title" 
-            class="nav-group"
-          >
+          <div v-for="group in navGroups" :key="group.title" class="nav-group">
             <div class="nav-group-title">{{ group.title }}</div>
             <router-link
               v-for="item in group.items"
@@ -35,24 +29,19 @@
             </router-link>
           </div>
         </nav>
-        
+
         <div class="sidebar-footer">
-          <router-link to="/" class="back-home">
-            ← 返回首页
-          </router-link>
+          <router-link to="/" class="back-home">← 返回首页</router-link>
         </div>
       </aside>
-      
-      <!-- 遮罩层（移动端） -->
-      <div 
-        v-if="showSidebar && isMobile" 
+
+      <div
+        v-if="showSidebar && isMobile"
         class="sidebar-overlay"
         @click="showSidebar = false"
       ></div>
-      
-      <!-- 主内容区域 -->
+
       <main class="docs-content">
-        <!-- 面包屑导航 -->
         <div class="breadcrumb">
           <router-link to="/">首页</router-link>
           <span class="sep">/</span>
@@ -62,27 +51,25 @@
             <span class="current">{{ currentTitle }}</span>
           </template>
         </div>
-        
-        <!-- 文档内容 -->
+
         <article class="doc-article">
           <component :is="currentComponent" />
         </article>
-        
-        <!-- 上一篇/下一篇导航 -->
-        <div class="doc-pagination" v-if="prevDoc || nextDoc">
-          <router-link 
-            v-if="prevDoc" 
-            :to="`/docs/${prevDoc.id}`" 
+
+        <div v-if="prevDoc || nextDoc" class="doc-pagination">
+          <router-link
+            v-if="prevDoc"
+            :to="`/docs/${prevDoc.id}`"
             class="pagination-item prev"
           >
             <span class="pagination-label">上一篇</span>
             <span class="pagination-title">{{ prevDoc.icon }} {{ prevDoc.title }}</span>
           </router-link>
           <div v-else class="pagination-placeholder"></div>
-          
-          <router-link 
-            v-if="nextDoc" 
-            :to="`/docs/${nextDoc.id}`" 
+
+          <router-link
+            v-if="nextDoc"
+            :to="`/docs/${nextDoc.id}`"
             class="pagination-item next"
           >
             <span class="pagination-label">下一篇</span>
@@ -101,25 +88,23 @@ import { useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
 
-// 响应式状态
 const showSidebar = ref(false)
 const isMobile = ref(false)
 
-// 导航数据
 const navGroups = [
   {
     title: '入门指南',
     items: [
       { id: 'quick-start', title: '快速开始', icon: '🚀' },
-      { id: 'concepts', title: '基本概念', icon: '💡' }
+      { id: 'concepts', title: '基本概念', icon: '📚' }
     ]
   },
   {
     title: '物品管理',
     items: [
-      { id: 'product-types', title: '物品类型', icon: '📦' },
+      { id: 'product-types', title: '物品类型', icon: '🧩' },
       { id: 'publish-link', title: '发布外链物品', icon: '🔗' },
-      { id: 'publish-cdk', title: '发布CDK物品', icon: '🎫' }
+      { id: 'publish-cdk', title: '发布 CDK 物品', icon: '🎟️' }
     ]
   },
   {
@@ -129,9 +114,10 @@ const navGroups = [
     ]
   },
   {
-    title: '购买流程',
+    title: '交易流程',
     items: [
-      { id: 'buy-guide', title: '购买指南', icon: '🛒' }
+      { id: 'buy-guide', title: '购买指南', icon: '🛒' },
+      { id: 'buy-request', title: '求购操作指南', icon: '🌱' }
     ]
   },
   {
@@ -148,23 +134,15 @@ const navGroups = [
   }
 ]
 
-// 扁平化导航列表（用于翻页）
-const flatNavItems = computed(() => {
-  return navGroups.flatMap(group => group.items)
-})
+const flatNavItems = computed(() => navGroups.flatMap((group) => group.items))
 
-// 当前章节
-const currentSection = computed(() => {
-  return route.params.section || 'quick-start'
-})
+const currentSection = computed(() => route.params.section || 'quick-start')
 
-// 当前标题
 const currentTitle = computed(() => {
-  const item = flatNavItems.value.find(i => i.id === currentSection.value)
+  const item = flatNavItems.value.find((i) => i.id === currentSection.value)
   return item?.title || '文档'
 })
 
-// 动态组件
 const docComponents = {
   'quick-start': defineAsyncComponent(() => import('@/components/docs/DocQuickStart.vue')),
   'concepts': defineAsyncComponent(() => import('@/components/docs/DocConcepts.vue')),
@@ -173,6 +151,7 @@ const docComponents = {
   'publish-cdk': defineAsyncComponent(() => import('@/components/docs/DocPublishCdk.vue')),
   'shop-register': defineAsyncComponent(() => import('@/components/docs/DocShopRegister.vue')),
   'buy-guide': defineAsyncComponent(() => import('@/components/docs/DocBuyGuide.vue')),
+  'buy-request': defineAsyncComponent(() => import('@/components/docs/DocBuyRequest.vue')),
   'faq': defineAsyncComponent(() => import('@/components/docs/DocFaq.vue')),
   'terms': defineAsyncComponent(() => import('@/components/docs/DocTerms.vue'))
 }
@@ -181,15 +160,12 @@ const currentComponent = computed(() => {
   return docComponents[currentSection.value] || docComponents['quick-start']
 })
 
-// 上一篇/下一篇
 const currentIndex = computed(() => {
-  return flatNavItems.value.findIndex(i => i.id === currentSection.value)
+  return flatNavItems.value.findIndex((i) => i.id === currentSection.value)
 })
 
 const prevDoc = computed(() => {
-  if (currentIndex.value > 0) {
-    return flatNavItems.value[currentIndex.value - 1]
-  }
+  if (currentIndex.value > 0) return flatNavItems.value[currentIndex.value - 1]
   return null
 })
 
@@ -200,31 +176,30 @@ const nextDoc = computed(() => {
   return null
 })
 
-// 方法
 function handleNavClick() {
-  if (isMobile.value) {
-    showSidebar.value = false
-  }
+  if (isMobile.value) showSidebar.value = false
 }
 
 function checkMobile() {
   isMobile.value = window.innerWidth < 768
 }
 
-// 监听路由变化
-watch(() => route.params.section, (newSection) => {
-  // 更新页面标题
-  const item = flatNavItems.value.find(i => i.id === newSection)
-  if (item) {
-    document.title = `${item.title} - 使用文档 - LD士多`
-  }
-})
+watch(
+  () => route.params.section,
+  (newSection) => {
+    const item = flatNavItems.value.find((i) => i.id === newSection)
+    if (item) {
+      document.title = `${item.title} - 使用文档 - LD士多`
+    } else {
+      document.title = '使用文档 - LD士多'
+    }
+  },
+  { immediate: true }
+)
 
 onMounted(() => {
   checkMobile()
   window.addEventListener('resize', checkMobile)
-  
-  // 如果访问 /docs，重定向到 /docs/quick-start
   if (!route.params.section) {
     router.replace('/docs/quick-start')
   }
@@ -248,7 +223,6 @@ onUnmounted(() => {
   min-height: 100vh;
 }
 
-/* 移动端菜单按钮 */
 .mobile-menu-btn {
   position: fixed;
   top: 70px;
@@ -270,7 +244,6 @@ onUnmounted(() => {
   background: var(--bg-secondary);
 }
 
-/* 侧边栏 */
 .docs-sidebar {
   position: sticky;
   top: 60px;
@@ -372,7 +345,6 @@ onUnmounted(() => {
   color: var(--text-secondary);
 }
 
-/* 遮罩层 */
 .sidebar-overlay {
   position: fixed;
   top: 0;
@@ -383,7 +355,6 @@ onUnmounted(() => {
   z-index: 149;
 }
 
-/* 主内容区域 */
 .docs-content {
   flex: 1;
   padding: 24px 40px 60px;
@@ -391,7 +362,6 @@ onUnmounted(() => {
   min-width: 0;
 }
 
-/* 面包屑 */
 .breadcrumb {
   display: flex;
   align-items: center;
@@ -418,7 +388,6 @@ onUnmounted(() => {
   color: var(--text-secondary);
 }
 
-/* 文档内容 */
 .doc-article {
   background: var(--bg-card);
   border-radius: 16px;
@@ -427,7 +396,6 @@ onUnmounted(() => {
   border: 1px solid var(--border-light);
 }
 
-/* 文档翻页 */
 .doc-pagination {
   display: flex;
   gap: 16px;
@@ -474,7 +442,6 @@ onUnmounted(() => {
   flex: 1;
 }
 
-/* 移动端适配 */
 @media (max-width: 768px) {
   .docs-sidebar {
     position: fixed;
@@ -488,19 +455,19 @@ onUnmounted(() => {
     height: 100vh;
     background: var(--bg-card);
   }
-  
+
   .docs-sidebar.show {
     transform: translateX(0);
   }
-  
+
   .docs-content {
     padding: 80px 16px 60px;
   }
-  
+
   .doc-article {
     padding: 20px;
   }
-  
+
   .doc-pagination {
     flex-direction: column;
   }

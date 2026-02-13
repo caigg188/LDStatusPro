@@ -108,7 +108,12 @@
           <div class="chat-head">
             <div>
               <h2 class="section-title">在线聊天</h2>
-              <p class="chat-subtitle">{{ sessionStatusText(activeSession.status) }}</p>
+              <p class="chat-subtitle">
+                {{ sessionStatusText(activeSession.status) }}
+                <template v-if="activeSession.paymentOrderStatus">
+                  · 订单{{ buyOrderStatusText(activeSession.paymentOrderStatus) }}
+                </template>
+              </p>
             </div>
             <div class="chat-head-actions">
               <a
@@ -121,20 +126,20 @@
                 联系对方（私信）
               </a>
               <button
-                v-if="activeSession.canMarkPaid"
+                v-if="activeSession.canCreatePayment"
                 class="small-btn"
                 :disabled="actionLoading"
-                @click="markPaid"
+                @click="createPaymentOrder"
               >
-                标记已支付
+                去支付
               </button>
               <button
-                v-if="activeSession.canConfirmPaid"
+                v-if="activeSession.paymentOrderNo && activeSession.canRefreshPayment"
                 class="small-btn primary"
                 :disabled="actionLoading"
-                @click="confirmPaid"
+                @click="refreshPaymentStatus"
               >
-                确认收款
+                刷新支付状态
               </button>
               <button
                 v-if="activeSession.status !== 'closed' && activeSession.status !== 'cancelled'"
@@ -205,6 +210,8 @@ import { api } from '@/utils/api'
 import { useToast } from '@/composables/useToast'
 import { useDialog } from '@/composables/useDialog'
 import { formatPrice, formatRelativeTime } from '@/utils/format'
+import { isValidLdcPaymentUrl } from '@/utils/security'
+import { prepareNewTab, openInNewTab, cleanupPreparedTab } from '@/utils/newTab'
 
 const route = useRoute()
 const router = useRouter()
@@ -259,6 +266,17 @@ function sessionStatusText(status) {
     paid: '已确认',
     closed: '已关闭',
     cancelled: '已取消'
+  }
+  return map[status] || status
+}
+
+function buyOrderStatusText(status) {
+  const map = {
+    pending: '待支付',
+    paid: '已支付',
+    completed: '已完成',
+    cancelled: '已取消',
+    expired: '已过期'
   }
   return map[status] || status
 }
@@ -367,8 +385,21 @@ async function loadMessages(reset = false) {
       activeSession.value.providerMarkPaidAt = sessionState.providerMarkPaidAt
       activeSession.value.requesterConfirmPaidAt = sessionState.requesterConfirmPaidAt
       activeSession.value.contactUnlockedAt = sessionState.contactUnlockedAt
+      activeSession.value.paymentOrderNo = sessionState.paymentOrderNo || activeSession.value.paymentOrderNo || ''
+      activeSession.value.paymentOrderStatus = sessionState.paymentOrderStatus || activeSession.value.paymentOrderStatus || ''
+      activeSession.value.paymentPayExpiredAt = sessionState.paymentPayExpiredAt || activeSession.value.paymentPayExpiredAt || 0
+      activeSession.value.paymentPaidAt = sessionState.paymentPaidAt || activeSession.value.paymentPaidAt || 0
+      activeSession.value.paymentCompletedAt = sessionState.paymentCompletedAt || activeSession.value.paymentCompletedAt || 0
+      if (activeSession.value.paymentOrderStatus === 'completed') {
+        activeSession.value.canCreatePayment = false
+        activeSession.value.canRefreshPayment = false
+      }
       if (sessionState.requestStatus && requestData.value) {
         requestData.value.status = sessionState.requestStatus
+      }
+
+      if (sessionState.contactUnlockedAt && !activeSession.value.counterpartyContactLink) {
+        await loadDetail(false)
       }
     }
   } catch (error) {
@@ -490,39 +521,78 @@ async function updateRequestStatus(status) {
   }
 }
 
-async function markPaid() {
+async function createPaymentOrder() {
   if (!activeSessionId.value) return
+
   actionLoading.value = true
+  const preparedWindow = prepareNewTab()
   try {
-    const result = await api.post(`/api/shop/buy-sessions/${activeSessionId.value}/mark-paid`, {})
+    const result = await api.post(`/api/shop/buy-sessions/${activeSessionId.value}/payment`, {})
     if (!result.success) {
-      toast.error(result.error || '操作失败')
+      cleanupPreparedTab(preparedWindow)
+      toast.error(result.error || '创建支付订单失败')
       return
     }
-    toast.success('已标记支付，等待求购方确认')
+
+    const paymentUrl = result.data?.order?.paymentUrl || ''
+    if (!paymentUrl) {
+      cleanupPreparedTab(preparedWindow)
+      toast.warning('订单已创建，请在“求购订单”中继续支付')
+      await loadDetail(false)
+      return
+    }
+
+    if (!isValidLdcPaymentUrl(paymentUrl)) {
+      cleanupPreparedTab(preparedWindow)
+      toast.error('支付链接异常，请稍后重试')
+      return
+    }
+
+    const opened = openInNewTab(paymentUrl, preparedWindow)
+    if (!opened) {
+      cleanupPreparedTab(preparedWindow)
+      toast.warning('支付窗口被拦截，请允许弹窗后重试')
+    } else {
+      toast.success('支付页面已打开，请完成支付后刷新状态')
+    }
+
     await loadDetail(false)
-    await loadMessages(false)
   } catch (error) {
-    toast.error(error.message || '操作失败')
+    cleanupPreparedTab(preparedWindow)
+    toast.error(error.message || '创建支付订单失败')
   } finally {
     actionLoading.value = false
   }
 }
 
-async function confirmPaid() {
-  if (!activeSessionId.value) return
+async function refreshPaymentStatus() {
+  const orderNo = activeSession.value?.paymentOrderNo
+  if (!orderNo) {
+    toast.warning('暂无支付订单')
+    return
+  }
+
   actionLoading.value = true
   try {
-    const result = await api.post(`/api/shop/buy-sessions/${activeSessionId.value}/confirm-paid`, {})
+    const result = await api.post(`/api/shop/buy-orders/${encodeURIComponent(orderNo)}/refresh`, {})
     if (!result.success) {
-      toast.error(result.error || '确认失败')
+      toast.error(result.error || '刷新失败')
       return
     }
-    toast.success('已确认，联系方式已开放')
+
+    const orderStatus = result.data?.status || result.data?.order?.status
+    if (orderStatus === 'completed') {
+      toast.success('支付已确认，联系方式已开放')
+    } else if (orderStatus === 'expired') {
+      toast.warning('订单已过期，请重新发起支付')
+    } else {
+      toast.show(result.data?.message || '订单未完成，请稍后重试')
+    }
+
     await loadDetail(false)
     await loadMessages(false)
   } catch (error) {
-    toast.error(error.message || '确认失败')
+    toast.error(error.message || '刷新失败')
   } finally {
     actionLoading.value = false
   }
