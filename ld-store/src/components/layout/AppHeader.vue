@@ -11,7 +11,7 @@
         <span class="header-title">LD士多</span>
       </router-link>
       
-      <!-- 搜索框和GitHub（桌面端） -->
+      <!-- 搜索框和 GitHub（桌面端） -->
       <div class="header-center" v-if="!isMobile">
         <div class="header-search" ref="searchBoxRef">
           <input
@@ -66,7 +66,7 @@
               v-if="filteredSearchHistory.length === 0 && filteredRecommendedKeywords.length === 0"
               class="search-empty"
             >
-              暂无匹配词
+              暂无匹配结果
             </div>
           </div>
         </div>
@@ -186,6 +186,13 @@
               <a href="/user/products" class="dropdown-item" @click.prevent="navigateTo('/user/products')">
                 📦 我发布的
               </a>
+              <a href="/user/buy-requests" class="dropdown-item" @click.prevent="navigateTo('/user/buy-requests')">
+                🌱 我的求购
+              </a>
+              <a href="/user/buy-chats" class="dropdown-item" @click.prevent="navigateTo('/user/buy-chats')">
+                💬 聊天洽谈
+                <span v-if="buyChatUnread > 0" class="dropdown-badge">{{ buyChatUnread > 99 ? '99+' : buyChatUnread }}</span>
+              </a>
               <a href="/user/my-shop" class="dropdown-item" @click.prevent="navigateTo('/user/my-shop')">
                 🏪 小店入驻
               </a>
@@ -215,11 +222,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import { storage } from '@/utils/storage'
+import { api } from '@/utils/api'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -234,6 +242,7 @@ const moreDropdownRef = ref(null)
 const searchBoxRef = ref(null)
 const showSearchPanel = ref(false)
 const searchHistory = ref([])
+const buyChatUnread = ref(0)
 const recommendedKeywords = ['gpt', 'team', '小鸡', 'chatgpt', 'claude', 'vps', 'api', '存储', '代理']
 
 // 默认头像 SVG (data URI)
@@ -264,6 +273,8 @@ const filteredRecommendedKeywords = computed(() => {
   ))
 })
 
+let buyChatUnreadTimer = null
+
 // 下拉菜单控制
 function toggleDropdown() {
   showDropdown.value = !showDropdown.value
@@ -280,7 +291,7 @@ function toggleMoreMenu() {
   showDropdown.value = false
   // 打开菜单时同步统计数据
   if (showMoreMenu.value) {
-    setTimeout(syncBusuanziStats, 50)
+    setTimeout(syncBusuanziToMobile, 50)
   }
 }
 
@@ -406,10 +417,38 @@ function syncBusuanziToMobile() {
 }
 
 let busuanziObserver = null
+async function fetchBuyChatUnread() {
+  if (!isLoggedIn.value) {
+    buyChatUnread.value = 0
+    return
+  }
+
+  try {
+    const result = await api.get('/api/shop/buy-sessions/unread-summary')
+    if (!result.success) return
+    buyChatUnread.value = Number(result.data?.totalUnread || 0)
+  } catch (_) {
+    // ignore polling errors
+  }
+}
+
+function startBuyChatUnreadPolling() {
+  stopBuyChatUnreadPolling()
+  buyChatUnreadTimer = setInterval(fetchBuyChatUnread, 10000)
+}
+
+function stopBuyChatUnreadPolling() {
+  if (buyChatUnreadTimer) {
+    clearInterval(buyChatUnreadTimer)
+    buyChatUnreadTimer = null
+  }
+}
 
 onMounted(() => {
   loadSearchHistory()
   checkMobile()
+  fetchBuyChatUnread()
+  startBuyChatUnreadPolling()
   window.addEventListener('resize', checkMobile)
   document.addEventListener('click', handleClickOutside)
   
@@ -427,6 +466,17 @@ onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
   document.removeEventListener('click', handleClickOutside)
   busuanziObserver?.disconnect()
+  stopBuyChatUnreadPolling()
+})
+
+watch(isLoggedIn, (loggedIn) => {
+  if (loggedIn) {
+    fetchBuyChatUnread()
+    startBuyChatUnreadPolling()
+  } else {
+    stopBuyChatUnreadPolling()
+    buyChatUnread.value = 0
+  }
 })
 </script>
 
@@ -851,6 +901,21 @@ onUnmounted(() => {
 
 .dropdown-item:hover {
   background: var(--bg-secondary);
+}
+
+.dropdown-badge {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dropdown-item.logout {

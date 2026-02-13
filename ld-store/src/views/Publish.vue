@@ -77,10 +77,29 @@
 
     <div class="page-container">
       <div class="page-header">
-        <h1 class="page-title">发布物品</h1>
+        <h1 class="page-title">{{ publishMode === 'product' ? '发布物品' : '发布求购' }}</h1>
       </div>
       
-      <form class="publish-form" @submit.prevent="submitForm">
+      <div class="publish-mode-switch">
+        <button
+          type="button"
+          class="mode-btn"
+          :class="{ active: publishMode === 'product' }"
+          @click="publishMode = 'product'"
+        >
+          发布物品
+        </button>
+        <button
+          type="button"
+          class="mode-btn"
+          :class="{ active: publishMode === 'buy' }"
+          @click="publishMode = 'buy'"
+        >
+          发布求购
+        </button>
+      </div>
+
+      <form v-if="publishMode === 'product'" class="publish-form" @submit.prevent="submitForm">
         <!-- 基本信息 -->
         <div class="form-card">
           <h3 class="card-title">基本信息</h3>
@@ -366,18 +385,88 @@
           </button>
         </div>
       </form>
+
+      <form v-else class="publish-form" @submit.prevent="submitBuyRequest">
+        <div class="form-card">
+          <h3 class="card-title">求购信息</h3>
+
+          <div class="form-group">
+            <label class="form-label required">求购标题</label>
+            <input
+              v-model="buyForm.title"
+              type="text"
+              class="form-input"
+              :class="{ 'input-error': showBuyError('title', buyTitleError) }"
+              placeholder="例如：收一个月 Claude 会员"
+              maxlength="60"
+              ref="buyTitleInput"
+              @input="markBuyTouched('title')"
+            />
+            <p class="form-counter">{{ buyForm.title.length }}/60</p>
+            <p v-if="showBuyError('title', buyTitleError)" class="form-error">{{ buyTitleError }}</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label required">详细需求</label>
+            <textarea
+              v-model="buyForm.details"
+              class="form-textarea"
+              :class="{ 'input-error': showBuyError('details', buyDetailsError) }"
+              placeholder="请写清楚具体需求、交付方式、时效要求等（10-2000 字）"
+              rows="6"
+              maxlength="2000"
+              ref="buyDetailsInput"
+              @input="markBuyTouched('details')"
+            ></textarea>
+            <p class="form-counter">{{ buyForm.details.length }}/2000</p>
+            <p v-if="showBuyError('details', buyDetailsError)" class="form-error">{{ buyDetailsError }}</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label required">预算价格 (LDC)</label>
+            <input
+              v-model="buyForm.price"
+              type="number"
+              class="form-input"
+              :class="{ 'input-error': showBuyError('price', buyPriceError) }"
+              placeholder="0.00"
+              min="0.01"
+              max="99999999"
+              step="0.01"
+              ref="buyPriceInput"
+              @input="markBuyTouched('price')"
+            />
+            <p v-if="showBuyError('price', buyPriceError)" class="form-error">{{ buyPriceError }}</p>
+            <p class="form-hint">发布后可在会话中继续协商，并可随时调价。</p>
+          </div>
+        </div>
+
+        <div class="form-card buy-safe-card">
+          <h3 class="card-title">安全说明</h3>
+          <p class="form-hint">平台会展示随机用户名与密码进行沟通，真实信息默认不公开。</p>
+          <p class="form-hint">聊天内容会自动检测违禁词，命中后无法发送。</p>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="submit-btn" :disabled="!canSubmitBuy || buySubmitting">
+            {{ buySubmitting ? '发布中...' : '发布求购' }}
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
 import { useToast } from '@/composables/useToast'
 import { validateProductName, validateProductDescription, validatePrice } from '@/utils/security'
+import { api } from '@/utils/api'
 
 const router = useRouter()
+const route = useRoute()
 const shopStore = useShopStore()
 const toast = useToast()
 
@@ -385,6 +474,21 @@ const submitting = ref(false)
 const merchantConfigured = ref(false) // 是否已配置商家收款
 const showGuideModal = ref(false)
 const dontShowAgain = ref(false)
+const publishMode = ref('product')
+const buySubmitting = ref(false)
+const buySubmitAttempted = ref(false)
+
+const buyForm = ref({
+  title: '',
+  details: '',
+  price: ''
+})
+
+const buyTouched = ref({
+  title: false,
+  details: false,
+  price: false
+})
 
 const submitAttempted = ref(false)
 const touched = ref({
@@ -403,6 +507,9 @@ const discountInput = ref(null)
 const imageInput = ref(null)
 const paymentLinkInput = ref(null)
 const maxPurchaseQuantityInput = ref(null)
+const buyTitleInput = ref(null)
+const buyDetailsInput = ref(null)
+const buyPriceInput = ref(null)
 
 const fieldRefs = {
   name: nameInput,
@@ -414,14 +521,38 @@ const fieldRefs = {
   maxPurchaseQuantity: maxPurchaseQuantityInput
 }
 
+const buyFieldRefs = {
+  title: buyTitleInput,
+  details: buyDetailsInput,
+  price: buyPriceInput
+}
+
 function markTouched(field) {
   if (field in touched.value) {
     touched.value[field] = true
   }
 }
 
+function markBuyTouched(field) {
+  if (field in buyTouched.value) {
+    buyTouched.value[field] = true
+  }
+}
+
 function focusField(field) {
   const elRef = fieldRefs[field]
+  if (elRef?.value) {
+    elRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    try {
+      elRef.value.focus({ preventScroll: true })
+    } catch (e) {
+      // ignore focus errors
+    }
+  }
+}
+
+function focusBuyField(field) {
+  const elRef = buyFieldRefs[field]
   if (elRef?.value) {
     elRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
     try {
@@ -705,8 +836,32 @@ const maxPurchaseQuantityError = computed(() => {
   if (value > 1000) return '单人单次购买上限不能超过 1000'
   return ''
 })
+const buyTitleError = computed(() => {
+  const value = buyForm.value.title?.trim() || ''
+  if (!value) return '请输入求购标题'
+  if (value.length < 2 || value.length > 60) return '标题需要 2-60 个字符'
+  return ''
+})
 
+const buyDetailsError = computed(() => {
+  const value = buyForm.value.details?.trim() || ''
+  if (!value) return '请输入详细需求'
+  if (value.length < 10 || value.length > 2000) return '详细需求需要 10-2000 个字符'
+  return ''
+})
 
+const buyPriceError = computed(() => {
+  const result = validatePrice(buyForm.value.price)
+  return result.valid ? '' : result.error
+})
+
+const canSubmitBuy = computed(() => {
+  return !buyTitleError.value && !buyDetailsError.value && !buyPriceError.value
+})
+
+function showBuyError(field, err) {
+  return !!err && (buyTouched.value[field] || buySubmitAttempted.value)
+}
 
 function showError(field, err) {
   return !!err && (touched.value[field] || submitAttempted.value)
@@ -834,9 +989,9 @@ async function submitForm() {
   
   // 如果图片还未验证，先进行验证
   if (!imageValidated.value && !imageLoadError.value) {
-    toast.loading('正在验证图片...')
+    const loadingToastId = toast.loading('正在验证图片...')
     await validateImageLoad()
-    toast.dismiss()
+    toast.close(loadingToastId)
   }
   
   // 图片加载失败
@@ -903,7 +1058,53 @@ async function submitForm() {
 }
 
 // 初始化
+async function submitBuyRequest() {
+  buySubmitAttempted.value = true
+
+  if (buyTitleError.value) {
+    toast.error(buyTitleError.value)
+    focusBuyField('title')
+    return
+  }
+  if (buyDetailsError.value) {
+    toast.error(buyDetailsError.value)
+    focusBuyField('details')
+    return
+  }
+  if (buyPriceError.value) {
+    toast.error(buyPriceError.value)
+    focusBuyField('price')
+    return
+  }
+
+  buySubmitting.value = true
+  try {
+    const result = await api.post('/api/shop/buy-requests', {
+      title: buyForm.value.title.trim(),
+      details: buyForm.value.details.trim(),
+      price: parseFloat(buyForm.value.price)
+    })
+
+    if (!result.success) {
+      toast.error(result.error || '发布求购失败')
+      return
+    }
+
+    toast.success('求购发布成功，已提交管理员审核')
+    router.push('/user/buy-requests')
+  } catch (error) {
+    toast.error(error.message || '发布求购失败')
+  } finally {
+    buySubmitting.value = false
+  }
+}
+
 onMounted(async () => {
+  const queryType = String(route.query.type || '').toLowerCase()
+  if (queryType === 'buy' || queryType === 'request') {
+    publishMode.value = 'buy'
+  }
+
   // 检查是否需要显示引导弹窗
   const hasSeenGuide = localStorage.getItem(GUIDE_MODAL_KEY)
   if (!hasSeenGuide) {
@@ -940,6 +1141,31 @@ onMounted(async () => {
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
+}
+
+.publish-mode-switch {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.mode-btn {
+  flex: 1;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mode-btn.active {
+  border-color: var(--color-success);
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 /* 表单卡片 */
@@ -1058,6 +1284,10 @@ onMounted(async () => {
   color: var(--text-tertiary);
   margin: 8px 0 0;
   line-height: 1.5;
+}
+
+.buy-safe-card .form-hint {
+  margin-top: 6px;
 }
 
 .form-hint.loading-hint {

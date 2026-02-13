@@ -31,9 +31,6 @@
           </div>
         </div>
         
-        <button class="refresh-btn" @click="refreshLdcInfo" :disabled="refreshing">
-          {{ refreshing ? '刷新中...' : '🔄 刷新余额' }}
-        </button>
       </div>
       
       <!-- 功能菜单 -->
@@ -139,7 +136,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useDialog } from '@/composables/useDialog'
@@ -149,8 +146,6 @@ const router = useRouter()
 const userStore = useUserStore()
 const dialog = useDialog()
 const toast = useToast()
-
-const refreshing = ref(false)
 
 // 计算属性
 const user = computed(() => userStore.user)
@@ -162,14 +157,6 @@ const ldcInfo = computed(() => userStore.ldcInfo)
 onMounted(async () => {
   await userStore.fetchLdcInfo()
 })
-
-// 刷新 LDC 信息
-async function refreshLdcInfo() {
-  refreshing.value = true
-  await userStore.refreshLdcInfo()
-  toast.success('余额已刷新')
-  refreshing.value = false
-}
 
 // 头像加载失败
 function handleAvatarError(e) {
@@ -282,27 +269,6 @@ async function handleLogout() {
 .balance-unit {
   font-size: 12px;
   color: var(--text-tertiary);
-}
-
-.refresh-btn {
-  width: 100%;
-  padding: 12px;
-  background: var(--bg-secondary);
-  border: none;
-  border-radius: 12px;
-  font-size: 14px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.refresh-btn:hover:not(:disabled) {
-  background: var(--bg-tertiary);
-}
-
-.refresh-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 /* 菜单区域 */

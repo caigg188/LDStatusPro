@@ -193,7 +193,7 @@
           </span>
         </div>
         
-        <div v-if="shopsLoading" class="products-loading">
+        <div v-if="shopsLoading || !shopsLoaded" class="products-loading">
           <Skeleton type="card" :count="4" :columns="gridColumns" />
         </div>
         
@@ -219,16 +219,109 @@
         </EmptyState>
       </div>
 
+      <div v-show="activeSection === 'buy'" class="section-content">
+        <div class="buy-header">
+          <p class="buy-desc">求购信息处于<span style="color: #ff6b35;font-weight:bold"> 试运行阶段 </span>，建议先沟通后交易。</p>
+          <button class="buy-publish-btn" @click="publishBuyRequest">+ 发布求购</button>
+        </div>
+
+        <div class="buy-toolbar">
+          <select v-model="buyStatusFilter" class="buy-toolbar-select" @change="loadBuyRequests(true)">
+            <option value="">全部状态</option>
+            <option v-for="status in buyStatusOptions" :key="status.value" :value="status.value">
+              {{ status.label }}
+            </option>
+          </select>
+          <input
+            v-model="buySearchKeyword"
+            type="text"
+            class="buy-toolbar-input"
+            placeholder="搜索求购标题或内容"
+            @keyup.enter="loadBuyRequests(true)"
+          />
+          <button class="buy-toolbar-btn" @click="loadBuyRequests(true)">搜索</button>
+          <button class="buy-toolbar-btn secondary" @click="loadBuyRequests(false)">换一批</button>
+        </div>
+
+        <div class="products-header">
+          <span class="products-count">
+            求购信息 <strong>{{ buyPagination.total }}</strong> 条
+          </span>
+        </div>
+
+        <div v-if="buyLoading || !buyInitialized" class="products-loading">
+          <Skeleton type="card" :count="6" :columns="gridColumns" />
+        </div>
+
+        <div v-else-if="buyRequests.length > 0" class="buy-grid">
+          <article
+            v-for="item in buyRequests"
+            :key="item.id"
+            class="buy-card"
+            @click="goBuyRequestDetail(item.id)"
+          >
+            <div class="buy-card-head">
+              <h3 class="buy-card-title">{{ item.title }}</h3>
+              <span class="buy-status-pill">{{ buyStatusText(item.status) }}</span>
+            </div>
+            <p class="buy-card-detail">{{ item.details }}</p>
+            <div class="buy-card-meta">
+              <span class="buy-price">{{ item.budgetPrice }} LDC</span>
+              <span class="buy-meta-sep">·</span>
+              <span>{{ item.requesterPublicUsername }}</span>
+              <span class="buy-meta-sep">·</span>
+              <span>密码 {{ item.requesterPublicPassword }}</span>
+            </div>
+            <div class="buy-card-footer">
+              <span>会话 {{ item.sessionCount || 0 }}</span>
+              <span>{{ formatRelativeTime(item.updatedAt || item.createdAt) }}</span>
+            </div>
+          </article>
+        </div>
+
+        <EmptyState
+          v-else
+          icon="🌱"
+          text="暂无求购信息"
+          hint="你可以先发布你的需求，等待服务方联系"
+        >
+          <template #action>
+            <button class="btn btn-primary mt-4" @click="publishBuyRequest">
+              + 发布求购
+            </button>
+          </template>
+        </EmptyState>
+
+        <div v-if="buyPagination.totalPages > 1" class="buy-pagination">
+          <button
+            class="buy-page-btn"
+            :disabled="buyPagination.page <= 1 || buyLoading"
+            @click="goBuyPage(buyPagination.page - 1)"
+          >
+            上一页
+          </button>
+          <span class="buy-page-text">第 {{ buyPagination.page }} / {{ buyPagination.totalPages }} 页</span>
+          <button
+            class="buy-page-btn"
+            :disabled="buyPagination.page >= buyPagination.totalPages || buyLoading"
+            @click="goBuyPage(buyPagination.page + 1)"
+          >
+            下一页
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, onActivated, onDeactivated, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, onActivated, onDeactivated, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
 import { useUserStore } from '@/stores/user'
 import { api } from '@/utils/api'
+import { formatRelativeTime } from '@/utils/format'
 import ProductCard from '@/components/product/ProductCard.vue'
 import ShopCard from '@/components/shop/ShopCard.vue'
 import CategoryFilter from '@/components/product/CategoryFilter.vue'
@@ -236,7 +329,6 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
 import LiquidTabs from '@/components/common/LiquidTabs.vue'
 
-// 组件名称（用于 keep-alive 缓存）
 defineOptions({ name: 'Home' })
 
 const router = useRouter()
@@ -244,7 +336,6 @@ const route = useRoute()
 const shopStore = useShopStore()
 const userStore = useUserStore()
 
-// ========== 迁移提醒相关 ==========
 const MIGRATION_NOTICE_KEY = 'ld-store-migration-notice-v3'
 const showMigrationNotice = ref(false)
 const stepCompleted = ref({
@@ -253,13 +344,8 @@ const stepCompleted = ref({
   relist: false
 })
 
-const completedStepsCount = computed(() => {
-  return Object.values(stepCompleted.value).filter(Boolean).length
-})
-
-const allStepsCompleted = computed(() => {
-  return completedStepsCount.value === 3
-})
+const completedStepsCount = computed(() => Object.values(stepCompleted.value).filter(Boolean).length)
+const allStepsCompleted = computed(() => completedStepsCount.value === 3)
 
 function shouldShowMigrationNotice() {
   try {
@@ -271,11 +357,12 @@ function shouldShowMigrationNotice() {
 
 function ackMigrationNotice() {
   showMigrationNotice.value = false
-  // 只有全部完成才永久关闭
   if (allStepsCompleted.value) {
     try {
       localStorage.setItem(MIGRATION_NOTICE_KEY, 'ack')
-    } catch { /* ignore */ }
+    } catch {
+      // ignore localStorage errors
+    }
   }
 }
 
@@ -296,15 +383,17 @@ function goToCdkRecovery() {
   goToRouteWithAuth('/user/products')
 }
 
-// 状态
 const sentinel = ref(null)
-const activeSection = ref('products')
 const sectionTabs = [
   { value: 'products', label: '物品广场', icon: '🛒' },
-  { value: 'stores', label: '小店集市', icon: '🏪' }
+  { value: 'stores', label: '小店集市', icon: '🏪' },
+  { value: 'buy', label: '求购广场', icon: '🌱' }
 ]
+const normalizeSection = (value) => (
+  sectionTabs.some(tab => tab.value === value) ? value : 'products'
+)
+const activeSection = ref(normalizeSection(String(route.query.section || '').trim()))
 
-// 排序选项
 const sortTabs = [
   { value: 'default', label: '默认' },
   { value: 'newest', label: '最新' },
@@ -312,27 +401,44 @@ const sortTabs = [
   { value: 'price_desc', label: '价格↓' },
   { value: 'sales', label: '销量' }
 ]
-const shops = ref([])  // 独立小店列表
+
+const shops = ref([])
 const shopsLoading = ref(false)
+const shopsLoaded = ref(false)
 const shopsTotal = ref(0)
+
+const buyRequests = ref([])
+const buyLoading = ref(false)
+const buyInitialized = ref(false)
+const buyStatusFilter = ref('')
+const buySearchKeyword = ref('')
+const buyStatusOptions = [
+  { value: 'open', label: '开放中' },
+  { value: 'negotiating', label: '洽谈中' },
+  { value: 'matched', label: '已匹配' }
+]
+const buyPagination = reactive({
+  page: 1,
+  pageSize: 20,
+  total: 0,
+  totalPages: 0
+})
+
 const stats = ref({
   products: { total: 0, online: 0 },
   orders: { total: 0, today: 0, week: 0 },
   stores: 0
 })
-let observer = null
 
-// 首次加载状态（区别于加载更多的 loading）
+let observer = null
 const initialLoading = ref(true)
 const hasInitialized = ref(false)
 
-// 滚动位置保存
 let savedScrollPosition = 0
 let latestCatalogActionId = 0
 
-// 分类物品缓存 { categoryId: { products, total, hasMore, page, timestamp } }
 const categoryCache = ref(new Map())
-const CATEGORY_CACHE_TTL = 5 * 60 * 1000 // 5分钟缓存
+const CATEGORY_CACHE_TTL = 5 * 60 * 1000
 
 const getCacheKey = (categoryId, sortKey) => `${categoryId || 'all'}_${sortKey || 'default'}`
 
@@ -340,7 +446,6 @@ function tryRestoreFromCache(categoryId, sortKey) {
   const cacheKey = getCacheKey(categoryId, sortKey)
   const cached = categoryCache.value.get(cacheKey)
   const now = Date.now()
-
   if (cached && (now - cached.timestamp < CATEGORY_CACHE_TTL)) {
     shopStore.restoreFromCache(categoryId, cached.products, cached.total, cached.hasMore, cached.page, cached.sort)
     initialLoading.value = false
@@ -361,7 +466,6 @@ function saveCache(categoryId, sortKey) {
   })
 }
 
-// 计算属性
 const categories = computed(() => shopStore.categories)
 const products = computed(() => shopStore.products)
 const currentCategory = computed(() => shopStore.currentCategory)
@@ -375,17 +479,13 @@ const loading = computed(() => shopStore.loading)
 const hasMore = computed(() => shopStore.hasMore)
 const total = computed(() => shopStore.total)
 
-// 物品广场的分类（排除小店）
-const marketCategories = computed(() => 
+const marketCategories = computed(() =>
   categories.value.filter(c => c.name !== '小店' && c.name !== '友情小店')
 )
-
-// 物品广场的物品（排除小店类型）
-const marketProducts = computed(() => 
+const marketProducts = computed(() =>
   products.value.filter(p => p.product_type !== 'store')
 )
 
-// 响应式网格列数
 const gridColumns = ref(2)
 function updateGridColumns() {
   const width = window.innerWidth
@@ -394,21 +494,37 @@ function updateGridColumns() {
   else gridColumns.value = 2
 }
 
-// 切换板块
 async function switchSection(section) {
   activeSection.value = section
-  
-  if (section === 'stores' && shops.value.length === 0) {
+
+  const currentSection = String(route.query.section || '').trim()
+  if (currentSection !== section) {
+    try {
+      await router.replace({
+        query: {
+          ...route.query,
+          section
+        }
+      })
+    } catch {
+      // ignore duplicated navigation errors
+    }
+  }
+
+  if (section === 'stores' && !shopsLoaded.value) {
     await loadShops()
   }
-  
+
+  if (section === 'buy' && !buyInitialized.value) {
+    await loadBuyRequests(true)
+  }
+
   if (section === 'products') {
     await nextTick()
     setupInfiniteScroll()
   }
 }
 
-// 加载独立小店列表（使用新的小店 API）
 async function loadShops() {
   shopsLoading.value = true
   try {
@@ -417,14 +533,81 @@ async function loadShops() {
       shops.value = result.data.shops
       shopsTotal.value = result.data.pagination?.total || result.data.shops.length
     }
-  } catch (e) {
-    console.error('Load shops failed:', e)
+  } catch (error) {
+    console.error('Load shops failed:', error)
   } finally {
     shopsLoading.value = false
+    shopsLoaded.value = true
   }
 }
 
-// 分类选择
+function buyStatusText(status) {
+  const map = {
+    open: '开放中',
+    negotiating: '洽谈中',
+    matched: '已匹配',
+    closed: '已关闭',
+    blocked: '已处理'
+  }
+  return map[status] || status
+}
+
+async function loadBuyRequests(resetPage = true) {
+  if (resetPage) {
+    buyPagination.page = 1
+  }
+
+  buyLoading.value = true
+  try {
+    const params = new URLSearchParams({
+      page: String(buyPagination.page),
+      pageSize: String(buyPagination.pageSize),
+      sort: 'random'
+    })
+    if (buyStatusFilter.value) params.set('status', buyStatusFilter.value)
+    if (buySearchKeyword.value.trim()) params.set('search', buySearchKeyword.value.trim())
+
+    const result = await api.get(`/api/shop/buy-requests?${params.toString()}`)
+    if (result.success && result.data) {
+      const data = result.data
+      buyRequests.value = data.requests || []
+      buyPagination.total = data.pagination?.total || 0
+      buyPagination.totalPages = data.pagination?.totalPages || 0
+      return
+    }
+
+    buyRequests.value = []
+    buyPagination.total = 0
+    buyPagination.totalPages = 0
+  } catch (error) {
+    console.error('Load buy requests failed:', error)
+    buyRequests.value = []
+    buyPagination.total = 0
+    buyPagination.totalPages = 0
+  } finally {
+    buyLoading.value = false
+    buyInitialized.value = true
+  }
+}
+
+function goBuyPage(page) {
+  if (page < 1 || page > buyPagination.totalPages) return
+  buyPagination.page = page
+  loadBuyRequests(false)
+}
+
+function publishBuyRequest() {
+  if (!userStore.isLoggedIn) {
+    router.push({ name: 'Login', query: { redirect: '/publish?type=buy' } })
+    return
+  }
+  router.push('/publish?type=buy')
+}
+
+function goBuyRequestDetail(id) {
+  router.push(`/buy-request/${id}`)
+}
+
 async function handleCategorySelect(categoryId) {
   const actionId = ++latestCatalogActionId
   const sortKey = shopStore.currentSort || 'default'
@@ -453,7 +636,7 @@ async function handleCategorySelect(categoryId) {
   if (actionId !== latestCatalogActionId) return
   setupInfiniteScroll()
 }
-// 排序变更
+
 async function handleSortChange(sort) {
   const actionId = ++latestCatalogActionId
   const categoryId = shopStore.currentCategory
@@ -482,27 +665,22 @@ async function handleSortChange(sort) {
   if (actionId !== latestCatalogActionId) return
   setupInfiniteScroll()
 }
-// 切换只看有库存
+
 async function handleToggleInStock() {
-  // 清除缓存，因为库存筛选条件变化
   categoryCache.value.clear()
   initialLoading.value = true
   await shopStore.toggleInStockOnly()
   initialLoading.value = false
-  
-  // 设置无限滚动
   await nextTick()
   setupInfiniteScroll()
 }
 
-// 恢复首先分配的物品分类关键功能使不表示空物品
 async function recoverProductsIfNeeded() {
   if (loading.value || initialLoading.value) return
   if (marketProducts.value.length > 0) return
 
   const categoryId = shopStore.currentCategory
   const sortKey = shopStore.currentSort || 'default'
-
   const restored = tryRestoreFromCache(categoryId, sortKey)
   if (!restored) {
     initialLoading.value = true
@@ -512,44 +690,40 @@ async function recoverProductsIfNeeded() {
   }
 }
 
-// 初始化
 onMounted(async () => {
-  const querySection = String(route.query.section || '').trim()
-  if (sectionTabs.some(tab => tab.value === querySection)) {
-    activeSection.value = querySection
-  }
-  // 检查是否需要显示迁移提醒
   if (shouldShowMigrationNotice()) {
     showMigrationNotice.value = true
   }
-  
+
   updateGridColumns()
   window.addEventListener('resize', updateGridColumns)
-  
-  // 如果已经初始化过（keep-alive 缓存），不重新加载
+
   if (hasInitialized.value) {
     initialLoading.value = false
     return
   }
-  
-  // 获取分类和物品
+
   await shopStore.fetchCategories()
   await shopStore.fetchProducts('', true)
   saveCache(shopStore.currentCategory, shopStore.currentSort)
 
-  
-  // 加载完成
   initialLoading.value = false
   hasInitialized.value = true
-  
-  // 获取统计数据（已包含独立小店数量）
+
   const statsData = await shopStore.fetchPublicStats()
   if (statsData) {
     stats.value = statsData
   }
-  
-  // 设置无限滚动
-  setupInfiniteScroll()
+
+  if (activeSection.value === 'stores') {
+    await loadShops()
+  } else if (activeSection.value === 'buy') {
+    await loadBuyRequests(true)
+  }
+
+  if (activeSection.value === 'products') {
+    setupInfiniteScroll()
+  }
 })
 
 onUnmounted(() => {
@@ -557,7 +731,6 @@ onUnmounted(() => {
   if (observer) observer.disconnect()
 })
 
-// keep-alive 激活时恢复滚动位置
 onActivated(async () => {
   if (savedScrollPosition > 0) {
     await nextTick()
@@ -568,28 +741,26 @@ onActivated(async () => {
     await recoverProductsIfNeeded()
     await nextTick()
     setupInfiniteScroll()
+  } else if (activeSection.value === 'buy' && !buyInitialized.value) {
+    await loadBuyRequests(true)
   }
 })
 
-// keep-alive 停用时保存滚动位置
 onDeactivated(() => {
   savedScrollPosition = window.scrollY
   if (observer) observer.disconnect()
 })
 
-// 监听 hasMore 变化重新设置观察器
 watch(hasMore, (newVal) => {
   if (newVal && activeSection.value === 'products') {
     setupInfiniteScroll()
   }
 })
 
-// 无限滚动
 function setupInfiniteScroll() {
   if (observer) observer.disconnect()
-  
   if (!sentinel.value || !hasMore.value) return
-  
+
   observer = new IntersectionObserver(
     async (entries) => {
       if (entries[0].isIntersecting && !loading.value && hasMore.value) {
@@ -598,7 +769,7 @@ function setupInfiniteScroll() {
     },
     { rootMargin: '100px' }
   )
-  
+
   observer.observe(sentinel.value)
 }
 </script>
@@ -1085,6 +1256,186 @@ function setupInfiniteScroll() {
 }
 
 /* 物品网格 */
+.buy-header {
+  margin-bottom: 14px;
+  padding: 16px 20px;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.buy-desc {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.buy-publish-btn {
+  border: none;
+  border-radius: 10px;
+  background: var(--color-success);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.buy-toolbar {
+  display: grid;
+  grid-template-columns: 180px 1fr 96px 96px;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.buy-toolbar-select,
+.buy-toolbar-input {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 14px;
+  padding: 10px 12px;
+}
+
+.buy-toolbar-btn {
+  border: none;
+  border-radius: 10px;
+  background: var(--color-success);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.buy-toolbar-btn.secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.buy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.buy-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.buy-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.buy-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.buy-card-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.buy-status-pill {
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 3px 8px;
+  color: var(--color-success);
+  background: var(--color-success-bg);
+  white-space: nowrap;
+}
+
+.buy-card-detail {
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.buy-card-meta {
+  margin-top: auto;
+  padding-top: 10px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.buy-price {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.buy-meta-sep {
+  opacity: 0.5;
+}
+
+.buy-card-footer {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.buy-pagination {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.buy-page-btn {
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.buy-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.buy-page-text {
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
 .products-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1095,10 +1446,18 @@ function setupInfiniteScroll() {
   .products-grid {
     grid-template-columns: repeat(3, 1fr);
   }
+
+  .buy-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (min-width: 1024px) {
   .products-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .buy-grid {
     grid-template-columns: repeat(4, 1fr);
   }
 }
@@ -1237,6 +1596,15 @@ function setupInfiniteScroll() {
   
   .stores-desc {
     font-size: 13px;
+  }
+
+  .buy-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .buy-toolbar {
+    grid-template-columns: 1fr;
   }
 }
 </style>

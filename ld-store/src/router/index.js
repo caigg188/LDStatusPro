@@ -29,6 +29,12 @@ const routes = [
     meta: { title: '搜索 - LD士多' }
   },
   {
+    path: '/buy-request/:id',
+    name: 'BuyRequestDetail',
+    component: () => import('@/views/BuyRequestDetail.vue'),
+    meta: { title: '求购详情 - LD士多' }
+  },
+  {
     path: '/user',
     name: 'User',
     component: () => import('@/views/User.vue'),
@@ -45,6 +51,18 @@ const routes = [
     name: 'MyProducts',
     component: () => import('@/views/MyProducts.vue'),
     meta: { title: '我的商品 - LD士多', requiresAuth: true }
+  },
+  {
+    path: '/user/buy-requests',
+    name: 'MyBuyRequests',
+    component: () => import('@/views/MyBuyRequests.vue'),
+    meta: { title: '我的求购 - LD士多', requiresAuth: true }
+  },
+  {
+    path: '/user/buy-chats',
+    name: 'MyBuyChats',
+    component: () => import('@/views/MyBuyChats.vue'),
+    meta: { title: '聊天洽谈 - LD士多', requiresAuth: true }
   },
   {
     path: '/user/settings',
