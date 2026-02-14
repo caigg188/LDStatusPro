@@ -936,10 +936,10 @@ async function handleBuyLink() {
 
 .nav-report-btn {
   padding: 8px 14px;
-  border: 1px solid #f3d6dc;
+  border: 1px solid rgba(234, 179, 8, 0.35);
   border-radius: 20px;
-  background: #fdf0f2;
-  color: #a85a64;
+  background: rgba(250, 204, 21, 0.16);
+  color: #8a6500;
   font-size: 13px;
   line-height: 1.2;
   cursor: pointer;
@@ -947,9 +947,9 @@ async function handleBuyLink() {
 }
 
 .nav-report-btn:hover {
-  background: #f9e2e7;
-  border-color: #eec0c9;
-  color: #8f4550;
+  background: rgba(250, 204, 21, 0.24);
+  border-color: rgba(234, 179, 8, 0.5);
+  color: #6f5200;
 }
 
 .nav-report-btn:disabled {
