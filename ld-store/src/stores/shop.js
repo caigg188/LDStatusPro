@@ -26,6 +26,8 @@ export const useShopStore = defineStore('shop', () => {
   const myOrders = ref([])
   const sellerOrders = ref([])
   const myBuyOrders = ref([])
+  const myFavorites = ref([])
+  const favoritesLoading = ref(false)
   const ordersLoading = ref(false)
 
   // 缓存
@@ -159,11 +161,13 @@ export const useShopStore = defineStore('shop', () => {
   }
 
   // 获取商品详情
-  async function fetchProduct(id) {
+  async function fetchProduct(id, force = false) {
     // 检查缓存
-    const cached = productCache.get(id)
-    if (cached && Date.now() - cached.time < CACHE_TTL) {
-      return cached.data
+    if (!force) {
+      const cached = productCache.get(id)
+      if (cached && Date.now() - cached.time < CACHE_TTL) {
+        return cached.data
+      }
     }
 
     try {
@@ -179,8 +183,24 @@ export const useShopStore = defineStore('shop', () => {
   }
 
   // 获取商品详情 (别名)
-  async function fetchProductDetail(id) {
-    return fetchProduct(id)
+  async function fetchProductDetail(id, force = false) {
+    return fetchProduct(id, force)
+  }
+
+  function setProductFavoriteState(productId, favorited) {
+    const cacheKey = String(productId)
+    const targetState = !!favorited
+
+    const cached = productCache.get(productId) || productCache.get(cacheKey)
+    if (cached?.data) {
+      cached.data.isFavorited = targetState
+      cached.data.is_favorited = targetState
+      if (productCache.has(cacheKey)) {
+        productCache.set(cacheKey, cached)
+      } else {
+        productCache.set(productId, cached)
+      }
+    }
   }
 
   async function reportProduct(id, reason) {
@@ -193,6 +213,64 @@ export const useShopStore = defineStore('shop', () => {
   }
 
   // 获取自己的商品详情 (需要登录，可获取任意状态的商品)
+  async function addFavorite(productId) {
+    try {
+      const result = await api.post(`/api/shop/products/${productId}/favorite`)
+      if (result?.success) {
+        setProductFavoriteState(productId, true)
+      }
+      return result
+    } catch (e) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async function removeFavorite(productId) {
+    try {
+      const result = await api.delete(`/api/shop/products/${productId}/favorite`)
+      if (result?.success) {
+        setProductFavoriteState(productId, false)
+        myFavorites.value = myFavorites.value.filter(item => String(item.id) !== String(productId))
+      }
+      return result
+    } catch (e) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async function fetchMyFavorites(options = {}) {
+    favoritesLoading.value = true
+    try {
+      const params = new URLSearchParams()
+      const page = Math.max(Number.parseInt(options.page, 10) || 1, 1)
+      const size = Math.min(Math.max(Number.parseInt(options.pageSize, 10) || 20, 1), 50)
+      const search = String(options.search || '').trim()
+      params.set('page', String(page))
+      params.set('pageSize', String(size))
+      if (search) params.set('search', search)
+
+      const result = await api.get(`/api/shop/favorites?${params.toString()}`)
+      if (result.success && result.data) {
+        myFavorites.value = result.data.products || []
+        return result.data
+      }
+      return {
+        products: [],
+        pagination: { total: 0, page, pageSize: size, totalPages: 0 }
+      }
+    } catch (e) {
+      console.error('Fetch my favorites failed:', e)
+      const page = Math.max(Number.parseInt(options.page, 10) || 1, 1)
+      const size = Math.min(Math.max(Number.parseInt(options.pageSize, 10) || 20, 1), 50)
+      return {
+        products: [],
+        pagination: { total: 0, page, pageSize: size, totalPages: 0 }
+      }
+    } finally {
+      favoritesLoading.value = false
+    }
+  }
+
   async function fetchMyProductDetail(id) {
     try {
       const result = await api.get(`/api/shop/my-products/${id}`)
@@ -412,23 +490,51 @@ export const useShopStore = defineStore('shop', () => {
 
   // ======== 订单管理 ========
 
+  function normalizeOrderListOptions(options = {}) {
+    if (typeof options === 'string') {
+      return { status: options }
+    }
+    if (!options || typeof options !== 'object') {
+      return {}
+    }
+    return options
+  }
+
+  function buildOrderListParams(role, rawOptions = {}) {
+    const options = normalizeOrderListOptions(rawOptions)
+    const status = String(options.status || '').trim()
+    const search = String(options.search || '').trim()
+    const timeRange = String(options.timeRange || '').trim()
+    const page = Math.max(Number.parseInt(options.page, 10) || 1, 1)
+    const pageSize = Math.min(Math.max(Number.parseInt(options.pageSize, 10) || 20, 1), 50)
+    const params = new URLSearchParams()
+
+    params.set('role', role)
+    params.set('page', String(page))
+    params.set('pageSize', String(pageSize))
+    if (status) params.set('status', status)
+    if (search) params.set('search', search)
+    if (timeRange) params.set('timeRange', timeRange)
+
+    return { params, page, pageSize }
+  }
+
   // 获取我的订单（买家）
-  async function fetchMyOrders(status = '') {
+  async function fetchMyOrders(options = {}) {
     ordersLoading.value = true
 
     try {
-      let url = '/api/shop/orders?role=buyer'
-      if (status) url += `&status=${status}`
-      
-      const result = await api.get(url)
+      const { params, page, pageSize } = buildOrderListParams('buyer', options)
+      const result = await api.get(`/api/shop/orders?${params.toString()}`)
       if (result.success && result.data?.orders) {
         myOrders.value = result.data.orders
-        return result.data.orders
+        return result.data
       }
-      return []
+      return { orders: [], pagination: { total: 0, page, pageSize, totalPages: 0 } }
     } catch (e) {
       console.error('Fetch my orders failed:', e)
-      return []
+      const { page, pageSize } = buildOrderListParams('buyer', options)
+      return { orders: [], pagination: { total: 0, page, pageSize, totalPages: 0 } }
     } finally {
       ordersLoading.value = false
     }
@@ -436,23 +542,29 @@ export const useShopStore = defineStore('shop', () => {
 
   // 获取订单列表 (别名，用于 Orders.vue)
   async function fetchOrders(params = {}) {
-    return fetchMyOrders(params.status || '')
+    const options = normalizeOrderListOptions(params)
+    if (options.role === 'seller') {
+      return fetchSellerOrders(options)
+    }
+    return fetchMyOrders(options)
   }
 
   // 获取卖家订单
-  async function fetchSellerOrders(status = '') {
+  async function fetchSellerOrders(options = {}) {
     ordersLoading.value = true
 
     try {
-      let url = '/api/shop/orders?role=seller'
-      if (status) url += `&status=${status}`
-      
-      const result = await api.get(url)
+      const { params, page, pageSize } = buildOrderListParams('seller', options)
+      const result = await api.get(`/api/shop/orders?${params.toString()}`)
       if (result.success && result.data?.orders) {
         sellerOrders.value = result.data.orders
+        return result.data
       }
+      return { orders: [], pagination: { total: 0, page, pageSize, totalPages: 0 } }
     } catch (e) {
       console.error('Fetch seller orders failed:', e)
+      const { page, pageSize } = buildOrderListParams('seller', options)
+      return { orders: [], pagination: { total: 0, page, pageSize, totalPages: 0 } }
     } finally {
       ordersLoading.value = false
     }
@@ -534,6 +646,7 @@ export const useShopStore = defineStore('shop', () => {
       const role = String(options.role || '')
       const status = String(options.status || '')
       const search = String(options.search || '').trim()
+      const timeRange = String(options.timeRange || '').trim()
       const page = Number(options.page || 1)
       const pageSize = Number(options.pageSize || 20)
 
@@ -542,6 +655,7 @@ export const useShopStore = defineStore('shop', () => {
       if (role) params.set('role', role)
       if (status) params.set('status', status)
       if (search) params.set('search', search)
+      if (timeRange) params.set('timeRange', timeRange)
 
       const result = await api.get(`/api/shop/buy-orders?${params.toString()}`)
       if (result.success && result.data) {
@@ -651,6 +765,8 @@ export const useShopStore = defineStore('shop', () => {
     myOrders,
     sellerOrders,
     myBuyOrders,
+    myFavorites,
+    favoritesLoading,
     ordersLoading,
     // 计算属性
     currentCategoryName,
@@ -678,6 +794,9 @@ export const useShopStore = defineStore('shop', () => {
     fetchOrderDetail,
     fetchProductDetail,
     reportProduct,
+    addFavorite,
+    removeFavorite,
+    fetchMyFavorites,
     fetchMyProductDetail,
     fetchProductCdks,
     addProductCdks,

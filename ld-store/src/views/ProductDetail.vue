@@ -20,6 +20,24 @@
                           <span v-else-if="isStore" class="nav-type store">🏬 友情小店</span>
                         </div>
             <button
+              class="nav-favorite-btn"
+              :class="{ active: isFavorited }"
+              :disabled="favoriteSubmitting"
+              @click="toggleFavorite"
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                <path
+                  d="M12 21s-7.2-4.35-9.6-8.4C.4 9.29 1.24 5.9 4.06 4.34A5.43 5.43 0 0 1 12 6.2a5.43 5.43 0 0 1 7.94-1.86c2.82 1.56 3.66 4.95 1.66 8.26C19.2 16.65 12 21 12 21z"
+                  :fill="isFavorited ? 'currentColor' : 'none'"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <span>{{ isFavorited ? '已收藏' : '收藏' }}</span>
+            </button>
+            <button
               class="nav-report-btn"
               :disabled="reportSubmitting"
               @click="openReportModal"
@@ -347,6 +365,7 @@ const showImagePreview = ref(false)
 const showReportModal = ref(false)
 const reportReason = ref('')
 const reportSubmitting = ref(false)
+const favoriteSubmitting = ref(false)
 const selectedQuantity = ref(1)
 
 const quickReportReasons = [
@@ -368,6 +387,9 @@ const isSeller = computed(() => {
   if (!product.value || !userStore.user) return false
   return String(userStore.user.id) === String(product.value.seller_user_id)
 })
+const isFavorited = computed(() =>
+  !!(product.value?.isFavorited || product.value?.is_favorited)
+)
 
 // 价格计算
 const price = computed(() => parseFloat(product.value?.price) || 0)
@@ -496,7 +518,7 @@ onMounted(async () => {
   await shopStore.fetchCategories()
   
   // 获取物品详情
-  const data = await shopStore.fetchProduct(productId)
+  const data = await shopStore.fetchProduct(productId, true)
   if (data) {
     product.value = data
     // 更新页面标题
@@ -541,6 +563,51 @@ function goBack() {
 function goToSeller() {
   if (product.value?.seller_username) {
     window.open(`https://linux.do/u/${product.value.seller_username}`, '_blank')
+  }
+}
+
+async function toggleFavorite() {
+  if (!product.value?.id || favoriteSubmitting.value) return
+
+  if (!userStore.isLoggedIn) {
+    const confirmed = await dialog.confirm('收藏功能需要先登录，是否前往登录？', {
+      title: '需要登录',
+      icon: '🔐',
+      confirmText: '去登录',
+      cancelText: '取消'
+    })
+    if (confirmed) {
+      router.push({ name: 'Login', query: { redirect: route.fullPath } })
+    }
+    return
+  }
+
+  favoriteSubmitting.value = true
+  try {
+    const result = isFavorited.value
+      ? await shopStore.removeFavorite(product.value.id)
+      : await shopStore.addFavorite(product.value.id)
+
+    if (!result?.success) {
+      const message = typeof result?.error === 'object'
+        ? (result.error?.message || result.error?.code || '操作失败，请稍后重试')
+        : (result?.error || '操作失败，请稍后重试')
+      toast.error(message)
+      return
+    }
+
+    const nextState = !isFavorited.value
+    product.value = {
+      ...product.value,
+      isFavorited: nextState,
+      is_favorited: nextState
+    }
+
+    toast.success(result?.data?.message || (nextState ? '收藏成功' : '已取消收藏'))
+  } catch (error) {
+    toast.error(error.message || '操作失败，请稍后重试')
+  } finally {
+    favoriteSubmitting.value = false
   }
 }
 
@@ -834,6 +901,37 @@ async function handleBuyLink() {
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.nav-favorite-btn {
+  padding: 8px 14px;
+  border: 1px solid #e4cad0;
+  border-radius: 20px;
+  background: #fff4f6;
+  color: #b16472;
+  font-size: 13px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-favorite-btn:hover {
+  background: #feecef;
+  border-color: #dbaab5;
+}
+
+.nav-favorite-btn.active {
+  background: #fce5ea;
+  border-color: #d98f9f;
+  color: #9f4258;
+}
+
+.nav-favorite-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .nav-report-btn {

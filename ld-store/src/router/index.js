@@ -47,6 +47,12 @@ const routes = [
     meta: { title: '我的订单 - LD士多', requiresAuth: true }
   },
   {
+    path: '/user/favorites',
+    name: 'MyFavorites',
+    component: () => import('@/views/MyFavorites.vue'),
+    meta: { title: '我的收藏 - LD士多', requiresAuth: true }
+  },
+  {
     path: '/user/buy-orders/:orderNo',
     name: 'BuyOrderDetail',
     component: () => import('@/views/BuyOrderDetail.vue'),

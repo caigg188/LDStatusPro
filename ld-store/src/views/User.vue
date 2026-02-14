@@ -44,6 +44,24 @@
             <span class="menu-arrow">→</span>
           </router-link>
           
+          <router-link to="/user/favorites" class="menu-item">
+            <span class="menu-icon">⭐</span>
+            <span class="menu-label">我的收藏</span>
+            <span class="menu-arrow">→</span>
+          </router-link>
+
+          <router-link to="/user/buy-requests" class="menu-item">
+            <span class="menu-icon">🌱</span>
+            <span class="menu-label">我的求购</span>
+            <span class="menu-arrow">→</span>
+          </router-link>
+
+          <router-link to="/user/buy-chats" class="menu-item">
+            <span class="menu-icon">💬</span>
+            <span class="menu-label">聊天洽谈</span>
+            <span class="menu-arrow">→</span>
+          </router-link>
+
           <router-link to="/user/products" class="menu-item">
             <span class="menu-icon">📦</span>
             <span class="menu-label">我的物品</span>

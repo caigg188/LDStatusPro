@@ -189,6 +189,9 @@
               <a href="/user/orders" class="dropdown-item" @click.prevent="navigateTo('/user/orders')">
                 📋 我的订单
               </a>
+              <a href="/user/favorites" class="dropdown-item" @click.prevent="navigateTo('/user/favorites')">
+                ⭐ 我的收藏
+              </a>
               <a href="/user/products" class="dropdown-item" @click.prevent="navigateTo('/user/products')">
                 📦 我发布的
               </a>
