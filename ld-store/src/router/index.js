@@ -47,6 +47,12 @@ const routes = [
     meta: { title: '我的订单 - LD士多', requiresAuth: true }
   },
   {
+    path: '/user/buy-orders/:orderNo',
+    name: 'BuyOrderDetail',
+    component: () => import('@/views/BuyOrderDetail.vue'),
+    meta: { title: '求购订单详情 - LD士多', requiresAuth: true }
+  },
+  {
     path: '/user/products',
     name: 'MyProducts',
     component: () => import('@/views/MyProducts.vue'),

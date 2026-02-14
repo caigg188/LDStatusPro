@@ -557,6 +557,14 @@ export const useShopStore = defineStore('shop', () => {
     }
   }
 
+  async function getBuyOrderDetail(orderNo) {
+    try {
+      return await api.get(`/api/shop/buy-orders/${encodeURIComponent(orderNo)}`)
+    } catch (e) {
+      return { success: false, error: e.message }
+    }
+  }
+
   async function getBuyOrderPaymentUrl(orderNo) {
     try {
       return await api.get(`/api/shop/buy-orders/${encodeURIComponent(orderNo)}/payment-url`)
@@ -681,6 +689,7 @@ export const useShopStore = defineStore('shop', () => {
     getPaymentUrl,
     deliverOrder,
     fetchMyBuyOrders,
+    getBuyOrderDetail,
     getBuyOrderPaymentUrl,
     refreshBuyOrderStatus,
     fetchMerchantConfig,

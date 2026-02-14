@@ -92,14 +92,25 @@
               v-for="session in sessions"
               :key="session.id"
               class="session-item"
-              :class="{ active: activeSessionId === session.id }"
+              :class="{
+                active: activeSessionId === session.id,
+                'has-unread': Number(session.unreadCount || 0) > 0 && activeSessionId !== session.id
+              }"
               @click="selectSession(session.id)"
               >
               <div class="session-main">
                 <span class="session-user">{{ session.providerPublicUsername }}</span>
                 <span class="session-pass">密码 {{ session.providerPublicPassword }}</span>
               </div>
-              <span class="session-status">{{ sessionStatusText(session.status) }}</span>
+              <div class="session-meta">
+                <span class="session-status">
+                  {{ sessionStatusText(session.status) }}
+                  <template v-if="isSessionCompleted(session)"> · 已成交</template>
+                </span>
+                <span v-if="Number(session.unreadCount || 0) > 0" class="session-unread">
+                  未读 {{ session.unreadCount }}
+                </span>
+              </div>
             </button>
           </div>
         </section>
@@ -299,6 +310,12 @@ function buyOrderStatusText(status) {
   return map[status] || status
 }
 
+function isSessionCompleted(session) {
+  const paymentStatus = String(session?.paymentOrderStatus || '')
+  if (paymentStatus === 'completed') return true
+  return Number(session?.contactUnlockedAt || 0) > 0
+}
+
 function goBack() {
   router.back()
 }
@@ -413,6 +430,11 @@ async function loadMessages(reset = false) {
       messages.value = mergeMessages([], list)
     } else if (list.length > 0) {
       messages.value = mergeMessages(messages.value, list)
+    }
+
+    const currentSession = sessions.value.find((item) => item.id === targetSessionId)
+    if (currentSession && Number(currentSession.unreadCount || 0) > 0) {
+      currentSession.unreadCount = 0
     }
 
     const sessionState = result.data?.session || null
@@ -890,6 +912,11 @@ watch(
   background: var(--color-success-bg);
 }
 
+.session-item.has-unread {
+  border-color: rgba(220, 38, 38, 0.35);
+  background: rgba(220, 38, 38, 0.05);
+}
+
 .session-main {
   display: flex;
   flex-direction: column;
@@ -901,10 +928,28 @@ watch(
   font-weight: 600;
 }
 
+.session-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
 .session-pass,
 .session-status {
   font-size: 12px;
   color: var(--text-tertiary);
+}
+
+.session-unread {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .chat-head {

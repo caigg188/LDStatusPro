@@ -152,7 +152,7 @@
                   {{ refreshingBuyOrderId === getOrderKey(order) ? '刷新中...' : '刷新状态' }}
                 </button>
                 <button class="action-btn enter-btn" @click.stop="viewOrderDetail(order)">
-                  进入会话
+                  订单详情
                 </button>
               </template>
               <!-- CDK 待支付订单操作按钮（买家和卖家都可以取消） -->
@@ -434,16 +434,12 @@ function viewOrderDetail(order) {
   }
 
   if (isBuyRequestOrder(order)) {
-    const requestId = Number(order.requestId || order.request_id || 0)
-    const sessionId = Number(order.sessionId || order.session_id || 0)
-    if (requestId && sessionId) {
-      router.push({
-        path: `/buy-request/${requestId}`,
-        query: { session: String(sessionId) }
-      })
-    } else {
-      router.push('/user/buy-chats')
+    const orderNo = getOrderKey(order)
+    if (!orderNo) {
+      router.push('/user/orders?tab=buy')
+      return
     }
+    router.push(`/user/buy-orders/${encodeURIComponent(orderNo)}`)
     return
   }
 

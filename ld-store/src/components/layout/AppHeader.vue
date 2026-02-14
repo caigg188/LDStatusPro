@@ -150,7 +150,7 @@
         <!-- 用户信息 -->
         <template v-if="isLoggedIn">
           <div class="user-dropdown" ref="dropdownRef">
-            <button class="user-info" @click="toggleDropdown">
+            <button class="user-info" :class="{ 'has-unread': buyChatUnread > 0 }" @click="toggleDropdown">
               <img
                 :src="avatar || defaultAvatar"
                 alt="avatar"
@@ -159,7 +159,13 @@
                 @error="handleAvatarError"
               />
               <span class="user-name" v-if="!isMobile">{{ username }}</span>
+              <span v-if="buyChatUnread > 0 && !isMobile" class="user-unread-inline">
+                未读 {{ unreadDisplay }}
+              </span>
               <span class="dropdown-arrow">▼</span>
+              <span v-if="buyChatUnread > 0 && isMobile" class="user-unread-badge">
+                {{ unreadDisplay }}
+              </span>
             </button>
             
             <!-- 下拉菜单 -->
@@ -189,9 +195,14 @@
               <a href="/user/buy-requests" class="dropdown-item" @click.prevent="navigateTo('/user/buy-requests')">
                 🌱 我的求购
               </a>
-              <a href="/user/buy-chats" class="dropdown-item" @click.prevent="navigateTo('/user/buy-chats')">
+              <a
+                href="/user/buy-chats"
+                class="dropdown-item"
+                :class="{ 'with-unread': buyChatUnread > 0 }"
+                @click.prevent="navigateTo('/user/buy-chats')"
+              >
                 💬 聊天洽谈
-                <span v-if="buyChatUnread > 0" class="dropdown-badge">{{ buyChatUnread > 99 ? '99+' : buyChatUnread }}</span>
+                <span v-if="buyChatUnread > 0" class="dropdown-badge">{{ unreadDisplay }}</span>
               </a>
               <a href="/user/my-shop" class="dropdown-item" @click.prevent="navigateTo('/user/my-shop')">
                 🏪 小店入驻
@@ -253,6 +264,7 @@ const isLoggedIn = computed(() => userStore.isLoggedIn)
 const username = computed(() => userStore.username)
 const avatar = computed(() => userStore.avatar)
 const trustLevel = computed(() => userStore.trustLevel)
+const unreadDisplay = computed(() => (buyChatUnread.value > 99 ? '99+' : String(buyChatUnread.value || 0)))
 const normalizedSearchQuery = computed(() => searchQuery.value.trim().toLowerCase())
 const filteredSearchHistory = computed(() => {
   if (!normalizedSearchQuery.value) {
@@ -770,6 +782,7 @@ watch(isLoggedIn, (loggedIn) => {
 }
 
 .user-info {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -779,6 +792,10 @@ watch(isLoggedIn, (loggedIn) => {
   border-radius: 20px;
   cursor: pointer;
   transition: background 0.2s;
+}
+
+.user-info.has-unread {
+  box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.28);
 }
 
 .user-info:hover {
@@ -800,6 +817,39 @@ watch(isLoggedIn, (loggedIn) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.user-unread-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 46px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(220, 38, 38, 0.12);
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.user-unread-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  padding: 0 5px;
+  border: 2px solid var(--bg-primary);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35);
 }
 
 .dropdown-arrow {
@@ -901,6 +951,10 @@ watch(isLoggedIn, (loggedIn) => {
 
 .dropdown-item:hover {
   background: var(--bg-secondary);
+}
+
+.dropdown-item.with-unread {
+  background: rgba(220, 38, 38, 0.06);
 }
 
 .dropdown-badge {
@@ -1029,6 +1083,10 @@ watch(isLoggedIn, (loggedIn) => {
   .user-avatar {
     width: 32px;
     height: 32px;
+  }
+
+  .dropdown-arrow {
+    display: none;
   }
 }
 </style>

@@ -53,7 +53,12 @@
       </div>
 
       <div v-else class="session-list">
-        <article v-for="item in sessions" :key="item.id" class="session-card">
+        <article
+          v-for="item in sessions"
+          :key="item.id"
+          class="session-card"
+          :class="{ 'has-unread': Number(item.unreadCount || 0) > 0 }"
+        >
           <div class="card-top">
             <div class="top-main">
               <h3 class="request-title">{{ item.request?.title || '-' }}</h3>
@@ -66,8 +71,10 @@
               </p>
             </div>
             <div class="top-right">
+              <span v-if="Number(item.unreadCount || 0) > 0" class="new-msg-pill">新消息</span>
               <span class="role-badge">{{ roleText(item.role) }}</span>
               <span class="status-badge" :class="`status-${item.status}`">{{ sessionStatusText(item.status) }}</span>
+              <span v-if="isDealCompleted(item)" class="deal-badge">已成交</span>
             </div>
           </div>
 
@@ -162,6 +169,12 @@ function requestStatusText(status) {
 
 function sessionStatusText(status) {
   return sessionStatusOptions.find((item) => item.value === status)?.label || status
+}
+
+function isDealCompleted(session) {
+  const paymentStatus = String(session?.paymentOrderStatus || '')
+  if (paymentStatus === 'completed') return true
+  return Number(session?.contactUnlockedAt || 0) > 0
 }
 
 async function loadSummary() {
@@ -385,6 +398,11 @@ onUnmounted(() => {
   padding: 14px;
 }
 
+.session-card.has-unread {
+  border-color: rgba(220, 38, 38, 0.35);
+  box-shadow: 0 10px 28px rgba(220, 38, 38, 0.08);
+}
+
 .card-top {
   display: flex;
   justify-content: space-between;
@@ -400,6 +418,15 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.new-msg-pill {
+  font-size: 12px;
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  font-weight: 700;
 }
 
 .request-title {
@@ -451,6 +478,15 @@ onUnmounted(() => {
 .status-cancelled {
   background: var(--bg-secondary);
   color: var(--text-tertiary);
+}
+
+.deal-badge {
+  font-size: 12px;
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: rgba(16, 185, 129, 0.16);
+  color: #047857;
+  font-weight: 600;
 }
 
 .identity-row {
