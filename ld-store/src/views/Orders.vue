@@ -26,6 +26,32 @@
           🌱 求购订单
         </button>
       </div>
+
+      <div class="orders-filters">
+        <input
+          v-model.trim="orderSearch"
+          class="filter-input"
+          type="text"
+          placeholder="搜索订单号、商品名、用户名"
+          @keyup.enter="applyFilters"
+        />
+        <select v-model="timeRange" class="filter-select" @change="applyFilters">
+          <option value="1m">最近1个月</option>
+          <option value="6m">最近半年</option>
+          <option value="1y">最近一年</option>
+        </select>
+        <button class="filter-btn" :disabled="loading || loadingMore" @click="applyFilters">
+          搜索
+        </button>
+        <button
+          v-if="orderSearch"
+          class="filter-btn secondary"
+          :disabled="loading || loadingMore"
+          @click="clearSearch"
+        >
+          清空
+        </button>
+      </div>
       
       <!-- 加载中 -->
       <div v-if="loading" class="loading-state">
@@ -243,6 +269,8 @@ const page = ref(1)
 const hasMore = ref(false)
 const pageSize = 20
 const currentRole = ref(route.query.tab === 'buy' ? 'buy' : 'buyer')
+const orderSearch = ref('')
+const timeRange = ref('1m')
 const cancellingOrderId = ref(null)
 const deliverFormOrderId = ref(null)
 const deliverContent = ref('')
@@ -268,6 +296,15 @@ async function switchRole(role) {
   await loadOrders()
 }
 
+function buildOrderQueryOptions() {
+  return {
+    page: page.value,
+    pageSize,
+    search: orderSearch.value.trim(),
+    timeRange: timeRange.value
+  }
+}
+
 // 加载订单
 async function loadOrders(append = false) {
   try {
@@ -277,23 +314,19 @@ async function loadOrders(append = false) {
       loadingMore.value = true
     }
     
-    let ordersList = []
+    const queryOptions = buildOrderQueryOptions()
+    let result
     if (currentRole.value === 'buy') {
-      const result = await shopStore.fetchMyBuyOrders({ page: page.value, pageSize })
-      ordersList = Array.isArray(result?.orders) ? result.orders : []
-      const totalPages = Number(result?.pagination?.totalPages || 0)
-      hasMore.value = append ? (page.value < totalPages) : (1 < totalPages)
+      result = await shopStore.fetchMyBuyOrders(queryOptions)
+    } else if (currentRole.value === 'buyer') {
+      result = await shopStore.fetchMyOrders(queryOptions)
     } else {
-      let result
-      if (currentRole.value === 'buyer') {
-        result = await shopStore.fetchMyOrders()
-      } else {
-        result = await shopStore.fetchSellerOrders()
-        result = shopStore.sellerOrders
-      }
-      ordersList = Array.isArray(result) ? result : (result?.orders || result || [])
-      hasMore.value = ordersList.length === pageSize
+      result = await shopStore.fetchSellerOrders(queryOptions)
     }
+
+    const ordersList = Array.isArray(result?.orders) ? result.orders : []
+    const totalPages = Number(result?.pagination?.totalPages || 0)
+    hasMore.value = page.value < totalPages
     
     if (append) {
       orders.value.push(...ordersList)
@@ -310,8 +343,20 @@ async function loadOrders(append = false) {
 
 // 加载更多
 function loadMore() {
+  if (loading.value || loadingMore.value || !hasMore.value) return
   page.value++
   loadOrders(true)
+}
+
+async function applyFilters() {
+  page.value = 1
+  await loadOrders()
+}
+
+async function clearSearch() {
+  if (!orderSearch.value) return
+  orderSearch.value = ''
+  await applyFilters()
 }
 
 function getOrderKey(order) {
@@ -755,6 +800,70 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
+.orders-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.filter-input {
+  flex: 1;
+  min-width: 220px;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.filter-select {
+  height: 42px;
+  min-width: 118px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.filter-btn {
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filter-btn.secondary {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.filter-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* 加载骨架 */
 .loading-state {
   display: flex;
@@ -1175,5 +1284,16 @@ onUnmounted(() => {
 .load-more-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .filter-input {
+    min-width: 100%;
+  }
+
+  .filter-select,
+  .filter-btn {
+    flex: 1;
+  }
 }
 </style>

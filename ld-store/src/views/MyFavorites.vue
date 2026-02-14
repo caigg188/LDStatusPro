@@ -36,6 +36,9 @@
                   {{ getStatusText(item.status) }}
                 </span>
                 <span class="meta-price">{{ getPrice(item) }} LDC</span>
+                <span class="meta-info seller">{{ getSellerText(item) }}</span>
+                <span class="meta-info">销量 {{ getSoldCount(item) }}</span>
+                <span class="meta-info">库存 {{ getStockText(item) }}</span>
                 <span class="meta-time">收藏于 {{ formatRelativeTime(item.favorited_at || item.updated_at || item.created_at) }}</span>
               </div>
             </div>
@@ -114,6 +117,34 @@ function getStatusText(status) {
     rejected: '已拒绝'
   }
   return map[status] || '未知状态'
+}
+
+function getSellerText(item) {
+  const username = String(item?.seller_username || item?.sellerUsername || '').trim()
+  return username ? `@${username}` : '@未知'
+}
+
+function getSoldCount(item) {
+  const sold = Number.parseInt(item?.sold_count, 10)
+  return Number.isFinite(sold) && sold > 0 ? sold : 0
+}
+
+function getStockText(item) {
+  const stock = Number.parseInt(item?.stock, 10)
+  if (stock === -1) return '∞'
+
+  const productType = String(item?.product_type || '').toLowerCase()
+  if (productType === 'cdk') {
+    const available = Number.parseInt(item?.availableStock ?? item?.cdkStats?.available ?? stock, 10)
+    const total = Number.parseInt(item?.cdkStats?.total ?? stock, 10)
+    const safeAvailable = Number.isFinite(available) ? Math.max(available, 0) : 0
+    const safeTotal = Number.isFinite(total) ? Math.max(total, 0) : 0
+    if (safeAvailable === 0 && safeTotal === 0) return '0'
+    return `${safeAvailable}/${safeTotal}`
+  }
+
+  if (Number.isFinite(stock)) return String(Math.max(stock, 0))
+  return '0'
 }
 
 async function loadFavorites(append = false) {
@@ -308,6 +339,18 @@ onMounted(async () => {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-warning);
+}
+
+.meta-info {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.meta-info.seller {
+  color: var(--text-primary);
 }
 
 .meta-status {
