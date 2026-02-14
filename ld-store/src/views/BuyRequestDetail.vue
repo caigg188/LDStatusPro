@@ -40,7 +40,7 @@
                 min="0.01"
                 step="0.01"
                 class="price-input"
-                placeholder="输入新预算"
+                placeholder="输入新的预算价格"
               />
               <button class="small-btn primary" :disabled="updatingPrice" @click="submitPriceUpdate">
                 {{ updatingPrice ? '提交中...' : '调价' }}
@@ -94,7 +94,7 @@
               class="session-item"
               :class="{ active: activeSessionId === session.id }"
               @click="selectSession(session.id)"
-            >
+              >
               <div class="session-main">
                 <span class="session-user">{{ session.providerPublicUsername }}</span>
                 <span class="session-pass">密码 {{ session.providerPublicPassword }}</span>
@@ -149,6 +149,14 @@
               >
                 关闭会话
               </button>
+              <button
+                v-if="canReopenSession"
+                class="small-btn"
+                :disabled="actionLoading"
+                @click="reopenSession"
+              >
+                重新开启会话
+              </button>
             </div>
           </div>
 
@@ -180,7 +188,7 @@
               rows="3"
               maxlength="500"
               :disabled="!activeSession.canSendMessage || sendingMessage"
-              placeholder="输入消息（违禁词会被拦截）"
+              placeholder="输入消息（含违禁词会被拦截）"
             ></textarea>
             <button
               class="send-btn"
@@ -233,8 +241,10 @@ const updatingRequestStatus = ref(false)
 const startingSession = ref(false)
 const sendingMessage = ref(false)
 const actionLoading = ref(false)
+const loadingMessages = ref(false)
 
 let pollTimer = null
+let messageFetchVersion = 0
 
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const requestId = computed(() => Number(route.params.id || 0))
@@ -245,6 +255,14 @@ const requestDetailState = ref(null)
 const activeSession = computed(() => {
   if (!activeSessionId.value) return null
   return sessions.value.find(item => item.id === activeSessionId.value) || null
+})
+
+const canReopenSession = computed(() => {
+  const session = activeSession.value
+  const request = requestData.value
+  if (!session || !request) return false
+  if (!['closed', 'cancelled'].includes(session.status)) return false
+  return !['closed', 'blocked', 'pending_review'].includes(request.status)
 })
 
 function statusText(status) {
@@ -312,6 +330,19 @@ function getPreferredSessionId() {
   return Number.isFinite(value) && value > 0 ? value : 0
 }
 
+function mergeMessages(currentList = [], incomingList = []) {
+  const merged = new Map()
+  for (const item of currentList) {
+    const id = Number(item?.id || 0)
+    if (id > 0) merged.set(id, item)
+  }
+  for (const item of incomingList) {
+    const id = Number(item?.id || 0)
+    if (id > 0) merged.set(id, item)
+  }
+  return Array.from(merged.values()).sort((a, b) => Number(a.id || 0) - Number(b.id || 0))
+}
+
 async function loadDetail(showLoading = true) {
   if (!requestId.value) {
     loading.value = false
@@ -361,22 +392,27 @@ async function loadDetail(showLoading = true) {
 
 async function loadMessages(reset = false) {
   if (!activeSessionId.value) return
+  if (loadingMessages.value && !reset) return
 
+  const targetSessionId = activeSessionId.value
+  const fetchVersion = ++messageFetchVersion
   const sinceId = reset || messages.value.length === 0
     ? 0
     : messages.value[messages.value.length - 1]?.id || 0
 
+  loadingMessages.value = true
   try {
     const result = await api.get(
-      `/api/shop/buy-sessions/${activeSessionId.value}/messages?limit=100&sinceId=${sinceId}`
+      `/api/shop/buy-sessions/${targetSessionId}/messages?limit=100&sinceId=${sinceId}`
     )
     if (!result.success) return
+    if (fetchVersion !== messageFetchVersion || activeSessionId.value !== targetSessionId) return
 
     const list = result.data?.messages || []
     if (reset) {
-      messages.value = list
+      messages.value = mergeMessages([], list)
     } else if (list.length > 0) {
-      messages.value = [...messages.value, ...list]
+      messages.value = mergeMessages(messages.value, list)
     }
 
     const sessionState = result.data?.session || null
@@ -404,6 +440,10 @@ async function loadMessages(reset = false) {
     }
   } catch (error) {
     // silence polling errors
+  } finally {
+    if (fetchVersion === messageFetchVersion) {
+      loadingMessages.value = false
+    }
   }
 }
 
@@ -434,6 +474,7 @@ async function selectSession(sessionId) {
 }
 
 async function startSession() {
+  if (startingSession.value) return
   if (!requestId.value) return
   startingSession.value = true
   try {
@@ -456,17 +497,23 @@ async function startSession() {
 }
 
 async function sendMessage() {
+  if (sendingMessage.value) return
   const content = messageInput.value.trim()
   if (!content || !activeSessionId.value) return
 
+  const targetSessionId = activeSessionId.value
   sendingMessage.value = true
   try {
-    const result = await api.post(`/api/shop/buy-sessions/${activeSessionId.value}/messages`, { content })
+    const result = await api.post(`/api/shop/buy-sessions/${targetSessionId}/messages`, { content })
     if (!result.success) {
       toast.error(result.error || '发送失败')
       return
     }
     messageInput.value = ''
+    const sentMessage = result.data?.message
+    if (sentMessage && Number(sentMessage.sessionId || targetSessionId) === targetSessionId) {
+      messages.value = mergeMessages(messages.value, [sentMessage])
+    }
     await loadMessages(false)
   } catch (error) {
     toast.error(error.message || '发送失败')
@@ -522,6 +569,7 @@ async function updateRequestStatus(status) {
 }
 
 async function createPaymentOrder() {
+  if (actionLoading.value) return
   if (!activeSessionId.value) return
 
   actionLoading.value = true
@@ -566,7 +614,12 @@ async function createPaymentOrder() {
 }
 
 async function refreshPaymentStatus() {
-  const orderNo = activeSession.value?.paymentOrderNo
+  if (actionLoading.value) return
+  let orderNo = activeSession.value?.paymentOrderNo
+  if (!orderNo) {
+    await loadDetail(false)
+    orderNo = activeSession.value?.paymentOrderNo
+  }
   if (!orderNo) {
     toast.warning('暂无支付订单')
     return
@@ -599,6 +652,7 @@ async function refreshPaymentStatus() {
 }
 
 async function closeSession() {
+  if (actionLoading.value) return
   if (!activeSessionId.value) return
   const confirmed = await dialog.confirm('确定关闭当前会话吗？', { title: '关闭会话' })
   if (!confirmed) return
@@ -615,6 +669,29 @@ async function closeSession() {
     await loadMessages(false)
   } catch (error) {
     toast.error(error.message || '关闭失败')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+async function reopenSession() {
+  if (actionLoading.value) return
+  if (!activeSessionId.value) return
+  const confirmed = await dialog.confirm('确定重新开启当前会话吗？', { title: '重新开启会话' })
+  if (!confirmed) return
+
+  actionLoading.value = true
+  try {
+    const result = await api.post(`/api/shop/buy-sessions/${activeSessionId.value}/reopen`, {})
+    if (!result.success) {
+      toast.error(result.error || '重新开启失败')
+      return
+    }
+    toast.success('会话已重新开启')
+    await loadDetail(false)
+    await loadMessages(true)
+  } catch (error) {
+    toast.error(error.message || '重新开启失败')
   } finally {
     actionLoading.value = false
   }

@@ -262,7 +262,9 @@
           >
             <div class="buy-card-head">
               <h3 class="buy-card-title">{{ item.title }}</h3>
-              <span class="buy-status-pill">{{ buyStatusText(item.status) }}</span>
+              <span :class="['buy-status-pill', `buy-status-${buyStatusClass(item.status)}`]">
+                {{ buyStatusText(item.status) }}
+              </span>
             </div>
             <p class="buy-card-detail">{{ item.details }}</p>
             <div class="buy-card-meta">
@@ -550,6 +552,14 @@ function buyStatusText(status) {
     blocked: '已处理'
   }
   return map[status] || status
+}
+
+function buyStatusClass(status) {
+  const value = String(status || '').toLowerCase()
+  if (['open', 'negotiating', 'matched', 'closed', 'blocked', 'pending_review'].includes(value)) {
+    return value
+  }
+  return 'default'
 }
 
 async function loadBuyRequests(resetPage = true) {
@@ -1360,9 +1370,41 @@ function setupInfiniteScroll() {
   border-radius: 999px;
   font-size: 11px;
   padding: 3px 8px;
-  color: var(--color-success);
-  background: var(--color-success-bg);
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
   white-space: nowrap;
+  border: 1px solid var(--border-light);
+}
+
+.buy-status-open {
+  color: #0f6b3a;
+  background: #e9f9ef;
+  border-color: #bdebcf;
+}
+
+.buy-status-negotiating {
+  color: #8a4b08;
+  background: #fff4e6;
+  border-color: #ffd7ad;
+}
+
+.buy-status-matched {
+  color: #1249a3;
+  background: #ebf3ff;
+  border-color: #bfd8ff;
+}
+
+.buy-status-closed,
+.buy-status-blocked {
+  color: #6b7280;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.buy-status-pending_review {
+  color: #7a2e0e;
+  background: #fff1ec;
+  border-color: #ffc9b5;
 }
 
 .buy-card-detail {

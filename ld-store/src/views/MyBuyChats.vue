@@ -3,7 +3,7 @@
     <div class="page-container">
       <div class="page-header">
         <div>
-          <h1 class="page-title">聊天洽谈</h1>
+          <h1 class="page-title">💬 聊天洽谈</h1>
           <p class="page-subtitle">查看你参与的求购会话与消息进度</p>
         </div>
         <router-link to="/user/buy-requests" class="link-btn">我发布的求购</router-link>
