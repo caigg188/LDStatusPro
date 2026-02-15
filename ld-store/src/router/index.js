@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { MAINTENANCE_MODE } from '@/config/maintenance'
+import { storage } from '@/utils/storage'
 
 // 路由配置
 const routes = [
@@ -210,12 +211,20 @@ router.beforeEach(async (to, from, next) => {
   // 检查是否需要登录
   if (to.meta.requiresAuth) {
     const userStore = useUserStore()
-    
+    const hadStoredToken = !!storage.get('token')
+
+    await userStore.restoreSession()
+
     // 如果用户未登录，跳转到登录页
-    if (!userStore.isLoggedIn) {
+    if (!userStore.ensureValidSession()) {
+      const query = { redirect: to.fullPath }
+      if (hadStoredToken) {
+        query.reason = 'expired'
+      }
+
       next({
         name: 'Login',
-        query: { redirect: to.fullPath }
+        query
       })
       return
     }

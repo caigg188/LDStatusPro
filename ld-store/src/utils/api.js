@@ -1,5 +1,6 @@
 import { storage } from './storage'
 import { MAINTENANCE_MODE } from '@/config/maintenance'
+import { emitAuthExpired, isAuthErrorCode, isTokenExpired } from './auth'
 
 // API 基础地址
 // 开发环境使用相对路径（通过 Vite 代理），生产环境使用完整 URL
@@ -27,6 +28,7 @@ const ERROR_MESSAGES = {
 
 const NETWORK_ERROR_MESSAGE = '网络连接异常，请检查网络后重试'
 const UNKNOWN_ERROR_MESSAGE = '请求失败，请稍后重试'
+const AUTH_EXPIRED_MESSAGE = ERROR_MESSAGES[401]
 
 function normalizeMessage(value) {
   if (value === undefined || value === null) return ''
@@ -94,6 +96,10 @@ function maintenanceBlockedResponse() {
   }
 }
 
+function hasAuthFailure(status, payload) {
+  return status === 401 || isAuthErrorCode(payload)
+}
+
 /**
  * 发起 HTTP 请求
  */
@@ -110,6 +116,15 @@ async function request(url, options = {}) {
   
   // 获取 token
   const token = storage.get('token')
+
+  if (token && isTokenExpired(token)) {
+    emitAuthExpired({ source: 'request', url, method, reason: 'local_token_expired' })
+    return {
+      success: false,
+      error: AUTH_EXPIRED_MESSAGE,
+      status: 401
+    }
+  }
   
   // 默认请求头
   const headers = {
@@ -143,11 +158,23 @@ async function request(url, options = {}) {
     
     // 检查响应状态
     if (!response.ok) {
+      if (token && hasAuthFailure(response.status, data)) {
+        emitAuthExpired({ source: 'request', url, method, reason: 'server_unauthorized', status: response.status })
+      }
       const errorMessage = normalizeServerErrorMessage(response.status, data)
       return {
         success: false,
         error: errorMessage,
         status: response.status
+      }
+    }
+
+    if (token && data?.success === false && hasAuthFailure(data?.status || response.status, data)) {
+      emitAuthExpired({ source: 'request', url, method, reason: 'payload_auth_error', status: data?.status || response.status })
+      return {
+        success: false,
+        error: normalizeServerErrorMessage(401, data),
+        status: 401
       }
     }
     
@@ -208,6 +235,15 @@ async function upload(url, formData, options = {}) {
   
   // 获取 token
   const token = storage.get('token')
+
+  if (token && isTokenExpired(token)) {
+    emitAuthExpired({ source: 'upload', url, method: 'POST', reason: 'local_token_expired' })
+    return {
+      success: false,
+      error: AUTH_EXPIRED_MESSAGE,
+      status: 401
+    }
+  }
   
   // 不要设置 Content-Type，让浏览器自动添加 multipart/form-data 及 boundary
   const headers = {
@@ -240,11 +276,23 @@ async function upload(url, formData, options = {}) {
     
     // 检查响应状态
     if (!response.ok) {
+      if (token && hasAuthFailure(response.status, data)) {
+        emitAuthExpired({ source: 'upload', url, method: 'POST', reason: 'server_unauthorized', status: response.status })
+      }
       const errorMessage = normalizeServerErrorMessage(response.status, data)
       return {
         success: false,
         error: errorMessage,
         status: response.status
+      }
+    }
+
+    if (token && data?.success === false && hasAuthFailure(data?.status || response.status, data)) {
+      emitAuthExpired({ source: 'upload', url, method: 'POST', reason: 'payload_auth_error', status: data?.status || response.status })
+      return {
+        success: false,
+        error: normalizeServerErrorMessage(401, data),
+        status: 401
       }
     }
     

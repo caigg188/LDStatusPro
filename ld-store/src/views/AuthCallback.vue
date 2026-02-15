@@ -93,7 +93,12 @@ onMounted(async () => {
     
     if (oauthData) {
       // 使用从 hash 获取的登录数据
-      await userStore.login(oauthData.token, oauthData.user)
+      const loginOk = await userStore.login(oauthData.token, oauthData.user)
+      if (!loginOk) {
+        error.value = '登录信息已过期，请重新登录'
+        loading.value = false
+        return
+      }
       
       toast.success('登录成功')
       

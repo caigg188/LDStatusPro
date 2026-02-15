@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { api } from '@/utils/api'
 import { storage } from '@/utils/storage'
+import { isTokenExpired } from '@/utils/auth'
 
 export const useUserStore = defineStore('user', () => {
   // 状态
@@ -10,7 +10,10 @@ export const useUserStore = defineStore('user', () => {
   const loading = ref(false)
 
   // 计算属性
-  const isLoggedIn = computed(() => !!token.value && !!user.value)
+  const isLoggedIn = computed(() => {
+    if (!token.value || !user.value) return false
+    return !isTokenExpired(token.value)
+  })
   const username = computed(() => user.value?.username || '')
   const avatar = computed(() => user.value?.avatar || user.value?.avatar_url || '')
   const trustLevel = computed(() => user.value?.trust_level || user.value?.trustLevel || null)
@@ -20,22 +23,35 @@ export const useUserStore = defineStore('user', () => {
     const savedToken = storage.get('token')
     const savedUser = storage.get('user')
 
-    if (savedToken && savedUser) {
-      token.value = savedToken
-      user.value = savedUser
-      
-      // JWT token 包含过期时间，可以检查是否需要重新登录
-      // 这里简单地恢复本地存储的用户信息
-      // 如需验证 token 有效性，可调用 /api/auth/verify
+    if (!savedToken || !savedUser) {
+      if (savedToken || savedUser) {
+        logout()
+      }
+      return false
     }
+
+    if (isTokenExpired(savedToken)) {
+      logout()
+      return false
+    }
+
+    token.value = savedToken
+    user.value = savedUser
+    return true
   }
 
   // 登录
   async function login(authToken, userData) {
+    if (!authToken || !userData || isTokenExpired(authToken)) {
+      logout()
+      return false
+    }
+
     token.value = authToken
     user.value = userData
     storage.set('token', authToken)
     storage.set('user', userData)
+    return true
   }
 
   // 登出
@@ -52,6 +68,15 @@ export const useUserStore = defineStore('user', () => {
     storage.set('user', user.value)
   }
 
+  function ensureValidSession() {
+    if (!token.value || !user.value) return false
+    if (isTokenExpired(token.value)) {
+      logout()
+      return false
+    }
+    return true
+  }
+
   return {
     // 状态
     token,
@@ -66,6 +91,7 @@ export const useUserStore = defineStore('user', () => {
     restoreSession,
     login,
     logout,
-    updateUser
+    updateUser,
+    ensureValidSession
   }
 })
