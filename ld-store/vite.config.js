@@ -14,7 +14,7 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api/auth': {
-        target: 'https://api.ldspro.qzz.io',
+        target: 'https://api1.ldspro.qzz.io',
         changeOrigin: true,
         secure: true,
         rewrite: (path) => path

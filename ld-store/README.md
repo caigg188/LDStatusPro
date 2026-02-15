@@ -106,7 +106,7 @@ cp .env.example .env
 关键变量：
 
 - `VITE_API_BASE`：LD 士多后端地址（切换到新后端时改为 `https://api2.ldspro.qzz.io`）
-- `VITE_AUTH_API_BASE`：登录认证接口地址（生产建议旧后端 `https://api.ldspro.qzz.io`，本地开发建议留空走 Vite 代理）
+- `VITE_AUTH_API_BASE`：登录认证接口地址（生产建议 `https://api1.ldspro.qzz.io`，本地开发建议留空走 Vite 代理）
 - `VITE_IMAGE_API_BASE`：图床接口地址（当前仍使用旧后端可保持 `https://api.ldspro.qzz.io`）
 - `VITE_MAINTENANCE_MODE`：维护模式开关（`1` 开启，`0` 关闭）
 - `VITE_MAINTENANCE_TITLE`、`VITE_MAINTENANCE_MESSAGE`、`VITE_MAINTENANCE_ETA`：维护页文案

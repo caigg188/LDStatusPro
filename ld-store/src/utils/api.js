@@ -4,7 +4,7 @@ import { MAINTENANCE_MODE } from '@/config/maintenance'
 // API 基础地址
 // 开发环境使用相对路径（通过 Vite 代理），生产环境使用完整 URL
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.DEV ? '' : 'https://api2.ldspro.qzz.io')
-const AUTH_API_BASE = import.meta.env.VITE_AUTH_API_BASE || (import.meta.env.DEV ? '' : 'https://api.ldspro.qzz.io')
+const AUTH_API_BASE = import.meta.env.VITE_AUTH_API_BASE || (import.meta.env.DEV ? '' : 'https://api1.ldspro.qzz.io')
 const IMAGE_API_BASE = import.meta.env.VITE_IMAGE_API_BASE || (import.meta.env.DEV ? '' : 'https://api.ldspro.qzz.io')
 
 // Linux.do LDC API 基础地址
