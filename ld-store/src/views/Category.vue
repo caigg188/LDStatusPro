@@ -59,6 +59,7 @@
 import { ref, computed, watch, onActivated, onDeactivated, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
+import { useToast } from '@/composables/useToast'
 import ProductCard from '@/components/product/ProductCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
@@ -70,6 +71,7 @@ defineOptions({ name: 'Category' })
 const route = useRoute()
 const router = useRouter()
 const shopStore = useShopStore()
+const toast = useToast()
 
 const loading = ref(true)
 const loadingMore = ref(false)
@@ -128,6 +130,16 @@ async function loadProducts(append = false) {
       pageSize,
       sort: currentSort.value
     })
+
+    if (!result?.success) {
+      toast.error(result?.error || shopStore.consumeLastError?.() || '加载分类物品失败，请稍后重试')
+      if (!append) {
+        products.value = []
+        total.value = 0
+        hasMore.value = false
+      }
+      return
+    }
     
     if (append) {
       products.value.push(...(result.products || result))
@@ -136,7 +148,9 @@ async function loadProducts(append = false) {
       total.value = result.total || products.value.length
     }
     
-    hasMore.value = (result.products || result).length === pageSize
+    hasMore.value = typeof result.hasMore === 'boolean'
+      ? result.hasMore
+      : (result.products || result).length === pageSize
   } catch (error) {
     console.error('Load category products error:', error)
   } finally {

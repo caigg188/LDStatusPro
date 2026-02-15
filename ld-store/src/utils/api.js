@@ -25,6 +25,63 @@ const ERROR_MESSAGES = {
   503: '服务正在维护中',
 }
 
+const NETWORK_ERROR_MESSAGE = '网络连接异常，请检查网络后重试'
+const UNKNOWN_ERROR_MESSAGE = '请求失败，请稍后重试'
+
+function normalizeMessage(value) {
+  if (value === undefined || value === null) return ''
+  return String(value).trim()
+}
+
+function normalizeServerErrorMessage(status, data) {
+  const fallback = ERROR_MESSAGES[status] || `请求失败 (${status})`
+  if (!data) return fallback
+
+  if (typeof data === 'string') {
+    const msg = normalizeMessage(data)
+    return msg || fallback
+  }
+
+  if (typeof data === 'object') {
+    const candidates = [
+      data?.error?.message,
+      data?.error,
+      data?.message,
+    ]
+    for (const item of candidates) {
+      const msg = normalizeMessage(item)
+      if (msg) return msg
+    }
+  }
+
+  return fallback
+}
+
+function normalizeNetworkErrorMessage(error, timeoutMessage) {
+  if (!error) return NETWORK_ERROR_MESSAGE
+  if (error.name === 'AbortError') return timeoutMessage
+  const text = normalizeMessage(error.message).toLowerCase()
+  if (!text) return NETWORK_ERROR_MESSAGE
+  if (
+    text.includes('failed to fetch')
+    || text.includes('networkerror')
+    || text.includes('network error')
+    || text.includes('load failed')
+    || text.includes('network request failed')
+  ) {
+    return NETWORK_ERROR_MESSAGE
+  }
+  return normalizeMessage(error.message) || UNKNOWN_ERROR_MESSAGE
+}
+
+async function parseResponseBody(response) {
+  const contentType = response.headers.get('content-type') || ''
+  if (contentType.includes('application/json')) {
+    return response.json().catch(() => null)
+  }
+  return response.text().catch(() => '')
+}
+
 function isWriteMethod(method) {
   return !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase())
 }
@@ -82,28 +139,11 @@ async function request(url, options = {}) {
     clearTimeout(timeoutId)
     
     // 解析响应
-    const contentType = response.headers.get('content-type')
-    let data
-    
-    if (contentType && contentType.includes('application/json')) {
-      data = await response.json()
-    } else {
-      data = await response.text()
-    }
+    const data = await parseResponseBody(response)
     
     // 检查响应状态
     if (!response.ok) {
-      // 处理后端返回的错误格式: { success: false, error: { code, message } }
-      let errorMessage = ERROR_MESSAGES[response.status] || `请求失败 (${response.status})`
-      if (data?.error) {
-        if (typeof data.error === 'string') {
-          errorMessage = data.error
-        } else if (data.error.message) {
-          errorMessage = data.error.message
-        }
-      } else if (data?.message) {
-        errorMessage = data.message
-      }
+      const errorMessage = normalizeServerErrorMessage(response.status, data)
       return {
         success: false,
         error: errorMessage,
@@ -119,12 +159,11 @@ async function request(url, options = {}) {
     return data
   } catch (error) {
     clearTimeout(timeoutId)
-    
-    if (error.name === 'AbortError') {
-      return { success: false, error: '请求超时，请检查网络连接' }
+    return {
+      success: false,
+      error: normalizeNetworkErrorMessage(error, '请求超时，请检查网络连接'),
+      status: 0
     }
-    
-    return { success: false, error: error.message || '网络错误' }
   }
 }
 
@@ -197,27 +236,11 @@ async function upload(url, formData, options = {}) {
     clearTimeout(timeoutId)
     
     // 解析响应
-    const contentType = response.headers.get('content-type')
-    let data
-    
-    if (contentType && contentType.includes('application/json')) {
-      data = await response.json()
-    } else {
-      data = await response.text()
-    }
+    const data = await parseResponseBody(response)
     
     // 检查响应状态
     if (!response.ok) {
-      let errorMessage = ERROR_MESSAGES[response.status] || `请求失败 (${response.status})`
-      if (data?.error) {
-        if (typeof data.error === 'string') {
-          errorMessage = data.error
-        } else if (data.error.message) {
-          errorMessage = data.error.message
-        }
-      } else if (data?.message) {
-        errorMessage = data.message
-      }
+      const errorMessage = normalizeServerErrorMessage(response.status, data)
       return {
         success: false,
         error: errorMessage,
@@ -228,12 +251,11 @@ async function upload(url, formData, options = {}) {
     return data
   } catch (error) {
     clearTimeout(timeoutId)
-    
-    if (error.name === 'AbortError') {
-      return { success: false, error: '上传超时，请检查网络连接' }
+    return {
+      success: false,
+      error: normalizeNetworkErrorMessage(error, '上传超时，请检查网络连接'),
+      status: 0
     }
-    
-    return { success: false, error: error.message || '网络错误' }
   }
 }
 

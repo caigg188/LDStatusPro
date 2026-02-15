@@ -120,6 +120,7 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
+import { useToast } from '@/composables/useToast'
 import { storage } from '@/utils/storage'
 import ProductCard from '@/components/product/ProductCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -128,6 +129,7 @@ import Skeleton from '@/components/common/Skeleton.vue'
 const router = useRouter()
 const route = useRoute()
 const shopStore = useShopStore()
+const toast = useToast()
 
 const searchInput = ref(null)
 const keyword = ref('')
@@ -203,9 +205,14 @@ async function doSearch(options = {}) {
     })
     if (requestId !== latestSearchRequestId) return
     results.value = searchResults
+    const searchError = shopStore.consumeLastError?.() || ''
+    if (searchError) {
+      toast.error(searchError)
+    }
   } catch (error) {
     if (requestId !== latestSearchRequestId) return
     console.error('Search error:', error)
+    toast.error(error.message || '搜索失败，请稍后重试')
     results.value = []
   } finally {
     if (requestId === latestSearchRequestId) {

@@ -6,7 +6,7 @@
       </div>
 
       <div v-if="loading" class="state-block">加载中...</div>
-      <div v-else-if="!requestData" class="state-block">求购不存在或已被删除</div>
+      <div v-else-if="!requestData" class="state-block">求购不存在或已删除</div>
 
       <template v-else>
         <section class="request-card">
@@ -97,7 +97,7 @@
                 'has-unread': Number(session.unreadCount || 0) > 0 && activeSessionId !== session.id
               }"
               @click="selectSession(session.id)"
-              >
+            >
               <div class="session-main">
                 <span class="session-user">{{ session.providerPublicUsername }}</span>
                 <span class="session-pass">密码 {{ session.providerPublicPassword }}</span>
@@ -253,15 +253,17 @@ const startingSession = ref(false)
 const sendingMessage = ref(false)
 const actionLoading = ref(false)
 const loadingMessages = ref(false)
+const lastMessageSyncToastAt = ref(0)
 
 let pollTimer = null
 let messageFetchVersion = 0
+const MESSAGE_SYNC_TOAST_INTERVAL = 15000
 
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const requestId = computed(() => Number(route.params.id || 0))
-const canStartSession = computed(() => !!requestDetailState.value?.canStartSession)
 
 const requestDetailState = ref(null)
+const canStartSession = computed(() => !!requestDetailState.value?.canStartSession)
 
 const activeSession = computed(() => {
   if (!activeSessionId.value) return null
@@ -360,6 +362,78 @@ function mergeMessages(currentList = [], incomingList = []) {
   return Array.from(merged.values()).sort((a, b) => Number(a.id || 0) - Number(b.id || 0))
 }
 
+function notifyMessageSyncError(message, immediate = false) {
+  const now = Date.now()
+  if (!immediate && now - lastMessageSyncToastAt.value < MESSAGE_SYNC_TOAST_INTERVAL) {
+    return
+  }
+  lastMessageSyncToastAt.value = now
+  if (immediate) {
+    toast.error(message || '加载会话消息失败，请稍后重试')
+  } else {
+    toast.warning(message || '消息同步异常，正在自动重试')
+  }
+}
+
+function applyDetailState(data = {}) {
+  requestDetailState.value = data
+  requestData.value = data.request || null
+  viewerRole.value = data.viewerRole || 'guest'
+  sessions.value = normalizeSessions(data)
+
+  if (requestData.value) {
+    adjustPrice.value = String(requestData.value.budgetPrice || '')
+  }
+
+  if (sessions.value.length > 0) {
+    const preferredSessionId = getPreferredSessionId()
+    const exists = sessions.value.some(item => item.id === activeSessionId.value)
+    const preferredExists = preferredSessionId > 0
+      && sessions.value.some((item) => item.id === preferredSessionId)
+
+    if (preferredExists) {
+      activeSessionId.value = preferredSessionId
+    } else if (!exists) {
+      activeSessionId.value = sessions.value[0].id
+    }
+  } else {
+    activeSessionId.value = 0
+    messages.value = []
+  }
+}
+
+async function loadDetailBySessionFallback() {
+  const sessionId = getPreferredSessionId()
+  if (!isLoggedIn.value || sessionId <= 0) return { ok: false, error: '' }
+
+  try {
+    const result = await api.get(`/api/shop/buy-sessions/${sessionId}`)
+    if (!result.success) return { ok: false, error: result.error || '' }
+
+    const payload = result.data || {}
+    const fallbackRequest = payload.request || null
+    const fallbackSession = payload.session || null
+    if (!fallbackRequest || !fallbackSession) return { ok: false, error: '' }
+
+    const fallbackRequestId = Number(fallbackRequest.id || 0)
+    if (requestId.value && fallbackRequestId !== requestId.value) return { ok: false, error: '' }
+
+    applyDetailState({
+      request: fallbackRequest,
+      viewerRole: payload.viewerRole || 'provider',
+      sessions: [fallbackSession],
+      session: fallbackSession,
+      canStartSession: false,
+      canAdjustPrice: false,
+      canEdit: false,
+      canClose: false
+    })
+    return { ok: true, error: '' }
+  } catch (_) {
+    return { ok: false, error: '' }
+  }
+}
+
 async function loadDetail(showLoading = true) {
   if (!requestId.value) {
     loading.value = false
@@ -370,38 +444,18 @@ async function loadDetail(showLoading = true) {
   try {
     const result = await api.get(`/api/shop/buy-requests/${requestId.value}`)
     if (!result.success) {
-      toast.error(result.error || '加载失败')
+      const fallback = await loadDetailBySessionFallback()
+      if (fallback.ok) return
+      toast.error(fallback.error || result.error || '加载失败')
       requestData.value = null
       return
     }
 
-    const data = result.data || {}
-    requestDetailState.value = data
-    requestData.value = data.request || null
-    viewerRole.value = data.viewerRole || 'guest'
-    sessions.value = normalizeSessions(data)
-
-    if (requestData.value) {
-      adjustPrice.value = String(requestData.value.budgetPrice || '')
-    }
-
-    if (sessions.value.length > 0) {
-      const preferredSessionId = getPreferredSessionId()
-      const exists = sessions.value.some(item => item.id === activeSessionId.value)
-      const preferredExists = preferredSessionId > 0
-        && sessions.value.some((item) => item.id === preferredSessionId)
-
-      if (preferredExists) {
-        activeSessionId.value = preferredSessionId
-      } else if (!exists) {
-        activeSessionId.value = sessions.value[0].id
-      }
-    } else {
-      activeSessionId.value = 0
-      messages.value = []
-    }
+    applyDetailState(result.data || {})
   } catch (error) {
-    toast.error(error.message || '加载失败')
+    const fallback = await loadDetailBySessionFallback()
+    if (fallback.ok) return
+    toast.error(fallback.error || error.message || '加载失败')
   } finally {
     if (showLoading) loading.value = false
   }
@@ -422,7 +476,13 @@ async function loadMessages(reset = false) {
     const result = await api.get(
       `/api/shop/buy-sessions/${targetSessionId}/messages?limit=100&sinceId=${sinceId}`
     )
-    if (!result.success) return
+    if (!result.success) {
+      notifyMessageSyncError(
+        result.error || '加载会话消息失败，请稍后重试',
+        reset || messages.value.length === 0
+      )
+      return
+    }
     if (fetchVersion !== messageFetchVersion || activeSessionId.value !== targetSessionId) return
 
     const list = result.data?.messages || []
@@ -461,7 +521,10 @@ async function loadMessages(reset = false) {
       }
     }
   } catch (error) {
-    // silence polling errors
+    notifyMessageSyncError(
+      error.message || '加载会话消息失败，请稍后重试',
+      reset || messages.value.length === 0
+    )
   } finally {
     if (fetchVersion === messageFetchVersion) {
       loadingMessages.value = false

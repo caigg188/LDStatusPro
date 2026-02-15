@@ -29,6 +29,17 @@ export const useShopStore = defineStore('shop', () => {
   const myFavorites = ref([])
   const favoritesLoading = ref(false)
   const ordersLoading = ref(false)
+  const lastError = ref('')
+
+  function setLastError(message = '') {
+    lastError.value = String(message || '').trim()
+  }
+
+  function consumeLastError() {
+    const message = lastError.value
+    lastError.value = ''
+    return message
+  }
 
   // 缓存
   const productCache = new Map()
@@ -48,6 +59,7 @@ export const useShopStore = defineStore('shop', () => {
     const now = Date.now()
     if (!force && categoryCache.value.data && now - categoryCache.value.time < CACHE_TTL) {
       categories.value = categoryCache.value.data
+      setLastError('')
       return categories.value
     }
 
@@ -56,9 +68,13 @@ export const useShopStore = defineStore('shop', () => {
       if (result.success && result.data?.categories) {
         categories.value = result.data.categories
         categoryCache.value = { data: result.data.categories, time: now }
+        setLastError('')
+      } else {
+        setLastError(result.error || '加载分类失败，请稍后重试')
       }
     } catch (e) {
       console.error('Fetch categories failed:', e)
+      setLastError(e.message || '加载分类失败，请稍后重试')
     }
     return categories.value
   }
@@ -79,20 +95,40 @@ export const useShopStore = defineStore('shop', () => {
   }
 
   // 获取商品列表
-  async function fetchProducts(categoryId = '', forceRefresh = false, sort = '') {
+  async function fetchProducts(categoryInput = '', forceRefresh = false, sort = '') {
+    let categoryId = categoryInput
+    let requestedSort = sort
+    let requestedPage = null
+
+    // 兼容旧调用风格：fetchProducts({ category, page, sort })
+    if (categoryInput && typeof categoryInput === 'object' && !Array.isArray(categoryInput)) {
+      categoryId = categoryInput.categoryId ?? categoryInput.category ?? ''
+      requestedSort = categoryInput.sort || ''
+      requestedPage = Number.parseInt(categoryInput.page, 10)
+      forceRefresh = categoryInput.forceRefresh ?? forceRefresh
+    }
+
+    if (!Number.isFinite(requestedPage) || requestedPage <= 0) {
+      requestedPage = null
+    }
+
     // 切换分类或排序时重置状态
-    const sortChanged = sort && sort !== currentSort.value
-    const shouldReset = categoryId !== currentCategory.value || forceRefresh || sortChanged
+    const sortChanged = requestedSort && requestedSort !== currentSort.value
+    const shouldReset = categoryId !== currentCategory.value || forceRefresh || sortChanged || requestedPage === 1
 
     // 同一上下文加载中时不重复发起请求，避免翻页多次打点
-    if (loading.value && !shouldReset) return
+    if (loading.value && !shouldReset && requestedPage === null) {
+      return { success: false, cancelled: true, error: '请求进行中，请稍后重试' }
+    }
 
     if (shouldReset) {
       currentCategory.value = categoryId
-      if (sort) currentSort.value = sort
-      page.value = 1
+      if (requestedSort) currentSort.value = requestedSort
+      page.value = requestedPage || 1
       hasMore.value = true
       products.value = []
+    } else if (requestedPage) {
+      page.value = requestedPage
     }
 
     const requestPage = page.value
@@ -120,7 +156,9 @@ export const useShopStore = defineStore('shop', () => {
       const result = await api.get(url)
 
       // 忽略过时请求，避免旧分类结果覆盖新分类
-      if (requestId !== latestProductsRequestId) return
+      if (requestId !== latestProductsRequestId) {
+        return { success: false, cancelled: true, error: '请求已过期' }
+      }
 
       if (result.success && result.data?.products) {
         const newProducts = result.data.products
@@ -132,11 +170,28 @@ export const useShopStore = defineStore('shop', () => {
         } else {
           products.value = [...products.value, ...newProducts]
         }
+
+        setLastError('')
+        return {
+          success: true,
+          products: newProducts,
+          total: total.value,
+          hasMore: hasMore.value,
+          page: requestPage
+        }
       }
+
+      const errorMessage = result.error || '加载物品失败，请稍后重试'
+      setLastError(errorMessage)
+      return { success: false, error: errorMessage, products: [] }
     } catch (e) {
       if (requestId === latestProductsRequestId) {
         console.error('Fetch products failed:', e)
+        const errorMessage = e.message || '加载物品失败，请稍后重试'
+        setLastError(errorMessage)
+        return { success: false, error: errorMessage, products: [] }
       }
+      return { success: false, cancelled: true, error: '请求已过期' }
     } finally {
       if (requestId === latestProductsRequestId) {
         loading.value = false
@@ -155,9 +210,13 @@ export const useShopStore = defineStore('shop', () => {
 
   // 加载更多商品
   async function loadMore() {
-    if (loading.value || !hasMore.value) return
+    if (loading.value || !hasMore.value) return { success: false, cancelled: true, error: '' }
     page.value++
-    await fetchProducts(currentCategory.value)
+    const result = await fetchProducts(currentCategory.value)
+    if (!result?.success) {
+      page.value = Math.max(page.value - 1, 1)
+    }
+    return result
   }
 
   // 获取商品详情
@@ -310,6 +369,7 @@ export const useShopStore = defineStore('shop', () => {
     const keyword = typeof query === 'string' ? query.trim() : ''
     if (!keyword) {
       searchResults.value = []
+      setLastError('')
       return []
     }
 
@@ -340,11 +400,14 @@ export const useShopStore = defineStore('shop', () => {
       const result = await api.get(`/api/shop/products?${params.toString()}`)
       if (result.success && result.data?.products) {
         searchResults.value = result.data.products
+        setLastError('')
         return result.data.products
       }
+      setLastError(result.error || '搜索失败，请稍后重试')
       return []
     } catch (e) {
       console.error('Search products failed:', e)
+      setLastError(e.message || '搜索失败，请稍后重试')
       return []
     } finally {
       searchLoading.value = false
@@ -729,9 +792,15 @@ export const useShopStore = defineStore('shop', () => {
   async function fetchPublicStats() {
     try {
       const result = await api.get('/api/shop/stats')
-      return result.success ? result.data : null
+      if (result.success) {
+        setLastError('')
+        return result.data
+      }
+      setLastError(result.error || '加载统计数据失败，请稍后重试')
+      return null
     } catch (e) {
       console.error('Fetch public stats failed:', e)
+      setLastError(e.message || '加载统计数据失败，请稍后重试')
       return null
     }
   }
@@ -743,7 +812,7 @@ export const useShopStore = defineStore('shop', () => {
     page.value = 1
     hasMore.value = true
     products.value = []
-    await fetchProducts(currentCategory.value, true)
+    return fetchProducts(currentCategory.value, true)
   }
 
   return {
@@ -768,6 +837,7 @@ export const useShopStore = defineStore('shop', () => {
     myFavorites,
     favoritesLoading,
     ordersLoading,
+    lastError,
     // 计算属性
     currentCategoryName,
     // 方法
@@ -813,6 +883,7 @@ export const useShopStore = defineStore('shop', () => {
     refreshBuyOrderStatus,
     fetchMerchantConfig,
     updateMerchantConfig,
+    consumeLastError,
     invalidateCache,
     fetchPublicStats
   }

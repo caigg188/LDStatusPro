@@ -323,6 +323,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
 import { useUserStore } from '@/stores/user'
 import { api } from '@/utils/api'
+import { useToast } from '@/composables/useToast'
 import { formatRelativeTime } from '@/utils/format'
 import ProductCard from '@/components/product/ProductCard.vue'
 import ShopCard from '@/components/shop/ShopCard.vue'
@@ -337,6 +338,7 @@ const router = useRouter()
 const route = useRoute()
 const shopStore = useShopStore()
 const userStore = useUserStore()
+const toast = useToast()
 
 const MIGRATION_NOTICE_KEY = 'ld-store-migration-notice-v3'
 const showMigrationNotice = ref(false)
@@ -444,6 +446,10 @@ const CATEGORY_CACHE_TTL = 5 * 60 * 1000
 
 const getCacheKey = (categoryId, sortKey) => `${categoryId || 'all'}_${sortKey || 'default'}`
 
+function consumeStoreError(fallback = '') {
+  return shopStore.consumeLastError?.() || fallback
+}
+
 function tryRestoreFromCache(categoryId, sortKey) {
   const cacheKey = getCacheKey(categoryId, sortKey)
   const cached = categoryCache.value.get(cacheKey)
@@ -534,9 +540,14 @@ async function loadShops() {
     if (result.success && result.data?.shops) {
       shops.value = result.data.shops
       shopsTotal.value = result.data.pagination?.total || result.data.shops.length
+    } else {
+      shops.value = []
+      shopsTotal.value = 0
+      toast.error(result.error || '加载小店列表失败，请稍后重试')
     }
   } catch (error) {
     console.error('Load shops failed:', error)
+    toast.error(error.message || '加载小店列表失败，请稍后重试')
   } finally {
     shopsLoading.value = false
     shopsLoaded.value = true
@@ -586,11 +597,13 @@ async function loadBuyRequests(resetPage = true) {
       return
     }
 
+    toast.error(result.error || '加载求购信息失败，请稍后重试')
     buyRequests.value = []
     buyPagination.total = 0
     buyPagination.totalPages = 0
   } catch (error) {
     console.error('Load buy requests failed:', error)
+    toast.error(error.message || '加载求购信息失败，请稍后重试')
     buyRequests.value = []
     buyPagination.total = 0
     buyPagination.totalPages = 0
@@ -631,9 +644,13 @@ async function handleCategorySelect(categoryId) {
   }
 
   initialLoading.value = true
-  await shopStore.fetchProducts(categoryId, true)
+  const result = await shopStore.fetchProducts(categoryId, true)
   if (actionId !== latestCatalogActionId) return
   initialLoading.value = false
+  if (!result?.success) {
+    toast.error(result?.error || consumeStoreError('加载物品失败，请稍后重试'))
+    return
+  }
 
   const shouldCache =
     String(shopStore.currentCategory) === String(categoryId) &&
@@ -660,9 +677,13 @@ async function handleSortChange(sort) {
   }
 
   initialLoading.value = true
-  await shopStore.fetchProducts(categoryId, true, sort)
+  const result = await shopStore.fetchProducts(categoryId, true, sort)
   if (actionId !== latestCatalogActionId) return
   initialLoading.value = false
+  if (!result?.success) {
+    toast.error(result?.error || consumeStoreError('加载物品失败，请稍后重试'))
+    return
+  }
 
   const shouldCache =
     String(shopStore.currentCategory) === String(categoryId) &&
@@ -679,8 +700,12 @@ async function handleSortChange(sort) {
 async function handleToggleInStock() {
   categoryCache.value.clear()
   initialLoading.value = true
-  await shopStore.toggleInStockOnly()
+  const result = await shopStore.toggleInStockOnly()
   initialLoading.value = false
+  if (!result?.success) {
+    toast.error(result?.error || consumeStoreError('加载物品失败，请稍后重试'))
+    return
+  }
   await nextTick()
   setupInfiniteScroll()
 }
@@ -694,8 +719,12 @@ async function recoverProductsIfNeeded() {
   const restored = tryRestoreFromCache(categoryId, sortKey)
   if (!restored) {
     initialLoading.value = true
-    await shopStore.fetchProducts(categoryId, true, sortKey)
+    const result = await shopStore.fetchProducts(categoryId, true, sortKey)
     initialLoading.value = false
+    if (!result?.success) {
+      toast.error(result?.error || consumeStoreError('加载物品失败，请稍后重试'))
+      return
+    }
     saveCache(categoryId, sortKey)
   }
 }
@@ -714,7 +743,15 @@ onMounted(async () => {
   }
 
   await shopStore.fetchCategories()
-  await shopStore.fetchProducts('', true)
+  const categoryError = consumeStoreError('')
+  if (categoryError) {
+    toast.warning(categoryError)
+  }
+
+  const productResult = await shopStore.fetchProducts('', true)
+  if (!productResult?.success) {
+    toast.error(productResult?.error || consumeStoreError('加载物品失败，请稍后重试'))
+  }
   saveCache(shopStore.currentCategory, shopStore.currentSort)
 
   initialLoading.value = false
@@ -723,6 +760,11 @@ onMounted(async () => {
   const statsData = await shopStore.fetchPublicStats()
   if (statsData) {
     stats.value = statsData
+  } else {
+    const statsError = consumeStoreError('')
+    if (statsError) {
+      toast.warning(statsError)
+    }
   }
 
   if (activeSection.value === 'stores') {
@@ -774,7 +816,10 @@ function setupInfiniteScroll() {
   observer = new IntersectionObserver(
     async (entries) => {
       if (entries[0].isIntersecting && !loading.value && hasMore.value) {
-        await shopStore.loadMore()
+        const result = await shopStore.loadMore()
+        if (result && result.success === false && !result.cancelled) {
+          toast.error(result.error || consumeStoreError('加载更多失败，请稍后重试'))
+        }
       }
     },
     { rootMargin: '100px' }
