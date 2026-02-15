@@ -24,6 +24,7 @@
     // @connect      github.com
     // @connect      raw.githubusercontent.com
     // @connect      api.ldspro.qzz.io
+    // @connect      api1.ldspro.qzz.io
     // @connect      api2.ldspro.qzz.io
     // @updateURL    https://raw.githubusercontent.com/caigg188/LDStatusPro/main/LDStatusPro.user.js
     // @downloadURL  https://raw.githubusercontent.com/caigg188/LDStatusPro/main/LDStatusPro.user.js
@@ -491,7 +492,7 @@
             WEEKDAYS: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
             MONTHS: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
             // API地址（使用自定义域名，启用 Cloudflare 边缘防护）
-            LEADERBOARD_API: 'https://api.ldspro.qzz.io'
+            LEADERBOARD_API: 'https://api1.ldspro.qzz.io'
         };
 
         // 预编译正则
@@ -9639,9 +9640,9 @@ a:hover{text-decoration:underline;}
                                 <p>1. 访问 <a href="https://credit.linux.do/merchant" target="_blank" rel="noopener">LDC 集市</a></p>
                                 <p>2. 创建新应用，配置以下地址：</p>
                                 <p style="margin-top:6px">⚠️ <b>通知地址</b>（notify_url，服务器异步通知，必填）：</p>
-                                <p style="margin-left:12px;font-family:monospace;font-size:11px;color:#3b82f6;word-break:break-all">https://api.ldspro.qzz.io/api/shop/ldc/notify</p>
+                                <p style="margin-left:12px;font-family:monospace;font-size:11px;color:#3b82f6;word-break:break-all">https://api2.ldspro.qzz.io/api/shop/ldc/notify</p>
                                 <p style="margin-top:6px">⚠️ <b>回调地址</b>（return_url，支付后浏览器跳转）：</p>
-                                <p style="margin-left:12px;font-family:monospace;font-size:11px;color:#3b82f6;word-break:break-all">https://api.ldspro.qzz.io/api/shop/ldc/return</p>
+                                <p style="margin-left:12px;font-family:monospace;font-size:11px;color:#3b82f6;word-break:break-all">https://api2.ldspro.qzz.io/api/shop/ldc/return</p>
                                 <p style="margin-top:8px">3. 在应用详情页获取 Client ID 和 Client Key</p>
                                 <p>4. 填写到上方配置表单并保存</p>
                                 <p style="margin-top:8px;font-size:11px;color:#94a3b8">💡 提示：<b style="color:#ef4444">通知地址</b>是支付成功后自动发货的关键，请务必正确配置</p>
