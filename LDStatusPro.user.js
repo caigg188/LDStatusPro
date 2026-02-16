@@ -1,7 +1,7 @@
  // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.5.4
+    // @version      3.5.5
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -383,12 +383,20 @@
                 STORAGE_DEBOUNCE: 1000,    // 存储防抖
                 READING_UPDATE: 2000,      // 阅读时间UI更新（2秒，减少更新频率避免动画闪烁）
                 LEADERBOARD_SYNC: 900000,  // 排行榜同步（15分钟，原10分钟）
-                CLOUD_UPLOAD: 7200000,     // 云同步上传（120分钟，降低频率）
-                CLOUD_DOWNLOAD: 86400000,  // 云同步下载（24小时）
-                CLOUD_CHECK: 1800000,      // 云同步检查（30分钟）
-                REQ_SYNC_INCREMENTAL: 7200000, // 升级要求增量同步（2小时）
-                REQ_SYNC_FULL: 86400000,   // 升级要求全量同步（24小时）
+                CLOUD_UPLOAD: 1800000,     // 云同步上传（30分钟）
+                CLOUD_DOWNLOAD: 21600000,  // 云同步下载（6小时）
+                CLOUD_CHECK: 600000,       // 云同步检查（10分钟）
+                REQ_SYNC_INCREMENTAL: 1800000, // 升级要求增量同步（30分钟）
+                REQ_SYNC_FULL: 43200000,   // 升级要求全量同步（12小时）
                 SYNC_RETRY_DELAY: 60000    // 同步失败后重试延迟（1分钟）
+            },
+            // 云同步上传/下载窗口
+            SYNC_LIMITS: {
+                READING_UPLOAD_DAYS: 180,          // 阅读时长全量上传窗口（最近 180 天）
+                READING_UPLOAD_MAX_ENTRIES: 240,   // 阅读时长单次最多上传天数
+                REQUIREMENTS_HISTORY_DAYS: 120,    // 升级要求下载窗口（最近 120 天）
+                REQUIREMENTS_UPLOAD_DAYS: 120,     // 升级要求全量上传窗口（最近 120 天）
+                ONLOAD_UPLOAD_MIN_GAP: 120000      // 页面加载后最小上传间隔（2分钟）
             },
             // 缓存配置
             CACHE: {
@@ -491,8 +499,10 @@
             // 周和月名称
             WEEKDAYS: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
             MONTHS: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
-            // API地址（使用自定义域名，启用 Cloudflare 边缘防护）
-            LEADERBOARD_API: 'https://api1.ldspro.qzz.io'
+            // API地址（按服务职责拆分）
+            BACKEND_API: 'https://api.ldspro.qzz.io',
+            LEADERBOARD_API: 'https://api1.ldspro.qzz.io',
+            SHOP_API: 'https://api2.ldspro.qzz.io'
         };
 
         // 预编译正则
@@ -1461,7 +1471,10 @@
                         // 缓存未过期，使用本地数据
                         const cached = GM_getValue(storageKey, null);
                         if (cached && Array.isArray(cached) && cached.length > 0) {
-                            CONFIG.READING_LEVELS = cached;
+                            const normalizedCached = this._normalizeReadingLevels(cached);
+                            CONFIG.READING_LEVELS = normalizedCached;
+                            // 覆盖旧缓存中的英文标签，避免继续显示 Warmup 等
+                            GM_setValue(storageKey, normalizedCached);
                             return;
                         }
                     }
@@ -1490,7 +1503,7 @@
                     });
                     
                     if (response.success && response.data?.levels && Array.isArray(response.data.levels)) {
-                        const levels = response.data.levels;
+                        const levels = this._normalizeReadingLevels(response.data.levels);
                         CONFIG.READING_LEVELS = levels;
                         GM_setValue(storageKey, levels);
                         GM_setValue(timeKey, now);
@@ -1501,12 +1514,76 @@
                     // 尝试使用本地缓存（即使过期也比没有好）
                     const cached = GM_getValue(storageKey, null);
                     if (cached && Array.isArray(cached) && cached.length > 0) {
-                        CONFIG.READING_LEVELS = cached;
+                        CONFIG.READING_LEVELS = this._normalizeReadingLevels(cached);
                     } else {
                         // 使用默认配置
                         CONFIG.READING_LEVELS = CONFIG.READING_LEVELS_DEFAULT;
                     }
                 }
+            }
+
+            // 规范化阅读等级配置：兼容中英文标签，统一前端中文展示
+            static _normalizeReadingLevels(levels) {
+                const fallbackLevels = CONFIG.READING_LEVELS_DEFAULT;
+                if (!Array.isArray(levels) || levels.length === 0) {
+                    return fallbackLevels;
+                }
+
+                const normalizeToken = (text = '') => String(text)
+                    .toLowerCase()
+                    .replace(/[_-]+/g, ' ')
+                    .replace(/[^\w\u4e00-\u9fff]+/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+
+                const hasCjk = (text = '') => /[\u4e00-\u9fff]/.test(text);
+
+                // 每一组第一个元素是最终中文标签，其余是中英文同义词/关键词
+                const labelGroups = [
+                    ['刚起步', 'starter', 'start', 'beginner', 'newbie', 'novice', 'entry', '初学', '入门', '起步', '新手', '萌新'],
+                    ['热身中', 'warmup', 'warm up', 'warming up', 'preheat', '热身'],
+                    ['渐入佳境', 'active reader', 'active', 'intermediate', 'improving', 'engaged', 'steady', '佳境', '进阶', '渐入'],
+                    ['沉浸阅读', 'deep reader', 'deep reading', 'immersive', 'focused', '沉浸', '专注'],
+                    ['深度学习', 'expert reader', 'expert', 'advanced', 'intensive', 'proficient', '深度', '高阶'],
+                    ['LD达人', 'ld master', 'master', 'veteran', 'pro', '达人'],
+                    ['超级水怪', 'super reader', 'legend', 'ultimate', 'mythic', 'godlike', '超级', '水怪', '传奇', '神话']
+                ];
+
+                const canonicalLabels = labelGroups.map(group => group[0]);
+                const normalizedGroups = labelGroups.map(group => ({
+                    label: group[0],
+                    aliases: group.map(alias => normalizeToken(alias)).filter(Boolean)
+                }));
+
+                const resolveLabel = (rawLabel, min, index) => {
+                    const normalizedRaw = normalizeToken(rawLabel);
+
+                    if (normalizedRaw) {
+                        for (const group of normalizedGroups) {
+                            if (group.aliases.some(alias => normalizedRaw === alias || normalizedRaw.includes(alias))) {
+                                return group.label;
+                            }
+                        }
+                        // 后端已返回中文但不在标准词表时，保留原中文，避免信息丢失
+                        if (hasCjk(rawLabel)) return rawLabel.trim();
+                    }
+
+                    // 标签无法识别时，按 min 阈值回退到默认中文等级
+                    for (let i = fallbackLevels.length - 1; i >= 0; i--) {
+                        if (min >= fallbackLevels[i].min) {
+                            return canonicalLabels[i] || fallbackLevels[i].label;
+                        }
+                    }
+
+                    return canonicalLabels[index] || fallbackLevels[index]?.label || `等级${index + 1}`;
+                };
+
+                return levels.map((level, index) => {
+                    const min = Math.max(0, Utils.toSafeInt(level?.min, fallbackLevels[index]?.min ?? 0));
+                    const rawLabel = typeof level?.label === 'string' ? level.label.trim() : '';
+                    const label = resolveLabel(rawLabel, min, index);
+                    return { min, label };
+                }).sort((a, b) => a.min - b.min);
             }
 
             async fetch(url, options = {}) {
@@ -2489,6 +2566,7 @@
             constructor(storage, network) {
                 this.storage = storage;
                 this.network = network;
+                this._lastAuthExpiredAt = 0;
             }
 
             getToken() { return this.storage.getGlobal('leaderboardToken', null); }
@@ -2496,6 +2574,30 @@
             
             getUserInfo() { return this.storage.getGlobal('leaderboardUser', null); }
             setUserInfo(user) { this.storage.setGlobalNow('leaderboardUser', user); }
+
+            _isAuthErrorCode(code = '') {
+                return [
+                    'AUTH_EXPIRED',
+                    'TOKEN_EXPIRED',
+                    'INVALID_TOKEN',
+                    'UNAUTHORIZED',
+                    'AUTH_INVALID',
+                    'AUTH_REQUIRED',
+                    'NOT_LOGGED_IN'
+                ].includes(String(code || '').trim().toUpperCase());
+            }
+
+            _emitAuthExpired(payload = {}) {
+                const now = Date.now();
+                if (now - this._lastAuthExpiredAt < 1500) return;
+                this._lastAuthExpiredAt = now;
+                EventBus.emit('auth:expired', payload);
+            }
+
+            _handleAuthExpired(reason = 'TOKEN_EXPIRED', payload = {}) {
+                this.logout();
+                this._emitAuthExpired({ reason, ...payload });
+            }
             
             /**
              * 检查是否已登录且 Token 未过期
@@ -2508,7 +2610,7 @@
                 // 检查 token 是否过期
                 if (this._isTokenExpired(token)) {
                     Logger.log('Token expired, logging out');
-                    this.logout();
+                    this._handleAuthExpired('TOKEN_EXPIRED', { source: 'isLoggedIn' });
                     return false;
                 }
                 return true;
@@ -2660,28 +2762,43 @@
                 // 需要登录的接口，先检查登录状态（包含 Token 过期检测）
                 if (requireAuth) {
                     const token = this.getToken();
-                    // 无 Token 或 Token 已过期，直接返回错误
-                    if (!token || this._isTokenExpired(token)) {
-                        // 清理过期状态
-                        if (token) this.logout();
-                        return { success: false, error: { code: 'NOT_LOGGED_IN', message: 'Not logged in or token expired' } };
+                    if (!token) {
+                        return { success: false, error: { code: 'NOT_LOGGED_IN', message: 'Not logged in' } };
+                    }
+                    // Token 已过期，主动退出登录态并通知 UI
+                    if (this._isTokenExpired(token)) {
+                        this._handleAuthExpired('TOKEN_EXPIRED', { endpoint, source: 'api:precheck' });
+                        return { success: false, error: { code: 'TOKEN_EXPIRED', message: 'Token expired' } };
                     }
                 }
                 
                 try {
                     const result = await this.network.api(endpoint, { ...restOptions, token: this.getToken() });
+                    const responseCode = String(result?.error?.code || '').trim().toUpperCase();
+                    if (result?.success === false && this._isAuthErrorCode(responseCode)) {
+                        this._handleAuthExpired(responseCode || 'INVALID_TOKEN', { endpoint, source: 'api:response' });
+                    }
                     return result;
                 } catch (e) {
-                    // 检查是否是 Token 过期错误
-                    const errMsg = e.message || '';
-                    const isAuthError = errMsg.includes('expired') || errMsg.includes('TOKEN_EXPIRED') || 
-                        errMsg.includes('INVALID_TOKEN') || errMsg.includes('401') ||
-                        errMsg.includes('Unauthorized') || (e instanceof NetworkError && e.isAuth);
+                    const errCode = String(e?.code || '').trim().toUpperCase();
+                    const errMsg = String(e?.message || '').toUpperCase();
+                    const isAuthError =
+                        this._isAuthErrorCode(errCode) ||
+                        (e instanceof NetworkError && e.isAuth) ||
+                        Number(e?.status) === 401 ||
+                        errMsg.includes('TOKEN_EXPIRED') ||
+                        errMsg.includes('INVALID_TOKEN') ||
+                        errMsg.includes('AUTH_REQUIRED') ||
+                        errMsg.includes('AUTH_INVALID') ||
+                        errMsg.includes('NOT_LOGGED_IN') ||
+                        errMsg.includes('UNAUTHORIZED') ||
+                        errMsg.includes('EXPIRED');
                     
                     if (isAuthError) {
-                        this.logout();
-                        // 通过事件总线通知（替代全局 window 事件）
-                        EventBus.emit('auth:expired', { endpoint });
+                        const reason = this._isAuthErrorCode(errCode)
+                            ? errCode
+                            : (errMsg.includes('TOKEN_EXPIRED') || errMsg.includes('EXPIRED') ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN');
+                        this._handleAuthExpired(reason, { endpoint, source: 'api:exception' });
                     }
                     throw e;
                 }
@@ -3002,6 +3119,28 @@
                 return `${days}:${Math.round(total)}`;
             }
 
+            _getReadingUploadData(dailyData) {
+                if (!dailyData || typeof dailyData !== 'object') return {};
+
+                const maxDays = CONFIG.SYNC_LIMITS.READING_UPLOAD_DAYS || 180;
+                const maxEntries = CONFIG.SYNC_LIMITS.READING_UPLOAD_MAX_ENTRIES || 240;
+
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - maxDays);
+
+                const recentEntries = Object.entries(dailyData)
+                    .filter(([key]) => {
+                        const date = new Date(key);
+                        return Number.isFinite(date.getTime()) && date >= cutoffDate;
+                    })
+                    .sort(([a], [b]) => a.localeCompare(b));
+
+                if (recentEntries.length <= maxEntries) {
+                    return Object.fromEntries(recentEntries);
+                }
+                return Object.fromEntries(recentEntries.slice(-maxEntries));
+            }
+
             async download() {
                 // 检查退避延迟
                 if (!this._canRetry('reading')) {
@@ -3067,7 +3206,7 @@
                 }
 
                 const now = Date.now();
-                const uploadInterval = CONFIG.INTERVALS.CLOUD_UPLOAD || 7200000; // 2小时
+                const uploadInterval = CONFIG.INTERVALS.CLOUD_UPLOAD || 1800000; // 30分钟
                 const currentHash = this._getDataHash();
                 if (!force) {
                     // 无变化时不上传
@@ -3088,23 +3227,8 @@
                 try {
                     this._setSyncing(true);
 
-                    // 优化：只上传最近 90 天的数据，减少请求大小
-                    const cutoffDate = new Date();
-                    cutoffDate.setDate(cutoffDate.getDate() - 90);
-                    const _cutoff = cutoffDate.toDateString();
-                    
-                    const recentData = {};
-                    let count = 0;
-                    for (const [key, value] of Object.entries(local.dailyData)) {
-                        // 只保留最近90天的数据
-                        try {
-                            const date = new Date(key);
-                            if (date >= cutoffDate && count < 100) { // 最多100条
-                                recentData[key] = value;
-                                count++;
-                            }
-                        } catch (e) {}
-                    }
+                    // 适度放宽上传窗口：最近 180 天，最多 240 条
+                    const recentData = this._getReadingUploadData(local.dailyData);
                     
                     if (Object.keys(recentData).length === 0) {
                         this._setSyncing(false);
@@ -3156,8 +3280,9 @@
 
                 // 2. 上传检查（仅在数据变化时）
                 const hash = this._getDataHash();
-                if (hash && hash !== this._lastHash && (now - this._lastUpload) > 5 * 60 * 1000) {
-                    // 至少间隔 5 分钟才上传
+                const minUploadGap = CONFIG.SYNC_LIMITS.ONLOAD_UPLOAD_MIN_GAP || (2 * 60 * 1000);
+                if (hash && hash !== this._lastHash && (now - this._lastUpload) > minUploadGap) {
+                    // 至少间隔 2 分钟才上传
                     const result = await this.upload();
                     if (result) {
                         this._lastHash = hash;
@@ -3179,23 +3304,10 @@
                     this._lastDownload = Date.now();
                     this.storage.setGlobalNow('lastDownloadSync', this._lastDownload);
 
-                    // 上传本地数据（只上传最近 90 天，减少请求大小）
+                    // 上传本地数据（适度放宽：最近 180 天，最多 240 条）
                     const local = this.storage.get('readingTime', null);
                     if (local?.dailyData && Object.keys(local.dailyData).length > 0) {
-                        const cutoffDate = new Date();
-                        cutoffDate.setDate(cutoffDate.getDate() - 90);
-                        
-                        const recentData = {};
-                        let count = 0;
-                        for (const [key, value] of Object.entries(local.dailyData)) {
-                            try {
-                                const date = new Date(key);
-                                if (date >= cutoffDate && count < 100) {
-                                    recentData[key] = value;
-                                    count++;
-                                }
-                            } catch (e) {}
-                        }
+                        const recentData = this._getReadingUploadData(local.dailyData);
                         
                         if (Object.keys(recentData).length > 0) {
                             const result = await this.oauth.api('/api/reading/sync-full', {
@@ -3318,8 +3430,9 @@
                 }
 
                 try {
-                    // 减少请求数据量：从 100 天减少到 60 天
-                    const result = await this.oauth.api('/api/requirements/history?days=60');
+                    // 放宽下载窗口：拉取最近 120 天
+                    const historyDays = CONFIG.SYNC_LIMITS.REQUIREMENTS_HISTORY_DAYS || 120;
+                    const result = await this.oauth.api(`/api/requirements/history?days=${historyDays}`);
                     
                     if (!result.success) {
                         // 权限不足（trust_level < 2）是正常情况，缓存结果避免重复请求
@@ -3402,7 +3515,7 @@
                 // 仅标签页主节点执行，避免多标签重复请求
                 if (!TabLeader.isLeader()) return null;
                 
-                const INCREMENTAL_INTERVAL = CONFIG.INTERVALS.REQ_SYNC_INCREMENTAL || 7200000; // 2小时
+                const INCREMENTAL_INTERVAL = CONFIG.INTERVALS.REQ_SYNC_INCREMENTAL || 1800000; // 30分钟
                 const now = Date.now();
                 const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
                 const lastIncremental = this._reqLastIncrementalSync || 0;
@@ -3478,8 +3591,9 @@
                 }
 
                 try {
-                    // 限制上传数据量，最多 60 天
-                    const recentHistory = history.slice(-60);
+                    // 放宽上传窗口：最多上传最近 120 天
+                    const uploadDays = CONFIG.SYNC_LIMITS.REQUIREMENTS_UPLOAD_DAYS || 120;
+                    const recentHistory = history.slice(-uploadDays);
                     
                     const result = await this.oauth.api('/api/requirements/sync-full', {
                         method: 'POST',
@@ -3526,8 +3640,8 @@
              * 仅 trust_level >= 2 的用户可用
              * 
              * 优化策略（v3.3.1）：
-             * 1. 增量同步：默认只同步当天数据（2小时间隔）
-             * 2. 全量同步：仅在以下情况触发（24小时间隔）：
+             * 1. 增量同步：默认只同步当天数据（30分钟间隔）
+             * 2. 全量同步：仅在以下情况触发（12小时间隔）：
              *    - 首次登录（从未下载过云端数据）
              *    - 本地数据天数与云端不一致
              */
@@ -3538,8 +3652,8 @@
 
                 const now = Date.now();
                 const localHistory = this._historyMgr.getHistory();
-                const INCREMENTAL_INTERVAL = CONFIG.INTERVALS.REQ_SYNC_INCREMENTAL || 7200000; // 2小时
-                const FULL_INTERVAL = CONFIG.INTERVALS.REQ_SYNC_FULL || 86400000; // 24小时
+                const INCREMENTAL_INTERVAL = CONFIG.INTERVALS.REQ_SYNC_INCREMENTAL || 1800000; // 30分钟
+                const FULL_INTERVAL = CONFIG.INTERVALS.REQ_SYNC_FULL || 43200000; // 12小时
                 
                 // ========== 判断是否需要全量同步 ==========
                 const isFirstTime = this._reqLastDownload === 0;
@@ -7174,7 +7288,7 @@ a:hover{text-decoration:underline;}
                 this._reqId = 0;
                 this._msgHandler = null;
                 // v2.0: API 配置
-                this._apiUrl = (typeof ApiService !== 'undefined' && ApiService.baseUrl) || 'https://api2.ldspro.qzz.io';
+                this._apiUrl = CONFIG.SHOP_API;
                 this._tokenKey = `ldsp_${CURRENT_SITE.prefix}_leaderboard_token`;
                 this._token = GM_getValue(this._tokenKey, null);
                 // 小卖部相关
@@ -8076,7 +8190,7 @@ a:hover{text-decoration:underline;}
             }
 
             async _shopRequest(path, method = 'GET', body = null) {
-                const API_BASE = (typeof ApiService !== 'undefined' && ApiService.baseUrl) || 'https://api2.ldspro.qzz.io';
+                const API_BASE = CONFIG.SHOP_API;
                 const url = API_BASE + path;
                 
                 // 获取 JWT Token 用于认证（存储键格式：ldsp_{site_prefix}_leaderboard_token）
@@ -9640,9 +9754,9 @@ a:hover{text-decoration:underline;}
                                 <p>1. 访问 <a href="https://credit.linux.do/merchant" target="_blank" rel="noopener">LDC 集市</a></p>
                                 <p>2. 创建新应用，配置以下地址：</p>
                                 <p style="margin-top:6px">⚠️ <b>通知地址</b>（notify_url，服务器异步通知，必填）：</p>
-                                <p style="margin-left:12px;font-family:monospace;font-size:11px;color:#3b82f6;word-break:break-all">https://api2.ldspro.qzz.io/api/shop/ldc/notify</p>
+                                <p style="margin-left:12px;font-family:monospace;font-size:11px;color:#3b82f6;word-break:break-all">${CONFIG.BACKEND_API}/api/shop/ldc/notify</p>
                                 <p style="margin-top:6px">⚠️ <b>回调地址</b>（return_url，支付后浏览器跳转）：</p>
-                                <p style="margin-left:12px;font-family:monospace;font-size:11px;color:#3b82f6;word-break:break-all">https://api2.ldspro.qzz.io/api/shop/ldc/return</p>
+                                <p style="margin-left:12px;font-family:monospace;font-size:11px;color:#3b82f6;word-break:break-all">${CONFIG.BACKEND_API}/api/shop/ldc/return</p>
                                 <p style="margin-top:8px">3. 在应用详情页获取 Client ID 和 Client Key</p>
                                 <p>4. 填写到上方配置表单并保存</p>
                                 <p style="margin-top:8px;font-size:11px;color:#94a3b8">💡 提示：<b style="color:#ef4444">通知地址</b>是支付成功后自动发货的关键，请务必正确配置</p>
@@ -14029,7 +14143,7 @@ a:hover{text-decoration:underline;}
                 this.cachedReqs = [];
                 this.loading = false;
                 this.registrationPaused = false;  // 后端暂停新用户注册开关（通过 /api/user/status 透出）
-                this.hasJoinedBefore = false;    // joinedAt 存在时为 true，用于判断老用户
+                this.hasJoinedBefore = false;    // 后端 hasJoinedBefore 字段（用于判断老用户）
                 this._readingTimer = null;
                 this._destroyed = false;  // 销毁标记
                 this._followDataLoaded = false;
@@ -14250,9 +14364,24 @@ a:hover{text-decoration:underline;}
                 this._initIndicatorResizeObserver();
                 
                 // 订阅 Token 过期事件
-                EventBus.on('auth:expired', () => {
-                    this.renderer?.showToast('⚠️ 登录已过期，请重新登录');
+                EventBus.on('auth:expired', (payload = {}) => {
+                    const reason = String(payload?.reason || '').toUpperCase();
+                    const reasonMessageMap = {
+                        TOKEN_EXPIRED: '⚠️ 登录已过期，请重新登录',
+                        AUTH_EXPIRED: '⚠️ 登录已过期，请重新登录',
+                        INVALID_TOKEN: '⚠️ 登录已失效，请重新登录',
+                        AUTH_INVALID: '⚠️ 登录已失效，请重新登录',
+                        AUTH_REQUIRED: '⚠️ 登录状态异常，请重新登录',
+                        NOT_LOGGED_IN: '⚠️ 登录状态已失效，请重新登录',
+                        UNAUTHORIZED: '⚠️ 登录状态异常，请重新登录'
+                    };
+                    this.leaderboard?.stopSync();
+                    this.oauth?.setJoined(false);
+                    this.registrationPaused = false;
+                    this.hasJoinedBefore = false;
+                    this.renderer?.showToast(reasonMessageMap[reason] || '⚠️ 登录状态异常，请重新登录');
                     this._updateLoginUI();
+                    this._renderLeaderboardContent().catch(() => {});
                 });
                 
                 // 订阅阅读数据同步完成事件
@@ -17924,7 +18053,9 @@ a:hover{text-decoration:underline;}
                         const prevPaused = this.registrationPaused;
                         const prevJoinedBefore = this.hasJoinedBefore;
                         this.registrationPaused = !!result.data.registrationPaused;
-                        this.hasJoinedBefore = !!result.data.joinedAt;
+                        this.hasJoinedBefore = typeof result.data.hasJoinedBefore === 'boolean'
+                            ? result.data.hasJoinedBefore
+                            : !!result.data.joinedAt;
                         this.oauth.setJoined(result.data.isJoined || false);
                         if (this.oauth.isJoined()) {
                             this.leaderboard.startSync();
