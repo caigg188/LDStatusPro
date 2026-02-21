@@ -442,15 +442,32 @@ export const useShopStore = defineStore('shop', () => {
   }
 
   // 创建商品
-  async function createProduct(data) {
+  async function createProduct(data, options = {}) {
     try {
-      const result = await api.post('/api/shop/products', data)
+      const requestOptions = {}
+      const timeout = Number(options?.timeout || 0)
+      if (Number.isFinite(timeout) && timeout > 0) {
+        requestOptions.timeout = timeout
+      }
+      const result = await api.post('/api/shop/products', data, requestOptions)
       if (result.success) {
         // 清除缓存
         invalidateCache()
         await fetchMyProducts()
       }
       return result
+    } catch (e) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async function getProductSubmissionStatus(submissionToken) {
+    const safeToken = String(submissionToken || '').trim()
+    if (!safeToken) {
+      return { success: false, error: '提交凭证无效' }
+    }
+    try {
+      return await api.get(`/api/shop/product-submission-status?token=${encodeURIComponent(safeToken)}`)
     } catch (e) {
       return { success: false, error: e.message }
     }
@@ -851,6 +868,7 @@ export const useShopStore = defineStore('shop', () => {
     clearSearch,
     fetchMyProducts,
     createProduct,
+    getProductSubmissionStatus,
     updateProduct,
     offlineProduct,
     deleteProduct,

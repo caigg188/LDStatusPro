@@ -380,9 +380,12 @@
         
         <!-- 提交按钮 -->
         <div class="form-actions">
-          <button type="submit" class="submit-btn" :disabled="!canSubmit || submitting">
+          <button type="submit" class="submit-btn" :disabled="!canSubmit || productSubmittingBusy">
             {{ submitButtonText }}
           </button>
+          <p v-if="submitConfirming" class="form-hint loading-hint">
+            网络较慢，正在确认发布结果，请勿重复点击。
+          </p>
         </div>
       </form>
 
@@ -471,6 +474,7 @@ const shopStore = useShopStore()
 const toast = useToast()
 
 const submitting = ref(false)
+const submitConfirming = ref(false)
 const merchantConfigured = ref(false) // 是否已配置商家收款
 const showGuideModal = ref(false)
 const dontShowAgain = ref(false)
@@ -491,6 +495,10 @@ const buyTouched = ref({
 })
 
 const submitAttempted = ref(false)
+const submitTokenState = ref({
+  token: '',
+  fingerprint: ''
+})
 const touched = ref({
   name: false,
   description: false,
@@ -565,6 +573,9 @@ function focusBuyField(field) {
 
 // localStorage key
 const GUIDE_MODAL_KEY = 'ld_store_publish_guide_seen'
+const PRODUCT_SUBMIT_TIMEOUT_MS = 90000
+const PRODUCT_SUBMIT_STATUS_MAX_RETRIES = 8
+const PRODUCT_SUBMIT_STATUS_RETRY_INTERVAL_MS = 2000
 
 // 关闭弹窗
 function closeGuideModal() {
@@ -693,7 +704,12 @@ const descriptionPlaceholder = computed(() => {
 })
 
 // 提交按钮文字
+const productSubmittingBusy = computed(() => submitting.value || submitConfirming.value)
+
 const submitButtonText = computed(() => {
+  if (submitConfirming.value) {
+    return '正在确认发布结果...'
+  }
   if (submitting.value) {
     return form.value.productType === 'cdk' && form.value.cdkCodes.trim() 
       ? '发布并上传CDK...' 
@@ -909,8 +925,96 @@ async function checkMerchantConfig() {
   }
 }
 
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function generateSubmissionToken() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `pub_${crypto.randomUUID().replace(/-/g, '')}`
+  }
+  return `pub_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 14)}`
+}
+
+function buildProductFingerprint(productData) {
+  return JSON.stringify({
+    name: productData.name || '',
+    categoryId: String(productData.categoryId || ''),
+    description: productData.description || '',
+    price: Number(productData.price || 0),
+    discount: Number(productData.discount || 1),
+    imageUrl: productData.imageUrl || '',
+    productType: productData.productType || 'link',
+    paymentLink: productData.paymentLink || '',
+    maxPurchaseQuantity: Number(productData.maxPurchaseQuantity || 0),
+    cdkCodes: productData.cdkCodes || '',
+    isTestMode: !!productData.isTestMode
+  })
+}
+
+function resolveSubmissionToken(productData) {
+  const fingerprint = buildProductFingerprint(productData)
+  if (!submitTokenState.value.token || submitTokenState.value.fingerprint !== fingerprint) {
+    submitTokenState.value = {
+      token: generateSubmissionToken(),
+      fingerprint
+    }
+  }
+  return submitTokenState.value.token
+}
+
+function clearSubmissionTokenState() {
+  submitTokenState.value = {
+    token: '',
+    fingerprint: ''
+  }
+}
+
+function isUncertainSubmitResult(result) {
+  const status = Number(result?.status || 0)
+  const message = String(result?.error || '').toLowerCase()
+  if (status === 0) return true
+  return message.includes('超时')
+    || message.includes('网络')
+    || message.includes('failed to fetch')
+    || message.includes('network')
+    || message.includes('abort')
+}
+
+async function pollProductSubmissionResult(submissionToken) {
+  for (let i = 0; i < PRODUCT_SUBMIT_STATUS_MAX_RETRIES; i += 1) {
+    const statusResult = await shopStore.getProductSubmissionStatus(submissionToken)
+    if (statusResult?.success && statusResult.data?.exists && statusResult.data?.product?.id) {
+      return { confirmed: true, product: statusResult.data.product }
+    }
+    if (i < PRODUCT_SUBMIT_STATUS_MAX_RETRIES - 1) {
+      await wait(PRODUCT_SUBMIT_STATUS_RETRY_INTERVAL_MS)
+    }
+  }
+  return { confirmed: false, product: null }
+}
+
+async function confirmSubmitAfterUncertainResult(submissionToken) {
+  submitConfirming.value = true
+  try {
+    const confirmed = await pollProductSubmissionResult(submissionToken)
+    if (confirmed.confirmed) {
+      clearSubmissionTokenState()
+      toast.success('物品提交成功，已自动确认结果')
+      router.push('/user/products')
+      return true
+    }
+
+    toast.warning('暂未确认发布结果。可稍后再次点击发布，系统会防止重复创建。')
+    return false
+  } finally {
+    submitConfirming.value = false
+  }
+}
+
 // 提交表单
 async function submitForm() {
+  if (productSubmittingBusy.value) return
   submitAttempted.value = true
 
   const nameResult = validateProductName(form.value.name)
@@ -1037,20 +1141,35 @@ async function submitForm() {
         productData.isTestMode = true
       }
     }
+
+    const submissionToken = resolveSubmissionToken(productData)
+    productData.submissionToken = submissionToken
     
     // 创建物品
-    const result = await shopStore.createProduct(productData)
+    const result = await shopStore.createProduct(productData, { timeout: PRODUCT_SUBMIT_TIMEOUT_MS })
     
     if (!result.success) {
+      if (isUncertainSubmitResult(result)) {
+        await confirmSubmitAfterUncertainResult(submissionToken)
+        return
+      }
+      clearSubmissionTokenState()
       toast.error(result.error || '发布失败')
       return
     }
     
+    clearSubmissionTokenState()
+
     // 显示成功提示
     const cdkInfo = result.data?.cdkImported ? `，已导入 ${result.data.cdkImported} 条 CDK` : ''
-    toast.success(`物品提交成功，等待管理员审核${cdkInfo}`)
+    if (result.data?.deduplicated) {
+      toast.success('已确认该物品已提交，请勿重复发布')
+    } else {
+      toast.success(`物品提交成功，等待管理员审核${cdkInfo}`)
+    }
     router.push('/user/products')
   } catch (error) {
+    clearSubmissionTokenState()
     toast.error(error.message || '发布失败')
   } finally {
     submitting.value = false
