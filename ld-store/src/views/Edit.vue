@@ -202,9 +202,12 @@
         
         <!-- 提交按钮 -->
         <div class="form-actions">
-          <button type="submit" class="submit-btn" :disabled="!canSubmit || submitting">
-            {{ submitting ? '保存中...' : '保存修改' }}
+          <button type="submit" class="submit-btn" :disabled="!canSubmit || updateBusy">
+            {{ submitButtonText }}
           </button>
+          <p v-if="updateConfirming" class="form-hint loading-hint">
+            网络较慢，正在确认保存结果，请勿重复点击。
+          </p>
         </div>
       </form>
     </div>
@@ -226,6 +229,7 @@ const toast = useToast()
 
 const loading = ref(true)
 const submitting = ref(false)
+const updateConfirming = ref(false)
 const product = ref(null)
 // 允许的图片后缀
 const VALID_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif']
@@ -237,6 +241,9 @@ const imageLoadError = ref('')
 const imagePreviewUrl = ref('')
 const maxPurchaseQuantityInput = ref(null)
 let lastValidatedUrl = ''
+const EDIT_SAVE_TIMEOUT_MS = 90000
+const EDIT_SAVE_STATUS_MAX_RETRIES = 8
+const EDIT_SAVE_STATUS_RETRY_INTERVAL_MS = 2000
 // 分类 - 从API获取或使用默认
 const categories = ref([
   { id: 1, name: 'AI', icon: '🤖' },
@@ -256,6 +263,14 @@ const form = ref({
   paymentLink: '',
   limitEnabled: false,
   maxPurchaseQuantity: ''
+})
+
+const updateBusy = computed(() => submitting.value || updateConfirming.value)
+
+const submitButtonText = computed(() => {
+  if (updateConfirming.value) return '正在确认保存结果...'
+  if (submitting.value) return '保存中...'
+  return '保存修改'
 })
 
 // 加载分类
@@ -372,6 +387,91 @@ function onPreviewError() {
   imageValidated.value = false
 }
 
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function isUncertainUpdateResult(result) {
+  const status = Number(result?.status || 0)
+  const message = String(result?.error || '').toLowerCase()
+  if (status === 0) return true
+  return message.includes('超时')
+    || message.includes('网络')
+    || message.includes('failed to fetch')
+    || message.includes('network')
+    || message.includes('abort')
+}
+
+function hasExpectedProductState(latestProduct, expectedData, expectedType) {
+  if (!latestProduct) return false
+
+  const latestName = String(latestProduct.name || '').trim()
+  const latestDescription = String(latestProduct.description || '').trim()
+  const latestCategoryId = Number(latestProduct.category_id || latestProduct.categoryId || 0)
+  const latestPrice = Number(latestProduct.price || 0)
+  const latestDiscount = Number(latestProduct.discount || 1)
+  const latestImageUrl = String(latestProduct.image_url || latestProduct.imageUrl || '').trim()
+
+  const expectedName = String(expectedData.name || '').trim()
+  const expectedDescription = String(expectedData.description || '').trim()
+  const expectedCategoryId = Number(expectedData.categoryId || 0)
+  const expectedPrice = Number(expectedData.price || 0)
+  const expectedDiscount = Number(expectedData.discount || 1)
+  const expectedImageUrl = String(expectedData.imageUrl || '').trim()
+
+  const floatEquals = (a, b, epsilon = 1e-8) => Math.abs(Number(a || 0) - Number(b || 0)) <= epsilon
+
+  if (latestName !== expectedName) return false
+  if (latestDescription !== expectedDescription) return false
+  if (latestCategoryId !== expectedCategoryId) return false
+  if (!floatEquals(latestPrice, expectedPrice)) return false
+  if (!floatEquals(latestDiscount, expectedDiscount)) return false
+  if (latestImageUrl !== expectedImageUrl) return false
+
+  if (expectedType === 'link') {
+    const latestPaymentLink = String(latestProduct.payment_link || latestProduct.paymentLink || '').trim()
+    const expectedPaymentLink = String(expectedData.paymentLink || '').trim()
+    if (latestPaymentLink !== expectedPaymentLink) return false
+  }
+
+  if (expectedType === 'cdk') {
+    const latestLimit = Number(latestProduct.max_purchase_quantity || latestProduct.maxPurchaseQuantity || 0)
+    const expectedLimit = Number(expectedData.maxPurchaseQuantity || 0)
+    if (latestLimit !== expectedLimit) return false
+  }
+
+  return true
+}
+
+async function pollUpdateResult(productId, expectedData, expectedType) {
+  for (let i = 0; i < EDIT_SAVE_STATUS_MAX_RETRIES; i += 1) {
+    const latestProduct = await shopStore.fetchMyProductDetail(productId)
+    if (hasExpectedProductState(latestProduct, expectedData, expectedType)) {
+      return { confirmed: true, product: latestProduct }
+    }
+    if (i < EDIT_SAVE_STATUS_MAX_RETRIES - 1) {
+      await wait(EDIT_SAVE_STATUS_RETRY_INTERVAL_MS)
+    }
+  }
+  return { confirmed: false, product: null }
+}
+
+async function confirmUpdateAfterUncertainResult(productId, expectedData, expectedType) {
+  updateConfirming.value = true
+  try {
+    const confirmed = await pollUpdateResult(productId, expectedData, expectedType)
+    if (confirmed.confirmed) {
+      toast.success('物品已更新，已自动确认保存结果')
+      router.push('/user/products')
+      return true
+    }
+    toast.warning('暂未确认保存结果。请稍后在“我的物品”中查看，避免重复修改。')
+    return false
+  } finally {
+    updateConfirming.value = false
+  }
+}
+
 // 是否可以提交
 const canSubmit = computed(() => {
   // 基本验证
@@ -458,6 +558,8 @@ async function loadProduct() {
 
 // 提交表单
 async function submitForm() {
+  if (updateBusy.value) return
+
   // 验证名称
   const nameResult = validateProductName(form.value.name)
   if (!nameResult.valid) {
@@ -564,10 +666,14 @@ async function submitForm() {
     }
     
     // 更新物品
-    const result = await shopStore.updateProduct(product.value.id, updateData)
+    const result = await shopStore.updateProduct(product.value.id, updateData, { timeout: EDIT_SAVE_TIMEOUT_MS })
     
     // 检查返回结果
     if (result?.success === false) {
+      if (isUncertainUpdateResult(result)) {
+        await confirmUpdateAfterUncertainResult(product.value.id, updateData, productType)
+        return
+      }
       const errorMsg = result.error?.message || result.error || '更新失败'
       toast.error(errorMsg)
       return

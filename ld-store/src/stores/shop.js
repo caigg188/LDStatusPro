@@ -474,9 +474,14 @@ export const useShopStore = defineStore('shop', () => {
   }
 
   // 更新商品
-  async function updateProduct(id, data) {
+  async function updateProduct(id, data, options = {}) {
     try {
-      const result = await api.put(`/api/shop/my-products/${id}`, data)
+      const requestOptions = {}
+      const timeout = Number(options?.timeout || 0)
+      if (Number.isFinite(timeout) && timeout > 0) {
+        requestOptions.timeout = timeout
+      }
+      const result = await api.put(`/api/shop/my-products/${id}`, data, requestOptions)
       if (result.success) {
         invalidateCache()
         productCache.delete(id)
