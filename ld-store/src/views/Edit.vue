@@ -1,5 +1,21 @@
 <template>
   <div class="edit-page">
+    <Transition name="submit-mask">
+      <div
+        v-if="editOverlayVisible"
+        class="submit-mask"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <div class="submit-mask-card">
+          <span class="submit-mask-spinner" aria-hidden="true"></span>
+          <h3 class="submit-mask-title">{{ editOverlayTitle }}</h3>
+          <p class="submit-mask-text">{{ editOverlayDescription }}</p>
+        </div>
+      </div>
+    </Transition>
+
     <div class="page-container">
       <div class="page-header">
         <h1 class="page-title">编辑物品</h1>
@@ -205,9 +221,6 @@
           <button type="submit" class="submit-btn" :disabled="!canSubmit || updateBusy">
             {{ submitButtonText }}
           </button>
-          <p v-if="updateConfirming" class="form-hint loading-hint">
-            网络较慢，正在确认保存结果，请勿重复点击。
-          </p>
         </div>
       </form>
     </div>
@@ -266,6 +279,14 @@ const form = ref({
 })
 
 const updateBusy = computed(() => submitting.value || updateConfirming.value)
+const editOverlayVisible = computed(() => updateBusy.value)
+const editOverlayTitle = computed(() => (updateConfirming.value ? '正在确认保存结果' : '正在保存修改'))
+const editOverlayDescription = computed(() => {
+  if (updateConfirming.value) {
+    return '请求可能已发送成功，系统正在核对最新数据，请勿重复提交。'
+  }
+  return '网络较慢时可能需要较长时间，请耐心等待并保持当前页面。'
+})
 
 const submitButtonText = computed(() => {
   if (updateConfirming.value) return '正在确认保存结果...'
@@ -1125,6 +1146,81 @@ onMounted(async () => {
 .submit-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* 提交遮罩 */
+.submit-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--overlay-bg, rgba(24, 28, 34, 0.45));
+  backdrop-filter: blur(2px);
+}
+
+.submit-mask-card {
+  width: min(90vw, 360px);
+  padding: 24px 20px;
+  border-radius: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.submit-mask-spinner {
+  display: block;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  border: 3px solid rgba(126, 179, 126, 0.25);
+  border-top-color: var(--color-success);
+  animation: submit-mask-spin 0.8s linear infinite;
+}
+
+.submit-mask-title {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.submit-mask-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.submit-mask-enter-active,
+.submit-mask-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.submit-mask-enter-active .submit-mask-card,
+.submit-mask-leave-active .submit-mask-card {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.submit-mask-enter-from,
+.submit-mask-leave-to {
+  opacity: 0;
+}
+
+.submit-mask-enter-from .submit-mask-card,
+.submit-mask-leave-to .submit-mask-card {
+  transform: translateY(6px) scale(0.98);
+  opacity: 0;
+}
+
+@keyframes submit-mask-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
 
