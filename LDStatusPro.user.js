@@ -1,7 +1,7 @@
  // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.5.6
+    // @version      3.5.5.7
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -3380,7 +3380,7 @@
                 });
             }
 
-            // ==================== 升级要求历史同步 (trust_level >= 2) ====================
+            // ==================== 升级要求历史同步（全等级可用） ====================
 
             /**
              * 设置 HistoryManager 引用（用于升级要求同步）
@@ -3436,11 +3436,6 @@
                     const result = await this.oauth.api(`/api/requirements/history?days=${historyDays}`);
                     
                     if (!result.success) {
-                        // 权限不足（trust_level < 2）是正常情况，缓存结果避免重复请求
-                        if (result.error?.code === 'INSUFFICIENT_TRUST_LEVEL') {
-                            this._updateTrustLevelCache(false);
-                            return null;
-                        }
                         this._recordFailure('requirements');
                         return null;
                     }
@@ -3560,13 +3555,7 @@
                         this._recordSuccess('requirements');
                         return result.data;
                     }
-                    
-                    // 权限不足是正常情况，缓存结果
-                    if (result.error?.code === 'INSUFFICIENT_TRUST_LEVEL') {
-                        this._updateTrustLevelCache(false);
-                        return null;
-                    }
-                    
+
                     this._recordFailure('requirements');
                     return null;
                 } catch (e) {
@@ -3608,13 +3597,7 @@
                         this._recordSuccess('requirements');
                         return result.data;
                     }
-                    
-                    // 权限不足是正常情况，缓存结果
-                    if (result.error?.code === 'INSUFFICIENT_TRUST_LEVEL') {
-                        this._updateTrustLevelCache(false);
-                        return null;
-                    }
-                    
+
                     this._recordFailure('requirements');
                     throw new Error(result.error?.message || '上传失败');
                 } catch (e) {
@@ -3638,7 +3621,7 @@
 
             /**
              * 页面加载时同步升级要求数据
-             * 仅 trust_level >= 2 的用户可用
+             * 全等级用户可用
              * 
              * 优化策略（v3.3.1）：
              * 1. 增量同步：默认只同步当天数据（30分钟间隔）
@@ -3650,9 +3633,6 @@
                 // 前置检查：登录状态 + 只有领导者标签页执行
                 if (!this.oauth.isLoggedIn() || !this._historyMgr) return;
                 if (!TabLeader.isLeader()) return;
-                const hasTrust = this._hasSufficientTrustLevel();
-                if (hasTrust === false) return;
-
                 const now = Date.now();
                 const localHistory = this._historyMgr.getHistory();
                 const INCREMENTAL_INTERVAL = CONFIG.INTERVALS.REQ_SYNC_INCREMENTAL || 1800000; // 30分钟
@@ -16675,15 +16655,8 @@ a:hover{text-decoration:underline;}
                 
                 const now = Date.now();
                 const FAIL_TTL = 10 * 60 * 1000;
-                const LOW_TRUST_FAIL_TTL = 24 * 60 * 60 * 1000;
 
                 if (!forceRefresh && this._cloudReqsFailUntil && now < this._cloudReqsFailUntil) {
-                    return null;
-                }
-
-                const trustCheck = this.cloudSync?._hasSufficientTrustLevel?.();
-                if (trustCheck === false) {
-                    this._cloudReqsFailUntil = now + LOW_TRUST_FAIL_TTL;
                     return null;
                 }
                 const CACHE_TTL = 30 * 60 * 1000; // 30 分钟缓存（云端数据用于历史对比，不需要频繁刷新）
@@ -16700,12 +16673,7 @@ a:hover{text-decoration:underline;}
                     // 获取最近一天的历史数据
                     const result = await this.cloudSync.oauth.api('/api/requirements/history?days=1');
                     if (!result?.success) {
-                        if (result?.error?.code === 'INSUFFICIENT_TRUST_LEVEL') {
-                            this.cloudSync?._updateTrustLevelCache?.(false);
-                            this._cloudReqsFailUntil = now + LOW_TRUST_FAIL_TTL;
-                        } else {
-                            this._cloudReqsFailUntil = now + FAIL_TTL;
-                        }
+                        this._cloudReqsFailUntil = now + FAIL_TTL;
                         return null;
                     }
                     if (!result.data?.history?.length) {
