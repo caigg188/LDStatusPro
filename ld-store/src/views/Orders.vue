@@ -1251,12 +1251,14 @@ onUnmounted(() => {
 }
 
 .action-btn.review-btn {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #8da6a8 0%, #789497 100%);
   color: #fff;
+  box-shadow: 0 4px 12px rgba(120, 148, 151, 0.24);
 }
 
 .action-btn.review-btn:hover:not(:disabled) {
-  opacity: 0.92;
+  box-shadow: 0 6px 14px rgba(120, 148, 151, 0.3);
+  filter: brightness(0.97);
 }
 
 /* 手动发货 */

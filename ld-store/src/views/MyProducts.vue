@@ -636,6 +636,9 @@ function handleImageError(e) {
 // 获取拒绝/下架原因
 function getRejectReason(product) {
   const status = getProductStatus(product)
+  const shouldShowReason = ['ai_rejected', 'manual_rejected', 'offline_manual'].includes(status)
+  if (!shouldShowReason) return null
+
   const reason =
     product.status_reason
     || product.statusReason

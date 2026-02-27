@@ -155,13 +155,22 @@
                                             </a>
                                           </template>
                                           <template v-else-if="isCdk">
-                                            <button
-                                              v-if="isOutOfStock"
-                                              class="buy-btn disabled"
-                                              disabled
-                                            >
-                                              😢 已售罄
-                                            </button>
+                                            <div v-if="isOutOfStock" class="buy-action-row">
+                                              <button
+                                                class="buy-btn disabled"
+                                                disabled
+                                              >
+                                                😢 已售罄
+                                              </button>
+                                              <button
+                                                class="buy-btn restock"
+                                                :class="{ subscribed: restockSubscribed }"
+                                                :disabled="restockStatusLoading || restockSubscribeLoading || restockSubscribed"
+                                                @click="handleSubscribeRestock"
+                                              >
+                                                {{ restockButtonText }}
+                                              </button>
+                                            </div>
                                             <button
                                               v-else-if="isTestMode && !isSeller"
                                               class="buy-btn disabled test-only"
@@ -290,7 +299,7 @@
                       @click="voteComment(item, COMMENT_VOTE_UP)"
                     >
                       <svg class="comment-vote-icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M14 2.6c-.7 0-1.3.5-1.4 1.2L12 8H8.5c-1.4 0-2.5 1.1-2.5 2.5v1.2c0 .3.1.5.2.8l1.2 7.4c.2 1 1 1.7 2 1.7H18c1 0 1.8-.7 2-1.7l1-5.7c.2-1.3-.7-2.5-2-2.5h-4.1l.5-5.3c.1-.8-.5-1.5-1.3-1.6H14zM3 10h2v11H3c-.6 0-1-.4-1-1V11c0-.6.4-1 1-1z" />
+                        <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.3l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.82 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z" />
                       </svg>
                       <span>{{ Number(item.upvote_count || 0) }}</span>
                     </button>
@@ -302,7 +311,7 @@
                     >
                       <svg class="comment-vote-icon" viewBox="0 0 24 24" aria-hidden="true">
                         <g transform="rotate(180 12 12)">
-                          <path d="M14 2.6c-.7 0-1.3.5-1.4 1.2L12 8H8.5c-1.4 0-2.5 1.1-2.5 2.5v1.2c0 .3.1.5.2.8l1.2 7.4c.2 1 1 1.7 2 1.7H18c1 0 1.8-.7 2-1.7l1-5.7c.2-1.3-.7-2.5-2-2.5h-4.1l.5-5.3c.1-.8-.5-1.5-1.3-1.6H14zM3 10h2v11H3c-.6 0-1-.4-1-1V11c0-.6.4-1 1-1z" />
+                          <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.3l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.82 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z" />
                         </g>
                       </svg>
                       <span>{{ Number(item.downvote_count || 0) }}</span>
@@ -441,13 +450,22 @@
                                 </a>
                               </template>
                               <template v-else-if="isCdk">
-                                <button
-                                  v-if="isOutOfStock"
-                                  class="buy-btn disabled"
-                                  disabled
-                                >
-                                  😢 已售罄
-                                </button>
+                                <div v-if="isOutOfStock" class="buy-action-row">
+                                  <button
+                                    class="buy-btn disabled"
+                                    disabled
+                                  >
+                                    😢 已售罄
+                                  </button>
+                                  <button
+                                    class="buy-btn restock"
+                                    :class="{ subscribed: restockSubscribed }"
+                                    :disabled="restockStatusLoading || restockSubscribeLoading || restockSubscribed"
+                                    @click="handleSubscribeRestock"
+                                  >
+                                    {{ restockButtonText }}
+                                  </button>
+                                </div>
                                 <button
                                   v-else-if="isTestMode && !isSeller"
                                   class="buy-btn disabled test-only"
@@ -602,7 +620,7 @@ import { useShopStore } from '@/stores/shop'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import { useDialog } from '@/composables/useDialog'
-import { formatRelativeTime, formatPrice, formatDate } from '@/utils/format'
+import { formatRelativeTime, formatPrice } from '@/utils/format'
 import { escapeHtml } from '@/utils/security'
 import { prepareNewTab, openInNewTab, cleanupPreparedTab } from '@/utils/newTab'
 import Skeleton from '@/components/common/Skeleton.vue'
@@ -625,6 +643,9 @@ const reportReason = ref('')
 const reportSubmitting = ref(false)
 const favoriteSubmitting = ref(false)
 const selectedQuantity = ref(1)
+const restockSubscribed = ref(false)
+const restockStatusLoading = ref(false)
+const restockSubscribeLoading = ref(false)
 const commentLoading = ref(false)
 const commentList = ref([])
 const commentEnabled = ref(false)
@@ -701,6 +722,12 @@ const stockClass = computed(() => isOutOfStock.value ? 'low' : '')
 const stockDisplay = computed(() => {
   if (stock.value === -1) return '∞'
   return `${availableStock.value}/${totalStock.value}`
+})
+const restockButtonText = computed(() => {
+  if (restockStatusLoading.value) return '加载中...'
+  if (restockSubscribeLoading.value) return '订阅中...'
+  if (restockSubscribed.value) return '✅ 已订阅'
+  return '🔔 订阅补货通知'
 })
 // canPurchase 逻辑：后端返回明确的 false 时才禁用，未返回或为 undefined/null 时默认可购买
 const canPurchase = computed(() => {
@@ -809,6 +836,38 @@ const coverStyle = computed(() => {
   return { background: colors[id % colors.length] }
 })
 
+let latestRestockStatusRequestId = 0
+
+async function refreshRestockSubscriptionStatus() {
+  const requestId = ++latestRestockStatusRequestId
+
+  if (!product.value?.id || !isCdk.value || !isOutOfStock.value || !userStore.isLoggedIn) {
+    restockSubscribed.value = false
+    restockStatusLoading.value = false
+    return
+  }
+
+  restockStatusLoading.value = true
+  try {
+    const result = await shopStore.getProductRestockSubscriptionStatus(product.value.id)
+    if (requestId !== latestRestockStatusRequestId) return
+
+    if (result?.success) {
+      restockSubscribed.value = !!result?.data?.subscribed
+      return
+    }
+
+    restockSubscribed.value = false
+  } catch (_) {
+    if (requestId !== latestRestockStatusRequestId) return
+    restockSubscribed.value = false
+  } finally {
+    if (requestId === latestRestockStatusRequestId) {
+      restockStatusLoading.value = false
+    }
+  }
+}
+
 // 加载物品
 onMounted(async () => {
   document.addEventListener('click', handleDocumentClick)
@@ -863,6 +922,19 @@ watch(
   { immediate: true }
 )
 
+watch(
+  () => [
+    product.value?.id,
+    isCdk.value,
+    isOutOfStock.value,
+    userStore.isLoggedIn
+  ],
+  () => {
+    void refreshRestockSubscriptionStatus()
+  },
+  { immediate: true }
+)
+
 // 方法
 function goLogin() {
   router.push({ name: 'Login', query: { redirect: route.fullPath } })
@@ -870,8 +942,41 @@ function goLogin() {
 
 function formatCommentTime(timestamp) {
   const value = Number(timestamp || 0)
-  if (!value) return ''
-  return formatDate(value, 'YYYY-MM-DD HH:mm:ss')
+  if (!Number.isFinite(value) || value <= 0) return ''
+
+  const now = Date.now()
+  const diffMs = now - value
+  const minuteMs = 60 * 1000
+  const hourMs = 60 * minuteMs
+  const dayMs = 24 * hourMs
+  const monthMs = 30 * dayMs
+
+  const formatCalendarDate = (targetTs) => {
+    const targetDate = new Date(targetTs)
+    if (Number.isNaN(targetDate.getTime())) return ''
+    const year = targetDate.getFullYear()
+    const month = targetDate.getMonth() + 1
+    const day = targetDate.getDate()
+    return `${year}年${month}月${day}日`
+  }
+
+  if (!Number.isFinite(diffMs) || diffMs < 0) {
+    return formatCalendarDate(value)
+  }
+  if (diffMs < hourMs) {
+    const minutes = Math.max(1, Math.floor(diffMs / minuteMs))
+    return `${minutes}分钟前`
+  }
+  if (diffMs < dayMs) {
+    const hours = Math.max(1, Math.floor(diffMs / hourMs))
+    return `${hours}小时前`
+  }
+  if (diffMs < monthMs) {
+    const days = Math.max(1, Math.floor(diffMs / dayMs))
+    return `${days}天前`
+  }
+
+  return formatCalendarDate(value)
 }
 
 function normalizeCommentVoteType(value) {
@@ -1520,6 +1625,43 @@ async function submitReport() {
     toast.error(`举报提交失败：${error.message}`)
   } finally {
     reportSubmitting.value = false
+  }
+}
+
+async function handleSubscribeRestock() {
+  if (!product.value?.id || restockSubscribeLoading.value || restockStatusLoading.value || restockSubscribed.value) return
+  if (!isCdk.value || !isOutOfStock.value) return
+
+  if (!userStore.isLoggedIn) {
+    const confirmed = await dialog.confirm('请先登录后再订阅补货通知', {
+      title: '需要登录',
+      icon: '🔐',
+      confirmText: '去登录'
+    })
+    if (confirmed) {
+      router.push({ name: 'Login', query: { redirect: route.fullPath } })
+    }
+    return
+  }
+
+  restockSubscribeLoading.value = true
+  try {
+    const result = await shopStore.subscribeProductRestock(product.value.id)
+    if (result?.success) {
+      restockSubscribed.value = true
+      toast.success(result?.data?.message || '订阅成功，补货后将通过系统消息通知你')
+      return
+    }
+
+    const message = typeof result?.error === 'object'
+      ? (result.error.message || result.error.code || '订阅失败')
+      : (result?.error || '订阅失败')
+    toast.error(message)
+    await refreshRestockSubscriptionStatus()
+  } catch (error) {
+    toast.error(`订阅失败：${error.message}`)
+  } finally {
+    restockSubscribeLoading.value = false
   }
 }
 
@@ -2255,6 +2397,18 @@ async function handleBuyLink() {
   padding-top: 10px;
 }
 
+.buy-action-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.buy-action-row .buy-btn {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
 .desktop-only {
   display: none;
 }
@@ -2836,6 +2990,35 @@ async function handleBuyLink() {
   box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
 }
 
+.buy-btn.restock {
+  background: var(--publish-btn-bg);
+  color: var(--publish-btn-color);
+  border: 1px solid transparent;
+  box-shadow: var(--publish-btn-shadow);
+}
+
+.buy-btn.restock:hover {
+  opacity: 1;
+  background: var(--publish-btn-hover-bg);
+  box-shadow: var(--publish-btn-hover-shadow);
+}
+
+.buy-btn.restock.subscribed {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-color: var(--border-medium);
+  box-shadow: none;
+}
+
+.buy-btn.restock:disabled {
+  transform: none;
+}
+
+.buy-btn.restock.subscribed:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
 .buy-btn.disabled {
   background: #999;
   opacity: 0.5;
@@ -2918,6 +3101,163 @@ async function handleBuyLink() {
   
   .detail-description {
     padding: 20px;
+  }
+
+  .detail-comments {
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .comment-header .section-title {
+    font-size: 18px;
+  }
+
+  .comment-refresh-btn {
+    padding: 6px 10px;
+    min-height: 32px;
+    border-radius: 8px;
+  }
+
+  .comment-list {
+    margin-top: 12px;
+    gap: 10px;
+  }
+
+  .comment-item {
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  .comment-meta-line {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .comment-user {
+    flex: 1;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .comment-avatar {
+    width: 26px;
+    height: 26px;
+  }
+
+  .comment-name,
+  .comment-username {
+    max-width: none;
+  }
+
+  .comment-name {
+    font-size: 12px;
+  }
+
+  .comment-username {
+    font-size: 11px;
+  }
+
+  .comment-purchased-tag {
+    padding: 2px 6px;
+    font-size: 10px;
+  }
+
+  .comment-right {
+    padding-top: 2px;
+  }
+
+  .comment-action-btn {
+    min-width: 30px;
+    min-height: 30px;
+    padding: 4px 6px;
+    font-size: 18px;
+  }
+
+  .comment-content {
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .comment-footer {
+    margin-top: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .comment-time {
+    font-size: 11px;
+  }
+
+  .comment-footer-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .comment-footer-btn {
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .comment-reply-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .comment-vote-btn {
+    min-width: 64px;
+    justify-content: center;
+  }
+
+  .comment-reply-panel {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+
+  .comment-reply-list {
+    gap: 6px;
+  }
+
+  .comment-reply-item {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .comment-reply-avatar {
+    width: 22px;
+    height: 22px;
+  }
+
+  .comment-reply-content {
+    font-size: 12px;
+  }
+
+  .comment-reply-textarea {
+    min-height: 64px;
+    font-size: 12px;
+  }
+
+  .comment-compose {
+    margin-top: 14px;
+    padding-top: 14px;
+  }
+
+  .comment-compose-title {
+    font-size: 13px;
+  }
+
+  .comment-textarea {
+    min-height: 88px;
+    font-size: 13px;
+  }
+
+  .comment-submit-btn,
+  .comment-login-btn {
+    min-height: 34px;
   }
 
 }

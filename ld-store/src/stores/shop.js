@@ -357,6 +357,22 @@ export const useShopStore = defineStore('shop', () => {
     }
   }
 
+  async function getProductRestockSubscriptionStatus(productId) {
+    try {
+      return await api.get(`/api/shop/products/${productId}/restock-subscription`)
+    } catch (e) {
+      return { success: false, error: e.message }
+    }
+  }
+
+  async function subscribeProductRestock(productId) {
+    try {
+      return await api.post(`/api/shop/products/${productId}/restock-subscription`)
+    } catch (e) {
+      return { success: false, error: e.message }
+    }
+  }
+
   async function fetchMyFavorites(options = {}) {
     favoritesLoading.value = true
     try {
@@ -956,6 +972,8 @@ export const useShopStore = defineStore('shop', () => {
     createProductCommentReply,
     addFavorite,
     removeFavorite,
+    getProductRestockSubscriptionStatus,
+    subscribeProductRestock,
     fetchMyFavorites,
     fetchMyProductDetail,
     fetchProductCdks,
