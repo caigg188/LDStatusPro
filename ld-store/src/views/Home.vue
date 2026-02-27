@@ -450,11 +450,15 @@ function consumeStoreError(fallback = '') {
   return shopStore.consumeLastError?.() || fallback
 }
 
+function toSafeArray(value) {
+  return Array.isArray(value) ? value : []
+}
+
 function tryRestoreFromCache(categoryId, sortKey) {
   const cacheKey = getCacheKey(categoryId, sortKey)
   const cached = categoryCache.value.get(cacheKey)
   const now = Date.now()
-  if (cached && (now - cached.timestamp < CATEGORY_CACHE_TTL)) {
+  if (cached && Array.isArray(cached.products) && (now - cached.timestamp < CATEGORY_CACHE_TTL)) {
     shopStore.restoreFromCache(categoryId, cached.products, cached.total, cached.hasMore, cached.page, cached.sort)
     initialLoading.value = false
     return true
@@ -464,18 +468,19 @@ function tryRestoreFromCache(categoryId, sortKey) {
 
 function saveCache(categoryId, sortKey) {
   const cacheKey = getCacheKey(categoryId, sortKey)
+  const productsToCache = toSafeArray(shopStore.products)
   categoryCache.value.set(cacheKey, {
-    products: [...shopStore.products],
-    total: shopStore.total,
-    hasMore: shopStore.hasMore,
-    page: shopStore.page,
+    products: [...productsToCache],
+    total: Number.isFinite(Number(shopStore.total)) ? Number(shopStore.total) : productsToCache.length,
+    hasMore: !!shopStore.hasMore,
+    page: Number.isFinite(Number(shopStore.page)) ? Number(shopStore.page) : 1,
     sort: sortKey,
     timestamp: Date.now()
   })
 }
 
-const categories = computed(() => shopStore.categories)
-const products = computed(() => shopStore.products)
+const categories = computed(() => toSafeArray(shopStore.categories))
+const products = computed(() => toSafeArray(shopStore.products))
 const currentCategory = computed(() => shopStore.currentCategory)
 const currentCategoryName = computed(() => shopStore.currentCategoryName)
 const currentSort = computed({
@@ -488,10 +493,10 @@ const hasMore = computed(() => shopStore.hasMore)
 const total = computed(() => shopStore.total)
 
 const marketCategories = computed(() =>
-  categories.value.filter(c => c.name !== '小店' && c.name !== '友情小店')
+  categories.value.filter(c => c?.name !== '小店' && c?.name !== '友情小店')
 )
 const marketProducts = computed(() =>
-  products.value.filter(p => p.product_type !== 'store')
+  toSafeArray(products.value).filter(p => p?.product_type !== 'store')
 )
 
 const gridColumns = ref(2)

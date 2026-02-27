@@ -41,6 +41,10 @@ export const useShopStore = defineStore('shop', () => {
     return message
   }
 
+  function toSafeArray(value) {
+    return Array.isArray(value) ? value : []
+  }
+
   // 缓存
   const productCache = new Map()
   const categoryCache = ref({ data: null, time: 0 })
@@ -57,7 +61,7 @@ export const useShopStore = defineStore('shop', () => {
   // 获取分类列表
   async function fetchCategories(force = false) {
     const now = Date.now()
-    if (!force && categoryCache.value.data && now - categoryCache.value.time < CACHE_TTL) {
+    if (!force && Array.isArray(categoryCache.value.data) && now - categoryCache.value.time < CACHE_TTL) {
       categories.value = categoryCache.value.data
       setLastError('')
       return categories.value
@@ -65,10 +69,14 @@ export const useShopStore = defineStore('shop', () => {
 
     try {
       const result = await api.get('/api/shop/categories')
-      if (result.success && result.data?.categories) {
-        categories.value = result.data.categories
-        categoryCache.value = { data: result.data.categories, time: now }
+      if (result.success && Array.isArray(result.data?.categories)) {
+        const nextCategories = toSafeArray(result.data.categories)
+        categories.value = nextCategories
+        categoryCache.value = { data: nextCategories, time: now }
         setLastError('')
+      } else if (result.success) {
+        categories.value = []
+        setLastError('分类数据格式异常，请稍后重试')
       } else {
         setLastError(result.error || '加载分类失败，请稍后重试')
       }
@@ -160,15 +168,16 @@ export const useShopStore = defineStore('shop', () => {
         return { success: false, cancelled: true, error: '请求已过期' }
       }
 
-      if (result.success && result.data?.products) {
-        const newProducts = result.data.products
+      if (result.success && Array.isArray(result.data?.products)) {
+        const newProducts = toSafeArray(result.data.products)
+        const previousProducts = toSafeArray(products.value)
         total.value = result.data.pagination?.total || result.data.total || newProducts.length
         hasMore.value = (requestPage * pageSize) < total.value
 
         if (requestPage === 1) {
           products.value = newProducts
         } else {
-          products.value = [...products.value, ...newProducts]
+          products.value = [...previousProducts, ...newProducts]
         }
 
         setLastError('')
@@ -179,6 +188,15 @@ export const useShopStore = defineStore('shop', () => {
           hasMore: hasMore.value,
           page: requestPage
         }
+      } else if (result.success) {
+        const errorMessage = '商品数据格式异常，请稍后重试'
+        if (requestPage === 1) {
+          products.value = []
+          total.value = 0
+          hasMore.value = false
+        }
+        setLastError(errorMessage)
+        return { success: false, error: errorMessage, products: [] }
       }
 
       const errorMessage = result.error || '加载物品失败，请稍后重试'
@@ -201,10 +219,11 @@ export const useShopStore = defineStore('shop', () => {
   // 从缓存恢复分类状态（前端缓存用）
   function restoreFromCache(categoryId, cachedProducts, cachedTotal, cachedHasMore, cachedPage, cachedSort = 'default') {
     currentCategory.value = categoryId
-    products.value = cachedProducts
-    total.value = cachedTotal
-    hasMore.value = cachedHasMore
-    page.value = cachedPage
+    const restoredProducts = toSafeArray(cachedProducts)
+    products.value = restoredProducts
+    total.value = Number.isFinite(Number(cachedTotal)) ? Number(cachedTotal) : restoredProducts.length
+    hasMore.value = typeof cachedHasMore === 'boolean' ? cachedHasMore : false
+    page.value = Number.isFinite(Number(cachedPage)) ? Number(cachedPage) : 1
     currentSort.value = cachedSort
   }
 

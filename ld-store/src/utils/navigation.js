@@ -30,3 +30,28 @@ export function sanitizeRedirect(target, fallback = '/') {
     return fallback
   }
 }
+
+function stripPath(path = '') {
+  return String(path || '').split('?')[0].split('#')[0]
+}
+
+function isAuthRoute(path = '') {
+  const routePath = stripPath(path)
+  return routePath === '/login' || routePath === '/auth/callback'
+}
+
+/**
+ * Sanitize redirect target for post-login navigation.
+ * Auth pages are explicitly blocked to avoid login/callback loops.
+ *
+ * @param {string|undefined|null} target
+ * @param {string} fallback
+ * @returns {string}
+ */
+export function sanitizePostLoginRedirect(target, fallback = '/') {
+  const safeTarget = sanitizeRedirect(target, fallback)
+  if (isAuthRoute(safeTarget)) {
+    return fallback
+  }
+  return safeTarget
+}

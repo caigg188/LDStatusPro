@@ -96,7 +96,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '@/utils/api'
 import { useToast } from '@/composables/useToast'
-import { sanitizeRedirect } from '@/utils/navigation'
+import { sanitizePostLoginRedirect } from '@/utils/navigation'
 
 const route = useRoute()
 const router = useRouter()
@@ -109,7 +109,7 @@ const agreedToTerms = ref(false)
 onMounted(() => {
   // 保存重定向地址
   if (route.query.redirect) {
-    redirect.value = sanitizeRedirect(
+    redirect.value = sanitizePostLoginRedirect(
       Array.isArray(route.query.redirect) ? route.query.redirect[0] : route.query.redirect,
       '/'
     )
@@ -121,7 +121,7 @@ async function handleLogin() {
   
   try {
     // 构建 OAuth 完成后的返回地址（包含重定向信息）
-    const safeRedirect = sanitizeRedirect(redirect.value, '/')
+    const safeRedirect = sanitizePostLoginRedirect(redirect.value, '/')
     const returnUrl = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(safeRedirect)}`
     
     // 获取 OAuth 登录地址

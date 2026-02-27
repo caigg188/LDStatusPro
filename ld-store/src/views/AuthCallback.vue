@@ -22,7 +22,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
-import { sanitizeRedirect } from '@/utils/navigation'
+import { sanitizePostLoginRedirect } from '@/utils/navigation'
 import { api } from '@/utils/api'
 
 const route = useRoute()
@@ -87,6 +87,31 @@ function parseOAuthData() {
   }
 }
 
+async function verifyAuthSync(token) {
+  if (!token) return false
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 8000)
+  const base = api.BASE_URL || ''
+
+  try {
+    const resp = await fetch(`${base}/api/shop/auth/verify`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      credentials: 'include',
+      signal: controller.signal
+    })
+    return resp.ok
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
 onMounted(async () => {
   try {
     // 优先从 URL hash 解析登录数据（后端回调传递）
@@ -105,19 +130,24 @@ onMounted(async () => {
       
       // 清除 hash 以免影响后续导航
       // 触发一次鉴权请求，确保 ld-store-backend 侧完成 users 表同步
-      const syncResp = await api.get('/api/shop/auth/verify', { timeout: 8000 })
-      if (!syncResp?.success) {
-        console.warn('[AuthCallback] user sync verify failed:', syncResp?.error || syncResp)
+      const verified = await verifyAuthSync(oauthData.token)
+      if (!verified) {
+        console.warn('[AuthCallback] user sync verify failed')
       }
 
       history.replaceState(null, '', window.location.pathname + window.location.search)
       
       // 跳转到之前的页面
-      const redirect = sanitizeRedirect(
+      const redirect = sanitizePostLoginRedirect(
         Array.isArray(route.query.redirect) ? route.query.redirect[0] : route.query.redirect,
         '/'
       )
-      router.replace(redirect)
+      try {
+        await router.replace(redirect)
+      } catch (navigationError) {
+        console.warn('[AuthCallback] redirect failed, fallback to home:', navigationError)
+        await router.replace('/')
+      }
     } else {
       // 没有找到 OAuth 数据
       error.value = '登录授权失败，请重试'
