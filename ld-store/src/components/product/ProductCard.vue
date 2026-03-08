@@ -2,7 +2,14 @@
   <router-link
     ref="cardRef"
     :to="`/product/${product.id}`"
-    :class="['product-card', { 'out-of-stock': isOutOfStock, 'product-card--featured': showFeaturedBadge }]"
+    :class="[
+      'product-card',
+      {
+        'out-of-stock': isOutOfStock,
+        'product-card--featured': showFeaturedBadge,
+        'product-card--featured-selection': isSelectionFeatured
+      }
+    ]"
     :style="tiltStyle"
     @mouseenter="handleMouseEnter"
     @mousemove="handleMouseMove"
@@ -13,7 +20,7 @@
     
     <!-- 折扣标签 -->
     <div v-if="showFeaturedBadge" class="badge-stack badge-stack--right">
-      <span v-if="showFeaturedBadge" class="selection-badge" :style="featuredBadgeStyle">士多甄选</span>
+      <span v-if="showFeaturedBadge" class="selection-badge" :style="featuredBadgeStyle">{{ featuredBadgeText }}</span>
     </div>
     
     <!-- 类型标签 -->
@@ -213,6 +220,19 @@ const isCdk = computed(() => productType.value === 'cdk')
 const isStore = computed(() => productType.value === 'store')
 const isTestMode = computed(() => !!props.product.is_test_mode || !!props.product.isTestMode)
 const showFeaturedBadge = computed(() => !!props.product.is_pinned && !!props.product.pin_is_paid)
+const featuredPinType = computed(() => {
+  const rawPinType = String(props.product.pin_type || props.product.pinType || '').trim().toLowerCase()
+
+  if (rawPinType === 'category' || rawPinType === 'global') {
+    return rawPinType
+  }
+
+  return showFeaturedBadge.value ? 'global' : ''
+})
+const isSelectionFeatured = computed(() => showFeaturedBadge.value && featuredPinType.value === 'global')
+const featuredBadgeText = computed(() => (
+  featuredPinType.value === 'category' ? '士多优选' : '士多甄选'
+))
 const featuredBadgeStyle = computed(() => {
   const seed = getAnimationSeed(props.product.id ?? props.product.name ?? 'selection-badge')
   const duration = 3.1 + (seed % 5) * 0.18
@@ -705,7 +725,7 @@ function handleAvatarError(e) {
   text-overflow: ellipsis;
 }
 
-.product-card--featured .product-name {
+.product-card--featured-selection .product-name {
   color: #b88622;
 }
 

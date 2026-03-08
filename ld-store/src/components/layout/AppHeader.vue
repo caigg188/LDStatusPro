@@ -150,7 +150,7 @@
         <!-- 用户信息 -->
         <template v-if="isLoggedIn">
           <div class="user-dropdown" ref="dropdownRef">
-            <button class="user-info" :class="{ 'has-unread': buyChatUnread > 0 }" @click="toggleDropdown">
+            <button class="user-info" :class="{ 'has-unread': messageUnread > 0 }" @click="toggleDropdown">
               <img
                 :src="avatar || avatarFallback"
                 alt="avatar"
@@ -160,11 +160,11 @@
                 @error="handleAvatarError"
               />
               <span class="user-name" v-if="!isMobile">{{ username }}</span>
-              <span v-if="buyChatUnread > 0 && !isMobile" class="user-unread-inline">
+              <span v-if="messageUnread > 0 && !isMobile" class="user-unread-inline">
                 未读 {{ unreadDisplay }}
               </span>
               <span class="dropdown-arrow">▼</span>
-              <span v-if="buyChatUnread > 0 && isMobile" class="user-unread-badge">
+              <span v-if="messageUnread > 0 && isMobile" class="user-unread-badge">
                 {{ unreadDisplay }}
               </span>
             </button>
@@ -203,11 +203,11 @@
               <a
                 href="/user/messages"
                 class="dropdown-item"
-                :class="{ 'with-unread': buyChatUnread > 0 }"
+                :class="{ 'with-unread': messageUnread > 0 }"
                 @click.prevent="navigateTo('/user/messages')"
               >
                 💬 我的消息
-                <span v-if="buyChatUnread > 0" class="dropdown-badge">{{ unreadDisplay }}</span>
+                <span v-if="messageUnread > 0" class="dropdown-badge">{{ unreadDisplay }}</span>
               </a>
               <a href="/user/my-shop" class="dropdown-item" @click.prevent="navigateTo('/user/my-shop')">
                 🏪 小店入驻
@@ -239,13 +239,14 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import { storage } from '@/utils/storage'
 import { api } from '@/utils/api'
 import { buildFallbackAvatar } from '@/utils/avatar'
 
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
@@ -259,7 +260,7 @@ const moreDropdownRef = ref(null)
 const searchBoxRef = ref(null)
 const showSearchPanel = ref(false)
 const searchHistory = ref([])
-const buyChatUnread = ref(0)
+const messageUnread = ref(0)
 const recommendedKeywords = ['gpt', 'team', '小鸡', 'chatgpt', 'claude', 'vps', 'api', '存储', '代理']
 
 // 计算属性
@@ -270,7 +271,11 @@ const avatarFallback = computed(() =>
   buildFallbackAvatar(username.value || userStore.user?.id || 'user', 128)
 )
 const trustLevel = computed(() => userStore.trustLevel)
-const unreadDisplay = computed(() => (buyChatUnread.value > 99 ? '99+' : String(buyChatUnread.value || 0)))
+const unreadDisplay = computed(() => (messageUnread.value > 99 ? '99+' : String(messageUnread.value || 0)))
+const shouldPollMessageUnread = computed(() => (
+  isLoggedIn.value
+  && String(route.name || '') !== 'MyMessages'
+))
 const normalizedSearchQuery = computed(() => searchQuery.value.trim().toLowerCase())
 const filteredSearchHistory = computed(() => {
   if (!normalizedSearchQuery.value) {
@@ -291,7 +296,7 @@ const filteredRecommendedKeywords = computed(() => {
   ))
 })
 
-let buyChatUnreadTimer = null
+let messageUnreadTimer = null
 
 // 下拉菜单控制
 function toggleDropdown() {
@@ -437,40 +442,55 @@ function syncBusuanziToMobile() {
 }
 
 let busuanziObserver = null
-async function fetchBuyChatUnread() {
+async function fetchMessageUnread(force = false) {
   if (!isLoggedIn.value) {
-    buyChatUnread.value = 0
+    messageUnread.value = 0
+    return
+  }
+  if (!force && document.visibilityState === 'hidden') {
     return
   }
 
   try {
     const result = await api.get('/api/shop/messages/unread-summary')
     if (!result.success) return
-    buyChatUnread.value = Number(result.data?.totalUnread || 0)
+    messageUnread.value = Number(result.data?.totalUnread || 0)
   } catch (_) {
     // ignore polling errors
   }
 }
 
-function startBuyChatUnreadPolling() {
-  stopBuyChatUnreadPolling()
-  buyChatUnreadTimer = setInterval(fetchBuyChatUnread, 10000)
+function startMessageUnreadPolling() {
+  stopMessageUnreadPolling()
+  if (!shouldPollMessageUnread.value) {
+    return
+  }
+  messageUnreadTimer = setInterval(() => {
+    fetchMessageUnread()
+  }, 10000)
 }
 
-function stopBuyChatUnreadPolling() {
-  if (buyChatUnreadTimer) {
-    clearInterval(buyChatUnreadTimer)
-    buyChatUnreadTimer = null
+function stopMessageUnreadPolling() {
+  if (messageUnreadTimer) {
+    clearInterval(messageUnreadTimer)
+    messageUnreadTimer = null
+  }
+}
+
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible' && shouldPollMessageUnread.value) {
+    fetchMessageUnread(true)
   }
 }
 
 onMounted(() => {
   loadSearchHistory()
   checkMobile()
-  fetchBuyChatUnread()
-  startBuyChatUnreadPolling()
+  fetchMessageUnread(true)
+  startMessageUnreadPolling()
   window.addEventListener('resize', checkMobile)
   document.addEventListener('click', handleClickOutside)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
   
   // 监听桌面端不蒜子元素变化，同步到移动端
   const pvElement = document.getElementById('busuanzi_site_pv')
@@ -485,19 +505,33 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
   document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
   busuanziObserver?.disconnect()
-  stopBuyChatUnreadPolling()
+  stopMessageUnreadPolling()
 })
 
 watch(isLoggedIn, (loggedIn) => {
   if (loggedIn) {
-    fetchBuyChatUnread()
-    startBuyChatUnreadPolling()
+    fetchMessageUnread(true)
+    startMessageUnreadPolling()
   } else {
-    stopBuyChatUnreadPolling()
-    buyChatUnread.value = 0
+    stopMessageUnreadPolling()
+    messageUnread.value = 0
   }
 })
+
+watch(
+  () => route.name,
+  () => {
+    if (shouldPollMessageUnread.value) {
+      fetchMessageUnread(true)
+      startMessageUnreadPolling()
+      return
+    }
+
+    stopMessageUnreadPolling()
+  }
+)
 </script>
 
 <style scoped>

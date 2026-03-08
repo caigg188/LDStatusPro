@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { MAINTENANCE_MODE } from '@/config/maintenance'
+import { MAINTENANCE_MODE, MAINTENANCE_TITLE } from '@/config/maintenance'
 import { storage } from '@/utils/storage'
 import HomeView from '@/views/Home.vue'
 
@@ -221,7 +221,9 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // 更新页面标题
-  if (to.meta.title) {
+  if (to.name === 'Maintenance') {
+    document.title = MAINTENANCE_TITLE
+  } else if (to.meta.title) {
     document.title = to.meta.title
   }
 

@@ -171,7 +171,7 @@
         <div v-else class="session-list">
           <article
             v-for="item in sessions"
-            :key="item.id"
+            :key="item.conversationId || item.id"
             class="session-card"
             :class="{ 'has-unread': Number(item.unreadCount || 0) > 0 }"
           >
@@ -235,6 +235,7 @@ import { useRouter } from 'vue-router'
 import { api } from '@/utils/api'
 import { useToast } from '@/composables/useToast'
 import { formatPrice, formatRelativeTime } from '@/utils/format'
+import { fetchMyConversations, resolveConversationPath } from '@/utils/conversation'
 import AppSelect from '@/components/common/AppSelect.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ExpandableText from '@/components/common/ExpandableText.vue'
@@ -348,6 +349,10 @@ function isDealCompleted(session) {
 }
 
 async function loadSummary() {
+  if (document.visibilityState === 'hidden') {
+    return
+  }
+
   try {
     const result = await api.get('/api/shop/messages/unread-summary')
     if (!result.success) return
@@ -476,21 +481,20 @@ async function loadSessions(reset = false) {
 
   buyLoading.value = true
   try {
-    const params = new URLSearchParams({
-      page: String(buyPagination.page),
-      pageSize: String(buyPagination.pageSize)
+    const result = await fetchMyConversations({
+      type: 'buy_request',
+      page: buyPagination.page,
+      pageSize: buyPagination.pageSize,
+      status: buyFilter.status,
+      role: buyFilter.role,
+      search: buyFilter.search.trim()
     })
-    if (buyFilter.status) params.set('status', buyFilter.status)
-    if (buyFilter.role) params.set('role', buyFilter.role)
-    if (buyFilter.search.trim()) params.set('search', buyFilter.search.trim())
-
-    const result = await api.get(`/api/shop/buy-sessions/my?${params.toString()}`)
     if (!result.success) {
       toast.error(result.error || '加载会话失败')
       return
     }
 
-    sessions.value = result.data?.sessions || []
+    sessions.value = result.data?.conversations || result.data?.sessions || []
     const pageData = result.data?.pagination || {}
     buyPagination.page = Number(pageData.page || buyPagination.page || 1)
     buyPagination.pageSize = Number(pageData.pageSize || MESSAGE_PAGE_SIZE)
@@ -526,14 +530,9 @@ function goBuyPage(page) {
 }
 
 function openSession(session) {
-  const requestId = Number(session?.request?.id || 0)
-  const sessionId = Number(session?.id || 0)
-  if (!requestId || !sessionId) return
-
-  router.push({
-    path: `/buy-request/${requestId}`,
-    query: { session: String(sessionId) }
-  })
+  const path = resolveConversationPath(session)
+  if (!path) return
+  router.push(path)
 }
 
 async function switchTab(tab) {
@@ -552,7 +551,9 @@ async function switchTab(tab) {
 
 function startSummaryPolling() {
   stopSummaryPolling()
-  summaryTimer = setInterval(loadSummary, 10000)
+  summaryTimer = setInterval(() => {
+    loadSummary()
+  }, 10000)
 }
 
 function stopSummaryPolling() {
@@ -562,14 +563,22 @@ function stopSummaryPolling() {
   }
 }
 
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    loadSummary()
+  }
+}
+
 onMounted(async () => {
   await loadSummary()
   await Promise.all([loadSystemMessages(true), loadSessions(true)])
   startSummaryPolling()
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onUnmounted(() => {
   stopSummaryPolling()
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
 

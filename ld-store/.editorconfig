@@ -1,0 +1,15 @@
+# LD士多前端统一编辑器规范
+root = true
+
+[*.{js,vue,css,md,html,json,toml}]
+# 强制使用 UTF-8（无 BOM）并统一换行
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+[*.md]
+# Markdown 保留必要的尾部空格，避免表格和换行被误伤
+trim_trailing_whitespace = false

@@ -171,7 +171,22 @@
             </div>
           </div>
 
-          <div class="chat-message-list">
+          <div ref="chatMessageListRef" class="chat-message-list">
+            <div v-if="hasOlderMessages || loadingOlderMessages" class="history-actions">
+              <button
+                class="history-btn"
+                :disabled="loadingOlderMessages"
+                @click="loadOlderMessages"
+              >
+                {{ loadingOlderMessages ? '加载中...' : '加载更早消息' }}
+              </button>
+            </div>
+            <div v-else-if="messages.length > 0" class="history-end">
+              已显示当前可见范围内的最早消息
+            </div>
+            <div v-if="messages.length === 0" class="chat-empty">
+              暂无消息，先打个招呼吧。
+            </div>
             <div
               v-for="message in messages"
               :key="message.id"
@@ -222,7 +237,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { api } from '@/utils/api'
@@ -253,11 +268,15 @@ const startingSession = ref(false)
 const sendingMessage = ref(false)
 const actionLoading = ref(false)
 const loadingMessages = ref(false)
+const loadingOlderMessages = ref(false)
 const lastMessageSyncToastAt = ref(0)
+const hasOlderMessages = ref(false)
+const chatMessageListRef = ref(null)
 
 let pollTimer = null
 let messageFetchVersion = 0
 const MESSAGE_SYNC_TOAST_INTERVAL = 15000
+const MESSAGE_FETCH_LIMIT = 50
 
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const requestId = computed(() => Number(route.params.id || 0))
@@ -375,6 +394,27 @@ function notifyMessageSyncError(message, immediate = false) {
   }
 }
 
+function isNearBottom(threshold = 64) {
+  const el = chatMessageListRef.value
+  if (!el) return true
+  return el.scrollHeight - el.scrollTop - el.clientHeight <= threshold
+}
+
+async function scrollToBottom() {
+  await nextTick()
+  const el = chatMessageListRef.value
+  if (!el) return
+  el.scrollTop = el.scrollHeight
+}
+
+async function restoreScrollPosition(previousScrollTop, previousScrollHeight) {
+  await nextTick()
+  const el = chatMessageListRef.value
+  if (!el) return
+  const delta = el.scrollHeight - previousScrollHeight
+  el.scrollTop = previousScrollTop + Math.max(delta, 0)
+}
+
 function applyDetailState(data = {}) {
   requestDetailState.value = data
   requestData.value = data.request || null
@@ -399,6 +439,7 @@ function applyDetailState(data = {}) {
   } else {
     activeSessionId.value = 0
     messages.value = []
+    hasOlderMessages.value = false
   }
 }
 
@@ -461,39 +502,64 @@ async function loadDetail(showLoading = true) {
   }
 }
 
-async function loadMessages(reset = false) {
+async function loadMessages(options = {}) {
+  const normalizedOptions = typeof options === 'boolean'
+    ? { reset: options }
+    : (options || {})
+  const reset = !!normalizedOptions.reset
+  const loadBefore = !!normalizedOptions.before
   if (!activeSessionId.value) return
-  if (loadingMessages.value && !reset) return
+  if ((loadingMessages.value || loadingOlderMessages.value) && !reset) return
 
   const targetSessionId = activeSessionId.value
   const fetchVersion = ++messageFetchVersion
-  const sinceId = reset || messages.value.length === 0
+  const currentMessages = [...messages.value]
+  const beforeId = loadBefore
+    ? Number(currentMessages[0]?.id || 0)
+    : 0
+  const sinceId = loadBefore || reset || currentMessages.length === 0
     ? 0
-    : messages.value[messages.value.length - 1]?.id || 0
+    : Number(currentMessages[currentMessages.length - 1]?.id || 0)
+  if (loadBefore && !beforeId) return
+  const shouldAutoScroll = reset || (!loadBefore && isNearBottom())
+  const previousScrollTop = loadBefore ? Number(chatMessageListRef.value?.scrollTop || 0) : 0
+  const previousScrollHeight = loadBefore ? Number(chatMessageListRef.value?.scrollHeight || 0) : 0
 
-  loadingMessages.value = true
+  if (loadBefore) {
+    loadingOlderMessages.value = true
+  } else {
+    loadingMessages.value = true
+  }
   try {
-    const result = await api.get(
-      `/api/shop/buy-sessions/${targetSessionId}/messages?limit=100&sinceId=${sinceId}`
-    )
+    const params = new URLSearchParams({
+      limit: String(MESSAGE_FETCH_LIMIT)
+    })
+    if (sinceId > 0) params.set('sinceId', String(sinceId))
+    if (beforeId > 0) params.set('beforeId', String(beforeId))
+    const result = await api.get(`/api/shop/buy-sessions/${targetSessionId}/messages?${params.toString()}`)
     if (!result.success) {
       notifyMessageSyncError(
         result.error || '加载会话消息失败，请稍后重试',
-        reset || messages.value.length === 0
+        reset || currentMessages.length === 0
       )
       return
     }
     if (fetchVersion !== messageFetchVersion || activeSessionId.value !== targetSessionId) return
 
     const list = result.data?.messages || []
+    const pagination = result.data?.pagination || {}
     if (reset) {
       messages.value = mergeMessages([], list)
+      hasOlderMessages.value = !!pagination.hasMoreBefore
+    } else if (loadBefore) {
+      messages.value = mergeMessages(list, messages.value)
+      hasOlderMessages.value = !!pagination.hasMoreBefore
     } else if (list.length > 0) {
       messages.value = mergeMessages(messages.value, list)
     }
 
     const currentSession = sessions.value.find((item) => item.id === targetSessionId)
-    if (currentSession && Number(currentSession.unreadCount || 0) > 0) {
+    if (!loadBefore && currentSession && Number(currentSession.unreadCount || 0) > 0) {
       currentSession.unreadCount = 0
     }
 
@@ -520,21 +586,38 @@ async function loadMessages(reset = false) {
         await loadDetail(false)
       }
     }
+
+    if (loadBefore) {
+      await restoreScrollPosition(previousScrollTop, previousScrollHeight)
+    } else if (shouldAutoScroll) {
+      await scrollToBottom()
+    }
   } catch (error) {
     notifyMessageSyncError(
       error.message || '加载会话消息失败，请稍后重试',
-      reset || messages.value.length === 0
+      reset || currentMessages.length === 0
     )
   } finally {
-    if (fetchVersion === messageFetchVersion) {
+    if (fetchVersion === messageFetchVersion && !loadBefore) {
       loadingMessages.value = false
     }
+    if (loadBefore) {
+      loadingOlderMessages.value = false
+    }
   }
+}
+
+async function loadOlderMessages() {
+  if (!hasOlderMessages.value || loadingOlderMessages.value) return
+  await loadMessages({ before: true })
 }
 
 function startPolling() {
   stopPolling()
   pollTimer = setInterval(() => {
+    if (document.visibilityState === 'hidden') {
+      return
+    }
     loadMessages(false)
   }, 4000)
 }
@@ -782,16 +865,24 @@ async function reopenSession() {
   }
 }
 
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    loadMessages(false)
+  }
+}
+
 onMounted(async () => {
   await loadDetail(true)
   if (activeSessionId.value) {
     await loadMessages(true)
   }
   startPolling()
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onUnmounted(() => {
   stopPolling()
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 
 watch(
@@ -1046,6 +1137,33 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.history-actions,
+.history-end {
+  display: flex;
+  justify-content: center;
+}
+
+.history-btn {
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.history-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.history-end,
+.chat-empty {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: center;
 }
 
 .chat-message {

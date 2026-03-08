@@ -127,11 +127,11 @@
                 <p class="step-desc">
                   <strong>通知URL（服务器异步通知⚠️最最最重要⚠️）：</strong>
                 </p>
-                <code class="url-code">https://api.ldspro.qzz.io/api/shop/ldc/notify</code>
+                <code class="url-code">{{ ldcNotifyUrl }}</code>
                 <p class="step-desc" style="margin-top: 8px;">
                   <strong>回调URL（支付后浏览器跳转）：</strong>
                 </p>
-                <code class="url-code">https://api.ldspro.qzz.io/api/shop/ldc/return</code>
+                <code class="url-code">{{ ldcReturnUrl }}</code>
               </div>
             </div>
             
@@ -173,8 +173,13 @@ const shopStore = useShopStore()
 const toast = useToast()
 const dialog = useDialog()
 
-// API 基础地址（用于显示通知地址）
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin
+// 配置页展示的回调地址始终指向商城后端正式入口，避免本地代理地址误导商家配置
+const merchantApiBaseUrl = computed(() => {
+  const baseUrl = import.meta.env.VITE_API_BASE || 'https://api2.ldspro.qzz.io'
+  return String(baseUrl).replace(/\/+$/, '')
+})
+const ldcNotifyUrl = computed(() => `${merchantApiBaseUrl.value}/api/shop/ldc/notify`)
+const ldcReturnUrl = computed(() => `${merchantApiBaseUrl.value}/api/shop/ldc/return`)
 
 const loading = ref(true)
 const saving = ref(false)

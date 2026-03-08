@@ -105,11 +105,12 @@ cp .env.example .env
 
 关键变量：
 
-- `VITE_API_BASE`：LD 士多后端地址（切换到新后端时改为 `https://api2.ldspro.qzz.io`）
+- `VITE_API_BASE`：LD 士多后端地址，同时用于商家收款配置页展示回调地址
 - `VITE_AUTH_API_BASE`：登录认证接口地址（生产建议 `https://api1.ldspro.qzz.io`，本地开发建议留空走 Vite 代理）
 - `VITE_IMAGE_API_BASE`：图床接口地址（当前仍使用旧后端可保持 `https://api.ldspro.qzz.io`）
 - `VITE_MAINTENANCE_MODE`：维护模式开关（`1` 开启，`0` 关闭）
 - `VITE_MAINTENANCE_TITLE`、`VITE_MAINTENANCE_MESSAGE`、`VITE_MAINTENANCE_ETA`：维护页文案
+- `VITE_MAINTENANCE_STATUS_URL`：维护状态页地址
 
 ### 开发模式
 
@@ -117,7 +118,19 @@ cp .env.example .env
 npm run dev
 ```
 
-访问 http://localhost:5173 查看应用。
+访问 http://localhost:3001 查看应用。
+
+### 代码检查
+
+```bash
+npm run lint
+```
+
+如需在提交前一次性验证构建和规范：
+
+```bash
+npm run check
+```
 
 ### 构建生产版本
 
@@ -222,89 +235,53 @@ npm run preview
 
 ```
 ld-store/
-├── public/                 # 静态资源
+├── .editorconfig          # UTF-8（无 BOM）/缩进/换行约束
+├── docs/
+│   └── README.md          # 文档索引与维护说明
+├── public/                # 静态资源与 Cloudflare Pages 边缘脚本
 │   ├── _headers           # Cloudflare 安全头配置
 │   ├── _redirects         # SPA 路由重定向配置
-│   └── _worker.js         # Cloudflare Pages 动态元信息注入
+│   ├── _worker.js         # Cloudflare Pages 动态元信息注入
+│   └── oembed.json        # 分享卡片补充元信息
+├── scripts/
+│   └── generate-og-image.js  # og 图片生成辅助脚本
 ├── src/
 │   ├── components/        # Vue 组件
-│   │   ├── common/        # 通用组件（LiquidTabs 液态Tab等）
-│   │   ├── layout/        # 布局组件（Header、Footer）
-│   │   ├── product/       # 商品相关组件（CategoryFilter等）
-│   │   ├── shop/          # 小店相关组件（ShopCard、ShopForm）
-│   │   └── docs/          # 文档内容组件（8个文档页面）
-│   ├── composables/       # Vue Composables
+│   │   ├── common/        # 通用组件
+│   │   ├── docs/          # 文档内容组件
+│   │   ├── layout/        # 布局组件
+│   │   ├── product/       # 商品相关组件
+│   │   └── shop/          # 小店相关组件
+│   ├── composables/       # 复用逻辑（已清理未使用文件）
+│   ├── config/            # 运行期开关与维护配置
 │   ├── router/            # 路由配置
 │   ├── stores/            # Pinia 状态管理
-│   │   ├── user.js        # 用户状态
-│   │   ├── shop.js        # 商城状态
-│   │   └── ui.js          # UI 状态
-│   ├── utils/             # 工具函数
-│   │   ├── api.js         # API 请求封装
-│   │   ├── security.js    # 安全工具（XSS 防护等）
-│   │   ├── storage.js     # 本地存储封装
-│   │   └── format.js      # 格式化工具
-│   ├── views/             # 页面视图
-│   │   ├── Home.vue       # 首页
-│   │   ├── ProductDetail.vue  # 商品详情
-│   │   ├── Search.vue     # 搜索页
-│   │   ├── Category.vue   # 分类页
-│   │   ├── Login.vue      # 登录页
-│   │   ├── User.vue       # 用户中心
-│   │   ├── Orders.vue     # 订单列表
-│   │   ├── MyProducts.vue # 我的商品
-│   │   ├── Publish.vue    # 发布商品
-│   │   ├── Edit.vue       # 编辑商品
-│   │   ├── Settings.vue   # 收款设置
-│   │   ├── Docs.vue       # 帮助文档
-│   │   ├── MyShop.vue     # 我的小店
-│   │   └── ShopDetail.vue # 小店详情
 │   ├── styles/            # 全局样式
+│   ├── utils/             # 请求、存储、导航、安全等工具
+│   ├── views/             # 页面视图
 │   ├── App.vue            # 根组件
 │   └── main.js            # 应用入口
-├── docs/                  # 项目文档
-│   ├── TECHNICAL_DOCUMENTATION.md    # 技术文档
-│   └── PRODUCT_REQUIREMENTS.md       # 产品需求文档
+├── .env.example           # 环境变量示例
+├── eslint.config.js       # ESLint 配置
 ├── index.html             # HTML 入口
-├── vite.config.js         # Vite 配置
-├── tailwind.config.js     # Tailwind 配置
+├── package.json           # 项目脚本与依赖
 ├── postcss.config.js      # PostCSS 配置
-├── wrangler.toml          # Cloudflare 配置
-└── package.json           # 项目配置
+├── tailwind.config.js     # Tailwind 配置
+├── vite.config.js         # Vite 配置
+└── wrangler.toml          # Cloudflare Pages / Wrangler 配置
 ```
 
 ## 📚 文档
 
-本项目包含详细的技术文档和产品需求文档，位于 `docs/` 目录：
+当前仓库内与 LD 士多前端直接相关的文档以“索引 + 关键文件说明”为主：
 
 | 文档 | 说明 |
 |------|------|
-| **[技术文档](./docs/TECHNICAL_DOCUMENTATION.md)** | 完整的技术架构、API 集成、开发指南、性能优化等 |
-| **[产品文档](./docs/PRODUCT_REQUIREMENTS.md)** | 产品需求、功能设计、用户流程、商业模式等 |
+| **[README.md](./README.md)** | 项目介绍、开发命令、部署说明 |
+| **[docs/README.md](./docs/README.md)** | 前端维护索引、关键配置入口、排查建议 |
+| **[../PROJECT_STRUCTURE.md](../PROJECT_STRUCTURE.md)** | 仓库级职责边界、服务拆分与域名语义 |
 
-### 📖 快速查看文档内容
-
-**技术文档** 包含：
-- 📋 项目架构与目录结构
-- 🛠 完整技术栈说明
-- 🏗 应用整体架构设计
-- 💾 核心模块实现细节
-- 🔗 API 集成文档与示例
-- 🔐 安全防护措施
-- ⚡ 性能优化方案
-- 👨‍💻 开发指南与代码规范
-- 🐛 故障排查常见问题
-
-**产品文档** 包含：
-- 📌 市场分析与竞争优势
-- 👥 用户角色分析
-- ✅ 详细的功能需求列表
-- 📖 页面设计与布局
-- 🔄 用户交互流程
-- 📊 非功能需求
-- 💼 商业模式与收入分析
-- 🎯 成功指标与 KPI
-- 🗺 产品版本规划
+如后续需要扩展专项文档，优先围绕“部署、架构、故障排查”补充到 `docs/`，不要继续保留与仓库实际不符的占位说明。
 
 ---
 

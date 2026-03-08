@@ -24,13 +24,13 @@
     <CornerActionMenu v-if="!isMaintenanceRoute" v-model="showDoodleBg" />
     
     <!-- 全局消息提示 -->
-    <Toast />
+    <Toast v-if="!isMaintenanceRoute" />
     
     <!-- 全局对话框 -->
-    <Dialog />
+    <Dialog v-if="!isMaintenanceRoute" />
     
     <!-- 全局加载遮罩 -->
-    <LoadingOverlay />
+    <LoadingOverlay v-if="!isMaintenanceRoute" />
   </div>
 </template>
 
@@ -46,6 +46,7 @@ import Dialog from '@/components/common/Dialog.vue'
 import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 import DoodleBackground from '@/components/common/DoodleBackground.vue'
 import CornerActionMenu from '@/components/common/CornerActionMenu.vue'
+import { MAINTENANCE_MODE } from '@/config/maintenance'
 
 const route = useRoute()
 const userStore = useUserStore()
@@ -87,8 +88,10 @@ initTheme()
 onMounted(async () => {
   // 恢复涂鸦背景偏好
   initDoodlePreference()
-  // 尝试恢复用户会话
-  await userStore.restoreSession()
+  // 维护模式下直接展示公告页，避免触发额外初始化链路
+  if (!MAINTENANCE_MODE) {
+    await userStore.restoreSession()
+  }
 })
 </script>
 

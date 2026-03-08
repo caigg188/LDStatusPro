@@ -5,19 +5,28 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "lint": "eslint . --ext .js,.vue --ignore-pattern dist --ignore-pattern node_modules --ignore-pattern .wrangler --ignore-pattern public",
+    "lint:fix": "npm run lint -- --fix",
+    "check": "npm run lint && npm run build",
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "npm run build && npx wrangler pages deploy dist --project-name=ld-store"
   },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
-    "@vueuse/core": "^10.7.0",
     "pinia": "^2.1.0",
     "vue": "^3.4.0",
     "vue-router": "^4.2.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.22.0",
     "@vitejs/plugin-vue": "^5.0.0",
     "autoprefixer": "^10.4.0",
+    "eslint": "^9.22.0",
+    "eslint-plugin-vue": "^10.1.0",
+    "globals": "^16.0.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",
     "terser": "^5.44.1",
