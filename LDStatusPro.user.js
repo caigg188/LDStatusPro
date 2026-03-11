@@ -1,7 +1,7 @@
  // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.5.5.8
+    // @version      3.5.5.8.1
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -16595,8 +16595,17 @@ a:hover{text-decoration:underline;}
                     $.userHandle.style.display = 'none';
                 }
                 
-                // === 方案1：优先从服务端获取已同步的升级要求数据 ===
-                // 这些数据是桌面端解析 connect 页面后上传的，最完整准确
+                // === 方案1：优先从 summary API 获取实时统计数据 ===
+                // 访问天数等字段优先以 LinuxDo 实时数据为准，避免云端缓存导致显示滞后
+                if (effectiveUsername && effectiveUsername !== '未知') {
+                    this.$.reqs.innerHTML = `<div class="ldsp-loading"><div class="ldsp-spinner"></div><div>正在获取统计数据...</div></div>`;
+                    const summaryData = await this._fetchSummaryData(effectiveUsername);
+                    if (summaryData && Object.keys(summaryData).length > 0) {
+                        return this._renderSummaryData(summaryData, effectiveUsername, numLevel);
+                    }
+                }
+
+                // === 方案2：回退到云端已同步数据（兜底） ===
                 if (this.oauth?.isLoggedIn() && this.cloudSync) {
                     this.$.reqs.innerHTML = `<div class="ldsp-loading"><div class="ldsp-spinner"></div><div>正在获取云端数据...</div></div>`;
                     try {
@@ -16604,16 +16613,7 @@ a:hover{text-decoration:underline;}
                         if (cloudData && cloudData.length > 0) {
                             return this._renderCloudRequirements(cloudData, effectiveUsername, numLevel);
                         }
-                    } catch (e) { /* 云端获取失败，继续尝试 summary */ }
-                }
-                
-                // === 方案2：从 summary API 获取统计数据 ===
-                if (effectiveUsername && effectiveUsername !== '未知') {
-                    this.$.reqs.innerHTML = `<div class="ldsp-loading"><div class="ldsp-spinner"></div><div>正在获取统计数据...</div></div>`;
-                    const summaryData = await this._fetchSummaryData(effectiveUsername);
-                    if (summaryData && Object.keys(summaryData).length > 0) {
-                        return this._renderSummaryData(summaryData, effectiveUsername, numLevel);
-                    }
+                    } catch (e) { /* 云端获取失败，继续走简要显示 */ }
                 }
                 
                 // 如果无法获取 summary 数据，显示简要信息
