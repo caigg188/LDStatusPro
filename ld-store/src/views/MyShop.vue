@@ -43,13 +43,12 @@
             <h2 class="shop-name">{{ myShop.name }}</h2>
             
             <div class="shop-owner">
-              <img 
-                :src="ownerAvatarUrl" 
+              <AvatarImage
+                :candidates="ownerAvatarCandidates"
+                :seed="ownerAvatarSeed"
+                :size="48"
                 :alt="myShop.owner_username"
                 class="owner-avatar"
-                :data-avatar-seed="ownerAvatarSeed"
-                referrerpolicy="no-referrer"
-                @error="handleAvatarError"
               />
               <span class="owner-name">{{ myShop.owner_username }}</span>
             </div>
@@ -137,8 +136,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { api } from '@/utils/api'
+import AvatarImage from '@/components/common/AvatarImage.vue'
 import ShopForm from '@/components/shop/ShopForm.vue'
-import { resolveAvatarUrl, buildFallbackAvatar } from '@/utils/avatar'
+import { buildAvatarCandidates } from '@/utils/avatar'
 
 const loading = ref(true)
 const submitting = ref(false)
@@ -161,19 +161,10 @@ const ownerAvatarSeed = computed(() =>
   myShop.value?.owner_username || myShop.value?.owner_user_id || myShop.value?.name || 'shop'
 )
 
-const ownerAvatarUrl = computed(() => {
-  if (!myShop.value) return ''
-  const template = myShop.value.owner_avatar_template
-  if (!template) return buildFallbackAvatar(ownerAvatarSeed.value, 48)
-
-  return resolveAvatarUrl(template, 48) || buildFallbackAvatar(ownerAvatarSeed.value, 48)
+const ownerAvatarCandidates = computed(() => {
+  if (!myShop.value) return []
+  return buildAvatarCandidates(myShop.value.owner_avatar_template, 48)
 })
-
-function handleAvatarError(e) {
-  const seed = e?.target?.dataset?.avatarSeed || ownerAvatarSeed.value || 'shop'
-  e.target.onerror = null
-  e.target.src = buildFallbackAvatar(seed, 48)
-}
 
 // 状态相关计算属性
 const statusClass = computed(() => {

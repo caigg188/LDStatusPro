@@ -9,6 +9,7 @@
   },
   "scripts": {
     "lint:userscript": "eslint LDStatusPro.user.js",
-    "fmt": "prettier --write LDStatusPro.user.js"
+    "fmt": "prettier --write LDStatusPro.user.js",
+    "check:agent-samples": "node scripts/validate-agent-samples.mjs"
   }
 }

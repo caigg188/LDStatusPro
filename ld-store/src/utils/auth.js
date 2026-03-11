@@ -25,7 +25,7 @@ function decodeBase64Url(input) {
   return atob(padded)
 }
 
-function parseJwtPayload(token) {
+export function parseJwtPayload(token) {
   if (!token || typeof token !== 'string') return null
   const parts = token.split('.')
   if (parts.length !== 3) return null

@@ -37,13 +37,12 @@
       
       <!-- 店主信息 -->
       <div class="shop-owner">
-        <img 
-          :src="ownerAvatarUrl" 
+        <AvatarImage
+          :candidates="ownerAvatarCandidates"
+          :seed="ownerAvatarSeed"
+          :size="48"
           :alt="shop.owner_username"
           class="owner-avatar"
-          :data-avatar-seed="ownerAvatarSeed"
-          referrerpolicy="no-referrer"
-          @error="handleAvatarError"
         />
         <span class="owner-name">{{ shop.owner_username }}</span>
       </div>
@@ -65,7 +64,8 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { resolveAvatarUrl, buildFallbackAvatar } from '@/utils/avatar'
+import AvatarImage from '@/components/common/AvatarImage.vue'
+import { buildAvatarCandidates } from '@/utils/avatar'
 
 const props = defineProps({
   shop: {
@@ -178,23 +178,14 @@ const ownerAvatarSeed = computed(() =>
   props.shop.owner_username || props.shop.owner_user_id || props.shop.name || 'shop'
 )
 
-const ownerAvatarUrl = computed(() => {
-  const template = props.shop.owner_avatar_template
-  if (!template) return buildFallbackAvatar(ownerAvatarSeed.value, 48)
-
-  return resolveAvatarUrl(template, 48) || buildFallbackAvatar(ownerAvatarSeed.value, 48)
-})
+const ownerAvatarCandidates = computed(() =>
+  buildAvatarCandidates(props.shop.owner_avatar_template, 48)
+)
 
 // 处理图片加载错误
 const handleImageError = (e) => {
   e.target.style.display = 'none'
   e.target.parentElement.classList.add('show-placeholder')
-}
-
-const handleAvatarError = (e) => {
-  const seed = e?.target?.dataset?.avatarSeed || ownerAvatarSeed.value || 'shop'
-  e.target.onerror = null
-  e.target.src = buildFallbackAvatar(seed, 48)
 }
 
 // 标签样式类

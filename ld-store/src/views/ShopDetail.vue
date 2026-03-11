@@ -61,13 +61,12 @@
               rel="noopener noreferrer"
               class="owner-link"
             >
-              <img 
-                :src="ownerAvatarUrl" 
+              <AvatarImage
+                :candidates="ownerAvatarCandidates"
+                :seed="ownerAvatarSeed"
+                :size="96"
                 :alt="shop.owner_username"
                 class="owner-avatar"
-                :data-avatar-seed="ownerAvatarSeed"
-                referrerpolicy="no-referrer"
-                @error="handleAvatarError"
               />
               <div class="owner-info">
                 <span class="owner-name">{{ shop.owner_username }}</span>
@@ -125,8 +124,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import AvatarImage from '@/components/common/AvatarImage.vue'
 import { api } from '@/utils/api'
-import { resolveAvatarUrl, buildFallbackAvatar } from '@/utils/avatar'
+import { buildAvatarCandidates } from '@/utils/avatar'
 
 const route = useRoute()
 const router = useRouter()
@@ -151,12 +151,9 @@ const ownerAvatarSeed = computed(() =>
   shop.value?.owner_username || shop.value?.owner_user_id || shop.value?.name || 'shop'
 )
 
-const ownerAvatarUrl = computed(() => {
-  if (!shop.value) return ''
-  const template = shop.value.owner_avatar_template
-  if (!template) return buildFallbackAvatar(ownerAvatarSeed.value, 96)
-
-  return resolveAvatarUrl(template, 96) || buildFallbackAvatar(ownerAvatarSeed.value, 96)
+const ownerAvatarCandidates = computed(() => {
+  if (!shop.value) return []
+  return buildAvatarCandidates(shop.value.owner_avatar_template, 96)
 })
 
 // 标签样式类
@@ -175,12 +172,6 @@ const getTagClass = (tag) => {
 // 处理图片加载错误
 const handleImageError = (e) => {
   e.target.style.display = 'none'
-}
-
-const handleAvatarError = (e) => {
-  const seed = e?.target?.dataset?.avatarSeed || ownerAvatarSeed.value || 'shop'
-  e.target.onerror = null
-  e.target.src = buildFallbackAvatar(seed, 96)
 }
 
 // 返回上一页

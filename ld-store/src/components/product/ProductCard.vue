@@ -70,13 +70,12 @@
           <span class="seller-name">{{ product.seller_username || '匿名' }}</span>
         </template>
         <template v-else>
-          <img
-            :src="sellerAvatar"
+          <AvatarImage
+            :candidates="sellerAvatarCandidates"
+            :seed="sellerAvatarSeed"
+            :size="128"
             alt=""
             class="seller-avatar"
-            :data-avatar-seed="sellerAvatarSeed"
-            referrerpolicy="no-referrer"
-            @error="handleAvatarError"
           />
           <span class="seller-name">{{ product.seller_username || '匿名' }}</span>
           <span v-if="isCdk && soldCount > 0" class="sold-count">已售{{ soldCount }}</span>
@@ -101,8 +100,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import AvatarImage from '@/components/common/AvatarImage.vue'
 import { formatRelativeTime, formatPrice } from '@/utils/format'
-import { resolveAvatarUrl, buildFallbackAvatar } from '@/utils/avatar'
+import { buildAvatarCandidates } from '@/utils/avatar'
 
 const props = defineProps({
   product: {
@@ -377,9 +377,8 @@ const sellerAvatarSeed = computed(() =>
   props.product.seller_username || props.product.seller_user_id || 'seller'
 )
 
-const sellerAvatar = computed(() =>
-  resolveAvatarUrl(props.product.seller_avatar, 128)
-    || buildFallbackAvatar(sellerAvatarSeed.value, 128)
+const sellerAvatarCandidates = computed(() =>
+  buildAvatarCandidates(props.product.seller_avatar, 128)
 )
 
 // 更新时间
@@ -414,11 +413,6 @@ function handleImageError(e) {
   e.target.style.display = 'none'
 }
 
-function handleAvatarError(e) {
-  const seed = e?.target?.dataset?.avatarSeed || sellerAvatarSeed.value || 'seller'
-  e.target.onerror = null
-  e.target.src = buildFallbackAvatar(seed, 128)
-}
 </script>
 
 <style scoped>

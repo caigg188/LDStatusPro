@@ -151,13 +151,14 @@
         <template v-if="isLoggedIn">
           <div class="user-dropdown" ref="dropdownRef">
             <button class="user-info" :class="{ 'has-unread': messageUnread > 0 }" @click="toggleDropdown">
-              <img
-                :src="avatar || avatarFallback"
+              <AvatarImage
+                :src="avatar"
+                :candidates="userStore.avatarCandidates"
+                :seed="username || 'user'"
+                :size="128"
                 alt="avatar"
                 class="user-avatar"
-                :data-avatar-seed="username || 'user'"
-                referrerpolicy="no-referrer"
-                @error="handleAvatarError"
+                loading-mode="eager"
               />
               <span class="user-name" v-if="!isMobile">{{ username }}</span>
               <span v-if="messageUnread > 0 && !isMobile" class="user-unread-inline">
@@ -170,15 +171,16 @@
             </button>
             
             <!-- 下拉菜单 -->
-            <div v-if="showDropdown" class="dropdown-menu">
+            <div v-show="showDropdown" class="dropdown-menu">
               <router-link to="/user" class="dropdown-header" @click="closeDropdown">
-                <img
-                  :src="avatar || avatarFallback"
+                <AvatarImage
+                  :src="avatar"
+                  :candidates="userStore.avatarCandidates"
+                  :seed="username || 'user'"
+                  :size="128"
                   alt="avatar"
                   class="dropdown-avatar"
-                  :data-avatar-seed="username || 'user'"
-                  referrerpolicy="no-referrer"
-                  @error="handleAvatarError"
+                  loading-mode="eager"
                 />
                 <div class="dropdown-user-info">
                   <div class="dropdown-username">{{ username }}</div>
@@ -228,9 +230,9 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
+import AvatarImage from '@/components/common/AvatarImage.vue'
 import { storage } from '@/utils/storage'
 import { api } from '@/utils/api'
-import { buildFallbackAvatar } from '@/utils/avatar'
 
 const route = useRoute()
 const router = useRouter()
@@ -253,9 +255,6 @@ const recommendedKeywords = ['gpt', 'team', '小鸡', 'chatgpt', 'claude', 'vps'
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const username = computed(() => userStore.username)
 const avatar = computed(() => userStore.avatar)
-const avatarFallback = computed(() =>
-  buildFallbackAvatar(username.value || userStore.user?.id || 'user', 128)
-)
 const trustLevel = computed(() => userStore.trustLevel)
 const trustLevelText = computed(() => (
   trustLevel.value === null || trustLevel.value === undefined ? '' : `TL${trustLevel.value}`
@@ -471,12 +470,6 @@ function goToSearch() {
 function goToPublish() {
   closeSearchPanel()
   router.push({ name: 'Publish' })
-}
-
-function handleAvatarError(e) {
-  const seed = e?.target?.dataset?.avatarSeed || username.value || userStore.user?.id || 'user'
-  e.target.onerror = null
-  e.target.src = buildFallbackAvatar(seed, 128)
 }
 
 function checkMobile() {

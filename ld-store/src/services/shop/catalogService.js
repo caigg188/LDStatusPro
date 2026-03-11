@@ -93,9 +93,17 @@ export async function fetchProductCommentsRequest(productId, options = {}) {
   }
 }
 
-export async function createProductCommentRequest(productId, content) {
+export async function createProductCommentRequest(productId, payload = {}) {
+  const requestPayload = typeof payload === 'string'
+    ? { content: payload }
+    : {
+        content: String(payload?.content || ''),
+        ...(payload?.rating === null || payload?.rating === undefined || payload?.rating === ''
+          ? {}
+          : { rating: payload.rating })
+      }
   try {
-    return await api.post(`/api/shop/products/${productId}/comments`, { content })
+    return await api.post(`/api/shop/products/${productId}/comments`, requestPayload)
   } catch (error) {
     return toRequestError(error, '发布评论失败，请稍后重试')
   }

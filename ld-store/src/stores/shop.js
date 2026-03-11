@@ -364,8 +364,8 @@ export const useShopStore = defineStore('shop', () => {
     return fetchProductCommentsRequest(productId, options)
   }
 
-  async function createProductComment(productId, content) {
-    return createProductCommentRequest(productId, content)
+  async function createProductComment(productId, payload) {
+    return createProductCommentRequest(productId, payload)
   }
 
   async function deleteProductComment(commentId) {

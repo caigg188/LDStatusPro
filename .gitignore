@@ -1,3 +1,4 @@
+.gitignore
 Todo.md
 *.md
 !README.md
@@ -9,6 +10,7 @@ Todo.md
 PROJECT_STRUCTURE.md
 backend
 ld-store-backend
+ldsp-backend
 admin-panel
 /docs
 scripts
@@ -18,6 +20,8 @@ ld-store-server
 *_pre
 *.sql
 *.db
+*.sh
+
 
 # website 构建产物和依赖
 !website/docs/*.md

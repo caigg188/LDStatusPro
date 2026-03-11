@@ -38,13 +38,13 @@
         <section class="merchant-card">
           <div class="merchant-main">
             <div class="merchant-identity">
-              <img
-                :src="merchantAvatar"
+              <AvatarImage
+                :candidates="merchantAvatarCandidates"
+                :seed="merchantAvatarSeed"
+                :size="128"
                 alt=""
                 class="merchant-avatar"
-                :data-avatar-seed="merchantAvatarSeed"
-                referrerpolicy="no-referrer"
-                @error="handleAvatarError"
+                loading-mode="eager"
               />
 
               <div class="merchant-meta">
@@ -124,8 +124,9 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
 import { useUserStore } from '@/stores/user'
+import AvatarImage from '@/components/common/AvatarImage.vue'
 import { useToast } from '@/composables/useToast'
-import { resolveAvatarUrl, buildFallbackAvatar } from '@/utils/avatar'
+import { buildAvatarCandidates } from '@/utils/avatar'
 import ProductCard from '@/components/product/ProductCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
@@ -153,8 +154,13 @@ const routeUsername = computed(() => String(route.params.username || '').trim())
 const merchantAvatarSeed = computed(() =>
   merchant.value?.name || merchant.value?.username || merchant.value?.userId || 'merchant'
 )
-const merchantAvatar = computed(() =>
-  resolveAvatarUrl(merchant.value?.avatar, 128) || buildFallbackAvatar(merchantAvatarSeed.value, 128)
+const merchantAvatarCandidates = computed(() =>
+  buildAvatarCandidates([
+    merchant.value?.animated_avatar,
+    merchant.value?.avatar,
+    merchant.value?.avatar_url,
+    merchant.value?.avatar_template
+  ], 128)
 )
 const merchantDisplayName = computed(() => {
   const name = String(merchant.value?.name || '').trim()
@@ -262,11 +268,6 @@ function openStoreMessage() {
   toast.warning('该功能暂未开放')
 }
 
-function handleAvatarError(event) {
-  const seed = event?.target?.dataset?.avatarSeed || merchantAvatarSeed.value || 'merchant'
-  event.target.onerror = null
-  event.target.src = buildFallbackAvatar(seed, 128)
-}
 </script>
 
 <style scoped>

@@ -5,12 +5,14 @@
         <div class="hero">
           <div class="hero-top">
             <div class="user-info">
-              <img
+              <AvatarImage
                 :src="avatar"
+                :candidates="userStore.avatarCandidates"
+                :seed="avatarSeed"
+                :size="128"
                 alt=""
                 class="user-avatar"
-                referrerpolicy="no-referrer"
-                @error="handleAvatarError"
+                loading-mode="eager"
               />
               <div class="user-detail">
                 <div class="name-row">
@@ -211,9 +213,9 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
 import { useUserStore } from '@/stores/user'
+import AvatarImage from '@/components/common/AvatarImage.vue'
 import { useDialog } from '@/composables/useDialog'
 import { useToast } from '@/composables/useToast'
-import { buildFallbackAvatar } from '@/utils/avatar'
 
 const EMPTY_OVERVIEW = Object.freeze({ daysOnStore: 0, firstActivityAt: '', latestActivityAt: '', totalPurchaseOrders: 0, totalPurchaseQuantity: 0, totalSpent: 0, totalSellOrders: 0, totalSellQuantity: 0, totalRevenue: 0, publishedProductCount: 0, approvedProductCount: 0, activeProductCount: 0, favoriteCount: 0, distinctPurchasedProducts: 0, distinctBuyers: 0, purchasedCategoryCount: 0 })
 const EMPTY_DISTRIBUTION = Object.freeze({ categories: [], totals: { orderCount: 0, quantity: 0, amount: 0 } })
@@ -268,7 +270,7 @@ const trustLevelToneClass = computed(() => {
   return 'trust-new'
 })
 const avatarSeed = computed(() => user.value?.name || user.value?.username || user.value?.id || 'user')
-const avatar = computed(() => userStore.avatar || buildFallbackAvatar(avatarSeed.value, 128))
+const avatar = computed(() => userStore.avatar)
 const ldcInfo = computed(() => userStore.ldcInfo)
 const overview = computed(() => dashboard.value?.overview || EMPTY_OVERVIEW)
 const merchant = computed(() => dashboard.value?.merchant || EMPTY_MERCHANT)
@@ -380,11 +382,6 @@ onMounted(async () => {
     toast.error(results[0].reason?.message || '个人统计加载失败，请稍后重试')
   }
 })
-
-function handleAvatarError(event) {
-  event.target.onerror = null
-  event.target.src = buildFallbackAvatar(avatarSeed.value, 128)
-}
 
 async function handleLogout() {
   const confirmed = await dialog.confirm('确定要退出登录吗？', { title: '退出登录', icon: '🚪', danger: true })

@@ -137,13 +137,12 @@
               :class="['seller-card', { disabled: !product.seller_username }]"
               @click="goToSeller"
             >
-              <img
-                :src="sellerAvatar"
+              <AvatarImage
+                :candidates="sellerAvatarCandidates"
+                :seed="sellerAvatarSeed"
+                :size="128"
                 alt=""
                 class="seller-avatar"
-                :data-avatar-seed="sellerAvatarSeed"
-                referrerpolicy="no-referrer"
-                @error="handleAvatarError"
               />
               <div class="seller-content">
                 <div class="seller-name">@{{ product.seller_username || '未知' }}</div>
@@ -222,9 +221,41 @@
           <div class="description-content">{{ product.description || '暂无描述' }}</div>
         </div>
 
+        <div
+          v-if="isCdk"
+          class="detail-comment-summary"
+        >
+          <div class="comment-summary-main">
+            <div class="comment-summary-stars">
+              <StarRatingDisplay :value="commentSummary.averageRating" size="lg" />
+              <strong>{{ hasCommentRatings ? formatRatingLabel(commentSummary.averageRating) : '暂无评分' }}</strong>
+            </div>
+            <div class="comment-summary-text">
+              <span v-if="commentLoading && !hasCommentSummary">正在统计买家评分...</span>
+              <span v-else-if="hasCommentRatings">
+                平均 {{ formatRatingLabel(commentSummary.averageRating) }}，{{ commentSummary.ratedCount }} 人已打分
+              </span>
+              <span v-else>暂时还没有买家评分</span>
+            </div>
+          </div>
+          <div class="comment-summary-side">
+            <div class="comment-summary-metric">
+              <span class="comment-summary-metric-label">收藏数量</span>
+              <strong>{{ Number(commentSummary.favoriteCount || 0) }}</strong>
+            </div>
+            <div class="comment-summary-metric">
+              <span class="comment-summary-metric-label">评论与回复</span>
+              <strong>{{ commentVisibleCount }}</strong>
+            </div>
+          </div>
+        </div>
+
         <div id="comments" v-if="isCdk" class="detail-comments">
           <div class="comment-header">
-            <h2 class="section-title">💬 物品评论</h2>
+            <div class="comment-header-title">
+              <h2 class="section-title">💬 物品评论</h2>
+              <span class="comment-total-tag">{{ commentVisibleCount }}</span>
+            </div>
             <button
               class="comment-refresh-btn"
               :disabled="commentLoading"
@@ -246,21 +277,27 @@
               >
                 <div class="comment-meta-line">
                   <div class="comment-user">
-                    <img
-                      :src="resolveCommentAvatar(item.user)"
+                    <AvatarImage
+                      :candidates="resolveCommentAvatarCandidates(item.user)"
+                      :seed="commentAvatarSeed(item.user)"
+                      :size="96"
                       alt=""
                       class="comment-avatar"
-                      :data-avatar-seed="commentAvatarSeed(item.user)"
-                      referrerpolicy="no-referrer"
-                      @error="handleCommentAvatarError"
                     />
                     <span class="comment-name">{{ item.user?.nickname || item.user?.username || '匿名用户' }}</span>
                     <span class="comment-username">@{{ item.user?.username || 'unknown' }}</span>
                     <span v-if="item.is_purchased" class="comment-purchased-tag">已购</span>
+                    <span
+                      v-if="item.is_purchased && item.rating_value !== null"
+                      class="comment-rating-tag"
+                    >
+                      <StarRatingDisplay :value="item.rating_value" size="xs" />
+                      <span>{{ formatRatingLabel(item.rating_value) }}</span>
+                    </span>
                   </div>
 
                   <div class="comment-right">
-                    <div class="comment-action-wrap">
+                    <div v-if="canOpenCommentActionMenu(item)" class="comment-action-wrap">
                       <button
                         class="comment-action-btn"
                         :disabled="commentDeletingId === item.id || commentReportingId === item.id"
@@ -273,6 +310,7 @@
                         class="comment-action-menu"
                       >
                         <button
+                          v-if="isCommentPublicStatus(item.status)"
                           class="comment-action-item"
                           :disabled="commentReportingId === item.id"
                           @click.stop="openCommentReportModal(item)"
@@ -291,10 +329,18 @@
                     </div>
                   </div>
                 </div>
-                <div class="comment-content">{{ item.content }}</div>
+                <div class="comment-content">
+                  <span>{{ item.content }}</span>
+                  <span
+                    v-if="isCommentPendingStatus(item.status)"
+                    class="comment-inline-status-tag"
+                  >
+                    正在审核中，暂时仅自己可见
+                  </span>
+                </div>
                 <div class="comment-footer">
                   <time class="comment-time">{{ formatCommentTime(item.created_at) }}</time>
-                  <div class="comment-footer-actions">
+                  <div v-if="isCommentPublicStatus(item.status)" class="comment-footer-actions">
                     <button
                       class="comment-footer-btn comment-reply-btn"
                       :class="{ active: isCommentReplyComposerOpen(item.id) }"
@@ -338,13 +384,12 @@
                         :key="reply.id"
                         class="comment-reply-item"
                       >
-                        <img
-                          :src="resolveCommentAvatar(reply.user)"
+                        <AvatarImage
+                          :candidates="resolveCommentAvatarCandidates(reply.user)"
+                          :seed="commentAvatarSeed(reply.user)"
+                          :size="96"
                           alt=""
                           class="comment-reply-avatar"
-                          :data-avatar-seed="commentAvatarSeed(reply.user)"
-                          referrerpolicy="no-referrer"
-                          @error="handleCommentAvatarError"
                         />
                         <div class="comment-reply-body">
                           <div class="comment-reply-meta">
@@ -352,7 +397,15 @@
                             <span class="comment-reply-username">@{{ reply.user?.username || 'unknown' }}</span>
                             <time class="comment-reply-time">{{ formatCommentTime(reply.created_at) }}</time>
                           </div>
-                          <div class="comment-reply-content">{{ reply.content }}</div>
+                          <div class="comment-reply-content">
+                            <span>{{ reply.content }}</span>
+                            <span
+                              v-if="isCommentPendingStatus(reply.status)"
+                              class="comment-inline-status-tag"
+                            >
+                              正在审核中，暂时仅自己可见
+                            </span>
+                          </div>
                         </div>
                       </div>
                       <button
@@ -427,6 +480,32 @@
                 <button class="comment-login-btn" @click="goLogin">去登录</button>
               </div>
               <template v-else>
+                <div v-if="viewerHasPurchased && !viewerHasRated" class="comment-rating-field">
+                  <label class="comment-rating-label">买家评分（可选）</label>
+                  <StarRatingInput
+                    v-model="commentRatingDraft"
+                    class="comment-rating-control"
+                  />
+                  <div class="comment-rating-once-tip">
+                    评分仅有一次机会，提交后将无法撤回或修改。
+                  </div>
+                </div>
+                <div
+                  v-else-if="viewerHasPurchased && viewerHasRated"
+                  class="comment-rating-tip comment-rating-tip-locked"
+                >
+                  <span>该物品您已评分，本次评论不能重复评分或修改评分。</span>
+                  <span v-if="viewerRatingValue !== null" class="comment-rating-tip-value">
+                    <StarRatingDisplay :value="viewerRatingValue" size="xs" />
+                    <strong>{{ formatRatingLabel(viewerRatingValue) }}</strong>
+                  </span>
+                </div>
+                <div
+                  v-else
+                  class="comment-rating-tip"
+                >
+                  购买后可在发表评论时为该物品打分。
+                </div>
                 <textarea
                   v-model="commentDraft"
                   class="comment-textarea"
@@ -640,7 +719,10 @@ import { useDialog } from '@/composables/useDialog'
 import { formatRelativeTime, formatPrice } from '@/utils/format'
 import { escapeHtml } from '@/utils/security'
 import { prepareNewTab, openInNewTab, cleanupPreparedTab } from '@/utils/newTab'
-import { resolveAvatarUrl, buildFallbackAvatar } from '@/utils/avatar'
+import AvatarImage from '@/components/common/AvatarImage.vue'
+import StarRatingDisplay from '@/components/common/StarRatingDisplay.vue'
+import StarRatingInput from '@/components/common/StarRatingInput.vue'
+import { buildAvatarCandidates } from '@/utils/avatar'
 import { api } from '@/utils/api'
 import Skeleton from '@/components/common/Skeleton.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -677,7 +759,18 @@ const commentPagination = ref({
   pageSize: 10,
   totalPages: 0
 })
+const commentSummary = ref({
+  averageRating: 0,
+  ratedCount: 0,
+  favoriteCount: 0,
+  visibleCommentCount: 0,
+  visibleReplyCount: 0
+})
+const viewerHasPurchased = ref(false)
+const viewerHasRated = ref(false)
+const viewerRatingValue = ref(null)
 const commentDraft = ref('')
+const commentRatingDraft = ref(null)
 const commentSubmitting = ref(false)
 const commentActionMenuId = ref(null)
 const commentDeletingId = ref(null)
@@ -696,6 +789,7 @@ const commentReplyDraftMap = ref({})
 
 const COMMENT_VOTE_UP = 'up'
 const COMMENT_VOTE_DOWN = 'down'
+const COMMENT_PUBLIC_STATUS_SET = new Set(['ai_approved', 'manual_approved'])
 
 const quickReportReasons = [
   '收款配置缺失，无法生成支付链接',
@@ -902,6 +996,18 @@ const commentPageNumbers = computed(() => {
 
   return Array.from({ length: end - start + 1 }, (_, index) => start + index)
 })
+const selectedCommentRating = computed(() => normalizeCommentRatingValue(commentRatingDraft.value, { allowNull: true }))
+const commentVisibleCount = computed(() => Math.max(
+  Number(commentSummary.value.visibleCommentCount || 0) + Number(commentSummary.value.visibleReplyCount || 0),
+  Number(commentPagination.value.total || 0)
+))
+const hasCommentRatings = computed(() => Number(commentSummary.value.ratedCount || 0) > 0)
+const hasCommentSummary = computed(() =>
+  hasCommentRatings.value
+  || Number(commentSummary.value.favoriteCount || 0) > 0
+  || Number(commentSummary.value.visibleCommentCount || 0) > 0
+  || Number(commentSummary.value.visibleReplyCount || 0) > 0
+)
 
 // 分类
 const categoryIcon = computed(() => product.value?.category_icon || '📦')
@@ -912,18 +1018,21 @@ const sellerAvatarSeed = computed(() =>
   product.value?.seller_username || product.value?.seller_user_id || product.value?.id || 'seller'
 )
 
-const sellerAvatar = computed(() =>
-  resolveAvatarUrl(product.value?.seller_avatar, 128)
-    || buildFallbackAvatar(sellerAvatarSeed.value, 128)
+const sellerAvatarCandidates = computed(() =>
+  buildAvatarCandidates(product.value?.seller_avatar, 128)
 )
 
 function commentAvatarSeed(user) {
   return user?.nickname || user?.username || user?.id || 'user'
 }
 
-function resolveCommentAvatar(user) {
-  return resolveAvatarUrl(user?.avatar_url, 96)
-    || buildFallbackAvatar(commentAvatarSeed(user), 96)
+function resolveCommentAvatarCandidates(user) {
+  return buildAvatarCandidates([
+    user?.animated_avatar,
+    user?.avatar,
+    user?.avatar_url,
+    user?.avatar_template
+  ], 96)
 }
 
 // 时间
@@ -1108,6 +1217,44 @@ function formatCommentTime(timestamp) {
   return formatCalendarDate(value)
 }
 
+function normalizeCommentRatingValue(value, options = {}) {
+  const allowNull = !!options.allowNull
+  if (value === '' || value === null || value === undefined) {
+    return allowNull ? null : 0
+  }
+
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) {
+    return allowNull ? null : 0
+  }
+
+  const rounded = Math.round(numeric * 2) / 2
+  const clamped = Math.min(5, Math.max(0, rounded))
+  return Number.isFinite(clamped) ? clamped : (allowNull ? null : 0)
+}
+
+function formatRatingValue(value) {
+  const normalized = normalizeCommentRatingValue(value)
+  return Number.isInteger(normalized) ? normalized.toFixed(0) : normalized.toFixed(1)
+}
+
+function formatRatingLabel(value) {
+  return `${formatRatingValue(value)} 星`
+}
+
+function isCommentPublicStatus(status) {
+  return COMMENT_PUBLIC_STATUS_SET.has(String(status || '').trim())
+}
+
+function isCommentPendingStatus(status) {
+  const safeStatus = String(status || '').trim()
+  return safeStatus === 'pending_ai' || safeStatus === 'pending_manual'
+}
+
+function canOpenCommentActionMenu(item) {
+  return !!item?.can_delete || isCommentPublicStatus(item?.status)
+}
+
 function normalizeCommentVoteType(value) {
   const voteType = String(value || '').toLowerCase()
   if (voteType === COMMENT_VOTE_UP) return COMMENT_VOTE_UP
@@ -1165,12 +1312,6 @@ function updateCommentListItem(commentId, updater) {
   commentList.value[index] = updater(current)
 }
 
-function handleCommentAvatarError(e) {
-  const seed = e?.target?.dataset?.avatarSeed || 'user'
-  e.target.onerror = null
-  e.target.src = buildFallbackAvatar(seed, 96)
-}
-
 function handleDocumentClick(event) {
   const target = event?.target
   if (!(target instanceof Element)) return
@@ -1198,9 +1339,29 @@ async function loadComments(page = 1) {
     const pagination = data.pagination || {}
     commentEnabled.value = !!data.commentEnabled
     commentDisabledReason.value = data.disabledReason || '该物品暂未开启评论'
+    viewerHasPurchased.value = !!data.viewerHasPurchased
+    const viewerRating = data.viewerRating || {}
+    viewerHasRated.value = !!viewerRating.hasRated
+    viewerRatingValue.value = normalizeCommentRatingValue(
+      viewerRating.value ?? viewerRating.ratingValue,
+      { allowNull: true }
+    )
+    if (!viewerHasPurchased.value || viewerHasRated.value) {
+      commentRatingDraft.value = null
+    }
+    const summary = data.summary || {}
+    commentSummary.value = {
+      averageRating: normalizeCommentRatingValue(summary.averageRating ?? summary.average_rating),
+      ratedCount: Number(summary.ratedCount ?? summary.rated_count ?? 0),
+      favoriteCount: Number(summary.favoriteCount ?? summary.favorite_count ?? 0),
+      visibleCommentCount: Number(summary.visibleCommentCount ?? summary.visible_comment_count ?? pagination.total ?? 0),
+      visibleReplyCount: Number(summary.visibleReplyCount ?? summary.visible_reply_count ?? 0)
+    }
     const list = Array.isArray(data.comments) ? data.comments : []
     commentList.value = list.map((item) => ({
       ...item,
+      status: String(item?.status || '').trim(),
+      rating_value: normalizeCommentRatingValue(item?.rating_value ?? item?.ratingValue, { allowNull: true }),
       upvote_count: Number(item?.upvote_count || item?.upvoteCount || 0),
       downvote_count: Number(item?.downvote_count || item?.downvoteCount || 0),
       reply_count: Number(item?.reply_count || item?.replyCount || 0),
@@ -1336,10 +1497,14 @@ async function loadCommentReplies(commentId, page = 1, options = {}) {
 
     const data = result?.data || {}
     const list = Array.isArray(data.replies) ? data.replies : []
+    const normalizedList = list.map((item) => ({
+      ...item,
+      status: String(item?.status || '').trim()
+    }))
     const currentList = commentReplyMap.value[safeCommentId] || []
     const merged = append
-      ? [...currentList, ...list.filter((item) => !currentList.some((existing) => Number(existing.id) === Number(item.id)))]
-      : list
+      ? [...currentList, ...normalizedList.filter((item) => !currentList.some((existing) => Number(existing.id) === Number(item.id)))]
+      : normalizedList
     commentReplyMap.value[safeCommentId] = merged
 
     const pagination = data.pagination || {}
@@ -1454,7 +1619,11 @@ async function submitComment() {
 
   commentSubmitting.value = true
   try {
-    const result = await shopStore.createProductComment(product.value.id, content)
+    const payload = { content }
+    if (viewerHasPurchased.value && !viewerHasRated.value && selectedCommentRating.value !== null) {
+      payload.rating = selectedCommentRating.value
+    }
+    const result = await shopStore.createProductComment(product.value.id, payload)
     if (!result?.success) {
       const message = typeof result?.error === 'object'
         ? (result.error?.message || result.error?.code || '评论发布失败')
@@ -1464,6 +1633,7 @@ async function submitComment() {
     }
 
     commentDraft.value = ''
+    commentRatingDraft.value = null
     const tip = result?.data?.message || '评论已提交'
     toast.success(tip)
     await loadComments(1)
@@ -1618,6 +1788,10 @@ async function toggleFavorite() {
       isFavorited: nextState,
       is_favorited: nextState
     }
+    commentSummary.value = {
+      ...commentSummary.value,
+      favoriteCount: Math.max(0, Number(commentSummary.value.favoriteCount || 0) + (nextState ? 1 : -1))
+    }
 
     toast.success(result?.data?.message || (nextState ? '收藏成功' : '已取消收藏'))
   } catch (error) {
@@ -1629,12 +1803,6 @@ async function toggleFavorite() {
 
 function handleImageError(e) {
   e.target.style.display = 'none'
-}
-
-function handleAvatarError(e) {
-  const seed = e?.target?.dataset?.avatarSeed || sellerAvatarSeed.value || 'seller'
-  e.target.onerror = null
-  e.target.src = buildFallbackAvatar(seed, 128)
 }
 
 function clampQuantity(value) {
@@ -2664,6 +2832,76 @@ async function handleOpenStore() {
   border: 1px solid var(--border-light);
 }
 
+.detail-comment-summary {
+  margin-top: 20px;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(207, 167, 111, 0.22);
+  background:
+    radial-gradient(circle at top right, rgba(207, 167, 111, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(255, 247, 237, 0.96), rgba(250, 245, 235, 0.92));
+  box-shadow: var(--shadow-sm);
+}
+
+.comment-summary-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comment-summary-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #8a5a20;
+}
+
+.comment-summary-stars strong {
+  font-size: 24px;
+  font-weight: 700;
+  color: #7a4a18;
+}
+
+.comment-summary-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #86613b;
+}
+
+.comment-summary-side {
+  display: flex;
+  gap: 12px;
+}
+
+.comment-summary-metric {
+  min-width: 108px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(207, 167, 111, 0.18);
+  color: #7a4a18;
+}
+
+.comment-summary-metric strong {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.comment-summary-metric-label {
+  font-size: 12px;
+  color: #9c7852;
+}
+
 .comment-header {
   display: flex;
   align-items: center;
@@ -2671,10 +2909,31 @@ async function handleOpenStore() {
   gap: 12px;
 }
 
+.comment-header-title {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .comment-header .section-title {
   margin-bottom: 0;
   border-bottom: none;
   padding-bottom: 0;
+}
+
+.comment-total-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(38, 111, 63, 0.12);
+  color: #266f3f;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .comment-refresh-btn {
@@ -2769,6 +3028,21 @@ async function handleOpenStore() {
   font-weight: 600;
 }
 
+.comment-rating-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.comment-rating-tag {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
 .comment-right {
   display: flex;
   align-items: center;
@@ -2849,6 +3123,19 @@ async function handleOpenStore() {
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.comment-inline-status-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .comment-footer {
@@ -3099,6 +3386,57 @@ async function handleOpenStore() {
   cursor: pointer;
 }
 
+.comment-rating-field {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comment-rating-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.comment-rating-control {
+  width: fit-content;
+  max-width: 100%;
+  align-self: flex-start;
+}
+
+.comment-rating-once-tip {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #b45309;
+}
+
+.comment-rating-tip {
+  margin-bottom: 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+}
+
+.comment-rating-tip-locked {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.comment-rating-tip-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #b45309;
+}
+
+.comment-rating-tip-value strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .comment-textarea {
   width: 100%;
   min-height: 100px;
@@ -3319,8 +3657,41 @@ async function handleOpenStore() {
     border-radius: 16px;
   }
 
+  .detail-comment-summary {
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 16px;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .comment-summary-stars strong {
+    font-size: 20px;
+  }
+
+  .comment-summary-side {
+    width: 100%;
+  }
+
+  .comment-summary-metric {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
+  }
+
   .comment-header .section-title {
     font-size: 18px;
+  }
+
+  .comment-header-title {
+    gap: 8px;
+  }
+
+  .comment-total-tag {
+    min-width: 28px;
+    height: 22px;
+    padding: 0 8px;
+    font-size: 11px;
   }
 
   .comment-refresh-btn {
@@ -3373,6 +3744,11 @@ async function handleOpenStore() {
     font-size: 10px;
   }
 
+  .comment-rating-tag {
+    padding: 2px 6px;
+    font-size: 10px;
+  }
+
   .comment-right {
     padding-top: 2px;
   }
@@ -3388,6 +3764,12 @@ async function handleOpenStore() {
     margin-top: 6px;
     font-size: 13px;
     line-height: 1.65;
+  }
+
+  .comment-inline-status-tag {
+    margin-left: 6px;
+    padding: 2px 6px;
+    font-size: 11px;
   }
 
   .comment-footer {
@@ -3463,6 +3845,10 @@ async function handleOpenStore() {
   .comment-textarea {
     min-height: 88px;
     font-size: 13px;
+  }
+
+  .comment-rating-field {
+    margin-bottom: 10px;
   }
 
   .comment-submit-btn,
