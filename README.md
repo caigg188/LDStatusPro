@@ -5,7 +5,7 @@
 
 > **Linux.do & IDCFlare 社区增强工具** - 信任级别追踪 · 阅读统计 · 云同步 · 排行榜 · LD 士多入口
 
-![Version](https://img.shields.io/badge/version-v3.8.8.9-blue)
+![Version](https://img.shields.io/badge/version-v3.9.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-✓-brightgreen)
 ![Multi-Site](https://img.shields.io/badge/Multi--Site-✓-brightgreen)
@@ -301,6 +301,14 @@ LDStatusPro/
 ---
 
 ## 📋 更新日志
+
+### v3.9.0.0
+
+- 修复 LDC 积分面板打开后概览页和记录页卡死的问题，补回缺失的请求、渲染与关闭逻辑
+- 修复 LDC 面板右上角刷新、关闭按钮无响应的问题
+- 修复 LDC 记录页连续触发自动加载请求的问题，恢复为滚动到底部时按页加载
+- 修复 LDC 记录筛选载荷，类型筛选改为 `types` 数组并校正时间范围请求边界
+- 完善 LDC 交易类型、收支方向与状态展示，新增在线流转、社区划转、商户分发的方向判断
 
 ### v3.8.8.9
 

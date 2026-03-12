@@ -1,7 +1,7 @@
  // ==UserScript==
     // @name         LDStatus Pro
     // @namespace    http://tampermonkey.net/
-    // @version      3.8.8.9
+    // @version      3.9.0.0
     // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
     // @author       JackLiii
     // @license      MIT
@@ -4887,7 +4887,7 @@
     .ldsp-ldc-trans-icon{font-size:16px;flex-shrink:0;width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:var(--bg-el);border-radius:6px}
     .ldsp-ldc-trans-info{flex:1;min-width:0}
     .ldsp-ldc-trans-name{font-size:12px;font-weight:600;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .ldsp-ldc-trans-meta{font-size:10px;color:var(--txt-mut);margin-top:2px;display:flex;gap:6px;align-items:center}
+    .ldsp-ldc-trans-meta{font-size:10px;color:var(--txt-mut);margin-top:2px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
     .ldsp-ldc-trans-type{padding:2px 6px;border-radius:3px;font-size:9px;font-weight:500}
     /* 交易类型颜色 - 收益绿/消耗红/转移蓝/社区紫/在线青 */
     .ldsp-ldc-trans-type.type-receive{background:rgba(74,222,128,.15);color:#22c55e}
@@ -4895,10 +4895,18 @@
     .ldsp-ldc-trans-type.type-transfer{background:rgba(96,165,250,.15);color:#3b82f6}
     .ldsp-ldc-trans-type.type-community{background:rgba(192,132,252,.15);color:#a855f7}
     .ldsp-ldc-trans-type.type-online{background:rgba(45,212,191,.15);color:#14b8a6}
+    .ldsp-ldc-trans-type.type-distribute{background:rgba(251,191,36,.18);color:#d97706}
     .ldsp-ldc-trans-type.type-default{background:var(--bg-el);color:var(--txt-sec)}
+    .ldsp-ldc-trans-status{padding:2px 6px;border-radius:3px;font-size:9px;font-weight:600}
+    .ldsp-ldc-trans-status.status-success{background:rgba(74,222,128,.15);color:#22c55e}
+    .ldsp-ldc-trans-status.status-refund{background:rgba(148,163,184,.16);color:#64748b}
+    .ldsp-ldc-trans-status.status-expired{background:rgba(251,191,36,.18);color:#d97706}
+    .ldsp-ldc-trans-status.status-disputing{background:rgba(245,158,11,.18);color:#f59e0b}
+    .ldsp-ldc-trans-status.status-default{background:var(--bg-el);color:var(--txt-sec)}
     .ldsp-ldc-trans-amount{font-size:14px;font-weight:700;flex-shrink:0}
     .ldsp-ldc-trans-amount.income{color:var(--ok)}
     .ldsp-ldc-trans-amount.expense{color:var(--err)}
+    .ldsp-ldc-trans-amount.neutral{color:var(--txt-sec)}
     .ldsp-ldc-load-more{width:100%;padding:10px;background:var(--bg-el);border:1px solid var(--border);border-radius:var(--r-md);font-size:11px;font-weight:600;color:var(--txt-sec);cursor:pointer;transition:all .15s;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:6px}
     .ldsp-ldc-load-more:hover{background:var(--bg-hover);border-color:var(--accent);color:var(--accent)}
     .ldsp-ldc-load-more:disabled{opacity:.6;cursor:not-allowed}
@@ -4918,9 +4926,11 @@
     .ldsp-ldc-detail-amount{text-align:center;padding:16px;border-radius:var(--r-md)}
     .ldsp-ldc-detail-amount.income-bg{background:linear-gradient(135deg,rgba(74,222,128,.08),rgba(34,197,94,.12));border:1px solid rgba(74,222,128,.2)}
     .ldsp-ldc-detail-amount.expense-bg{background:linear-gradient(135deg,rgba(248,113,113,.08),rgba(239,68,68,.12));border:1px solid rgba(248,113,113,.2)}
+    .ldsp-ldc-detail-amount.neutral-bg{background:linear-gradient(135deg,rgba(148,163,184,.08),rgba(100,116,139,.12));border:1px solid rgba(148,163,184,.2)}
     .ldsp-ldc-detail-amount-value{font-size:28px;font-weight:700}
     .ldsp-ldc-detail-amount-value.income{color:var(--ok)}
     .ldsp-ldc-detail-amount-value.expense{color:var(--err)}
+    .ldsp-ldc-detail-amount-value.neutral{color:var(--txt)}
     .ldsp-ldc-detail-amount-label{font-size:11px;color:var(--txt-mut);margin-top:4px}
     .ldsp-ldc-detail-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
     .ldsp-ldc-detail-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 12px;border-bottom:1px solid var(--border)}
@@ -4929,6 +4939,9 @@
     .ldsp-ldc-detail-row .value{font-size:11px;color:var(--txt);text-align:right;word-break:break-all;margin-left:10px}
     .ldsp-ldc-detail-row .value.mono{font-family:monospace;font-size:10px}
     .ldsp-ldc-detail-row .value.status-success{color:var(--ok);font-weight:600}
+    .ldsp-ldc-detail-row .value.status-refund{color:#64748b;font-weight:600}
+    .ldsp-ldc-detail-row .value.status-expired{color:#d97706;font-weight:600}
+    .ldsp-ldc-detail-row .value.status-disputing{color:#f59e0b;font-weight:600}
     .ldsp-ldc-detail-row .value.link{color:var(--accent);text-decoration:none;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
     .ldsp-ldc-detail-row .value.link:hover{text-decoration:underline}
     .ldsp-cdk-manager{display:flex;flex-direction:column;gap:12px;padding:2px}
@@ -5614,6 +5627,7 @@
                 this.currentTicket = null;
                 this.currentView = 'list';
                 this.unreadCount = 0;
+                this._pollTimer = null;
                 this._isOverlayOpen = false;  // 工单面板是否打开
                 this._lastHiddenTime = null;  // 页面隐藏时间，用于触发式检测
                 this._checkUnreadPending = false;  // v3.5.2.9: 防止重复请求
@@ -5742,6 +5756,13 @@
                     // 静默失败（未登录等情况）
                 } finally {
                     this._checkUnreadPending = false;
+                }
+            }
+
+            _stopUnreadPoll() {
+                if (this._pollTimer) {
+                    clearInterval(this._pollTimer);
+                    this._pollTimer = null;
                 }
             }
 
@@ -6898,7 +6919,8 @@ a:hover{text-decoration:underline;}
             static TRANS_TYPES = [
                 { id: '', label: '全部', icon: '📋' }, { id: 'receive', label: '收益', icon: '📥' },
                 { id: 'payment', label: '支出', icon: '📤' }, { id: 'transfer', label: '转移', icon: '🔄' },
-                { id: 'community', label: '社区划转', icon: '🏛️' }, { id: 'online', label: '在线流转', icon: '🌐' }
+                { id: 'community', label: '社区划转', icon: '🏛️' }, { id: 'online', label: '在线流转', icon: '🌐' },
+                { id: 'distribute', label: '商户分发', icon: '📦' }
             ];
             static TIME_RANGES = [
                 { id: 'today', label: '今日' }, { id: '7days', label: '近7天' },
@@ -6908,13 +6930,18 @@ a:hover{text-decoration:underline;}
             constructor(panelBody) {
                 this.panelBody = panelBody;
                 this.overlay = null;
+                this._loading = false;
                 // 独立的加载状态与请求令牌，避免跨 tab 互相阻塞
                 this._loadingState = { overview: false, trans: false };
                 this._reqToken = { overview: 0, trans: 0 };
                 this._tab = 'overview';
                 this._trans = { orders: [], page: 1, total: 0, hasMore: false };
+                this._transScrollState = null;
+                this._transLoadMoreArmed = true;
+                this._ignoreNextTransScroll = false;
                 this._order = null;
                 this._userId = null;
+                this._ldcUsername = '';
                 this._filter = { timeRange: '7days', type: '' };
                 this._isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && /WebKit/.test(navigator.userAgent) && !/CriOS|FxiOS|OPiOS|EdgiOS/.test(navigator.userAgent);
                 // iframe 桥接相关
@@ -7024,6 +7051,557 @@ a:hover{text-decoration:underline;}
                 this.overlay.querySelectorAll('.ldsp-ldc-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'overview'));
                 this._loadCache() || this._fetchData();
             }
+
+            hide() { this.overlay.classList.remove('show'); this._order = null; }
+
+            _loadCache() {
+                try {
+                    const c = GM_getValue(LDCManager.CACHE_KEY, null);
+                    if (c && Date.now() - c.time < LDCManager.CACHE_TTL && 'estimatedIncrease' in c) {
+                        if (c.userId) this._userId = c.userId;
+                        if (c.ldcUsername) this._ldcUsername = c.ldcUsername;
+                        this._renderOverview(c);
+                        return true;
+                    }
+                } catch {}
+                return false;
+            }
+
+            _saveCache(data) {
+                try { GM_setValue(LDCManager.CACHE_KEY, { ...data, userId: this._userId, ldcUsername: this._ldcUsername, time: Date.now() }); } catch {}
+            }
+
+            async _fetchData() {
+                if (this._loading) return;
+                this._loading = true;
+                const body = this.overlay.querySelector('.ldsp-ldc-body');
+                const btn = this.overlay.querySelector('.ldsp-ldc-refresh');
+                btn?.classList.add('spinning');
+                body.innerHTML = `<div class="ldsp-ldc-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>`;
+
+                try {
+                    const user = await this._request('https://credit.linux.do/api/v1/oauth/user-info');
+                    if (!user || user._authError) {
+                        this._showLoginGuide('auth');
+                        return;
+                    }
+                    if (user._timeoutError) { this._showLoginGuide('timeout'); return; }
+                    if (user._networkError) { this._showLoginGuide('network'); return; }
+                    if (user._bridgeError) { this._showLoginGuide('timeout'); return; }
+
+                    this._userId = user.id || user.user_id || null;
+                    this._ldcUsername = user.username || '';
+                    const displayName = user.nickname || user.username || 'User';
+                    const ldUsername = user.username;
+                    const communityBalance = parseFloat(user.community_balance ?? user['community-balance'] ?? 0);
+
+                    const data = {
+                        username: displayName,
+                        credits: user.available_balance || '0',
+                        dailyLimit: user.remain_quota || '0',
+                        incomeTotal: user.total_receive || '0',
+                        expenseTotal: user.total_payment || '0',
+                        dailyStats: [],
+                        estimatedIncrease: null,
+                        updateTime: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+                    };
+
+                    let gamificationScore = null;
+                    if (ldUsername) {
+                        if (window.location.hostname === 'linux.do') {
+                            try {
+                                const resp = await fetch(`/u/${ldUsername}.json`, { credentials: 'include' });
+                                if (resp.ok) {
+                                    const ldData = await resp.json();
+                                    if (ldData?.user?.gamification_score !== undefined) {
+                                        gamificationScore = parseFloat(ldData.user.gamification_score);
+                                    }
+                                }
+                            } catch {}
+                        } else {
+                            const ldUserData = await this._fetchGamificationScore(ldUsername);
+                            if (ldUserData?.gamification_score !== undefined) {
+                                gamificationScore = parseFloat(ldUserData.gamification_score);
+                            }
+                        }
+                    }
+
+                    if (gamificationScore !== null && !isNaN(communityBalance)) {
+                        data.estimatedIncrease = gamificationScore - communityBalance;
+                    }
+
+                    const stats = await this._request('https://credit.linux.do/api/v1/dashboard/stats/daily?days=7');
+                    if (stats && Array.isArray(stats)) {
+                        data.dailyStats = stats.map(i => ({
+                            date: i.date,
+                            dateShort: i.date.substring(5).replace('-', '/'),
+                            income: parseFloat(i.income) || 0,
+                            expense: parseFloat(i.expense) || 0
+                        }));
+                    }
+                    this._renderOverview(data);
+                    this._saveCache(data);
+                } catch {
+                    this._showError('网络错误，请稍后重试');
+                } finally {
+                    this._loading = false;
+                    btn?.classList.remove('spinning');
+                }
+            }
+
+            async _fetchGamificationScore(username) {
+                if (!username) return null;
+                return new Promise(resolve => {
+                    GM_xmlhttpRequest({
+                        method: 'GET',
+                        url: `https://linux.do/u/${username}.json`,
+                        withCredentials: true,
+                        timeout: 10000,
+                        headers: { 'Accept': 'application/json' },
+                        onload: r => {
+                            if (r.status === 200) {
+                                try {
+                                    const data = JSON.parse(r.responseText);
+                                    resolve(data?.user || null);
+                                    return;
+                                } catch {}
+                            }
+                            resolve(null);
+                        },
+                        onerror: () => resolve(null),
+                        ontimeout: () => resolve(null)
+                    });
+                });
+            }
+
+            _showLoginGuide(reason = 'auth') {
+                const body = this.overlay.querySelector('.ldsp-ldc-body');
+                this.overlay.querySelector('.ldsp-ldc-refresh')?.classList.remove('spinning');
+                this._loading = false;
+
+                const isTimeout = reason === 'timeout';
+                const isNetwork = reason === 'network';
+                const icon = isTimeout ? '⏱️' : isNetwork ? '🌐' : '🔐';
+                const title = isTimeout ? '请求超时' : isNetwork ? '网络错误' : '需要登录';
+                const desc = isTimeout
+                    ? '获取数据超时，可能是网络问题或未登录 LDC 站点。请先访问 LDC 官网确认已登录，然后返回重试。'
+                    : isNetwork
+                    ? '网络连接失败，请检查网络后重试。如果问题持续，请尝试先访问 LDC 官网登录。'
+                    : '请先登录 LDC 官网，登录后返回此页面刷新即可获取数据。';
+
+                body.innerHTML = `
+                    <div class="ldsp-ldc-ios-guide">
+                        <div class="ldsp-ldc-ios-icon">${icon}</div>
+                        <div class="ldsp-ldc-ios-title">${title}</div>
+                        <div class="ldsp-ldc-ios-desc">${desc}</div>
+                        <div class="ldsp-ldc-ios-solutions">
+                            <div class="ldsp-ldc-ios-solution">
+                                <div class="ldsp-ldc-ios-solution-title">✅ 解决方案</div>
+                                <div class="ldsp-ldc-ios-solution-desc">访问 LDC 官网完成登录</div>
+                                <a href="https://credit.linux.do/home" target="_blank" class="ldsp-ldc-ios-btn primary">打开 LDC 官网登录 ↗</a>
+                            </div>
+                        </div>
+                        <button class="ldsp-ldc-retry-btn" style="margin-top:12px">🔄 重试</button>
+                        <div class="ldsp-ldc-ios-tip">💡 登录后返回此页面点击重试即可</div>
+                    </div>`;
+                body.querySelector('.ldsp-ldc-retry-btn')?.addEventListener('click', () => {
+                    if (this._tab === 'overview') this._fetchData();
+                    else if (this._tab === 'transactions') this._fetchTrans(true);
+                });
+            }
+
+            async _request(url, method = 'GET', data = null) {
+                const bridgeResult = await this._requestViaBridge(url, method, data);
+                if (bridgeResult && !bridgeResult._bridgeError) {
+                    return bridgeResult;
+                }
+                if (!this._isIOS) {
+                    return this._requestViaGM(url, method, data);
+                }
+                return bridgeResult;
+            }
+
+            async _requestViaBridge(url, method = 'GET', data = null) {
+                if (this._bridgeReady) await this._bridgeReady;
+                if (!this._bridge) return { _bridgeError: true, _error: '桥接未就绪' };
+
+                return new Promise((resolve) => {
+                    const id = ++this._reqId;
+                    const timeout = setTimeout(() => {
+                        this._requests.delete(id);
+                        resolve({ _bridgeError: true, _timeoutError: true, _error: '请求超时' });
+                    }, 15000);
+
+                    this._requests.set(id, ({ status, data: respData }) => {
+                        clearTimeout(timeout);
+                        if (status === 200) {
+                            if (respData?.data !== undefined) {
+                                resolve(respData.data);
+                            } else if (respData?._error || respData?.error_msg) {
+                                resolve({ _error: respData._error || respData.error_msg });
+                            } else {
+                                resolve(respData);
+                            }
+                        } else if (status === 401 || status === 403) {
+                            resolve({ _authError: true });
+                        } else {
+                            resolve({ _bridgeError: true, _error: respData?._error || `请求失败 (${status})` });
+                        }
+                    });
+
+                    try {
+                        this._bridge.contentWindow.postMessage({
+                            type: 'ldsp-ldc-request',
+                            requestId: id,
+                            url,
+                            method,
+                            data
+                        }, LDCManager.LDC_ORIGIN);
+                    } catch {
+                        clearTimeout(timeout);
+                        this._requests.delete(id);
+                        resolve({ _bridgeError: true, _error: '发送请求失败' });
+                    }
+                });
+            }
+
+            _requestViaGM(url, method = 'GET', data = null) {
+                return new Promise(resolve => {
+                    GM_xmlhttpRequest({
+                        method,
+                        url,
+                        withCredentials: true,
+                        timeout: 15000,
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'Referer': 'https://credit.linux.do/home'
+                        },
+                        data: data ? JSON.stringify(data) : undefined,
+                        onload: r => {
+                            if (r.status === 200) {
+                                try {
+                                    const j = JSON.parse(r.responseText);
+                                    resolve(j?.data ?? null);
+                                    return;
+                                } catch {}
+                            }
+                            resolve(r.status === 401 || r.status === 403 ? { _authError: true } : null);
+                        },
+                        onerror: () => resolve({ _networkError: true }),
+                        ontimeout: () => resolve({ _timeoutError: true })
+                    });
+                });
+            }
+
+            _renderOverview(data) {
+                const body = this.overlay.querySelector('.ldsp-ldc-body');
+                const stats7d = data.dailyStats.reduce((acc, d) => ({
+                    income: acc.income + d.income,
+                    expense: acc.expense + d.expense
+                }), { income: 0, expense: 0 });
+
+                let estimateHtml = '';
+                if (data.estimatedIncrease !== null && data.estimatedIncrease !== undefined) {
+                    const est = data.estimatedIncrease;
+                    const estClass = est > 0 ? 'positive' : est < 0 ? 'negative' : 'neutral';
+                    const estText = est > 0 ? `+${est.toFixed(2)}` : est < 0 ? `${est.toFixed(2)}` : '0.00';
+                    estimateHtml = `
+                        <div class="ldsp-ldc-balance-estimate">
+                            <span class="ldsp-ldc-balance-estimate-tip" data-ldsp-tooltip="预估分数仅供参考，每日凌晨失效">?</span>
+                            <span>预估变化</span>
+                            <span class="ldsp-ldc-balance-estimate-value ${estClass}">${estText}</span>
+                        </div>`;
+                }
+
+                const maxVal = Math.max(...data.dailyStats.flatMap(d => [d.income, d.expense]), 1);
+                const chartHtml = data.dailyStats.length > 0 ? `
+                    <div class="ldsp-ldc-chart">
+                        <div class="ldsp-ldc-chart-bars">
+                            ${data.dailyStats.map(d => {
+                                const incomeH = Math.round((d.income / maxVal) * 100);
+                                const expenseH = Math.round((d.expense / maxVal) * 100);
+                                return `<div class="ldsp-ldc-chart-col" title="${d.dateShort}\n收入: +${d.income.toFixed(2)}\n支出: -${d.expense.toFixed(2)}">
+                                    <div class="ldsp-ldc-chart-bar-group">
+                                        <div class="ldsp-ldc-chart-bar income" style="height:${incomeH}%"></div>
+                                        <div class="ldsp-ldc-chart-bar expense" style="height:${expenseH}%"></div>
+                                    </div>
+                                    <span class="ldsp-ldc-chart-label">${d.dateShort.split('/')[1]}</span>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                        <div class="ldsp-ldc-chart-legend">
+                            <span class="ldsp-ldc-legend-item income"><i></i>收入</span>
+                            <span class="ldsp-ldc-legend-item expense"><i></i>支出</span>
+                        </div>
+                    </div>` : '';
+
+                body.innerHTML = `
+                    <div class="ldsp-ldc-balance-card">
+                        <div class="ldsp-ldc-balance-main">
+                            <div class="ldsp-ldc-balance-left">
+                                <div class="ldsp-ldc-balance-label">🍟可用余额：</div>
+                                <div class="ldsp-ldc-balance-value">${Utils.escapeHtml(data.credits)}</div>
+                            </div>
+                            <div class="ldsp-ldc-balance-right">
+                                <div class="ldsp-ldc-balance-sub">今日剩余额度 <span class="ldsp-ldc-balance-sub-value">${Utils.escapeHtml(data.dailyLimit)}</span></div>
+                                ${estimateHtml}
+                            </div>
+                        </div>
+                        <div class="ldsp-ldc-balance-footer">
+                            <span class="ldsp-ldc-balance-time">数据更新于：${Utils.escapeHtml(data.updateTime)}</span>
+                        </div>
+                    </div>
+                    <div class="ldsp-ldc-stats-grid">
+                        <div class="ldsp-ldc-stat-card income">
+                            <div class="ldsp-ldc-stat-icon">📈</div>
+                            <div class="ldsp-ldc-stat-info">
+                                <div class="ldsp-ldc-stat-label">总收入</div>
+                                <div class="ldsp-ldc-stat-num">+${Utils.escapeHtml(data.incomeTotal)}</div>
+                            </div>
+                        </div>
+                        <div class="ldsp-ldc-stat-card expense">
+                            <div class="ldsp-ldc-stat-icon">📉</div>
+                            <div class="ldsp-ldc-stat-info">
+                                <div class="ldsp-ldc-stat-label">总支出</div>
+                                <div class="ldsp-ldc-stat-num">-${Utils.escapeHtml(data.expenseTotal)}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ldsp-ldc-section">
+                        <div class="ldsp-ldc-section-header">
+                            <span class="ldsp-ldc-section-title">📊 近7天收支</span>
+                            <span class="ldsp-ldc-section-summary">
+                                <em class="income">+${stats7d.income.toFixed(2)}</em>
+                                <em class="expense">-${stats7d.expense.toFixed(2)}</em>
+                            </span>
+                        </div>
+                        ${chartHtml || '<div class="ldsp-ldc-empty">暂无数据</div>'}
+                    </div>
+                    <div class="ldsp-ldc-info-section">
+                        <a href="https://linux.do/t/topic/1353235" target="_blank" rel="noopener" class="ldsp-ldc-info-card faq">
+                            <span class="ldsp-ldc-info-icon">📖</span>
+                            <div class="ldsp-ldc-info-content">
+                                <div class="ldsp-ldc-info-title">Credit FAQ & 积分规则</div>
+                                <div class="ldsp-ldc-info-desc">了解 LDC 积分的获取方式、使用规则和常见问题</div>
+                            </div>
+                            <span class="ldsp-ldc-info-arrow">→</span>
+                        </a>
+                    </div>`;
+            }
+
+            _getTimeRange() {
+                const now = new Date();
+                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                let start = new Date(todayStart);
+                let end = new Date(todayStart);
+                const r = this._filter.timeRange;
+                if (r === 'today') start = todayStart;
+                else if (r === '7days') start.setDate(start.getDate() - 6);
+                else if (r === '30days') start.setDate(start.getDate() - 29);
+                else start.setFullYear(start.getFullYear() - 1);
+                end.setHours(23, 59, 59, 999);
+                const fmt = (d, endOfDay = false) => {
+                    const datePart = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    return `${datePart}T${endOfDay ? '23:59:59' : '00:00:00'}+08:00`;
+                };
+                return { startTime: fmt(start), endTime: fmt(end, true) };
+            }
+
+            async _fetchTrans(refresh = false, more = false) {
+                if (this._loading) return;
+                this._loading = true;
+                const currentTab = this._tab;
+                const btn = this.overlay.querySelector('.ldsp-ldc-refresh');
+                const currentList = this.overlay.querySelector('.ldsp-ldc-trans-list');
+                this._transScrollState = more && currentList ? {
+                    top: currentList.scrollTop
+                } : null;
+                if (!more) {
+                    btn?.classList.add('spinning');
+                    this._trans = { orders: [], page: 1, total: 0, hasMore: false };
+                    this._transLoadMoreArmed = true;
+                    this._renderTransUI(true);
+                }
+                const page = more ? this._trans.page + 1 : 1;
+
+                try {
+                    if (!this._userId || !this._ldcUsername) {
+                        const user = await this._request('https://credit.linux.do/api/v1/oauth/user-info');
+                        if (user && !user._authError) {
+                            this._userId = user.id || user.user_id || null;
+                            this._ldcUsername = user.username || '';
+                        }
+                    }
+                    if (this._tab !== currentTab) return;
+                    const { startTime, endTime } = this._getTimeRange();
+                    const payload = { page, page_size: 20, startTime, endTime };
+                    if (this._filter.type) payload.types = [this._filter.type];
+                    const result = await this._request('https://credit.linux.do/api/v1/order/transactions', 'POST', payload);
+                    if (this._tab !== currentTab) return;
+                    if (result?._authError) {
+                        this._showError('请先登录 credit.linux.do', true);
+                        return;
+                    }
+                    if (!result) {
+                        this._showError('获取数据失败');
+                        return;
+                    }
+                    const orders = result.orders || [];
+                    const total = result.total || 0;
+                    this._trans.orders = more ? [...this._trans.orders, ...orders] : orders;
+                    this._trans.page = page;
+                    this._trans.total = total;
+                    this._trans.hasMore = this._trans.orders.length < total;
+                    this._renderTransUI();
+                } catch {
+                    if (!more && this._tab === currentTab) this._showError('网络错误，请稍后重试');
+                } finally {
+                    this._loading = false;
+                    btn?.classList.remove('spinning');
+                }
+            }
+
+            _getTransactionDirection(type) {
+                if (type === 'receive') return 'income';
+                if (type === 'payment') return 'expense';
+                return 'neutral';
+            }
+
+            _resolvePeerTransactionDirection(order) {
+                const username = String(this._ldcUsername || '').trim().toLowerCase();
+                const payee = String(order?.payee_username || '').trim().toLowerCase();
+                const payer = String(order?.payer_username || '').trim().toLowerCase();
+                if (!username) return 'neutral';
+                if (payee && payee === username && payer !== username) return 'income';
+                if (payer && payer === username && payee !== username) return 'expense';
+                return 'neutral';
+            }
+
+            _resolveTransactionDirection(order) {
+                const type = String(order?.type || '').trim().toLowerCase();
+                if (type === 'online' || type === 'community' || type === 'distribute') {
+                    return this._resolvePeerTransactionDirection(order);
+                }
+                return this._getTransactionDirection(type);
+            }
+
+            _getTransactionAmountDisplay(order) {
+                const amount = Math.abs(parseFloat(order?.amount) || 0);
+                const direction = this._resolveTransactionDirection(order);
+                const sign = direction === 'income' ? '+' : direction === 'expense' ? '-' : '';
+                return { amount, direction, text: `${sign}${amount.toFixed(2)}` };
+            }
+
+            _getTransactionStatusInfo(status) {
+                const normalized = String(status || '').trim().toLowerCase();
+                const map = {
+                    success: { label: '✓ 成功', className: 'status-success' },
+                    refund: { label: '↩ 已退回', className: 'status-refund' },
+                    expired: { label: '⏱ 已过期', className: 'status-expired' },
+                    disputing: { label: '⚠ 争议中', className: 'status-disputing' }
+                };
+                return map[normalized] || { label: normalized || '未知', className: 'status-default' };
+            }
+
+            _getVisibleTransOrders() {
+                const currentFilterType = String(this._filter.type || '').trim().toLowerCase();
+                if (!currentFilterType) return this._trans.orders;
+                return this._trans.orders.filter(order => String(order?.type || '').trim().toLowerCase() === currentFilterType);
+            }
+
+            _renderTransUI(loading = false) {
+                const body = this.overlay.querySelector('.ldsp-ldc-body');
+                const { orders, total, hasMore } = this._trans;
+                const filterHtml = this._getFilterHtml();
+                const currentFilterType = String(this._filter.type || '').trim().toLowerCase();
+                const visibleOrders = this._getVisibleTransOrders();
+                let content;
+                if (loading) {
+                    content = `<div class="ldsp-ldc-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>`;
+                } else if (!visibleOrders.length) {
+                    const tl = LDCManager.TIME_RANGES.find(t => t.id === this._filter.timeRange)?.label || '';
+                    const tp = this._filter.type ? (LDCManager.TRANS_TYPES.find(t => t.id === this._filter.type)?.label || '') : '';
+                    content = `<div class="ldsp-ldc-empty-state"><div class="ldsp-ldc-empty-icon">📭</div><div class="ldsp-ldc-empty-text">暂无交易记录</div>
+                        ${tl || tp ? `<div class="ldsp-ldc-empty-hint">筛选条件：${tl}${tp ? ` · ${tp}` : ''}${hasMore ? ' · 继续下滑加载更多' : ''}</div>` : ''}</div>`;
+                } else {
+                    const list = visibleOrders.map(o => {
+                        const ti = LDCManager.TRANS_TYPES.find(t => t.id === o.type) || { icon: '📋', label: o.type };
+                        const statusInfo = this._getTransactionStatusInfo(o.status);
+                        const amountInfo = this._getTransactionAmountDisplay(o);
+                        return `<div class="ldsp-ldc-trans-item" data-order-id="${o.id}">
+                            <div class="ldsp-ldc-trans-icon">${ti.icon}</div>
+                            <div class="ldsp-ldc-trans-info"><div class="ldsp-ldc-trans-name">${Utils.escapeHtml(o.order_name || o.app_name || '未知')}</div>
+                            <div class="ldsp-ldc-trans-meta"><span>${Utils.escapeHtml(this._fmtTime(o.trade_time || o.created_at))}</span>
+                            <span class="ldsp-ldc-trans-type type-${o.type || 'default'}">${ti.label}</span>
+                            <span class="ldsp-ldc-trans-status ${statusInfo.className}">${statusInfo.label}</span></div></div>
+                            <div class="ldsp-ldc-trans-amount ${amountInfo.direction}">${amountInfo.text}</div></div>`;
+                    }).join('');
+                    content = `<div class="ldsp-ldc-trans-summary">${currentFilterType ? `当前筛选显示 ${visibleOrders.length} 条` : `共 ${total} 条记录`}${!currentFilterType && orders.length < total ? `，已加载 ${orders.length} 条` : ''}${currentFilterType && hasMore ? '，继续下滑加载更多' : ''}</div>
+                        <div class="ldsp-ldc-trans-list">${list}</div>
+                        ${hasMore ? `<div class="ldsp-ldc-load-sentinel"></div>` : ''}`;
+                }
+                body.innerHTML = `${filterHtml}<div class="ldsp-ldc-trans-content">${content}</div>`;
+                this._bindFilterEvents(body);
+                this._bindTransEvents();
+                if (this._transScrollState) {
+                    const { top } = this._transScrollState;
+                    const listEl = body.querySelector('.ldsp-ldc-trans-list');
+                    this._transScrollState = null;
+                    if (listEl) {
+                        requestAnimationFrame(() => {
+                            this._ignoreNextTransScroll = true;
+                            listEl.scrollTop = Math.min(top, Math.max(0, listEl.scrollHeight - listEl.clientHeight));
+                            setTimeout(() => { this._ignoreNextTransScroll = false; }, 80);
+                        });
+                    }
+                }
+            }
+
+            _bindTransEvents() {
+                const body = this.overlay.querySelector('.ldsp-ldc-body');
+                body.querySelectorAll('.ldsp-ldc-trans-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const o = this._trans.orders.find(x => String(x.id) === item.dataset.orderId);
+                        if (o) this._showDetail(o);
+                    });
+                });
+                this._setupInfiniteScroll(body);
+            }
+
+            _setupInfiniteScroll(body) {
+                if (this._scrollTarget && this._scrollHandler) {
+                    this._scrollTarget.removeEventListener('scroll', this._scrollHandler);
+                    this._scrollTarget = null;
+                }
+                if (this._scrollObserver) {
+                    this._scrollObserver.disconnect();
+                    this._scrollObserver = null;
+                }
+
+                const loadSentinel = body.querySelector('.ldsp-ldc-load-sentinel');
+                const list = body.querySelector('.ldsp-ldc-trans-list');
+                if (!loadSentinel || !list || !this._trans.hasMore) return;
+
+                this._scrollTarget = list;
+                this._scrollHandler = async () => {
+                    if (this._ignoreNextTransScroll) {
+                        this._ignoreNextTransScroll = false;
+                        return;
+                    }
+                    if (this._loading || !this._trans.hasMore) return;
+                    const distanceToBottom = list.scrollHeight - list.clientHeight - list.scrollTop;
+                    if (distanceToBottom > 120) {
+                        this._transLoadMoreArmed = true;
+                        return;
+                    }
+                    if (!this._transLoadMoreArmed) return;
+                    this._transLoadMoreArmed = false;
+                    loadSentinel.innerHTML = '<div class="ldsp-ldc-loading-more"><div class="ldsp-mini-spin" style="width:14px;height:14px"></div><span>加载中...</span></div>';
+                    await this._fetchTrans(false, true);
+                };
+                list.addEventListener('scroll', this._scrollHandler, { passive: true });
+            }
             
             static SUPPORT_TIERS = [
                 { id: 1, name: '做的不错', amount: 5, icon: '🌱', url: 'https://credit.linux.do/paying/online?token=cf4a5cd58a11fe68a6191c5e3bcca9a34fb8f4eb951eca46bbb0a40042b7e0ea' },
@@ -7061,22 +7639,18 @@ a:hover{text-decoration:underline;}
             _showDetail(o) {
                 this._order = o;
                 const body = this.overlay.querySelector('.ldsp-ldc-body');
-                // 使用绝对值，因为 API 返回的 amount 可能已经是负数
-                const amt = Math.abs(parseFloat(o.amount) || 0);
                 const ti = LDCManager.TRANS_TYPES.find(t => t.id === o.type) || { icon: '📋', label: o.type };
-                // 收支判断：优先通过 payee/payer 判断
-                const inc = this._userId
-                    ? o.payee_user_id === this._userId && o.payer_user_id !== this._userId
-                    : (o.type === 'receive' || o.type === 'community' || o.payer_user_id === 0);
+                const amountInfo = this._getTransactionAmountDisplay(o);
+                const statusInfo = this._getTransactionStatusInfo(o.status);
                 const row = (l, v, cls = '') => `<div class="ldsp-ldc-detail-row"><span class="label">${l}</span><span class="value${cls ? ' ' + cls : ''}">${v}</span></div>`;
                 body.innerHTML = `<div class="ldsp-ldc-detail">
                     <div class="ldsp-ldc-detail-header"><button class="ldsp-ldc-back-btn">← 返回</button><span>交易详情</span></div>
-                    <div class="ldsp-ldc-detail-amount ${inc ? 'income-bg' : 'expense-bg'}">
-                        <div class="ldsp-ldc-detail-amount-value ${inc ? 'income' : 'expense'}">${inc ? '+' : '-'}${amt.toFixed(2)}</div>
+                    <div class="ldsp-ldc-detail-amount ${amountInfo.direction}-bg">
+                        <div class="ldsp-ldc-detail-amount-value ${amountInfo.direction}">${amountInfo.text}</div>
                         <div class="ldsp-ldc-detail-amount-label">LDC</div>
                     </div>
                     <div class="ldsp-ldc-detail-card">
-                        ${row('交易状态', o.status === 'success' ? '✓ 成功' : o.status, 'status-' + o.status)}
+                        ${row('交易状态', statusInfo.label, statusInfo.className)}
                         ${row('交易类型', `<span class="ldsp-ldc-trans-type type-${o.type || 'default'}" style="font-size:11px">${ti.icon} ${ti.label}</span>`)}
                         ${row('订单名称', Utils.escapeHtml(o.order_name || '—'))}
                         ${o.app_name ? row('应用名称', Utils.escapeHtml(o.app_name)) : ''}
@@ -7137,6 +7711,8 @@ a:hover{text-decoration:underline;}
             destroy() {
                 if (this._escHandler) { document.removeEventListener('keydown', this._escHandler); this._escHandler = null; }
                 if (this._scrollObserver) { this._scrollObserver.disconnect(); this._scrollObserver = null; }
+                if (this._scrollTarget && this._scrollHandler) { this._scrollTarget.removeEventListener('scroll', this._scrollHandler); this._scrollTarget = null; }
+                this._scrollHandler = null;
                 // 清理 iframe 桥接
                 if (this._msgHandler) { window.removeEventListener('message', this._msgHandler); this._msgHandler = null; }
                 if (this._bridge) { this._bridge.remove(); this._bridge = null; }
@@ -11764,7 +12340,7 @@ a:hover{text-decoration:underline;}
                         try { popup.opener = null; } catch (_) {}
                         return;
                     }
-                    this.showToast('⚠️ 浏览器拦截了新标签页，请允许弹窗后重试');
+                    this.renderer.showToast('⚠️ 浏览器拦截了新标签页，请允许弹窗后重试');
                 });
 
                 // CDK 按钮（仅 linux.do）
