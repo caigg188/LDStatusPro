@@ -114,31 +114,10 @@
             </div>
 
             <div class="detail-side-panel">
-              <div v-if="isTestMode" class="test-mode-banner detail-test-banner-landscape">
+            <div v-if="isTestMode" class="test-mode-banner detail-test-banner-landscape">
                 <span class="test-badge">🧪 测试模式</span>
                 <span class="test-desc">{{ isSeller ? '只有您可以购买此物品' : '该物品为测试模式，仅卖家可购买' }}</span>
               </div>
-
-            <div
-              v-if="isPlatformOrder && !isOutOfStock && canPurchase && (!isTestMode || isSeller)"
-              class="quantity-section"
-            >
-              <div class="quantity-title">购买数量</div>
-              <div class="quantity-controls">
-                <button type="button" class="qty-btn" @click="decreaseQuantity">-</button>
-                <input
-                  v-model.number="selectedQuantity"
-                  type="number"
-                  min="1"
-                  :max="maxSelectableQuantity"
-                  class="qty-input"
-                  @input="handleQuantityInput"
-                />
-                <button type="button" class="qty-btn" @click="increaseQuantity">+</button>
-              </div>
-              <div class="quantity-summary">预计支付 {{ totalPrice }} LDC</div>
-              <div v-if="quantityHint" class="quantity-hint">{{ quantityHint }}</div>
-            </div>
 
             <div v-if="isNormal" class="manual-delivery-notice">
               支付完成后请主动联系卖家获取服务，订单会保留在平台内，卖家需手动履约。
@@ -159,6 +138,27 @@
                 <div class="seller-name">@{{ product.seller_username || '未知' }}</div>
                 <div class="seller-hint">点击查看商家主页</div>
               </div>
+            </div>
+
+            <div
+              v-if="isPlatformOrder && !isOutOfStock && canPurchase && (!isTestMode || isSeller)"
+              class="quantity-section"
+            >
+              <div class="quantity-title">购买数量</div>
+              <div class="quantity-controls">
+                <button type="button" class="qty-btn" @click="decreaseQuantity">-</button>
+                <input
+                  v-model.number="selectedQuantity"
+                  type="number"
+                  min="1"
+                  :max="maxSelectableQuantity"
+                  class="qty-input"
+                  @input="handleQuantityInput"
+                />
+                <button type="button" class="qty-btn" @click="increaseQuantity">+</button>
+              </div>
+              <div class="quantity-summary">预计支付 {{ totalPrice }} LDC</div>
+              <div v-if="quantityHint" class="quantity-hint">{{ quantityHint }}</div>
             </div>
             
             
