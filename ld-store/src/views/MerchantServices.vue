@@ -6,7 +6,7 @@
           <p class="hero-eyebrow">Merchant Services</p>
           <h1 class="hero-title">商家服务</h1>
           <p class="hero-desc">
-            士多服务支持自助购买士多甄选与士多优选。支付成功后立即生效，到期自动释放位置，并同步发送系统提醒。
+            士多服务支持自助购买士多甄选与士多优选。支付成功后立即生效，到期自动释放位置，并同步发送系统提醒。所有付费置顶都会绑定下单时的所属分类，切换到其他分类会暂停展示，切回原分类后在有效期内恢复。
           </p>
         </div>
         <div class="hero-badge">
@@ -25,7 +25,7 @@
               <div class="panel-title-row">
                 <div>
                   <h2 class="panel-title">选择服务</h2>
-                  <p class="panel-subtitle">先选商品，再选套餐与天数。士多甄选按池管理：进入“全部”的分类共享 4 个甄选名额，入站与卡券各自拥有独立的 6 个甄选名额；士多优选按分类独立管理，入站与卡券为 6 个，其余分类为 4 个。管理员手动设置的非有偿置顶不占用这些付费名额。</p>
+                  <p class="panel-subtitle">先选商品，再选套餐与天数。士多甄选按池管理：进入“全部”的分类共享 4 个甄选名额，入站与卡券各自拥有独立的 6 个甄选名额；士多优选按分类独立管理，入站与卡券为 6 个，其余分类为 4 个。付费服务会绑定下单时的所属分类，管理员手动设置的非有偿置顶不受这条规则影响，也不占用这些付费名额。</p>
                 </div>
                 <button class="ghost-btn" :disabled="optionsLoading" @click="loadOptions">
                   {{ optionsLoading ? '刷新中...' : '刷新额度' }}
@@ -144,7 +144,7 @@
                     <span class="summary-point-index">03</span>
                     <div class="summary-point-copy">
                       <strong>支付成功立即生效</strong>
-                      <p>请根据预算和推广周期选择套餐与时长。订单支付成功后立即生效，到期自动失效，无需手动操作。</p>
+                      <p>请根据预算和推广周期选择套餐与时长。订单支付成功后立即生效，到期自动失效；若中途把物品切到其他分类，付费服务会暂停，切回开通分类后恢复。</p>
                     </div>
                   </div>
                 </div>
@@ -177,19 +177,29 @@
                   <li>订单支付成功时间即为置顶服务生效时间。</li>
                   <li>待支付订单在支付超时前也会临时占用名额；页面展示的剩余名额已经包含这部分占位。</li>
                   <li>同一物品同一时间只能有一条生效中或待支付的置顶服务。</li>
+                  <li>所有付费置顶都会绑定下单时的所属分类；切换到其他分类后，服务会暂停展示，但仍占用原开通分类的名额；切回原分类后会在剩余有效期内恢复。</li>
+                  <li>入站与卡券分类的士多甄选使用各自独立甄选池；即使把物品切换到服务等共享池分类，也不会继承“全部分类共享甄选池”的全站展示资格。</li>
                   <li>置顶到期时会自动失效，并通过系统消息提醒你。</li>
                   <li>管理员手动设置的非有偿置顶不占用付费名额，会排在付费置顶之后、普通物品之前。</li>
                   <li class="notice-card-highlight">「士多优选」支持包年服务，如有需要请联系管理员。</li>
                 </ul>
               </div>
 
-              <div v-if="selectedProduct?.currentTopOrder" class="current-top-card">
+              <div
+                v-if="selectedProduct?.currentTopOrder"
+                class="current-top-card"
+                :class="{ 'current-top-card--warning': isCurrentTopOrderSuspended(selectedProduct.currentTopOrder) }"
+              >
                 <h3>当前状态</h3>
                 <p>该物品已存在 {{ selectedProduct.currentTopOrder.packageName }} 订单。</p>
-                <p>状态：{{ getOrderStatusText(selectedProduct.currentTopOrder.status) }}</p>
+                <p>订单状态：{{ getOrderStatusText(selectedProduct.currentTopOrder.status) }}</p>
+                <p v-if="selectedProduct.currentTopOrder.categoryBindingApplies">开通分类：{{ selectedProduct.currentTopOrder.boundCategoryName || '未分类' }}</p>
+                <p v-if="selectedProduct.currentTopOrder.categoryBindingApplies">当前分类：{{ selectedProduct.currentTopOrder.currentCategoryName || selectedProduct.categoryName || '未分类' }}</p>
+                <p>展示状态：{{ getTopEffectivenessText(selectedProduct.currentTopOrder) }}</p>
                 <p>到期：{{ selectedProduct.currentTopOrder.expiredAt || '永久置顶' }}</p>
-                <p v-if="!selectedProduct.currentTopOrder.isPaidService">说明：这是管理员手动设置的非有偿置顶，不占用付费名额。</p>
-                <p v-else-if="selectedProduct.currentTopOrder.packageType === 'global' && !selectedProduct?.quota?.usesSharedGlobalPool">说明：当前分类的士多甄选占用「{{ selectedProduct?.quota?.globalPoolName || '独立甄选池' }}」，不会占用“全部分类共享甄选池”。</p>
+                <p :class="['current-top-card-highlight', { 'current-top-card-highlight--warning': isCurrentTopOrderSuspended(selectedProduct.currentTopOrder) }]">
+                  {{ getTopOrderBindingHint(selectedProduct.currentTopOrder) }}
+                </p>
               </div>
             </aside>
           </div>
@@ -200,7 +210,7 @@
             <div class="board-toolbar">
               <div>
                 <h2 class="panel-title">名额看板</h2>
-                <p class="panel-subtitle">查看各个甄选池与优选池的真实剩余名额。上方名额已包含待支付占位，下方列表仅展示当前已经生效中的服务，方便判断何时会释放新额度。</p>
+                <p class="panel-subtitle">查看各个甄选池与优选池的真实剩余名额。上方名额已包含待支付占位；若付费置顶切换到了非开通分类，它仍占用原名额，但不会出现在下方“生效服务”列表中。</p>
               </div>
               <div class="board-actions">
                 <div class="board-filter-select">
@@ -325,7 +335,7 @@
                     </span>
                     <span class="category-quota-pill">{{ quotaBoard.activeRecords?.length || 0 }} 条</span>
                   </div>
-                  <p class="category-quota-copy">查看全部分类当前已生效的置顶服务。共享甄选池与独立甄选池的真实剩余名额请以上方总览卡片为准。</p>
+                  <p class="category-quota-copy">查看全部分类当前已生效的置顶服务。共享甄选池与独立甄选池的真实剩余名额请以上方总览卡片为准；切到非开通分类而被暂停的付费服务不会显示在这里。</p>
                   <div class="category-quota-meta">
                     <span>分类总数 {{ quotaBoardCategories.length }} 个</span>
                     <span>共享甄选占用 {{ sharedGlobalQuota.used }} 个</span>
@@ -379,7 +389,7 @@
                     <p class="panel-subtitle">
                       {{ selectedQuotaCategory
                         ? `当前展示 ${selectedQuotaCategory.categoryName} 分类下已生效的士多甄选、士多优选与管理员无偿置顶。待支付占位已计入上方名额，不在此列表中展示。`
-                        : '当前展示全部分类下已生效的士多甄选、士多优选与管理员无偿置顶。待支付占位已计入上方名额，不在此列表中展示。' }}
+                        : '当前展示全部分类下已生效的士多甄选、士多优选与管理员无偿置顶。待支付占位已计入上方名额，不在此列表中展示；切到非开通分类而暂停的付费服务也不会出现在这里。' }}
                     </p>
                   </div>
                   <span class="board-generated-at">更新时间：{{ quotaBoard.generatedAt || '-' }}</span>
@@ -483,7 +493,22 @@
                   <span>到期时间</span>
                   <strong>{{ order.expiredAt || '永久置顶' }}</strong>
                 </div>
+                <div v-if="order.categoryBindingApplies">
+                  <span>开通分类</span>
+                  <strong>{{ order.boundCategoryName || '未分类' }}</strong>
+                </div>
+                <div v-if="order.categoryBindingApplies">
+                  <span>当前分类</span>
+                  <strong>{{ order.currentCategoryName || order.boundCategoryName || '未分类' }}</strong>
+                </div>
+                <div>
+                  <span>展示状态</span>
+                  <strong :class="{ 'order-meta-warning': order.isSuspendedForCategory }">{{ getTopEffectivenessText(order) }}</strong>
+                </div>
               </div>
+              <p v-if="getTopOrderBindingHint(order)" :class="['order-binding-hint', { 'order-binding-hint--warning': order.isSuspendedForCategory }]">
+                {{ getTopOrderBindingHint(order) }}
+              </p>
 
               <div class="order-actions">
                 <button v-if="order.status === 'pending'" class="action-btn primary" @click="repayOrder(order)">
@@ -591,6 +616,9 @@ function normalizeGlobalPool(pool = {}) {
 
 function getProductOptionDescription(item = {}) {
   if (item.currentTopOrder) {
+    if (item.currentTopOrder.categoryBindingApplies && !item.currentTopOrder.isCategoryMatched) {
+      return `当前存在${item.currentTopOrder.packageName} 订单，当前分类与开通分类不一致`
+    }
     return `当前存在${item.currentTopOrder.isPaidService ? '' : '管理员非有偿'} ${item.currentTopOrder.packageName} 订单`
   }
   return `${item.categoryName || '未分类'} · 优选 ${formatQuotaValue(item.quota?.categoryRemaining, item.quota?.categoryLimit)} · ${getGlobalPoolLabel(item.quota?.globalPoolName)} ${formatQuotaValue(item.quota?.globalRemaining, item.quota?.globalLimit)}`
@@ -699,15 +727,15 @@ function handleProductChange() {
 function getPackageDescription(type) {
   const quota = selectedProduct.value?.quota || null
   if (type !== 'global') {
-    return '【士多优选】仅在所属分类顶部展示，占用当前分类独立优选池，不会占用任何甄选池名额。'
+    return '【士多优选】仅在下单时所属分类顶部展示，占用当前分类独立优选池，不会占用任何甄选池名额；切换到其他分类会暂停展示，切回原分类后恢复。'
   }
   if (!quota) {
-    return '【士多甄选】按甄选池管理：进入“全部”的分类共享 4 个名额，入站与卡券分别拥有独立的 6 个甄选名额。'
+    return '【士多甄选】按甄选池管理：进入“全部”的分类共享 4 个名额，入站与卡券分别拥有独立的 6 个甄选名额；服务绑定下单时的所属分类，切换分类会暂停展示。'
   }
   if (quota.usesSharedGlobalPool) {
-    return `【士多甄选】会同步展示在所属分类和“全部”分类，占用「${getGlobalPoolLabel(quota.globalPoolName)}」名额，但不占用当前分类优选池。`
+    return `【士多甄选】会同步展示在所属分类和“全部”分类，占用「${getGlobalPoolLabel(quota.globalPoolName)}」名额，但不占用当前分类优选池；服务绑定当前分类，切换到其他分类会暂停展示。`
   }
-  return `【士多甄选】仅在 ${selectedProduct.value?.categoryName || '当前分类'} 的甄选位展示，占用「${getGlobalPoolLabel(quota.globalPoolName)}」名额，不占用“全部分类共享甄选池”。`
+  return `【士多甄选】仅在 ${selectedProduct.value?.categoryName || '当前分类'} 的甄选位展示，占用「${getGlobalPoolLabel(quota.globalPoolName)}」名额，不占用“全部分类共享甄选池”；切换到其他分类不会继承全站展示资格，切回后恢复。`
 }
 
 function formatRemaining(type) {
@@ -727,7 +755,8 @@ function getPackageQuotaLines(type) {
   if (type === 'global') {
     const lines = [
       `当前池：${getGlobalPoolLabel(selectedProduct.value.quota?.globalPoolName)}`,
-      `剩余：${formatQuotaValue(selectedProduct.value.quota?.globalRemaining, selectedProduct.value.quota?.globalLimit)}`
+      `剩余：${formatQuotaValue(selectedProduct.value.quota?.globalRemaining, selectedProduct.value.quota?.globalLimit)}`,
+      `开通后绑定：${selectedProduct.value.categoryName || '当前分类'}`
     ]
     if (Number(selectedProduct.value.quota?.globalPendingUsed || 0) > 0) {
       lines.push(`待支付占位：${Number(selectedProduct.value.quota?.globalPendingUsed || 0)} 个`)
@@ -735,16 +764,19 @@ function getPackageQuotaLines(type) {
     if (!selectedProduct.value.quota?.usesSharedGlobalPool) {
       lines.push('该池不占用“全部分类共享甄选池”')
     }
+    lines.push('切换到其他分类会暂停展示，切回本分类后恢复')
     return lines
   }
 
   const lines = [
     `当前池：${selectedProduct.value.categoryName || '当前分类'} 优选池`,
-    `剩余：${formatQuotaValue(selectedProduct.value.quota?.categoryRemaining, selectedProduct.value.quota?.categoryLimit)}`
+    `剩余：${formatQuotaValue(selectedProduct.value.quota?.categoryRemaining, selectedProduct.value.quota?.categoryLimit)}`,
+    `开通后绑定：${selectedProduct.value.categoryName || '当前分类'}`
   ]
   if (Number(selectedProduct.value.quota?.categoryPendingUsed || 0) > 0) {
     lines.push(`待支付占位：${Number(selectedProduct.value.quota?.categoryPendingUsed || 0)} 个`)
   }
+  lines.push('切换到其他分类会暂停展示，切回本分类后恢复')
   return lines
 }
 
@@ -769,6 +801,41 @@ function getOrderStatusText(status = '') {
     expired: '已过期',
     cancelled: '已取消'
   }[status] || status
+}
+
+function isCurrentTopOrderSuspended(order = null) {
+  return Boolean(order?.isSuspendedForCategory)
+}
+
+function getTopEffectivenessText(order = null) {
+  if (!order) return '-'
+  if (!order.categoryBindingApplies) {
+    return order.status === 'active' ? '正常生效' : getOrderStatusText(order.status)
+  }
+  if (order.isSuspendedForCategory) {
+    return '当前分类不匹配，已暂停展示'
+  }
+  if (order.status === 'active') {
+    return '当前分类匹配，正常生效'
+  }
+  if (order.status === 'pending') {
+    return order.isCategoryMatched ? '待支付成功后生效' : '待支付，且当前分类不匹配'
+  }
+  return getOrderStatusText(order.status)
+}
+
+function getTopOrderBindingHint(order = null) {
+  if (!order) return ''
+  if (!order.isPaidService) {
+    return '说明：这是管理员手动设置的非有偿置顶，不占用付费名额，也不受分类绑定规则影响。'
+  }
+  if (order.categoryBindingMessage) {
+    return order.categoryBindingMessage
+  }
+  if (order.packageType === 'global' && !order.boundUsesSharedGlobalPool) {
+    return `该订单占用「${getGlobalPoolLabel(order.boundGlobalPoolName)}」，不会占用“全部分类共享甄选池”；若切换到其他分类，服务会暂停，切回开通分类后恢复。`
+  }
+  return `该付费${order.packageName || '置顶服务'}绑定在「${order.boundCategoryName || '当前分类'}」分类，切换到其他分类会暂停展示，切回后会在剩余有效期内恢复。`
 }
 
 function formatQuotaReleaseHint(nextReleaseAt = '', hasPermanent = false, used = 0, scope = 'category', poolName = '') {
@@ -868,8 +935,10 @@ async function submitOrder() {
       `<div><strong>套餐：</strong>${selectedConfig.value.groupName}</div>`,
       `<div><strong>天数：</strong>${selectedConfig.value.durationDays} 天</div>`,
       `<div><strong>物品：</strong>${selectedProduct.value.name}</div>`,
+      `<div><strong>绑定分类：</strong>${selectedProduct.value.categoryName || '当前分类'}</div>`,
       '<div><strong>生效时间：</strong>订单支付成功时间</div>',
       `<div><strong>金额：</strong>${Number(selectedConfig.value.price || 0).toFixed(2)} LDC</div>`,
+      '<div style="margin-top:8px;color:#9b6c13">付费置顶会绑定当前分类；若后续切换到其他分类，服务会暂停展示，切回原分类后恢复，过期时间不变。</div>',
       '</div>'
     ].join(''),
     {
@@ -1578,6 +1647,27 @@ onMounted(async () => {
   margin: 10px 0 0;
 }
 
+.current-top-card--warning {
+  border-color: rgba(207, 105, 123, 0.28);
+  background: linear-gradient(180deg, rgba(255, 243, 244, 0.96) 0%, var(--services-card-bg) 100%);
+}
+
+.current-top-card-highlight {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--services-muted-bg);
+  border: 1px solid var(--services-muted-border);
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.current-top-card-highlight--warning {
+  background: rgba(207, 105, 123, 0.1);
+  border-color: rgba(207, 105, 123, 0.22);
+  color: #b3495d;
+}
+
 .board-panel {
   display: grid;
   gap: 18px;
@@ -2069,6 +2159,27 @@ onMounted(async () => {
   color: var(--text-primary);
 }
 
+.order-meta-warning {
+  color: #b3495d !important;
+}
+
+.order-binding-hint {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--services-muted-bg);
+  border: 1px solid var(--services-muted-border);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.order-binding-hint--warning {
+  background: rgba(207, 105, 123, 0.1);
+  border-color: rgba(207, 105, 123, 0.22);
+  color: #b3495d;
+}
+
 .order-actions {
   display: flex;
   gap: 10px;
@@ -2088,6 +2199,17 @@ onMounted(async () => {
 
 :global(html.dark .merchant-services-page .notice-card-highlight) {
   color: #ff8fa3;
+}
+
+:global(html.dark .merchant-services-page .current-top-card--warning) {
+  border-color: rgba(255, 143, 163, 0.24);
+  background: linear-gradient(180deg, rgba(74, 34, 40, 0.82) 0%, var(--services-card-bg) 100%);
+}
+
+:global(html.dark .merchant-services-page .current-top-card-highlight--warning),
+:global(html.dark .merchant-services-page .order-binding-hint--warning),
+:global(html.dark .merchant-services-page .order-meta-warning) {
+  color: #ff9cae !important;
 }
 
 .active-service-source--exempt {
