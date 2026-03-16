@@ -239,7 +239,7 @@
         </button>
         <div class="faq-answer" v-show="openFaq === 'mobile'">
           <p>可以！LD士多 采用响应式设计，完美支持手机浏览器访问。</p>
-          <p>直接在手机浏览器中访问 <a href="https://shop.ldspro.qzz.io" target="_blank" rel="noopener">shop.ldspro.qzz.io</a> 即可。</p>
+          <p>直接在手机浏览器中访问本站域名即可。</p>
         </div>
       </div>
       
