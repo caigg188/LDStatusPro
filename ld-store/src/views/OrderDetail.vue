@@ -51,7 +51,7 @@
             </span>
           </div>
 
-          <div class="info-row" v-if="getProductType(order) === 'cdk'">
+          <div class="info-row" v-if="isPlatformOrder(order)">
             <span class="info-label">购买数量</span>
             <span class="info-value">x{{ getOrderQuantity(order) }}</span>
           </div>
@@ -95,22 +95,29 @@
           </div>
         </div>
         
+        <div class="info-card" v-if="requiresBuyerContactOrder(order)">
+          <h3 class="card-title">📨 履约提醒</h3>
+          <div class="description-content">
+            {{ currentRole === 'buyer' ? '支付完成后请主动联系卖家获取服务，订单会保留在平台内等待卖家手动履约。' : '该订单为普通物品订单，买家支付后需要您主动处理交付并填写发货内容。' }}
+          </div>
+        </div>
+
         <!-- CDK 信息 -->
-        <div class="info-card" v-if="getProductType(order) === 'cdk' && getCdkContent(order)">
+        <div class="info-card" v-if="isCdkOrder(order) && getDeliveryContent(order)">
           <h3 class="card-title">🔑 CDK 密钥</h3>
           
           <div class="cdk-box">
             <div class="cdk-head">
-              <span class="cdk-total">共 {{ getCdkList(order).length }} 个</span>
+              <span class="cdk-total">共 {{ getDeliveryList(order).length }} 个</span>
             </div>
             <code class="cdk-code">
               <template v-if="showCdk">
                 <span
-                  v-for="(code, index) in getCdkList(order)"
+                  v-for="(code, index) in getDeliveryList(order)"
                   :key="`cdk-${index}`"
                   class="cdk-line"
                 >
-                  {{ getCdkList(order).length > 1 ? `${index + 1}. ` : '' }}{{ code }}
+                  {{ getDeliveryList(order).length > 1 ? `${index + 1}. ` : '' }}{{ code }}
                 </span>
               </template>
               <template v-else>••••••••••••</template>
@@ -124,37 +131,15 @@
           </div>
         </div>
         
-        <!-- CDK 使用说明（显示物品描述） -->
-        <div class="info-card" v-if="getProductType(order) === 'cdk' && getProductDescription(order)">
+        <div class="info-card" v-if="isNormalOrder(order) && getDeliveryContent(order)">
+          <h3 class="card-title">📦 发货内容</h3>
+          <div class="description-content preserve-line-breaks">{{ getDeliveryContent(order) }}</div>
+        </div>
+
+        <!-- 使用说明（显示物品描述） -->
+        <div class="info-card" v-if="(isCdkOrder(order) || isNormalOrder(order)) && getProductDescription(order)">
           <h3 class="card-title">📝 使用说明</h3>
           <div class="description-content">{{ getProductDescription(order) }}</div>
-        </div>
-        
-        <!-- 链接信息 -->
-        <div class="info-card" v-if="getProductType(order) === 'link' && order.link">
-          <h3 class="card-title">物品链接</h3>
-          
-          <div class="link-box">
-            <a :href="order.link" target="_blank" rel="noopener" class="link-url">
-              {{ order.link }}
-            </a>
-            <button class="icon-btn" @click="copyLink">📋</button>
-          </div>
-        </div>
-        
-        <!-- 寄存信息 -->
-        <div class="info-card" v-if="getProductType(order) === 'store'">
-          <h3 class="card-title">寄存信息</h3>
-          
-          <div class="store-info">
-            <p class="store-notice">
-              请联系卖家获取寄存物品详情
-            </p>
-            <div class="info-row" v-if="order.seller_username || order.sellerUsername">
-              <span class="info-label">卖家用户名</span>
-              <span class="info-value">@{{ order.seller_username || order.sellerUsername }}</span>
-            </div>
-          </div>
         </div>
         
         <!-- 订单信息 -->
@@ -256,6 +241,12 @@ import { useDialog } from '@/composables/useDialog'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { isValidLdcPaymentUrl } from '@/utils/security'
 import { prepareNewTab, openInNewTab, cleanupPreparedTab } from '@/utils/newTab'
+import {
+  isCdkProduct,
+  isNormalProduct,
+  isPlatformOrderProduct,
+  requiresBuyerContact
+} from '@/utils/shopProduct'
 
 const route = useRoute()
 const router = useRouter()
@@ -281,11 +272,11 @@ const showActions = computed(() => {
 })
 
 const canRepay = computed(() => {
-  return currentRole.value === 'buyer' && order.value?.status === 'pending' && getProductType(order.value) === 'cdk'
+  return currentRole.value === 'buyer' && order.value?.status === 'pending' && isPlatformOrder(order.value)
 })
 
 const canRefreshPaymentStatus = computed(() => {
-  return currentRole.value === 'buyer' && order.value?.status === 'pending' && getProductType(order.value) === 'cdk'
+  return currentRole.value === 'buyer' && order.value?.status === 'pending' && isPlatformOrder(order.value)
 })
 
 const categoryNameMap = computed(() => {
@@ -298,18 +289,20 @@ const categoryNameMap = computed(() => {
   return map
 })
 
-// 获取物品类型
-function normalizeProductType(type) {
-  const normalized = String(type || '').trim().toLowerCase()
-  return normalized || 'cdk'
+function isCdkOrder(orderData) {
+  return isCdkProduct(orderData)
 }
 
-function getProductType(orderData) {
-  return normalizeProductType(
-    orderData?.product_type ||
-    orderData?.product?.product_type ||
-    orderData?.productType
-  )
+function isNormalOrder(orderData) {
+  return isNormalProduct(orderData)
+}
+
+function isPlatformOrder(orderData) {
+  return isPlatformOrderProduct(orderData)
+}
+
+function requiresBuyerContactOrder(orderData) {
+  return requiresBuyerContact(orderData)
 }
 
 function getProductCategoryText(orderData) {
@@ -338,13 +331,13 @@ function getProductCategoryText(orderData) {
   return '未知'
 }
 
-// 获取CDK内容（处理多种可能的字段名）
-function getCdkContent(orderData) {
+// 获取发货内容（处理多种可能的字段名）
+function getDeliveryContent(orderData) {
   return orderData?.cdk || orderData?.delivery_content || orderData?.deliveryContent || ''
 }
 
-function getCdkList(orderData) {
-  const content = getCdkContent(orderData)
+function getDeliveryList(orderData) {
+  const content = getDeliveryContent(orderData)
   if (!content) return []
   return String(content)
     .split(/\r?\n/g)
@@ -442,11 +435,13 @@ function getLogText(log) {
 function getStatusText(status) {
   const map = {
     pending: '待支付',
+    paying: '支付中',
     paid: '已支付',
     completed: '已完成',
     cancelled: '已取消',
     refunded: '已退款',
-    delivered: '已发货'
+    delivered: '已发货',
+    expired: '已过期'
   }
   return map[status] || status || '未知'
 }
@@ -455,11 +450,13 @@ function getStatusText(status) {
 function getStatusIcon(status) {
   const map = {
     pending: '⏳',
+    paying: '💳',
     paid: '✅',
     completed: '🎉',
     cancelled: '❌',
     refunded: '↩️',
-    delivered: '📦'
+    delivered: '📦',
+    expired: '⌛'
   }
   return map[status] || '📋'
 }
@@ -468,25 +465,15 @@ function getStatusIcon(status) {
 function getStatusClass(status) {
   const map = {
     pending: 'status-pending',
+    paying: 'status-pending',
     paid: 'status-success',
     completed: 'status-success',
     cancelled: 'status-cancelled',
     refunded: 'status-refunded',
-    delivered: 'status-info'
+    delivered: 'status-info',
+    expired: 'status-cancelled'
   }
   return map[status] || ''
-}
-
-// 订单类型
-function getOrderTypeText(type) {
-  const normalized = normalizeProductType(type)
-  const map = {
-    cdk: 'CDK',
-    link: '链接',
-    store: '寄存',
-    service: '服务'
-  }
-  return map[normalized] || normalized || '未知'
 }
 
 // 格式化日期时间
@@ -502,20 +489,12 @@ function formatDateTime(date) {
   return `${year}-${month}-${day} ${hour}:${minute}:${second}`
 }
 
-// 复制 CDK
+// 复制发货内容
 function copyCdk() {
-  const content = getCdkList(order.value).join('\n')
+  const content = getDeliveryList(order.value).join('\n')
   if (content) {
     navigator.clipboard.writeText(content)
-    toast.success('CDK 已复制')
-  }
-}
-
-// 复制链接
-function copyLink() {
-  if (order.value?.link) {
-    navigator.clipboard.writeText(order.value.link)
-    toast.success('链接已复制')
+    toast.success(isCdkOrder(order.value) ? 'CDK 已复制' : '发货内容已复制')
   }
 }
 
@@ -542,9 +521,9 @@ async function handleRefreshPaymentStatus() {
 
     const status = result?.data?.status || ''
     if (status === 'delivered') {
-      toast.success('支付成功，已自动发货')
+      toast.success(isNormalOrder(order.value) ? '支付成功，卖家已完成交付' : '支付成功，已自动发货')
     } else if (status === 'paid') {
-      toast.success('支付成功，订单状态已更新')
+      toast.success(requiresBuyerContactOrder(order.value) ? '支付成功，请主动联系卖家获取服务' : '支付成功，订单状态已更新')
     } else if (status === 'expired') {
       toast.warning('订单已过期，请重新下单')
     } else {

@@ -26,7 +26,7 @@
       <div class="box-icon">⚠️</div>
       <div class="box-content">
         <strong>卖家须知</strong>
-        <p>发布 CDK 类型物品需要先配置 LDC 收款信息，请在「个人中心 → 收款设置」中完成配置。</p>
+        <p>发布普通物品或 CDK 物品都需要先配置 LDC 收款信息，请在「个人中心 → 收款设置」中完成配置。</p>
       </div>
     </div>
     
@@ -37,7 +37,7 @@
       <thead>
         <tr>
           <th>特性</th>
-          <th>🔗 外链物品</th>
+          <th>📦 普通物品</th>
           <th>🎫 CDK 物品</th>
         </tr>
       </thead>
@@ -65,18 +65,8 @@
       </tbody>
     </table>
     
-    <h2>积分流转链接</h2>
-    <p>积分流转链接是 LDC 官方提供的支付链接，用于外链类型物品的交易。</p>
-    
-    <p>创建方法：</p>
-    <ol class="numbered-list">
-      <li>访问 <a href="https://credit.linux.do" target="_blank" rel="noopener">credit.linux.do</a></li>
-      <li>点击「创建收款链接」</li>
-      <li>填写积分数额和备注信息</li>
-      <li>生成链接后复制使用</li>
-    </ol>
-    
-    <p>更多详情参考：<a href="https://linux.do/t/topic/1356124" target="_blank" rel="noopener">创建自己的积分流转链接</a></p>
+    <h2>平台内支付</h2>
+    <p>普通物品和 CDK 物品都会在平台内完成支付，订单会保留在 LD士多 中，便于买卖双方查询状态和处理售后。</p>
     
     <h2>小店集市</h2>
     <p>小店集市是 LD士多 为社区用户提供的友情链接展示区域。如果你有自己的网站、博客、项目，可以申请入驻获得曝光。</p>
@@ -84,7 +74,7 @@
     <p>小店与普通物品的区别：</p>
     <ul>
       <li><strong>小店</strong>：展示外部链接，用于推广网站或服务</li>
-      <li><strong>物品</strong>：在平台内完成浏览、购买流程</li>
+      <li><strong>物品</strong>：在平台内完成支付并保留订单记录</li>
     </ul>
     
     <h2>订单状态</h2>
@@ -104,7 +94,7 @@
         </tr>
         <tr>
           <td><code>已支付</code></td>
-          <td>买家已完成支付，等待发货（CDK 物品会自动发货）</td>
+          <td>买家已完成支付，等待发货（普通物品需手动履约，CDK 物品会自动发货）</td>
         </tr>
         <tr>
           <td><code>已完成</code></td>

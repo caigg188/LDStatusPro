@@ -103,7 +103,7 @@ const navGroups = [
     title: '物品管理',
     items: [
       { id: 'product-types', title: '物品类型', icon: '🧩' },
-      { id: 'publish-link', title: '发布外链物品', icon: '🔗' },
+      { id: 'publish-link', title: '发布普通物品', icon: '📦' },
       { id: 'publish-cdk', title: '发布 CDK 物品', icon: '🎟️' }
     ]
   },

@@ -75,7 +75,7 @@
                 </span>
                 <span class="meta-divider">·</span>
                 <span class="product-views">👁 {{ product.view_count || 0 }}</span>
-                <template v-if="getProductType(product) === 'cdk'">
+                <template v-if="isPlatformOrderProductItem(product)">
                   <span class="meta-divider">·</span>
                   <span :class="['product-stock', { low: isLowStock(product) }]">
                     📦 {{ getStockDisplay(product) }}
@@ -104,19 +104,19 @@
             <button class="action-btn edit" @click.stop="editProduct(product)" :disabled="isProductBusy(product)">
               ✏️ 编辑
             </button>
-            <button
-              v-if="getProductType(product) === 'cdk'"
-              class="action-btn cdk"
-              @click.stop="manageCdk(product)"
-              :disabled="isProductBusy(product)"
+              <button
+                v-if="isCdkItem(product)"
+                class="action-btn cdk"
+                @click.stop="manageCdk(product)"
+                :disabled="isProductBusy(product)"
             >
               🔑 CDK
             </button>
-            <button
-              v-if="canToggleStatus(product)"
-              class="action-btn"
-              :class="isProductActive(product) ? 'offline' : 'online'"
-              @click.stop="toggleStatus(product)"
+              <button
+                v-if="canToggleStatus(product)"
+                class="action-btn"
+                :class="isProductActive(product) ? 'offline' : 'online'"
+                @click.stop="toggleStatus(product)"
               :disabled="isProductBusy(product)"
             >
               {{ getToggleLabel(product) }}
@@ -244,6 +244,16 @@ import { useShopStore } from '@/stores/shop'
 import { useToast } from '@/composables/useToast'
 import { useDialog } from '@/composables/useDialog'
 import EmptyState from '@/components/common/EmptyState.vue'
+import {
+  getProductType as resolveProductType,
+  getProductTypeIcon,
+  getProductTypeText,
+  getStockDisplay as resolveStockDisplay,
+  isCdkProduct,
+  isLegacyLinkProduct,
+  isLowStock as hasLowStock,
+  isPlatformOrderProduct
+} from '@/utils/shopProduct'
 
 const router = useRouter()
 const shopStore = useShopStore()
@@ -255,7 +265,6 @@ const loadingMore = ref(false)
 const products = ref([])
 const page = ref(1)
 const hasMore = ref(false)
-const pageSize = 20
 
 // CDK 管理
 const showCdkModal = ref(false)
@@ -376,6 +385,10 @@ function isProductActive(product) {
 
 async function toggleStatus(product) {
   if (isProductBusy(product)) return
+  if (isLegacyLinkProduct(product)) {
+    toast.error('外链物品已停用，请重新发布普通物品')
+    return
+  }
   const isActive = isProductActive(product)
   const action = isActive ? '下架' : '上架'
 
@@ -408,7 +421,10 @@ async function toggleStatus(product) {
         price: product.price,
         discount: product.discount,
         imageUrl: product.image_url || '',
-        paymentLink: product.payment_link
+        stock: getProductType(product) === 'normal' ? Number(product.stock || 0) : undefined,
+        maxPurchaseQuantity: getProductType(product) === 'cdk'
+          ? Number(product.max_purchase_quantity || product.maxPurchaseQuantity || 0)
+          : undefined
       })
       if (result?.success === false) {
         toast.error(result?.error?.message || result?.error || '上架失败')
@@ -537,7 +553,15 @@ function getProductStatus(product) {
 
 // 获取物品类型（处理多种字段名）
 function getProductType(product) {
-  return product.product_type || product.type || product.productType || 'cdk'
+  return resolveProductType(product)
+}
+
+function isCdkItem(product) {
+  return isCdkProduct(product)
+}
+
+function isPlatformOrderProductItem(product) {
+  return isPlatformOrderProduct(product)
 }
 
 // 状态文本
@@ -557,12 +581,11 @@ function getStatusText(status) {
 
 // 类型文本
 function getTypeText(type) {
-  const map = {
-    cdk: 'CDK',
-    link: '链接',
-    store: '小店'
+  const normalized = String(type || '')
+  if (normalized === 'link') {
+    return '已停用外链'
   }
-  return map[type] || type || '未知'
+  return getProductTypeText(type)
 }
 
 // 状态图标
@@ -582,12 +605,7 @@ function getStatusIcon(status) {
 
 // 类型图标
 function getTypeIcon(type) {
-  const map = {
-    cdk: '🔑',
-    link: '🔗',
-    store: '🏪'
-  }
-  return map[type] || '📦'
+  return getProductTypeIcon(type)
 }
 
 // 格式化价格
@@ -598,13 +616,12 @@ function formatPrice(product) {
 
 // 获取库存显示
 function getStockDisplay(product) {
-  return product.availableStock ?? product.cdkStats?.available ?? product.stock ?? 0
+  return resolveStockDisplay(product)
 }
 
 // 是否低库存
 function isLowStock(product) {
-  const stock = getStockDisplay(product)
-  return stock <= 5 && stock > 0
+  return hasLowStock(product)
 }
 
 // 获取图片样式
@@ -650,6 +667,10 @@ function getRejectReason(product) {
 
   if (reason) return reason
 
+  if (isLegacyLinkProduct(product)) {
+    return '外链物品已停用，请重新发布为普通物品'
+  }
+
   if (['ai_rejected', 'manual_rejected'].includes(status)) {
     return '物品未通过审核'
   }
@@ -662,6 +683,7 @@ function getRejectReason(product) {
 // 是否可切换状态（已拒绝的不能切换）
 function canToggleStatus(product) {
   const blockedStatuses = ['pending_ai', 'pending_manual', 'ai_rejected', 'manual_rejected']
+  if (isLegacyLinkProduct(product)) return false
   return !blockedStatuses.includes(getProductStatus(product))
 }
 
@@ -1224,10 +1246,16 @@ onMounted(() => {
   border: 1px solid #b7eb8f;
 }
 
+.tag.type.normal {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1d4ed8;
+  border: 1px solid #93c5fd;
+}
+
 .tag.type.link {
-  background: linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%);
-  color: #0958d9;
-  border: 1px solid #91caff;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  color: #c2410c;
+  border: 1px solid #fdba74;
 }
 
 /* 拒绝/下架原因 */

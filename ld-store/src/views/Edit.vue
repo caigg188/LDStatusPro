@@ -158,22 +158,35 @@
           </div>
         </div>
         
-        <!-- 链接类型设置 -->
-        <div class="form-card" v-if="getProductType(product) === 'link'">
-          <h3 class="card-title">积分流转链接</h3>
-          
+        <!-- 普通物品设置 -->
+        <div class="form-card" v-if="getProductType(product) === 'normal'">
+          <h3 class="card-title">普通物品设置</h3>
+
           <div class="form-group">
-            <label class="form-label required">积分流转链接</label>
+            <label class="form-label required">库存数量</label>
             <input
-              v-model="form.paymentLink"
-              type="url"
+              v-model="form.stock"
+              ref="stockInput"
+              type="number"
               class="form-input"
-              placeholder="https://credit.linux.do/paying/..."
+              :class="{ 'input-error': !!stockError }"
+              min="0"
+              max="1000000"
+              step="1"
+              placeholder="例如：20"
             />
-            <p class="form-hint selectable">
-              LDC积分流转链接，获取可参照：<a href="https://linux.do/t/topic/1356124" target="_blank" rel="noopener">创建自己的积分流转链接</a>
+            <p v-if="stockError" class="form-error">{{ stockError }}</p>
+            <p v-else class="form-hint">
+              普通物品不会自动发货。买家支付后会收到“请主动联系卖家获取服务”的提醒，请及时在订单页处理履约。
             </p>
           </div>
+        </div>
+
+        <div class="form-card" v-else-if="getProductType(product) === 'link'">
+          <h3 class="card-title">外链物品已停用</h3>
+          <p class="form-hint">
+            外链物品已不再支持编辑和重新上架。请重新发布为普通物品，以便平台保留完整订单记录。
+          </p>
         </div>
 
         <div class="form-card">
@@ -250,6 +263,13 @@ import { useShopStore } from '@/stores/shop'
 import { useToast } from '@/composables/useToast'
 import { validateProductName, validateProductDescription, validatePrice } from '@/utils/security'
 import EmptyState from '@/components/common/EmptyState.vue'
+import {
+  getProductType as resolveProductType,
+  getProductTypeIcon,
+  getProductTypeText,
+  isLegacyLinkProduct,
+  isNormalProduct
+} from '@/utils/shopProduct'
 
 const route = useRoute()
 const router = useRouter()
@@ -268,6 +288,7 @@ const imageValidating = ref(false)
 const imageValidated = ref(false)
 const imageLoadError = ref('')
 const imagePreviewUrl = ref('')
+const stockInput = ref(null)
 const maxPurchaseQuantityInput = ref(null)
 let lastValidatedUrl = ''
 const EDIT_SAVE_TIMEOUT_MS = 90000
@@ -289,7 +310,7 @@ const form = ref({
   price: '',
   discount: 1,
   imageUrl: '',
-  paymentLink: '',
+  stock: '',
   purchaseTrustLevel: 0,
   limitEnabled: false,
   maxPurchaseQuantity: ''
@@ -309,6 +330,7 @@ const editOverlayDescription = computed(() => {
 const submitButtonText = computed(() => {
   if (updateConfirming.value) return '正在确认保存结果...'
   if (submitting.value) return '保存中...'
+  if (isLegacyLinkProduct(product.value)) return '外链物品已停用'
   return '保存修改'
 })
 
@@ -354,6 +376,16 @@ const imageUrlError = computed(() => {
 })
 
 // 图片预加载验证
+const stockError = computed(() => {
+  if (!isNormalProduct(product.value)) return ''
+  const raw = String(form.value.stock ?? '').trim()
+  if (!raw) return '请输入库存数量'
+  const value = Number(raw)
+  if (!Number.isInteger(value) || value < 0) return '库存必须是大于等于 0 的整数'
+  if (value > 1000000) return '库存不能超过 1000000'
+  return ''
+})
+
 const maxPurchaseQuantityError = computed(() => {
   if (getProductType(product.value) !== 'cdk' || !form.value.limitEnabled) return ''
   const raw = String(form.value.maxPurchaseQuantity ?? '').trim()
@@ -467,10 +499,10 @@ function hasExpectedProductState(latestProduct, expectedData, expectedType) {
   if (!floatEquals(latestDiscount, expectedDiscount)) return false
   if (latestImageUrl !== expectedImageUrl) return false
 
-  if (expectedType === 'link') {
-    const latestPaymentLink = String(latestProduct.payment_link || latestProduct.paymentLink || '').trim()
-    const expectedPaymentLink = String(expectedData.paymentLink || '').trim()
-    if (latestPaymentLink !== expectedPaymentLink) return false
+  if (expectedType === 'normal') {
+    const latestStock = Number(latestProduct.stock || 0)
+    const expectedStock = Number(expectedData.stock || 0)
+    if (latestStock !== expectedStock) return false
   }
 
   const latestPurchaseTrustLevel = Number(
@@ -534,8 +566,9 @@ const canSubmit = computed(() => {
   // 类型特定验证
   const type = getProductType(product.value)
   if (type === 'link') {
-    if (!form.value.paymentLink.trim()) return false
-    if (!form.value.paymentLink.startsWith('https://credit.linux.do/')) return false
+    return false
+  } else if (type === 'normal') {
+    if (stockError.value) return false
   } else if (type === 'cdk') {
     if (maxPurchaseQuantityError.value) return false
   }
@@ -545,25 +578,22 @@ const canSubmit = computed(() => {
 
 // 获取类型图标
 function getTypeIcon(type) {
-  const map = {
-    cdk: '🎫',
-    link: '🔗'
-  }
-  return map[type] || '📦'
+  return getProductTypeIcon(type)
 }
 
 // 获取类型名称
 function getTypeName(type) {
   const map = {
-    cdk: 'CDK 类型',
-    link: '链接类型'
+    normal: '普通物品',
+    cdk: '自动发卡',
+    link: '已停用外链物品'
   }
-  return map[type] || '未知'
+  return map[type] || getProductTypeText(type)
 }
 
 // 获取物品类型
 function getProductType(prod) {
-  return prod?.product_type || prod?.type || prod?.productType || 'link'
+  return resolveProductType(prod)
 }
 
 // 加载物品 (使用 my-products API，可获取任意状态的物品)
@@ -582,7 +612,7 @@ async function loadProduct() {
         price: product.value.price || '',
         discount: product.value.discount || 1,
         imageUrl: product.value.image_url || product.value.imageUrl || '',
-        paymentLink: product.value.payment_link || product.value.paymentLink || '',
+        stock: Number(product.value.stock ?? 0),
         purchaseTrustLevel: Number(
           product.value.purchase_trust_level ?? product.value.purchaseTrustLevel ?? 0
         ),
@@ -644,12 +674,12 @@ async function submitForm() {
   // 根据物品类型验证
   const productType = getProductType(product.value)
   if (productType === 'link') {
-    if (!form.value.paymentLink.trim()) {
-      toast.error('请输入积分流转链接')
-      return
-    }
-    if (!form.value.paymentLink.startsWith('https://credit.linux.do/')) {
-      toast.error('积分流转链接必须是 credit.linux.do 的链接')
+    toast.error('外链物品已停用，请重新发布普通物品')
+    return
+  } else if (productType === 'normal') {
+    if (stockError.value) {
+      toast.error(stockError.value)
+      stockInput.value?.focus?.()
       return
     }
   } else if (productType === 'cdk') {
@@ -706,8 +736,8 @@ async function submitForm() {
     }
     
     // 类型特定数据
-    if (productType === 'link') {
-      updateData.paymentLink = form.value.paymentLink.trim()
+    if (productType === 'normal') {
+      updateData.stock = Number(form.value.stock)
     } else if (productType === 'cdk') {
       updateData.maxPurchaseQuantity = form.value.limitEnabled
         ? Number(form.value.maxPurchaseQuantity)

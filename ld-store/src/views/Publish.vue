@@ -32,7 +32,7 @@
             </div>
             <div class="guide-modal-body">
               <p class="guide-modal-text">
-                首次发布物品？建议先阅读<strong>物品类型说明</strong>，了解「链接类型」和「CDK类型」的区别及使用场景，助您选择最合适的发布方式。
+                首次发布物品？建议先阅读<strong>物品类型说明</strong>，了解「普通物品」与「自动发卡」的区别及适用场景，助您选择最合适的发布方式。
               </p>
               <p class="guide-modal-warning">
                 ⚠️ <strong>禁止发布</strong>：违法违规、色情低俗、侵权盗版、虚假欺诈等内容，违者将被封禁处理。
@@ -73,7 +73,7 @@
                 <p class="tip-item">✅ 购买后会正常扣款和发放 CDK</p>
                 <p class="tip-item">✅ 测试完成后请及时下架或删除测试物品</p>
                 <p class="tip-item">✅ 测试完成请务必在 <a href="https://credit.linux.do/merchant" target="_blank" style="color: #007bff;">LDC集市</a> 中关闭应用的测试模式</p>
-                <p class="tip-item warning">⏱️ 测试模式商品上架 60 分钟后会自动下架</p>
+                <p class="tip-item warning">⏱️ 测试模式商品上架 30 分钟后会自动下架</p>
               </div>
               <p class="guide-modal-warning test-warning">
                 ⚠️ <strong>请确保已在 LDC 应用中开启测试模式</strong>，否则可能无法收到回调通知。
@@ -270,24 +270,54 @@
           </div>
         </div>
         
-        <!-- 链接类型设置 -->
-        <div class="form-card" v-if="form.productType === 'link'">
-          <h3 class="card-title">积分流转链接</h3>
-          
+        <!-- 普通物品设置 -->
+        <div class="form-card" v-if="form.productType === 'normal'">
+          <h3 class="card-title">普通物品设置</h3>
+
+          <div class="cdk-config-notice">
+            <div class="notice-header">
+              <span class="notice-icon">📦</span>
+              <strong>普通物品会在平台内支付并保留订单记录，卖家需人工履约。</strong>
+            </div>
+            <div class="notice-content">
+              <div class="notice-item">
+                <span class="item-num">1</span>
+                <div class="item-text">
+                  <strong>请先在<a href="/user/settings" target="_blank" style="color: #007bff;"> LD士多 </a>配置 LDC 收款信息</strong>，否则买家无法完成平台内支付。
+                </div>
+              </div>
+              <div class="notice-item highlight">
+                <span class="item-num">2</span>
+                <div class="item-text">
+                  <strong>买家支付成功后需要主动联系卖家获取服务</strong>，平台会在订单中提醒买家，同时也会提醒您尽快处理交付。
+                </div>
+              </div>
+              <div class="notice-item">
+                <span class="item-num">3</span>
+                <div class="item-text">
+                  <strong>请填写真实库存</strong>，库存耗尽后商品将无法继续下单。
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="form-group">
-            <label class="form-label required">积分流转链接</label>
+            <label class="form-label required">库存数量</label>
             <input
-              v-model="form.paymentLink"
-              type="url"
+              v-model="form.stock"
+              type="number"
               class="form-input"
-              :class="{ 'input-error': showError('paymentLink', paymentLinkError) }"
-              placeholder="https://credit.linux.do/paying/..."
-              ref="paymentLinkInput"
-              @input="markTouched('paymentLink')"
+              :class="{ 'input-error': showError('stock', stockError) }"
+              placeholder="例如：20"
+              min="1"
+              max="1000000"
+              step="1"
+              ref="stockInput"
+              @input="markTouched('stock')"
             />
-            <p v-if="showError('paymentLink', paymentLinkError)" class="form-error">{{ paymentLinkError }}</p>
-            <p class="form-hint selectable">
-              LDC积分流转链接，获取可参照：<a href="https://linux.do/t/topic/1356124" target="_blank" rel="noopener">创建自己的积分流转链接</a>
+            <p v-if="showError('stock', stockError)" class="form-error">{{ stockError }}</p>
+            <p v-else class="form-hint">
+              支付后不会自动发卡，您需要在订单页与买家完成后续交付。
             </p>
           </div>
         </div>
@@ -496,7 +526,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
 import { useToast } from '@/composables/useToast'
@@ -540,7 +570,7 @@ const touched = ref({
   price: false,
   discount: false,
   image: false,
-  paymentLink: false,
+  stock: false,
   cdkCodes: false
 })
 
@@ -549,7 +579,7 @@ const descriptionInput = ref(null)
 const priceInput = ref(null)
 const discountInput = ref(null)
 const imageInput = ref(null)
-const paymentLinkInput = ref(null)
+const stockInput = ref(null)
 const cdkCodesInput = ref(null)
 const maxPurchaseQuantityInput = ref(null)
 const buyTitleInput = ref(null)
@@ -562,7 +592,7 @@ const fieldRefs = {
   price: priceInput,
   discount: discountInput,
   image: imageInput,
-  paymentLink: paymentLinkInput,
+  stock: stockInput,
   cdkCodes: cdkCodesInput,
   maxPurchaseQuantity: maxPurchaseQuantityInput
 }
@@ -631,8 +661,8 @@ const form = ref({
   price: '',
   discount: 1,
   imageUrl: '',
-  productType: 'cdk', // 默认cdk类型
-  paymentLink: '',
+  productType: 'normal',
+  stock: '',
   purchaseTrustLevel: 0,
   cdkCodes: '',
   isTestMode: false,   // 测试模式（仅 CDK 类型可用）
@@ -699,11 +729,10 @@ async function loadCategories() {
   }
 }
 
-// 物品类型（只有链接和CDK两种）
+// 物品类型
 const productTypes = [
-  { id: 'cdk', name: 'CDK 类型', desc: '平台内支付+自动发货', icon: '🎫' },
-  { id: 'link', name: '链接类型', desc: '提供外部支付链接', icon: '🔗' }
-  
+  { id: 'normal', name: '普通物品', desc: '平台内支付、记录订单、卖家手动履约', icon: '📦' },
+  { id: 'cdk', name: '自动发卡', desc: '平台内支付+自动发放 CDK', icon: '🎫' }
 ]
 const purchaseTrustLevelOptions = [0, 1, 2, 3, 4]
 
@@ -741,7 +770,7 @@ const descriptionPlaceholder = computed(() => {
   if (form.value.productType === 'cdk') {
     return '请详细描述物品信息，包括：\n• 物品内容（如：某某会员月卡、某某游戏充值卡等）\n• 使用方式（如：在官网兑换、APP内激活等）\n• 有效期限（如：永久有效、激活后30天等）\n• 其他注意事项\n\n（10-1000字符）'
   }
-  return '请详细描述物品信息、服务内容及服务方式等，让买家充分了解您提供的物品或服务。\n\n（10-1000字符）'
+  return '请详细描述物品信息、服务内容、交付方式与联系说明。\n• 建议写明买家支付完成后应如何联系您\n• 建议写明响应时间、交付周期与注意事项\n\n（10-1000字符）'
 })
 
 // 提交按钮文字
@@ -893,11 +922,13 @@ const discountError = computed(() => {
 
 
 
-const paymentLinkError = computed(() => {
-  if (form.value.productType !== 'link') return ''
-  const link = form.value.paymentLink.trim()
-  if (!link) return '请输入积分跳转链接'
-  if (!link.startsWith('https://credit.linux.do/')) return '跳转链接需以 https://credit.linux.do/ 开头'
+const stockError = computed(() => {
+  if (form.value.productType !== 'normal') return ''
+  const raw = String(form.value.stock ?? '').trim()
+  if (!raw) return '请输入库存数量'
+  const value = Number(raw)
+  if (!Number.isInteger(value) || value < 1) return '库存必须是大于 0 的整数'
+  if (value > 1000000) return '库存不能超过 1000000'
   return ''
 })
 
@@ -972,7 +1003,7 @@ const canSubmit = computed(() => {
   if (!form.value.imageUrl?.trim()) return false
   if (imageUrlError.value) return false
   if (ruzhanPriceError.value) return false
-  if (form.value.productType === 'link' && paymentLinkError.value) return false
+  if (stockError.value) return false
   if (cdkCodesError.value) return false
   if (maxPurchaseQuantityError.value) return false
   return true
@@ -1008,8 +1039,8 @@ function buildProductFingerprint(productData) {
     price: Number(productData.price || 0),
     discount: Number(productData.discount || 1),
     imageUrl: productData.imageUrl || '',
-    productType: productData.productType || 'link',
-    paymentLink: productData.paymentLink || '',
+    productType: productData.productType || 'normal',
+    stock: Number(productData.stock || 0),
     purchaseTrustLevel: Number(productData.purchaseTrustLevel || 0),
     maxPurchaseQuantity: Number(productData.maxPurchaseQuantity || 0),
     cdkCodes: productData.cdkCodes || '',
@@ -1114,19 +1145,21 @@ async function submitForm() {
     return
   }
   
-  if (form.value.productType === 'link') {
-    if (paymentLinkError.value) {
-      toast.error(paymentLinkError.value)
-      focusField('paymentLink')
-      return
-    }
-  } else if (form.value.productType === 'cdk') {
-    // CDK 类型需要检查商家配置
+  if (form.value.productType === 'normal' || form.value.productType === 'cdk') {
     if (!merchantConfigured.value) {
       toast.warning('请先在「收款设置」中配置 LDC 收款信息')
       router.push('/user/settings')
       return
     }
+  }
+
+  if (form.value.productType === 'normal') {
+    if (stockError.value) {
+      toast.error(stockError.value)
+      focusField('stock')
+      return
+    }
+  } else if (form.value.productType === 'cdk') {
     if (cdkCodesError.value) {
       toast.error(cdkCodesError.value)
       focusField('cdkCodes')
@@ -1197,8 +1230,8 @@ async function submitForm() {
     }
     
     // 类型特定数据
-    if (form.value.productType === 'link') {
-      productData.paymentLink = form.value.paymentLink.trim()
+    if (form.value.productType === 'normal') {
+      productData.stock = Number(form.value.stock)
     } else if (form.value.productType === 'cdk') {
       productData.maxPurchaseQuantity = form.value.limitEnabled
         ? Number(form.value.maxPurchaseQuantity)
@@ -1289,6 +1322,15 @@ async function submitBuyRequest() {
   }
 }
 
+watch(
+  () => form.value.productType,
+  (type) => {
+    if (type !== 'cdk') {
+      form.value.isTestMode = false
+    }
+  }
+)
+
 onMounted(async () => {
   const queryType = String(route.query.type || '').toLowerCase()
   if (queryType === 'buy' || queryType === 'request') {
@@ -1304,7 +1346,7 @@ onMounted(async () => {
   // 加载分类
   await loadCategories()
   
-  // 检查商家配置（用于 CDK 类型验证）
+  // 检查商家配置（普通物品与 CDK 都需要）
   await checkMerchantConfig()
 })
 </script>

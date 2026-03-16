@@ -204,8 +204,8 @@
     <div class="highlight-box warning">
       <div class="box-icon">🔗</div>
       <div class="box-content">
-        <strong>外链风险提示</strong>
-        <p>平台中的"外链物品"会跳转至第三方网站，请用户自行判断其安全性和可靠性。</p>
+        <strong>第三方链接提示</strong>
+        <p>平台中可能包含卖家主页、小店地址或图片引用等第三方链接，请用户自行判断其安全性和可靠性。</p>
       </div>
     </div>
     <ul>

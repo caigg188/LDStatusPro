@@ -58,7 +58,7 @@
       <li><strong>浏览商品</strong>：在首页或通过分类筛选找到心仪的商品</li>
       <li><strong>查看详情</strong>：点击商品卡片查看详细信息和卖家说明</li>
       <li><strong>下单支付</strong>：点击购买按钮，根据商品类型完成支付</li>
-      <li><strong>获取商品</strong>：支付成功后，CDK 自动发放或通过外链完成交易</li>
+      <li><strong>获取商品</strong>：支付成功后，CDK 会自动发放；普通物品请主动联系卖家获取服务</li>
     </ol>
     
     <h2>三、发布商品</h2>
@@ -66,9 +66,9 @@
     
     <div class="feature-cards">
       <div class="feature-card">
-        <div class="card-icon">🔗</div>
-        <h4>外链物品</h4>
-        <p>使用积分流转链接完成交易，适合需要自定义流程的场景</p>
+        <div class="card-icon">📦</div>
+        <h4>普通物品</h4>
+        <p>平台内支付并保留订单记录，卖家根据库存手动履约，适合服务类和非自动发货商品</p>
       </div>
       <div class="feature-card">
         <div class="card-icon">🎫</div>

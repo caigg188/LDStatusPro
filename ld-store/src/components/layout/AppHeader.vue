@@ -150,7 +150,7 @@
         <!-- 用户信息 -->
         <template v-if="isLoggedIn">
           <div class="user-dropdown" ref="dropdownRef">
-            <button class="user-info" :class="{ 'has-unread': messageUnread > 0 }" @click="toggleDropdown">
+            <button class="user-info" :class="{ 'has-unread': headerAlertCount > 0 }" @click="toggleDropdown">
               <AvatarImage
                 :src="avatar"
                 :candidates="userStore.avatarCandidates"
@@ -161,12 +161,12 @@
                 loading-mode="eager"
               />
               <span class="user-name" v-if="!isMobile">{{ username }}</span>
-              <span v-if="messageUnread > 0 && !isMobile" class="user-unread-inline">
-                未读 {{ unreadDisplay }}
+              <span v-if="userAlertText && !isMobile" class="user-unread-inline">
+                {{ userAlertText }}
               </span>
               <span class="dropdown-arrow">▼</span>
-              <span v-if="messageUnread > 0 && isMobile" class="user-unread-badge">
-                {{ unreadDisplay }}
+              <span v-if="headerAlertCount > 0 && isMobile" class="user-unread-badge">
+                {{ headerAlertDisplay }}
               </span>
             </button>
             
@@ -249,6 +249,7 @@ const searchBoxRef = ref(null)
 const showSearchPanel = ref(false)
 const searchHistory = ref([])
 const messageUnread = ref(0)
+const sellerPendingDeliveryCount = ref(0)
 const recommendedKeywords = ['gpt', 'team', '小鸡', 'chatgpt', 'claude', 'vps', 'api', '存储', '代理']
 
 // 计算属性
@@ -260,6 +261,25 @@ const trustLevelText = computed(() => (
   trustLevel.value === null || trustLevel.value === undefined ? '' : `TL${trustLevel.value}`
 ))
 const unreadDisplay = computed(() => (messageUnread.value > 99 ? '99+' : String(messageUnread.value || 0)))
+const pendingDeliveryDisplay = computed(() => (
+  sellerPendingDeliveryCount.value > 99 ? '99+' : String(sellerPendingDeliveryCount.value || 0)
+))
+const headerAlertCount = computed(() => messageUnread.value + sellerPendingDeliveryCount.value)
+const headerAlertDisplay = computed(() => (
+  headerAlertCount.value > 99 ? '99+' : String(headerAlertCount.value || 0)
+))
+const userAlertText = computed(() => {
+  if (messageUnread.value > 0 && sellerPendingDeliveryCount.value > 0) {
+    return `消息 ${unreadDisplay.value} · 待发 ${pendingDeliveryDisplay.value}`
+  }
+  if (sellerPendingDeliveryCount.value > 0) {
+    return `待发 ${pendingDeliveryDisplay.value}`
+  }
+  if (messageUnread.value > 0) {
+    return `未读 ${unreadDisplay.value}`
+  }
+  return ''
+})
 const dropdownMenuGroups = computed(() => ([
   [
     {
@@ -282,8 +302,8 @@ const dropdownMenuGroups = computed(() => ([
       path: '/user/orders',
       icon: '📋',
       label: '我的订单',
-      withUnread: false,
-      badge: ''
+      withUnread: sellerPendingDeliveryCount.value > 0,
+      badge: sellerPendingDeliveryCount.value > 0 ? pendingDeliveryDisplay.value : ''
     },
     {
       path: '/user/products',
@@ -498,6 +518,7 @@ let busuanziObserver = null
 async function fetchMessageUnread(force = false) {
   if (!isLoggedIn.value) {
     messageUnread.value = 0
+    sellerPendingDeliveryCount.value = 0
     return
   }
   if (!force && document.visibilityState === 'hidden') {
@@ -508,6 +529,7 @@ async function fetchMessageUnread(force = false) {
     const result = await api.get('/api/shop/messages/unread-summary')
     if (!result.success) return
     messageUnread.value = Number(result.data?.totalUnread || 0)
+    sellerPendingDeliveryCount.value = Number(result.data?.sellerPendingDeliveryCount || 0)
   } catch (_) {
     // ignore polling errors
   }
@@ -570,6 +592,7 @@ watch(isLoggedIn, (loggedIn) => {
   } else {
     stopMessageUnreadPolling()
     messageUnread.value = 0
+    sellerPendingDeliveryCount.value = 0
   }
 })
 

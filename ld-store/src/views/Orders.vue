@@ -115,21 +115,24 @@
               <span class="order-seller" v-else>
                 买家: {{ order.buyer_username || order.buyer?.username || '未知' }}
               </span>
-              <span v-if="isCdkOrder(order)" class="order-quantity">
+              <span v-if="isPlatformOrder(order)" class="order-quantity">
                 x{{ getOrderQuantity(order) }}
               </span>
-              <span v-if="order.status === 'pending' && (isCdkOrder(order) || isBuyRequestOrder(order))" class="order-expire-inline">{{ getExpireCountdownText(order) }}</span>
+              <span v-if="order.status === 'pending' && (isPlatformOrder(order) || isBuyRequestOrder(order))" class="order-expire-inline">{{ getExpireCountdownText(order) }}</span>
+            </div>
+            <div v-if="requiresBuyerContactOrder(order)" class="order-manual-hint">
+              {{ currentRole === 'buyer' ? '支付后请主动联系卖家获取服务' : '该订单需手动履约，请及时处理' }}
             </div>
           </div>
           
-          <!-- CDK内容展示区（已完成的CDK订单直接显示） -->
+          <!-- 发货内容展示区 -->
           <div 
-            v-if="isCdkOrder(order) && hasDeliveryContent(order)"
+            v-if="hasDeliveryContent(order)"
             class="cdk-display"
             @click.stop
           >
             <div class="cdk-label">
-              🔑 CDK 密钥
+              {{ isCdkOrder(order) ? '🔑 CDK 密钥' : '📦 发货内容' }}
               <span v-if="getDeliveryCodes(order).length > 1" class="cdk-count">
                 共 {{ getDeliveryCodes(order).length }} 个
               </span>
@@ -164,7 +167,7 @@
           <div class="order-footer">
             <div class="order-amount-wrap">
               <span class="order-amount">{{ order.total_price || order.amount }} LDC</span>
-              <span v-if="isCdkOrder(order)" class="order-count">共 {{ getOrderQuantity(order) }} 个</span>
+              <span v-if="isPlatformOrder(order)" class="order-count">共 {{ getOrderQuantity(order) }} 个</span>
             </div>
             <div class="order-actions">
               <!-- 图床订单 -->
@@ -203,7 +206,7 @@
                   {{ payingOrderId === getOrderKey(order) ? '跳转中...' : '立即支付' }}
                 </button>
                 <button
-                  v-if="currentRole === 'buyer' && isCdkOrder(order)"
+                  v-if="currentRole === 'buyer' && isPlatformOrder(order)"
                   class="action-btn ghost-btn"
                   @click.stop="handleRefreshOrder(order)"
                   :disabled="refreshingOrderId === getOrderKey(order) || payingOrderId === getOrderKey(order)"
@@ -245,7 +248,7 @@
               v-model="deliverContent"
               class="deliver-input"
               rows="3"
-              placeholder="请输入发货内容（CDK/链接/说明）"
+              :placeholder="getDeliverPlaceholder(order)"
             ></textarea>
             <div class="deliver-actions">
               <button class="action-btn cancel-btn" @click="closeDeliverForm" :disabled="deliveringOrderId === getOrderKey(order)">
@@ -259,7 +262,7 @@
                 确认发货
               </button>
             </div>
-            <div class="deliver-hint">提示：系统卡顿导致未自动发货时，可手动补发。</div>
+            <div class="deliver-hint">{{ getDeliverHint(order) }}</div>
           </div>
         </div>
       </div>
@@ -284,6 +287,12 @@ import AppSelect from '@/components/common/AppSelect.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { isValidLdcPaymentUrl } from '@/utils/security'
 import { prepareNewTab, openInNewTab, cleanupPreparedTab } from '@/utils/newTab'
+import {
+  isCdkProduct,
+  isNormalProduct,
+  isPlatformOrderProduct,
+  requiresBuyerContact
+} from '@/utils/shopProduct'
 
 const router = useRouter()
 const route = useRoute()
@@ -519,7 +528,9 @@ function isPaidOvertime(order) {
 }
 
 function showManualDeliver(order) {
-  return currentRole.value === 'seller' && isCdkOrder(order) && isPaidOvertime(order)
+  if (currentRole.value !== 'seller') return false
+  if (isNormalOrder(order)) return order.status === 'paid'
+  return isCdkOrder(order) && isPaidOvertime(order)
 }
 
 function isDeliverFormVisible(order) {
@@ -541,7 +552,7 @@ function canRepay(order) {
   if (isBuyRequestOrder(order)) {
     return order.myRole === 'requester'
   }
-  return currentRole.value === 'buyer' && isCdkOrder(order)
+  return currentRole.value === 'buyer' && isPlatformOrder(order)
 }
 
 function extractErrorMessage(result, fallback) {
@@ -606,14 +617,6 @@ function getStatusClass(status) {
 }
 
 // 订单类型
-function getOrderTypeText(type) {
-  const map = {
-    cdk: 'CDK',
-    link: '链接',
-  }
-  return map[type] || type || '未知'
-}
-
 function getOrderDisplayName(order) {
   if (isBuyRequestOrder(order)) {
     return order.requestTitle || order.request_title || order.product?.name || '求购订单'
@@ -634,8 +637,19 @@ function formatDate(date) {
 
 // 是否是CDK类型订单
 function isCdkOrder(order) {
-  const type = order.product_type || order.product?.product_type || order.productType
-  return type === 'cdk'
+  return isCdkProduct(order)
+}
+
+function isNormalOrder(order) {
+  return isNormalProduct(order)
+}
+
+function isPlatformOrder(order) {
+  return isPlatformOrderProduct(order)
+}
+
+function requiresBuyerContactOrder(order) {
+  return requiresBuyerContact(order)
 }
 
 function isBuyRequestOrder(order) {
@@ -698,8 +712,22 @@ function copyCdk(order) {
   const content = getDeliveryContent(order)
   if (content) {
     navigator.clipboard.writeText(content)
-    toast.success('CDK 已复制到剪贴板')
+    toast.success(isCdkOrder(order) ? 'CDK 已复制到剪贴板' : '发货内容已复制到剪贴板')
   }
+}
+
+function getDeliverPlaceholder(order) {
+  if (isNormalOrder(order)) {
+    return '请输入交付说明、联系方式、服务结果或其他履约信息'
+  }
+  return '请输入发货内容（CDK/链接/说明）'
+}
+
+function getDeliverHint(order) {
+  if (isNormalOrder(order)) {
+    return '提示：普通物品不会自动发货，请填写买家获取服务所需的信息并及时完成履约。'
+  }
+  return '提示：系统卡顿导致未自动发货时，可手动补发。'
 }
 
 async function handleRepay(order) {
@@ -756,9 +784,9 @@ async function handleRefreshOrder(order) {
 
     const status = result?.data?.status || ''
     if (status === 'delivered') {
-      toast.success('支付成功，已自动发货')
+      toast.success(isNormalOrder(order) ? '支付成功，卖家已完成交付' : '支付成功，已自动发货')
     } else if (status === 'paid') {
-      toast.success('支付成功，订单状态已更新')
+      toast.success(requiresBuyerContactOrder(order) ? '支付成功，请主动联系卖家获取服务' : '支付成功，订单状态已更新')
     } else if (status === 'expired') {
       toast.warning('订单已过期，请重新下单')
     } else {
@@ -1193,6 +1221,12 @@ onUnmounted(() => {
   gap: 12px;
   font-size: 13px;
   color: var(--text-tertiary);
+}
+
+.order-manual-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-primary);
 }
 
 .order-quantity {

@@ -24,10 +24,12 @@
     </div>
     
     <!-- 类型标签 -->
-    <div v-if="isTestMode || isCdk || isStore" class="badge-stack">
+    <div v-if="isTestMode || isCdk || isNormal || isStore || isLegacyLink" class="badge-stack">
       <span v-if="isTestMode" class="type-tag test type-tag--stacked">🧪 测试</span>
       <span v-else-if="isCdk" class="type-tag cdk type-tag--stacked">CDK</span>
+      <span v-else-if="isNormal" class="type-tag normal type-tag--stacked">普通</span>
       <span v-else-if="isStore" class="type-tag store type-tag--stacked">小店</span>
+      <span v-else-if="isLegacyLink" class="type-tag link type-tag--stacked">外链</span>
     </div>
     
     <!-- 商品图片 -->
@@ -54,7 +56,7 @@
       
       <div class="product-meta">
         <span class="product-category">{{ categoryName }}</span>
-        <span v-if="isCdk" :class="['product-stock', stockClass]">
+        <span v-if="isPlatformOrder" :class="['product-stock', stockClass]">
           {{ stockDisplay }}
         </span>
         <span v-if="hasDiscount" class="product-stock product-discount">
@@ -78,7 +80,7 @@
             class="seller-avatar"
           />
           <span class="seller-name">{{ product.seller_username || '匿名' }}</span>
-          <span v-if="isCdk && soldCount > 0" class="sold-count">已售{{ soldCount }}</span>
+          <span v-if="isPlatformOrder && soldCount > 0" class="sold-count">已售{{ soldCount }}</span>
         </template>
       </div>
       
@@ -103,6 +105,17 @@ import { ref, computed } from 'vue'
 import AvatarImage from '@/components/common/AvatarImage.vue'
 import { formatRelativeTime, formatPrice } from '@/utils/format'
 import { buildAvatarCandidates } from '@/utils/avatar'
+import {
+  getAvailableStock,
+  getStockDisplay,
+  isCdkProduct,
+  isLegacyLinkProduct,
+  isNormalProduct,
+  isOutOfStock as isProductOutOfStock,
+  isPlatformOrderProduct,
+  isStoreProduct,
+  isUnlimitedStock
+} from '@/utils/shopProduct'
 
 const props = defineProps({
   product: {
@@ -215,9 +228,11 @@ function handleMouseLeave() {
 }
 
 // 商品类型
-const productType = computed(() => props.product.product_type || 'link')
-const isCdk = computed(() => productType.value === 'cdk')
-const isStore = computed(() => productType.value === 'store')
+const isCdk = computed(() => isCdkProduct(props.product))
+const isNormal = computed(() => isNormalProduct(props.product))
+const isStore = computed(() => isStoreProduct(props.product))
+const isLegacyLink = computed(() => isLegacyLinkProduct(props.product))
+const isPlatformOrder = computed(() => isPlatformOrderProduct(props.product))
 const isTestMode = computed(() => !!props.product.is_test_mode || !!props.product.isTestMode)
 const showFeaturedBadge = computed(() => !!props.product.is_pinned && !!props.product.pin_is_paid)
 const featuredPinType = computed(() => {
@@ -253,11 +268,6 @@ const hasDiscount = computed(() => discount.value < 1)
 const discountFoldLabel = computed(() => `${Number((discount.value * 10).toFixed(1))}折`)
 const finalPrice = computed(() => formatPrice(price.value * discount.value))
 const originalPrice = computed(() => formatPrice(price.value))
-
-function toSafeInt(value, fallback = 0) {
-  const parsed = Number.parseInt(value, 10)
-  return Number.isFinite(parsed) ? parsed : fallback
-}
 
 function getAnimationSeed(value) {
   const raw = String(value ?? '')
@@ -346,58 +356,20 @@ function getCardShadowConfig() {
 }
 
 // 库存
-const stock = computed(() => toSafeInt(props.product.stock, 0))
-const cdkAvailableStock = computed(() => {
-  if (props.product.availableStock !== undefined && props.product.availableStock !== null && props.product.availableStock !== '') {
-    return Math.max(0, toSafeInt(props.product.availableStock, 0))
-  }
-  if (props.product.cdkStats?.available !== undefined && props.product.cdkStats?.available !== null) {
-    return Math.max(0, toSafeInt(props.product.cdkStats.available, 0))
-  }
-  return null
-})
-const cdkTotalStock = computed(() => {
-  if (props.product.cdkStats?.total !== undefined && props.product.cdkStats?.total !== null) {
-    return Math.max(0, toSafeInt(props.product.cdkStats.total, 0))
-  }
-  return null
-})
-const isUnlimitedStock = computed(() => {
-  if (isCdk.value && (cdkAvailableStock.value !== null || cdkTotalStock.value !== null)) {
-    // CDK 商品如果返回了库存统计，优先以统计为准，避免 0 库存误显示为无限
-    return false
-  }
-  return stock.value === -1
-})
-const availableStock = computed(() => {
-  if (isCdk.value && cdkAvailableStock.value !== null) return cdkAvailableStock.value
-  if (isUnlimitedStock.value) return -1
-  return Math.max(0, stock.value)
-})
-const totalStock = computed(() => {
-  if (isCdk.value && cdkTotalStock.value !== null) return cdkTotalStock.value
-  if (availableStock.value === -1) return -1
-  return Math.max(0, stock.value)
-})
-const isOutOfStock = computed(() => 
-  isCdk.value && !isUnlimitedStock.value && availableStock.value <= 0
-)
+const availableStock = computed(() => getAvailableStock(props.product))
+const hasUnlimitedStock = computed(() => isUnlimitedStock(props.product))
+const isOutOfStock = computed(() => isProductOutOfStock(props.product))
 
 // 库存状态样式类
 // ≤0: out（售罄）, ≤2: danger（红色）, 3-5: warning（黄色）, >5: normal（绿色）
 const stockClass = computed(() => {
-  if (!isCdk.value || isUnlimitedStock.value) return 'normal' // 无限库存显示绿色
+  if (!isPlatformOrder.value || hasUnlimitedStock.value) return 'normal'
   if (availableStock.value <= 0) return 'out'
   if (availableStock.value <= 2) return 'danger'
   if (availableStock.value <= 5) return 'warning'
   return 'normal'
 })
-const stockDisplay = computed(() => {
-  if (isUnlimitedStock.value) return '∞'
-  // 如果库存是0，直接显示0，不显示无限符号
-  if (totalStock.value <= 0) return `${Math.max(0, availableStock.value)}`
-  return `${availableStock.value}/${totalStock.value}`
-})
+const stockDisplay = computed(() => getStockDisplay(props.product))
 
 // 销量
 const soldCount = computed(() => parseInt(props.product.sold_count) || 0)
@@ -593,6 +565,12 @@ function handleImageError(e) {
   box-shadow: 0 2px 6px rgba(139, 92, 246, 0.35);
 }
 
+.type-tag.normal {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.28);
+}
+
 .type-tag.test {
   background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
   color: white;
@@ -601,6 +579,11 @@ function handleImageError(e) {
 
 .type-tag.store {
   background: linear-gradient(135deg, #7d8d69 0%, #627151 100%);
+  color: white;
+}
+
+.type-tag.link {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   color: white;
 }
 
