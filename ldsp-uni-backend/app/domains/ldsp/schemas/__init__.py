@@ -1,1 +1,0 @@
-"""LDStatusPro schemas package."""

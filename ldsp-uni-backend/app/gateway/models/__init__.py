@@ -1,1 +1,0 @@
-"""Gateway models package."""

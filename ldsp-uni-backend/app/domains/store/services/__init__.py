@@ -1,1 +1,0 @@
-"""LD Store services package."""
