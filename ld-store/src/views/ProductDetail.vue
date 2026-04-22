@@ -690,25 +690,52 @@
             <h3>举报物品</h3>
             <button class="report-modal-close" @click="closeReportModal">&times;</button>
           </div>
-          <p class="report-modal-desc">请描述你遇到的问题（例如收款配置错误、测试模式未关闭、支付链接异常等）。</p>
-          <textarea
-            v-model="reportReason"
-            class="report-textarea"
-            maxlength="500"
-            placeholder="请填写举报原因（5-500字）"
-          ></textarea>
-          <div class="report-quick-list">
-            <button
-              v-for="item in quickReportReasons"
-              :key="item"
-              class="report-quick-item"
-              @click="applyQuickReason(item)"
-            >
-              {{ item }}
-            </button>
+          <p class="report-modal-desc">请选择问题分类，并描述你遇到的情况。</p>
+          <div class="report-form-card">
+            <div class="report-select-wrap">
+              <label class="report-field-label">问题分类</label>
+              <div class="report-select-shell">
+                <select
+                  v-model="reportCategory"
+                  class="report-select"
+                >
+                  <option
+                    v-for="item in reportCategoryOptions"
+                    :key="item.value"
+                    :value="item.value"
+                  >
+                    {{ item.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+            <div class="report-textarea-wrap">
+              <label class="report-field-label">详细说明</label>
+              <textarea
+                v-model="reportReason"
+                class="report-textarea"
+                maxlength="500"
+                placeholder="请填写举报原因（5-500字）"
+              ></textarea>
+            </div>
+          </div>
+          <div class="report-quick-section">
+            <div class="report-quick-title">常见问题</div>
+            <div class="report-quick-list">
+              <button
+                v-for="item in quickReportReasons"
+                :key="item.text"
+                class="report-quick-item"
+                @click="applyQuickReason(item)"
+              >
+                {{ item.text }}
+              </button>
+            </div>
           </div>
           <div class="report-modal-footer">
-            <span class="report-count">{{ reportReason.trim().length }}/500</span>
+            <span class="report-count" :class="{ 'is-invalid': reportReason.trim().length > 0 && reportReason.trim().length < 5 }">
+              {{ reportReason.trim().length < 5 ? '至少填写 5 个字' : '内容长度符合要求' }} · {{ reportReason.trim().length }}/500
+            </span>
             <div class="report-actions">
               <button class="report-cancel-btn" @click="closeReportModal">取消</button>
               <button
@@ -735,14 +762,21 @@
             <button class="report-modal-close" @click="closeCommentReportModal">&times;</button>
           </div>
           <p class="report-modal-desc">请描述该评论存在的问题，管理员会尽快处理。</p>
-          <textarea
-            v-model="commentReportReason"
-            class="report-textarea"
-            maxlength="500"
-            placeholder="请填写举报原因（5-500字）"
-          ></textarea>
+          <div class="report-form-card">
+            <div class="report-textarea-wrap">
+              <label class="report-field-label">详细说明</label>
+              <textarea
+                v-model="commentReportReason"
+                class="report-textarea"
+                maxlength="500"
+                placeholder="请填写举报原因（5-500字）"
+              ></textarea>
+            </div>
+          </div>
           <div class="report-modal-footer">
-            <span class="report-count">{{ commentReportReason.trim().length }}/500</span>
+            <span class="report-count" :class="{ 'is-invalid': commentReportReason.trim().length > 0 && commentReportReason.trim().length < 5 }">
+              {{ commentReportReason.trim().length < 5 ? '至少填写 5 个字' : '内容长度符合要求' }} · {{ commentReportReason.trim().length }}/500
+            </span>
             <div class="report-actions">
               <button class="report-cancel-btn" @click="closeCommentReportModal">取消</button>
               <button
@@ -807,6 +841,7 @@ const purchasing = ref(false)
 const showImagePreview = ref(false)
 const showReportModal = ref(false)
 const reportReason = ref('')
+const reportCategory = ref('payment_config_issue')
 const reportSubmitting = ref(false)
 const favoriteSubmitting = ref(false)
 const selectedQuantity = ref(1)
@@ -857,11 +892,20 @@ const COMMENT_VOTE_DOWN = 'down'
 const COMMENT_PUBLIC_STATUS_SET = new Set(['ai_approved', 'manual_approved'])
 
 const quickReportReasons = [
-  '收款配置缺失，无法生成支付链接',
-  '商品仍处于测试模式，无法正常购买',
-  '平台支付配置异常，无法创建订单',
-  '价格或描述与实际不符',
-  '疑似无法交付或存在欺诈风险'
+  { text: '收款配置缺失，无法生成支付链接', category: 'payment_config_issue' },
+  { text: '商品仍处于测试模式，无法正常购买', category: 'test_mode_issue' },
+  { text: '平台支付配置异常，无法创建订单', category: 'purchase_flow_issue' },
+  { text: '价格或描述与实际不符', category: 'content_mismatch' },
+  { text: '疑似无法交付或存在欺诈风险', category: 'fraud_risk' }
+]
+
+const reportCategoryOptions = [
+  { value: 'payment_config_issue', label: '收款配置异常' },
+  { value: 'test_mode_issue', label: '测试模式问题' },
+  { value: 'purchase_flow_issue', label: '购买流程异常' },
+  { value: 'content_mismatch', label: '内容不符' },
+  { value: 'fraud_risk', label: '欺诈风险' },
+  { value: 'other', label: '其他' }
 ]
 
 // 物品类型
@@ -2001,10 +2045,18 @@ async function openReportModal() {
 function closeReportModal() {
   showReportModal.value = false
   reportReason.value = ''
+  reportCategory.value = 'payment_config_issue'
   syncModalState()
 }
 
-function applyQuickReason(text) {
+function applyQuickReason(item) {
+  const text = String(item?.text || '').trim()
+  if (!text) return
+
+  if (item?.category) {
+    reportCategory.value = item.category
+  }
+
   const current = reportReason.value.trim()
   if (!current) {
     reportReason.value = text
@@ -2024,12 +2076,33 @@ async function submitReport() {
     return
   }
 
+  if (!reportCategory.value) {
+    toast.error('请选择举报分类')
+    return
+  }
+
   reportSubmitting.value = true
   try {
-    const result = await shopStore.reportProduct(product.value.id, reason)
+    const result = await shopStore.reportProduct(product.value.id, {
+      reason,
+      reportCategory: reportCategory.value
+    })
     if (result?.success) {
       toast.success('举报已提交，感谢反馈')
       closeReportModal()
+      return
+    }
+    const code = result?.error?.code || result?.code || ''
+    if (code === 'DUPLICATE_REPORT') {
+      toast.error('你已举报过该商品，平台正在处理中')
+      return
+    }
+    if (code === 'REPORT_RATE_LIMITED') {
+      toast.error('举报过于频繁，请稍后再试')
+      return
+    }
+    if (code === 'SIMILAR_REPORT_REJECTED') {
+      toast.error('请勿重复提交相似举报，平台会尽快处理')
       return
     }
     const message = typeof result?.error === 'object'
@@ -2225,7 +2298,6 @@ async function handleOpenStore() {
 <style scoped>
 .detail-page {
   min-height: 100vh;
-  background: var(--bg-primary);
 }
 
 .page-container {
@@ -2538,15 +2610,15 @@ async function handleOpenStore() {
   padding: 16px;
 }
 
-.report-modal {
+ .report-modal {
   width: min(640px, 96vw);
   max-height: 90vh;
   overflow: auto;
   background: var(--bg-card);
-  border-radius: 16px;
-  border: 1px solid var(--border-light);
-  box-shadow: var(--shadow-md);
-  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--border-light) 75%, transparent);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+  padding: 20px;
 }
 
 .report-modal-header {
@@ -2558,103 +2630,264 @@ async function handleOpenStore() {
 
 .report-modal-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   color: var(--text-primary);
 }
 
 .report-modal-close {
-  width: 34px;
-  height: 34px;
-  border: none;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-light);
   border-radius: 50%;
   background: var(--bg-secondary);
   color: var(--text-secondary);
   font-size: 22px;
   cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.report-modal-close:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .report-modal-desc {
-  margin: 10px 0;
+  margin: 12px 0 16px;
   color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.7;
 }
 
-.report-textarea {
-  width: 100%;
-  min-height: 120px;
-  resize: vertical;
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border-light);
-  background: var(--bg-primary);
+.report-form-card {
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--border-light) 80%, transparent);
+  border-radius: 16px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 92%, white 8%) 0%, var(--bg-primary) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.report-field-label {
+  display: block;
+  margin-bottom: 8px;
   color: var(--text-primary);
   font-size: 14px;
-  line-height: 1.6;
+  font-weight: 600;
+}
+
+.report-select-wrap {
+  margin-bottom: 14px;
+}
+
+.report-textarea-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.report-select-shell {
+  position: relative;
+}
+
+.report-select-shell::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-tertiary);
+  border-bottom: 2px solid var(--text-tertiary);
+  transform: translateY(-65%) rotate(45deg);
+  pointer-events: none;
+}
+
+.report-select {
+  width: 100%;
+  padding: 12px 40px 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-primary) 100%);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.report-select:hover {
+  border-color: color-mix(in srgb, var(--color-primary, #b91c1c) 35%, var(--border-light));
+}
+
+.report-select:focus {
+  outline: none;
+  border-color: var(--color-primary, #b91c1c);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary, #b91c1c) 18%, transparent);
+}
+
+.report-textarea {
+  width: 100%;
+  min-height: 136px;
+  resize: vertical;
+  padding: 14px 15px;
+  border-radius: 14px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.7;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.report-textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+.report-textarea:hover {
+  border-color: color-mix(in srgb, var(--color-primary, #b91c1c) 24%, var(--border-light));
+}
+
+.report-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary, #b91c1c);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary, #b91c1c) 14%, transparent);
+}
+
+.report-quick-section {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-secondary) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-light) 70%, transparent);
+}
+
+.report-quick-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .report-quick-list {
-  margin-top: 12px;
+  margin-top: 10px;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .report-quick-item {
-  border: 1px solid var(--border-light);
+  border: 1px solid color-mix(in srgb, var(--border-light) 75%, transparent);
   border-radius: 999px;
-  background: var(--bg-secondary);
+  background: var(--bg-card);
   color: var(--text-secondary);
-  padding: 6px 10px;
+  padding: 8px 12px;
   font-size: 12px;
+  line-height: 1.4;
   cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .report-quick-item:hover {
-  background: var(--bg-tertiary);
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--color-primary, #b91c1c) 28%, var(--border-light));
+  background: color-mix(in srgb, var(--color-primary, #b91c1c) 8%, var(--bg-card));
+  color: var(--text-primary);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
 
 .report-modal-footer {
-  margin-top: 12px;
+  margin-top: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--border-light) 78%, transparent);
 }
 
 .report-count {
   color: var(--text-tertiary);
   font-size: 12px;
+  line-height: 1.6;
+}
+
+.report-count.is-invalid {
+  color: #b91c1c;
 }
 
 .report-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .report-cancel-btn,
 .report-submit-btn {
-  border: none;
-  border-radius: 10px;
-  padding: 9px 14px;
+  min-width: 92px;
+  border-radius: 12px;
+  padding: 10px 16px;
   font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease, opacity 0.2s ease;
 }
 
 .report-cancel-btn {
+  border: 1px solid var(--border-light);
   background: var(--bg-secondary);
   color: var(--text-secondary);
 }
 
+.report-cancel-btn:hover {
+  transform: translateY(-1px);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
 .report-submit-btn {
-  background: #b91c1c;
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
   color: #fff;
+  box-shadow: 0 10px 24px rgba(185, 28, 28, 0.24);
+}
+
+.report-submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(185, 28, 28, 0.28);
 }
 
 .report-submit-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .report-modal {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .report-form-card,
+  .report-quick-section {
+    padding: 14px;
+  }
+
+  .report-modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .report-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .report-cancel-btn,
+  .report-submit-btn {
+    flex: 1;
+  }
 }
 
 /* 没有图片时使用正方形占位 */

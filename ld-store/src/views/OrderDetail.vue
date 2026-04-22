@@ -127,6 +127,7 @@
                 {{ showCdk ? '🙈' : '👁️' }}
               </button>
               <button class="icon-btn" @click="copyCdk">📋</button>
+              <button class="icon-btn" @click="downloadCdk">💾</button>
             </div>
           </div>
         </div>
@@ -511,6 +512,26 @@ function copyCdk() {
   }
 }
 
+function downloadCdk() {
+  const lines = getDeliveryList(order.value)
+  if (!lines.length) {
+    toast.error('暂无可导出的 CDK')
+    return
+  }
+
+  const orderNo = String(order.value?.order_no || order.value?.orderNo || order.value?.id || 'order').trim()
+  const blob = new Blob([`${lines.join('\n')}\n`], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${orderNo}-cdk.txt`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+  toast.success('CDK 已导出为 TXT')
+}
+
 function extractErrorMessage(result, fallback) {
   if (typeof result?.error === 'string') return result.error
   if (result?.error?.message) return result.error.message
@@ -641,7 +662,6 @@ onUnmounted(() => {
 .order-detail-page {
   min-height: 100vh;
   padding-bottom: 100px;
-  background: var(--bg-primary);
 }
 
 .page-container {

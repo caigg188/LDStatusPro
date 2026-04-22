@@ -95,13 +95,6 @@
         </a>
       </div>
       
-      <!-- 访问统计（桌面端显示，移动端隐藏但保留用于不蒜子更新） -->
-      <div class="header-visits" :class="{ 'visually-hidden': isMobile }">
-        <span id="busuanzi_site_pv">-</span> 访问
-        <span class="visit-sep">·</span>
-        <span id="busuanzi_site_uv">-</span> 访客
-      </div>
-      
       <!-- 右侧操作区 -->
       <div class="header-actions">
         <!-- 主题切换 -->
@@ -117,12 +110,6 @@
             </svg>
           </button>
           <div v-show="showMoreMenu" class="more-menu">
-            <div class="more-menu-stats">
-              <span class="mobile-pv">-</span> 访问
-              <span class="visit-sep">·</span>
-              <span class="mobile-uv">-</span> 访客
-            </div>
-            <div class="more-menu-divider"></div>
             <router-link to="/docs" class="more-menu-item" @click="closeMoreMenu">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
@@ -306,6 +293,13 @@ const dropdownMenuGroups = computed(() => ([
       badge: sellerPendingDeliveryCount.value > 0 ? pendingDeliveryDisplay.value : ''
     },
     {
+      path: '/user/reports',
+      icon: '🚩',
+      label: '我的举报',
+      withUnread: false,
+      badge: ''
+    },
+    {
       path: '/user/products',
       icon: '📦',
       label: '我的物品',
@@ -391,10 +385,6 @@ function closeDropdown() {
 function toggleMoreMenu() {
   showMoreMenu.value = !showMoreMenu.value
   showDropdown.value = false
-  // 打开菜单时同步统计数据
-  if (showMoreMenu.value) {
-    setTimeout(syncBusuanziToMobile, 50)
-  }
 }
 
 function closeMoreMenu() {
@@ -499,23 +489,7 @@ function checkMobile() {
   }
 }
 
-// 同步不蒜子统计数据到移动端
-function syncBusuanziToMobile() {
-  const pvSource = document.getElementById('busuanzi_site_pv')
-  const uvSource = document.getElementById('busuanzi_site_uv')
-  const pvTargets = document.querySelectorAll('.mobile-pv')
-  const uvTargets = document.querySelectorAll('.mobile-uv')
-  
-  if (pvSource) {
-    pvTargets.forEach(el => el.textContent = pvSource.textContent)
-  }
-  if (uvSource) {
-    uvTargets.forEach(el => el.textContent = uvSource.textContent)
-  }
-}
-
-let busuanziObserver = null
-async function fetchMessageUnread(force = false) {
+async function updateMessageUnread(force = false) {
   if (!isLoggedIn.value) {
     messageUnread.value = 0
     sellerPendingDeliveryCount.value = 0
@@ -541,7 +515,7 @@ function startMessageUnreadPolling() {
     return
   }
   messageUnreadTimer = setInterval(() => {
-    fetchMessageUnread()
+    updateMessageUnread()
   }, 10000)
 }
 
@@ -554,40 +528,30 @@ function stopMessageUnreadPolling() {
 
 function handleVisibilityChange() {
   if (document.visibilityState === 'visible' && shouldPollMessageUnread.value) {
-    fetchMessageUnread(true)
+    updateMessageUnread(true)
   }
 }
 
 onMounted(() => {
   loadSearchHistory()
   checkMobile()
-  fetchMessageUnread(true)
+  updateMessageUnread(true)
   startMessageUnreadPolling()
   window.addEventListener('resize', checkMobile)
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('visibilitychange', handleVisibilityChange)
-  
-  // 监听桌面端不蒜子元素变化，同步到移动端
-  const pvElement = document.getElementById('busuanzi_site_pv')
-  if (pvElement) {
-    busuanziObserver = new MutationObserver(syncBusuanziToMobile)
-    busuanziObserver.observe(pvElement, { childList: true, characterData: true, subtree: true })
-  }
-  // 延迟初始同步
-  setTimeout(syncBusuanziToMobile, 1500)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
   document.removeEventListener('click', handleClickOutside)
   document.removeEventListener('visibilitychange', handleVisibilityChange)
-  busuanziObserver?.disconnect()
   stopMessageUnreadPolling()
 })
 
 watch(isLoggedIn, (loggedIn) => {
   if (loggedIn) {
-    fetchMessageUnread(true)
+    updateMessageUnread(true)
     startMessageUnreadPolling()
   } else {
     stopMessageUnreadPolling()
@@ -600,7 +564,7 @@ watch(
   () => route.name,
   () => {
     if (shouldPollMessageUnread.value) {
-      fetchMessageUnread(true)
+      updateMessageUnread(true)
       startMessageUnreadPolling()
       return
     }
@@ -827,32 +791,6 @@ watch(
 .github-btn:hover {
   background: var(--bg-tertiary);
   color: var(--text-primary);
-}
-
-.header-visits {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.header-visits.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.header-visits .visit-sep {
-  color: var(--text-tertiary);
-  margin: 0 2px;
 }
 
 .header-actions {
@@ -1146,18 +1084,6 @@ watch(
   padding: 8px;
   z-index: 1000;
   border: 1px solid var(--border-light);
-}
-
-.more-menu-stats {
-  padding: 10px 12px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-.more-menu-stats .visit-sep {
-  margin: 0 6px;
-  color: var(--text-muted);
 }
 
 .more-menu-divider {

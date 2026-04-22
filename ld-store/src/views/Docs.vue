@@ -213,7 +213,6 @@ onUnmounted(() => {
 <style scoped>
 .docs-page {
   min-height: 100vh;
-  background: var(--bg-primary);
 }
 
 .docs-container {

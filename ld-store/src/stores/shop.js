@@ -16,6 +16,8 @@ import {
   fetchProductsRequest,
   fetchPublicStatsRequest,
   fetchUserDashboardRequest,
+  fetchMyReportsRequest,
+  fetchMyReportDetailRequest,
   getProductRestockSubscriptionStatusRequest,
   normalizeFavoritesOptions,
   removeFavoriteRequest,
@@ -410,8 +412,16 @@ export const useShopStore = defineStore('shop', () => {
     }
   }
 
-  async function reportProduct(id, reason) {
-    return reportProductRequest(id, reason)
+  async function reportProduct(id, payload) {
+    return reportProductRequest(id, payload)
+  }
+
+  async function fetchMyReports(options = {}) {
+    return fetchMyReportsRequest(options)
+  }
+
+  async function fetchMyReportDetail(id) {
+    return fetchMyReportDetailRequest(id)
   }
 
   async function fetchProductComments(productId, options = {}) {
@@ -907,6 +917,8 @@ export const useShopStore = defineStore('shop', () => {
     fetchProductDetail,
     fetchMerchantProfile,
     reportProduct,
+    fetchMyReports,
+    fetchMyReportDetail,
     fetchProductComments,
     createProductComment,
     deleteProductComment,

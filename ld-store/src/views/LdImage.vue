@@ -711,7 +711,6 @@ onMounted(() => {
 .ld-image-page {
   min-height: 100vh;
   padding-bottom: 40px;
-  background: var(--bg-primary);
 }
 
 .page-container {

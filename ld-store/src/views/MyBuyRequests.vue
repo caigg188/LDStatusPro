@@ -71,14 +71,14 @@
           <div class="card-actions">
             <button class="action-btn primary" @click="openDetail(item.id)">查看详情</button>
             <button
-              v-if="item.status !== 'closed'"
+              v-if="['pending_review', 'open', 'negotiating', 'matched'].includes(item.status)"
               class="action-btn danger"
               @click="updateStatus(item, 'closed')"
             >
               关闭求购
             </button>
             <button
-              v-else
+              v-else-if="item.status === 'closed'"
               class="action-btn"
               @click="updateStatus(item, 'open')"
             >
@@ -184,7 +184,6 @@ onMounted(loadRequests)
 .my-buy-requests-page {
   min-height: 100vh;
   padding-bottom: 80px;
-  background: var(--bg-primary);
 }
 
 .page-container {

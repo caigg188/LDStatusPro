@@ -167,7 +167,6 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-primary);
 }
 
 .callback-container {

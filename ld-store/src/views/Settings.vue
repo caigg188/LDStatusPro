@@ -337,7 +337,6 @@ onMounted(() => {
 
   min-height: 100vh;
   padding-bottom: 80px;
-  background: var(--bg-primary);
 }
 
 html.dark .settings-page {

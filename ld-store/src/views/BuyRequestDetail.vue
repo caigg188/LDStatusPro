@@ -33,7 +33,7 @@
           </div>
 
           <div v-if="viewerRole === 'requester'" class="owner-actions">
-            <div class="price-adjust">
+            <div v-if="requestDetailState?.canAdjustPrice" class="price-adjust">
               <input
                 v-model="adjustPrice"
                 type="number"
@@ -48,7 +48,7 @@
             </div>
             <div class="status-actions">
               <button
-                v-if="requestData.status !== 'closed'"
+                v-if="requestDetailState?.canClose"
                 class="small-btn danger"
                 :disabled="updatingRequestStatus"
                 @click="updateRequestStatus('closed')"
@@ -56,7 +56,7 @@
                 关闭求购
               </button>
               <button
-                v-else
+                v-else-if="requestData.status === 'closed'"
                 class="small-btn"
                 :disabled="updatingRequestStatus"
                 @click="updateRequestStatus('open')"
@@ -159,14 +159,6 @@
                 @click="closeSession"
               >
                 关闭会话
-              </button>
-              <button
-                v-if="canReopenSession"
-                class="small-btn"
-                :disabled="actionLoading"
-                @click="reopenSession"
-              >
-                重新开启会话
               </button>
             </div>
           </div>
@@ -289,14 +281,6 @@ const activeSession = computed(() => {
   return sessions.value.find(item => item.id === activeSessionId.value) || null
 })
 
-const canReopenSession = computed(() => {
-  const session = activeSession.value
-  const request = requestData.value
-  if (!session || !request) return false
-  if (!['closed', 'cancelled'].includes(session.status)) return false
-  return !['closed', 'blocked', 'pending_review'].includes(request.status)
-})
-
 function statusText(status) {
   const map = {
     pending_review: '待审核',
@@ -312,8 +296,8 @@ function statusText(status) {
 function sessionStatusText(status) {
   const map = {
     negotiating: '洽谈中',
-    paid_pending_confirm: '待确认',
-    paid: '已确认',
+    paid_pending_confirm: '已支付',
+    paid: '已支付',
     closed: '已关闭',
     cancelled: '已取消'
   }
@@ -837,29 +821,6 @@ async function closeSession() {
     await loadMessages(false)
   } catch (error) {
     toast.error(error.message || '关闭失败')
-  } finally {
-    actionLoading.value = false
-  }
-}
-
-async function reopenSession() {
-  if (actionLoading.value) return
-  if (!activeSessionId.value) return
-  const confirmed = await dialog.confirm('确定重新开启当前会话吗？', { title: '重新开启会话' })
-  if (!confirmed) return
-
-  actionLoading.value = true
-  try {
-    const result = await api.post(`/api/shop/buy-sessions/${activeSessionId.value}/reopen`, {})
-    if (!result.success) {
-      toast.error(result.error || '重新开启失败')
-      return
-    }
-    toast.success('会话已重新开启')
-    await loadDetail(false)
-    await loadMessages(true)
-  } catch (error) {
-    toast.error(error.message || '重新开启失败')
   } finally {
     actionLoading.value = false
   }

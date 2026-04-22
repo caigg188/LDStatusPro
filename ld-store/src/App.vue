@@ -2,10 +2,12 @@
   <div class="app-container min-h-screen">
     <!-- 涂鸦背景 -->
     <DoodleBackground v-if="showDecorativeShell" :isVisible="showDoodleBg" />
-    
+
     <!-- 顶部导航栏 -->
-    <AppHeader v-if="!isMaintenanceRoute" />
-    
+    <AppHeader v-if="showHeader" />
+    <AnnouncementBar v-if="showAnnouncementBar" />
+    <AnnouncementPopup v-if="showAnnouncementBar" />
+
     <!-- 主内容区域 -->
     <main class="main-content">
       <section
@@ -32,7 +34,7 @@
           </a>
         </div>
       </section>
-      <router-view v-if="!hideRouteContent" v-slot="{ Component, route }">
+      <router-view v-if="showRouterView" v-slot="{ Component, route }">
         <transition name="fade" mode="out-in">
           <keep-alive :include="cachedViews">
             <component :is="Component" :key="route.path" />
@@ -40,19 +42,19 @@
         </transition>
       </router-view>
     </main>
-    
+
     <!-- 底部导航栏（移动端） -->
     <AppFooter v-if="showDecorativeShell" />
-    
+
     <!-- 涂鸦背景开关 -->
     <CornerActionMenu v-if="showDecorativeShell" v-model="showDoodleBg" />
-    
+
     <!-- 全局消息提示 -->
     <Toast v-if="!isMaintenanceRoute" />
-    
+
     <!-- 全局对话框 -->
     <Dialog v-if="!isMaintenanceRoute" />
-    
+
     <!-- 全局加载遮罩 -->
     <LoadingOverlay v-if="!isMaintenanceRoute" />
   </div>
@@ -63,7 +65,10 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { initTheme } from '@/composables/useTheme'
+import { useAnnouncement } from '@/composables/useAnnouncement'
 import AppHeader from '@/components/layout/AppHeader.vue'
+import AnnouncementBar from '@/components/common/AnnouncementBar.vue'
+import AnnouncementPopup from '@/components/common/AnnouncementPopup.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import Toast from '@/components/common/Toast.vue'
 import Dialog from '@/components/common/Dialog.vue'
@@ -79,6 +84,7 @@ import {
 
 const route = useRoute()
 const userStore = useUserStore()
+const { announcementLoaded, fetchAnnouncements } = useAnnouncement()
 const isMaintenanceRoute = computed(() => route.name === 'Maintenance')
 const isRestrictedHomeRoute = computed(() => (
   isRestrictedMaintenanceMode() && route.name === 'Home'
@@ -88,6 +94,13 @@ const showRestrictedMaintenanceBanner = computed(() =>
 )
 const hideRouteContent = computed(() => isRestrictedHomeRoute.value)
 const showDecorativeShell = computed(() => !isMaintenanceRoute.value && !isRestrictedHomeRoute.value)
+const showHeader = computed(() => !isMaintenanceRoute.value && userStore.sessionReady)
+const showAnnouncementBar = computed(() => (
+  !isMaintenanceRoute.value
+  && !isRestrictedHomeRoute.value
+  && announcementLoaded.value
+))
+const showRouterView = computed(() => !hideRouteContent.value && userStore.sessionReady)
 
 // 需要缓存的页面组件名称
 // Home = 首页(物品广场), Category = 分类页(小店集市等)
@@ -129,6 +142,9 @@ onMounted(async () => {
   // 全站维护时直接展示公告页，避免触发额外初始化链路
   if (!isFullMaintenanceMode()) {
     await userStore.restoreSession()
+    await fetchAnnouncements().catch(() => [])
+  } else {
+    userStore.sessionReady = true
   }
 })
 </script>

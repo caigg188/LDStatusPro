@@ -1014,7 +1014,6 @@ onMounted(async () => {
   min-height: 100vh;
   padding: 24px 0 72px;
   color-scheme: light;
-  background: linear-gradient(180deg, #f8f2e7 0%, #f1e9dd 100%);
   --services-panel-border: var(--glass-border-light);
   --services-panel-bg:
     radial-gradient(circle at top left, rgba(255, 220, 145, 0.35), transparent 42%),
@@ -1087,7 +1086,6 @@ onMounted(async () => {
 
 :global(html.dark .merchant-services-page) {
   color-scheme: dark;
-  background: linear-gradient(180deg, #15120e 0%, #0e0b08 100%);
   --services-panel-border: rgba(255, 236, 196, 0.08);
   --services-panel-bg:
     radial-gradient(circle at top left, rgba(218, 164, 61, 0.18), transparent 42%),

@@ -72,6 +72,18 @@ const routes = [
     meta: { title: '求购订单详情 - LD士多', requiresAuth: true }
   },
   {
+    path: '/user/reports',
+    name: 'MyReports',
+    component: () => import('@/views/MyReports.vue'),
+    meta: { title: '我的举报 - LD士多', requiresAuth: true }
+  },
+  {
+    path: '/user/reports/:id',
+    name: 'MyReportDetail',
+    component: () => import('@/views/MyReportDetail.vue'),
+    meta: { title: '举报详情 - LD士多', requiresAuth: true }
+  },
+  {
     path: '/user/products',
     name: 'MyProducts',
     component: () => import('@/views/MyProducts.vue'),

@@ -50,6 +50,7 @@ export const useUserStore = defineStore('user', () => {
   const user = ref(null)
   const loading = ref(false)
   const ldcInfo = ref(null)
+  const sessionReady = ref(false)
 
   // 计算属性
   const tokenPayload = computed(() => parseJwtPayload(token.value))
@@ -84,6 +85,10 @@ export const useUserStore = defineStore('user', () => {
     return Number.isInteger(parsed) ? parsed : null
   })
 
+  function markSessionReady() {
+    sessionReady.value = true
+  }
+
   // 恢复会话
   async function restoreSession() {
     const savedToken = storage.get('token')
@@ -91,23 +96,27 @@ export const useUserStore = defineStore('user', () => {
 
     if (!savedToken) {
       if (savedUser) logout()
+      markSessionReady()
       return false
     }
 
     if (isTokenExpired(savedToken)) {
       logout()
+      markSessionReady()
       return false
     }
 
     const hydratedUser = normalizeAuthUser(savedUser, parseJwtPayload(savedToken))
     if (!hydratedUser) {
       logout()
+      markSessionReady()
       return false
     }
 
     token.value = savedToken
     user.value = hydratedUser
     storage.set('user', hydratedUser)
+    markSessionReady()
     return true
   }
 
@@ -123,6 +132,7 @@ export const useUserStore = defineStore('user', () => {
     user.value = hydratedUser
     storage.set('token', authToken)
     storage.set('user', hydratedUser)
+    markSessionReady()
     return true
   }
 
@@ -130,6 +140,7 @@ export const useUserStore = defineStore('user', () => {
   function logout() {
     token.value = null
     user.value = null
+    sessionReady.value = true
     storage.remove('token')
     storage.remove('user')
   }
@@ -160,6 +171,7 @@ export const useUserStore = defineStore('user', () => {
     user,
     loading,
     ldcInfo,
+    sessionReady,
     // 计算属性
     isLoggedIn,
     username,
@@ -175,3 +187,4 @@ export const useUserStore = defineStore('user', () => {
     fetchLdcInfo
   }
 })
+

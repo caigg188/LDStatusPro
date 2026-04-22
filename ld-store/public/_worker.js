@@ -1,7 +1,7 @@
-const DEFAULT_SITE_URL = 'https://ldstore.cc.cd/'
+const DEFAULT_SITE_URL = 'https://ldcstore.com/'
 const DEFAULT_API_BASE = 'https://api2.ldspro.qzz.io'
 const DEFAULT_OG_IMAGE = 'https://img.ldspro.qzz.io/JackyLiii/20260123_og-image_9zs1sl.png'
-const DEFAULT_LEGACY_HOSTS = ['ldst0re.qzz.io']
+const DEFAULT_LEGACY_HOSTS = ['ldstore.cc.cd', 'ldst0re.qzz.io']
 const DEFAULT_TITLE = 'LD士多-LinuxDo站点积分兑换中心'
 const DEFAULT_DESCRIPTION = '在 LD士多 使用 Linux.do 社区积分兑换精选虚拟物品与服务。'
 
@@ -82,7 +82,7 @@ function getDefaultMetadata(url, env) {
     imageAlt: DEFAULT_TITLE,
     locale: 'zh_CN',
     twitterCard: 'summary_large_image',
-    cacheControl: 'public, max-age=300'
+    cacheControl: 'no-store, no-cache, must-revalidate'
   }
 }
 
@@ -299,14 +299,14 @@ async function resolvePageMetadata(url, env) {
     return mergeMetadata(baseMeta, {
       title: staticTitle,
       imageAlt: staticTitle,
-      cacheControl: 'public, max-age=600'
+      cacheControl: 'no-store, no-cache, must-revalidate'
     })
   }
 
   return mergeMetadata(baseMeta, {
     title: '页面未找到 - LD士多',
     imageAlt: '页面未找到 - LD士多',
-    cacheControl: 'public, max-age=120'
+    cacheControl: 'no-store, no-cache, must-revalidate'
   })
 }
 

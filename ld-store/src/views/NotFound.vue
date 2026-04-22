@@ -47,7 +47,6 @@ function goBack() {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: var(--bg-primary);
 }
 
 .content {

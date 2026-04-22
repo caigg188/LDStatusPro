@@ -297,8 +297,7 @@ const buyRoleOptions = [
 
 const sessionStatusOptions = [
   { value: 'negotiating', label: '洽谈中' },
-  { value: 'paid_pending_confirm', label: '待确认' },
-  { value: 'paid', label: '已确认' },
+  { value: 'paid', label: '已支付' },
   { value: 'closed', label: '已关闭' },
   { value: 'cancelled', label: '已取消' }
 ]
@@ -586,7 +585,6 @@ onUnmounted(() => {
 .messages-page {
   min-height: 100vh;
   padding-bottom: 80px;
-  background: var(--bg-primary);
 }
 
 .page-container {

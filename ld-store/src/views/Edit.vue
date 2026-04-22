@@ -777,7 +777,6 @@ onMounted(async () => {
 .edit-page {
   min-height: 100vh;
   padding-bottom: 100px;
-  background: var(--bg-primary);
 }
 
 .page-container {

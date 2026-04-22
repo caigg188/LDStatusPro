@@ -12,7 +12,7 @@ const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.DEV ? '' : 'h
 const STATUS_CACHE_MS = 60_000
 
 // Frontend fallback profile used before backend status is fetched.
-const TEMPORARY_MAINTENANCE_ENABLED = true
+const TEMPORARY_MAINTENANCE_ENABLED = false
 
 const DEFAULT_STATUS_URL = 'https://status.ldspro.qzz.io/'
 const DEFAULT_ETA = '恢复时间待定，请关注状态页或稍后刷新页面。'
@@ -132,7 +132,7 @@ const REQUEST_RULES = [
   { feature: 'buyRequestTrade', methods: ['PUT'], test: (path) => /^\/api\/shop\/buy-requests\/[^/]+$/.test(path) },
   { feature: 'buyRequestTrade', methods: ['POST'], test: (path) => /^\/api\/shop\/buy-requests\/[^/]+\/(price|status|sessions)$/.test(path) },
   { feature: 'buyRequestChatWrite', methods: ['POST'], test: (path) => /^\/api\/shop\/buy-sessions\/[^/]+\/messages$/.test(path) },
-  { feature: 'buyRequestTrade', methods: ['POST'], test: (path) => /^\/api\/shop\/buy-sessions\/[^/]+\/(payment|mark-paid|confirm-paid|close|reopen)$/.test(path) },
+  { feature: 'buyRequestTrade', methods: ['POST'], test: (path) => /^\/api\/shop\/buy-sessions\/[^/]+\/(payment|mark-paid|confirm-paid|close)$/.test(path) },
   { feature: 'orderPayment', methods: ['GET'], test: (path) => /^\/api\/shop\/buy-orders\/[^/]+\/payment-url$/.test(path) },
   { feature: 'orderPayment', methods: ['POST'], test: (path) => /^\/api\/shop\/buy-orders\/[^/]+\/refresh$/.test(path) },
   { feature: 'topServicePurchase', methods: ['POST'], test: (path) => path === '/api/shop/top-service/orders' },
@@ -227,7 +227,7 @@ function normalizePath(input) {
   }
 }
 
-const maintenanceState = reactive(normalizeStatusPayload({ mode: resolveFallbackMode() }))
+const maintenanceState = reactive(normalizeStatusPayload({ mode: MAINTENANCE_MODES.NORMAL }))
 
 let fetchPromise = null
 let lastFetchedAt = 0

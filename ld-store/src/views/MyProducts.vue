@@ -169,11 +169,14 @@
           <!-- CDK 筛选和操作 -->
           <div class="cdk-filter">
             <select v-model="cdkStatusFilter" class="filter-select" @change="loadCdkList">
+              <option value="available">可用</option>
               <option value="">全部状态</option>
               <option value="locked">锁定</option>
-              <option value="available">可用</option>
               <option value="sold">已售</option>
             </select>
+            <button class="export-btn" @click="exportCdks" :disabled="exportingCdks || !currentProduct?.id">
+              {{ exportingCdks ? '导出中...' : '⬇️ 导出 TXT' }}
+            </button>
             <button
               class="clear-all-btn"
               @click="clearAllCdks"
@@ -245,6 +248,8 @@ import { isMaintenanceFeatureEnabled, isRestrictedMaintenanceMode } from '@/conf
 import { useToast } from '@/composables/useToast'
 import { useDialog } from '@/composables/useDialog'
 import EmptyState from '@/components/common/EmptyState.vue'
+import { api } from '@/utils/api'
+import { storage } from '@/utils/storage'
 import {
   getProductType as resolveProductType,
   getProductTypeIcon,
@@ -275,9 +280,10 @@ const cdkStats = ref({ total: 0, available: 0, locked: 0, sold: 0 })
 const newCdkText = ref('')
 const addingCdk = ref(false)
 const cdkLoading = ref(false)
-const cdkStatusFilter = ref('')
+const cdkStatusFilter = ref('available')
 const deletingCdkId = ref(null)
 const clearingAllCdks = ref(false)
+const exportingCdks = ref(false)
 const productAction = ref({ id: null, type: '' })
 const isRestrictedProductManagement = computed(() =>
   isRestrictedMaintenanceMode() && !isMaintenanceFeatureEnabled('productManage')
@@ -497,7 +503,7 @@ async function deleteProduct(product) {
 async function manageCdk(product) {
   currentProduct.value = product
   showCdkModal.value = true
-  cdkStatusFilter.value = ''
+  cdkStatusFilter.value = 'available'
   await loadCdkList()
 }
 
@@ -542,6 +548,56 @@ async function addCdks() {
     toast.error('添加 CDK 失败')
   } finally {
     addingCdk.value = false
+  }
+}
+
+async function exportCdks() {
+  if (!currentProduct.value?.id || exportingCdks.value) return
+
+  exportingCdks.value = true
+  const loadingId = toast.loading('正在导出 CDK...')
+
+  try {
+    const status = cdkStatusFilter.value || 'all'
+    const token = storage.get('token') || ''
+    const apiBase = api.BASE_URL || ''
+    const response = await fetch(`${apiBase}/api/shop/products/${currentProduct.value.id}/cdk/export?status=${encodeURIComponent(status)}&format=txt`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
+
+    if (!response.ok) {
+      let message = '导出 CDK 失败'
+      const contentType = response.headers.get('content-type') || ''
+      if (contentType.includes('application/json')) {
+        const data = await response.json().catch(() => null)
+        message = data?.error?.message || data?.error || data?.message || message
+      } else {
+        const text = await response.text().catch(() => '')
+        if (text) message = text
+      }
+      throw new Error(message)
+    }
+
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const disposition = response.headers.get('content-disposition') || ''
+    const match = disposition.match(/filename="([^"]+)"/)
+    link.href = url
+    link.download = match?.[1] || `${currentProduct.value.id}-cdk.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    toast.close(loadingId)
+    toast.success('CDK TXT 导出成功')
+  } catch (error) {
+    toast.close(loadingId)
+    toast.error(error.message || '导出 CDK 失败')
+  } finally {
+    exportingCdks.value = false
   }
 }
 
@@ -881,7 +937,6 @@ onMounted(() => {
 .my-products-page {
   min-height: 100vh;
   padding-bottom: 80px;
-  background: var(--bg-primary);
 }
 
 .page-container {
@@ -1549,6 +1604,22 @@ onMounted(() => {
 
 .filter-select:focus {
   border-color: var(--color-primary);
+}
+
+.export-btn {
+  padding: 8px 14px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: #bfdbfe;
 }
 
 .clear-all-btn {

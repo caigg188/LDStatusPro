@@ -275,7 +275,6 @@ function openStoreMessage() {
   min-height: 100vh;
   padding: 20px 0 72px;
   color-scheme: light;
-  background: linear-gradient(180deg, #f7f1e7 0%, #efe6db 100%);
   --merchant-panel-border: var(--glass-border-light, var(--border-light));
   --merchant-panel-bg:
     radial-gradient(circle at top left, rgba(247, 210, 139, 0.24), transparent 34%),
@@ -316,7 +315,6 @@ function openStoreMessage() {
 
 :global(html.dark .merchant-profile-page) {
   color-scheme: dark;
-  background: linear-gradient(180deg, #15110d 0%, #0d0a08 100%);
   --merchant-panel-border: rgba(255, 232, 205, 0.08);
   --merchant-panel-bg:
     radial-gradient(circle at top left, rgba(208, 162, 79, 0.16), transparent 34%),

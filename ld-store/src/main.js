@@ -73,7 +73,17 @@ if (typeof window !== 'undefined' && !window.__LD_STORE_CHUNK_ERROR_HANDLER__) {
     }
 
     const uiStore = useUiStore(pinia)
-    uiStore.showToast('页面资源加载失败，请刷新页面后重试', 'error', 5000)
+    uiStore.showDialog({
+      title: '页面资源加载失败',
+      content: '站点刚完成更新或网络缓存异常，页面资源未能同步完成。点击确定后将为你重新加载最新页面。',
+      type: 'alert',
+      confirmText: '重新加载',
+      showCancel: false
+    }).then(() => {
+      const retryUrl = new URL(window.location.href)
+      retryUrl.searchParams.set('__chunk_retry_manual', String(Date.now()))
+      window.location.replace(retryUrl.toString())
+    })
 
     if (router.currentRoute.value?.path !== '/') {
       router.replace('/').catch(() => {})

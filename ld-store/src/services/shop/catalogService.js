@@ -84,11 +84,39 @@ export async function fetchMerchantProfileRequest(username) {
   }
 }
 
-export async function reportProductRequest(id, reason) {
+export async function reportProductRequest(id, payload = {}) {
+  const requestPayload = typeof payload === 'string'
+    ? { reason: payload }
+    : {
+        reason: String(payload?.reason || ''),
+        reportCategory: String(payload?.reportCategory || payload?.report_category || '')
+      }
   try {
-    return await api.post(`/api/shop/products/${id}/report`, { reason })
+    return await api.post(`/api/shop/products/${id}/report`, requestPayload)
   } catch (error) {
     return toRequestError(error, '举报商品失败，请稍后重试')
+  }
+}
+
+export async function fetchMyReportsRequest(options = {}) {
+  const page = getPositiveInt(options.page, 1)
+  const pageSize = getPositiveInt(options.pageSize, 20, 1, 50)
+  const status = String(options.status || '').trim()
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+  if (status) params.set('status', status)
+
+  try {
+    return await api.get(`/api/shop/my-reports?${params.toString()}`)
+  } catch (error) {
+    return toRequestError(error, '加载我的举报失败，请稍后重试')
+  }
+}
+
+export async function fetchMyReportDetailRequest(reportId) {
+  try {
+    return await api.get(`/api/shop/my-reports/${reportId}`)
+  } catch (error) {
+    return toRequestError(error, '加载举报详情失败，请稍后重试')
   }
 }
 

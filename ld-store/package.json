@@ -16,6 +16,8 @@
     "node": ">=18"
   },
   "dependencies": {
+    "dompurify": "^3.4.0",
+    "marked": "^18.0.2",
     "pinia": "^2.1.0",
     "vue": "^3.4.0",
     "vue-router": "^4.2.0"

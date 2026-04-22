@@ -280,7 +280,6 @@ onMounted(loadOrderDetail)
 <style scoped>
 .buy-order-detail-page {
   min-height: 100vh;
-  background: var(--bg-primary);
   padding-bottom: 80px;
 }
 

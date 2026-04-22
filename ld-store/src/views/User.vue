@@ -397,7 +397,6 @@ async function handleLogout() {
   min-height: 100vh;
   padding-bottom: 80px;
   color-scheme: light;
-  background: linear-gradient(180deg, #f6f2eb 0%, #efe7dc 100%);
   --user-card-border: #dfd6ca;
   --user-card-bg: rgba(252, 250, 246, 0.98);
   --user-card-shadow: 0 14px 32px rgba(61, 61, 61, 0.06);
@@ -444,7 +443,6 @@ async function handleLogout() {
 
 :global(html.dark .user-page) {
   color-scheme: dark;
-  background: linear-gradient(180deg, #171412 0%, #0f0d0b 100%);
   --user-card-border: rgba(255, 232, 205, 0.08);
   --user-card-bg: rgba(31, 27, 24, 0.96);
   --user-card-shadow: 0 18px 42px rgba(0, 0, 0, 0.26);

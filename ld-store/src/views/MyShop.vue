@@ -294,7 +294,6 @@ onMounted(() => {
 <style scoped>
 .my-shop-page {
   min-height: 100vh;
-  background: var(--bg-primary);
   padding-bottom: 80px;
 }
 

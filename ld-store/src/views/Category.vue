@@ -336,7 +336,6 @@ onDeactivated(() => {
 .category-page {
   min-height: 100vh;
   padding-bottom: 80px;
-  background: var(--bg-primary);
 }
 
 .page-container {

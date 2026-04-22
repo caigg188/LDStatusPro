@@ -371,7 +371,7 @@
               </div>
             </div>
             <div class="notice-footer">
-              📖 <a href="https://ldstore.cc.cd/docs/publish-cdk" target="_blank" rel="noopener">查看详细配置教程</a>
+              📖 <a href="https://ldcstore.com/docs/publish-cdk" target="_blank" rel="noopener">查看详细配置教程</a>
             </div>
           </div>
           
@@ -1355,7 +1355,6 @@ onMounted(async () => {
 .publish-page {
   min-height: 100vh;
   padding-bottom: 100px;
-  background: var(--bg-primary);
 }
 
 .page-container {
