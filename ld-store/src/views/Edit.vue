@@ -237,6 +237,28 @@
             <p v-if="maxPurchaseQuantityError" class="form-error">{{ maxPurchaseQuantityError }}</p>
           </div>
 
+          <div v-if="initialTestModeEnabled" class="form-group">
+            <label class="toggle-switch limit-toggle" @click.prevent="form.isTestMode = !form.isTestMode">
+              <span class="toggle-track" :class="{ active: form.isTestMode }">
+                <span class="toggle-thumb"></span>
+              </span>
+              <span class="toggle-label">
+                测试模式
+                <span class="toggle-help" v-if="form.isTestMode">（仅自己可购买）</span>
+                <span class="toggle-help" v-else>（已关闭）</span>
+              </span>
+            </label>
+            <p class="form-hint">
+              开启时仅您自己可以购买此物品，用于测试 LDC 通知回调是否正常工作。
+            </p>
+            <p v-if="form.isTestMode" class="form-hint test-mode-auto-offline-note">
+              ⚠️ 测试模式商品审核通过并上架后，30 分钟会自动下架；如需继续售卖，请关闭测试模式后保存。
+            </p>
+            <p v-else class="form-hint success-hint">
+              关闭后将恢复普通可售状态，不再受“仅自己可购买”和“30 分钟自动下架”限制。
+            </p>
+          </div>
+
           <p class="cdk-hint">
             请在「我的物品」页面管理 CDK 库存
           </p>
@@ -313,7 +335,8 @@ const form = ref({
   stock: '',
   purchaseTrustLevel: 0,
   limitEnabled: false,
-  maxPurchaseQuantity: ''
+  maxPurchaseQuantity: '',
+  isTestMode: false
 })
 const purchaseTrustLevelOptions = [0, 1, 2, 3, 4]
 
@@ -333,6 +356,8 @@ const submitButtonText = computed(() => {
   if (isLegacyLinkProduct(product.value)) return '外链物品已停用'
   return '保存修改'
 })
+
+const initialTestModeEnabled = computed(() => !!(product.value?.is_test_mode || product.value?.isTestMode))
 
 // 加载分类
 async function loadCategories() {
@@ -515,6 +540,10 @@ function hasExpectedProductState(latestProduct, expectedData, expectedType) {
     const latestLimit = Number(latestProduct.max_purchase_quantity || latestProduct.maxPurchaseQuantity || 0)
     const expectedLimit = Number(expectedData.maxPurchaseQuantity || 0)
     if (latestLimit !== expectedLimit) return false
+
+    const latestTestMode = !!(latestProduct.is_test_mode || latestProduct.isTestMode)
+    const expectedTestMode = !!expectedData.isTestMode
+    if (latestTestMode !== expectedTestMode) return false
   }
 
   return true
@@ -619,7 +648,8 @@ async function loadProduct() {
         limitEnabled: Number(product.value.max_purchase_quantity || product.value.maxPurchaseQuantity || 0) > 0,
         maxPurchaseQuantity: Number(product.value.max_purchase_quantity || product.value.maxPurchaseQuantity || 0) > 0
           ? Number(product.value.max_purchase_quantity || product.value.maxPurchaseQuantity)
-          : ''
+          : '',
+        isTestMode: !!(product.value.is_test_mode || product.value.isTestMode)
       }
       
       // 如果已有图片，自动验证
@@ -742,6 +772,9 @@ async function submitForm() {
       updateData.maxPurchaseQuantity = form.value.limitEnabled
         ? Number(form.value.maxPurchaseQuantity)
         : 0
+      if (initialTestModeEnabled.value) {
+        updateData.isTestMode = form.value.isTestMode
+      }
     }
     
     // 更新物品
