@@ -310,6 +310,210 @@
         </div>
       </div>
 
+      <!-- 士多热榜 -->
+      <div v-show="activeSection === 'hotboard'" class="section-content hotboard-section-wrapper">
+        <div v-if="hotboardLoading" class="products-loading">
+          <Skeleton type="card" :count="4" :columns="2" />
+        </div>
+
+        <div v-else-if="hotboardError" class="hotboard-error">
+          <EmptyState icon="📊" :text="hotboardError" hint="请稍后重试" />
+        </div>
+
+        <div v-else-if="hotboardData" class="hotboard-container">
+          <!-- 总览 Hero -->
+          <div class="hotboard-hero">
+            <div class="hotboard-hero-head">
+              <div class="hotboard-hero-title">
+                <span class="hotboard-hero-icon">📊</span>
+                <span>士多热榜</span>
+              </div>
+              <span class="hotboard-hero-tl">TL{{ hotboardData.trustLevel }}</span>
+            </div>
+            <div class="hotboard-hero-stats">
+              <div class="hotboard-hero-stat">
+                <span class="hotboard-hero-stat-value">{{ hotboardData.totalStats?.totalViews || 0 }}</span>
+                <span class="hotboard-hero-stat-label">今日物品总浏览</span>
+              </div>
+              <div class="hotboard-hero-stat-divider"></div>
+              <div class="hotboard-hero-stat">
+                <span class="hotboard-hero-stat-value">{{ hotboardData.totalStats?.totalOrders || 0 }}</span>
+                <span class="hotboard-hero-stat-label">今日总单数</span>
+              </div>
+              <div class="hotboard-hero-stat-divider"></div>
+              <div class="hotboard-hero-stat">
+                <span class="hotboard-hero-stat-value">{{ hotboardData.totalStats?.totalSold || 0 }}</span>
+                <span class="hotboard-hero-stat-label">今日总售出</span>
+              </div>
+            </div>
+            <p class="hotboard-hero-hint">数据基于北京时间今日 · 约2分钟刷新</p>
+          </div>
+
+          <!-- 热卖卖家 Top3 -->
+          <div class="hotboard-section" v-if="hotboardData.sellerTop?.length">
+            <h3 class="hotboard-section-title">🔥 今日热卖卖家</h3>
+            <div class="hotboard-seller-list">
+              <router-link
+                v-for="seller in hotboardData.sellerTop"
+                :key="seller.username"
+                :to="`/merchant/${seller.username}`"
+                class="hotboard-seller-item"
+                :class="`seller-rank-${seller.rank}`"
+              >
+                <span class="hotboard-seller-medal">
+                  <template v-if="seller.rank === 1">🥇</template>
+                  <template v-else-if="seller.rank === 2">🥈</template>
+                  <template v-else-if="seller.rank === 3">🥉</template>
+                </span>
+                <AvatarImage
+                  :candidates="[seller.avatar]"
+                  :seed="seller.username"
+                  :size="44"
+                  :alt="seller.username"
+                  class="hotboard-seller-avatar"
+                  :style="{ width: '44px', height: '44px', borderRadius: '50%' }"
+                />
+                <span class="hotboard-seller-name">{{ seller.username }}</span>
+              </router-link>
+            </div>
+          </div>
+
+          <!-- 浏览 Top5 -->
+          <div class="hotboard-section" v-if="hotboardData.viewTop?.length">
+            <h3 class="hotboard-section-title">👀 今日浏览榜</h3>
+            <div class="hotboard-product-list">
+              <router-link
+                v-for="item in hotboardData.viewTop"
+                :key="item.id"
+                :to="`/product/${item.id}`"
+                class="hotboard-product-item"
+              >
+                <span class="hotboard-rank-badge" :class="`rank-${item.rank}`">{{ item.rank }}</span>
+                <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="hotboard-product-image" />
+                <div v-else class="hotboard-product-image-placeholder">📦</div>
+                <div class="hotboard-product-info">
+                  <span class="hotboard-product-name">{{ item.name }}</span>
+                  <span class="hotboard-product-meta">
+                    {{ item.categoryIcon }} {{ item.categoryName }}<template v-if="item.sellerUsername"> · {{ item.sellerUsername }}</template>
+                  </span>
+                </div>
+                <div class="hotboard-product-right">
+                  <span class="hotboard-product-count">{{ item.viewCount }}<span class="hotboard-count-unit">次</span></span>
+                  <span class="hotboard-product-price">{{ formatPrice(item.discount ? item.price * item.discount : item.price ?? 0) }}<span class="hotboard-price-unit">LDC</span></span>
+                </div>
+              </router-link>
+            </div>
+          </div>
+
+          <!-- 热卖 Top5 -->
+          <div class="hotboard-section" v-if="hotboardData.soldTop?.length">
+            <h3 class="hotboard-section-title">🛍️ 今日热卖榜</h3>
+            <div class="hotboard-product-list">
+              <router-link
+                v-for="item in hotboardData.soldTop"
+                :key="item.id"
+                :to="`/product/${item.id}`"
+                class="hotboard-product-item"
+              >
+                <span class="hotboard-rank-badge" :class="`rank-${item.rank}`">{{ item.rank }}</span>
+                <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="hotboard-product-image" />
+                <div v-else class="hotboard-product-image-placeholder">📦</div>
+                <div class="hotboard-product-info">
+                  <span class="hotboard-product-name">{{ item.name }}</span>
+                  <span class="hotboard-product-meta">
+                    {{ item.categoryIcon }} {{ item.categoryName }}<template v-if="item.sellerUsername"> · {{ item.sellerUsername }}</template>
+                  </span>
+                </div>
+                <div class="hotboard-product-right">
+                  <span class="hotboard-product-count">{{ item.soldQuantity }}<span class="hotboard-count-unit">已售</span></span>
+                  <span class="hotboard-product-price">{{ formatPrice(item.discount ? item.price * item.discount : item.price ?? 0) }}<span class="hotboard-price-unit">LDC</span></span>
+                </div>
+              </router-link>
+            </div>
+          </div>
+
+          <!-- 分类成交分布 -->
+          <div class="hotboard-section" v-if="hotboardData.categoryTrend?.length">
+            <h3 class="hotboard-section-title">📈 分类成交分布</h3>
+            <div class="hotboard-cat-bars">
+              <div
+                v-for="(cat, ci) in hotboardData.categoryTrend"
+                :key="cat.categoryId"
+                class="hotboard-cat-row"
+              >
+                <span class="hotboard-cat-label">{{ cat.categoryIcon }} {{ cat.categoryName }}</span>
+                <div class="hotboard-cat-bar-track">
+                  <div
+                    class="hotboard-cat-bar-fill"
+                    :style="{
+                      width: getCatBarWidth(cat) + '%',
+                      background: TREND_COLORS[ci % TREND_COLORS.length]
+                    }"
+                  ></div>
+                </div>
+              </div>
+            </div>
+            <div v-if="hotboardData.categoryTrend?.length" class="hotboard-hourly-section">
+              <p class="hotboard-hourly-title">逐时走势（北京时间 0:00 - 24:00）</p>
+              <div class="hotboard-trend-legend">
+                <span
+                  v-for="(cat, ci) in hotboardData.categoryTrend"
+                  :key="cat.categoryId"
+                  class="hotboard-trend-legend-item"
+                  :class="{ active: hoveredTrendIdx === ci, dimmed: hoveredTrendIdx >= 0 && hoveredTrendIdx !== ci }"
+                  @mouseenter="hoveredTrendIdx = ci"
+                  @mouseleave="hoveredTrendIdx = -1"
+                >
+                  <span class="hotboard-trend-dot" :style="{ background: TREND_COLORS[ci % TREND_COLORS.length] }"></span>
+                  {{ cat.categoryIcon }} {{ cat.categoryName }}
+                </span>
+              </div>
+              <div class="hotboard-trend-chart-wrap">
+                <svg
+                  class="hotboard-trend-chart"
+                  viewBox="0 0 480 200"
+                  preserveAspectRatio="none"
+                >
+                  <line v-for="y in [50, 100, 150]" :key="'g'+y" x1="0" :y1="y" x2="480" :y2="y" stroke="var(--border-light)" stroke-width="1" vector-effect="non-scaling-stroke" stroke-dasharray="4 3" />
+                  <line x1="0" y1="0" x2="480" y2="0" stroke="var(--border-light)" stroke-width="0.5" vector-effect="non-scaling-stroke" />
+                  <line x1="0" y1="200" x2="480" y2="200" stroke="var(--border-light)" stroke-width="0.5" vector-effect="non-scaling-stroke" />
+                  <template v-for="(cat, ci) in hotboardData.categoryTrend" :key="cat.categoryId">
+                    <path
+                      v-if="cat.trend.length > 0"
+                      :d="trendCurve(cat.trend)"
+                      fill="none"
+                      :stroke="TREND_COLORS[ci % TREND_COLORS.length]"
+                      :stroke-width="hoveredTrendIdx === ci ? 3.5 : 2"
+                      :opacity="hoveredTrendIdx >= 0 && hoveredTrendIdx !== ci ? 0.25 : 1"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      vector-effect="non-scaling-stroke"
+                      class="hotboard-trend-path"
+                      @mouseenter="hoveredTrendIdx = ci"
+                      @mouseleave="hoveredTrendIdx = -1"
+                    />
+                  </template>
+                </svg>
+              </div>
+              <div class="hotboard-trend-axis">
+                <span class="hotboard-trend-label">0:00</span>
+                <span class="hotboard-trend-label">6:00</span>
+                <span class="hotboard-trend-label">12:00</span>
+                <span class="hotboard-trend-label">18:00</span>
+                <span class="hotboard-trend-label">24:00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <EmptyState
+          v-else
+          icon="📊"
+          text="暂无热榜数据"
+          hint="今日还没有足够的浏览和成交数据"
+        />
+      </div>
+
     </div>
   </div>
 </template>
@@ -321,13 +525,14 @@ import { useShopStore } from '@/stores/shop'
 import { useUserStore } from '@/stores/user'
 import { api } from '@/utils/api'
 import { useToast } from '@/composables/useToast'
-import { formatRelativeTime } from '@/utils/format'
+import { formatRelativeTime, formatPrice } from '@/utils/format'
 import ProductCard from '@/components/product/ProductCard.vue'
 import ShopCard from '@/components/shop/ShopCard.vue'
 import CategoryFilter from '@/components/product/CategoryFilter.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
 import LiquidTabs from '@/components/common/LiquidTabs.vue'
+import AvatarImage from '@/components/common/AvatarImage.vue'
 import { MAINTENANCE_STATE, isMaintenanceFeatureEnabled, isRestrictedMaintenanceMode } from '@/config/maintenance'
 
 defineOptions({ name: 'Home' })
@@ -347,15 +552,27 @@ const maintenanceCatalogHint = computed(() => (
 ))
 
 const sentinel = ref(null)
-const sectionTabs = [
-  { value: 'products', label: '物品广场', icon: '🛒' },
-  { value: 'stores', label: '小店集市', icon: '🏪' },
-  { value: 'buy', label: '求购广场', icon: '🌱' }
-]
+const sectionTabs = computed(() => {
+  const tabs = [
+    { value: 'products', label: '物品广场', icon: '🛒' },
+    { value: 'stores', label: '小店集市', icon: '🏪' },
+    { value: 'buy', label: '求购广场', icon: '🌱' }
+  ]
+  if (userStore.isLoggedIn && (userStore.trustLevel || 0) >= 1) {
+    tabs.push({ value: 'hotboard', label: '士多热榜', icon: '📊' })
+  }
+  return tabs
+})
 const normalizeSection = (value) => (
-  sectionTabs.some(tab => tab.value === value) ? value : 'products'
+  sectionTabs.value.some(tab => tab.value === value) ? value : 'products'
 )
 const activeSection = ref(normalizeSection(String(route.query.section || '').trim()))
+
+watch(sectionTabs, (tabs) => {
+  if (!tabs.some(t => t.value === activeSection.value)) {
+    activeSection.value = 'products'
+  }
+})
 
 const sortTabs = [
   { value: 'default', label: '默认' },
@@ -388,6 +605,17 @@ const buyPagination = reactive({
   total: 0,
   totalPages: 0
 })
+
+const hotboardData = ref(null)
+const hotboardLoading = ref(false)
+const hotboardLoaded = ref(false)
+const hotboardError = ref('')
+const hotboardCacheTime = ref(0)
+const HOTBOARD_CACHE_TTL = 2 * 60 * 1000
+
+const TREND_COLORS = [
+  '#b5a898', '#7eb89a', '#e8a860', '#778d9c', '#c98b8b', '#8ba5c9', '#b8a0d0'
+]
 
 const stats = ref({
   products: { total: 0, online: 0 },
@@ -579,6 +807,10 @@ async function switchSection(section) {
     await loadBuyRequests(true)
   }
 
+  if (section === 'hotboard' && !hotboardLoaded.value) {
+    await loadHotboard()
+  }
+
   if (section === 'products') {
     await nextTick()
     setupInfiniteScroll()
@@ -623,6 +855,30 @@ function buyStatusClass(status) {
     return value
   }
   return 'default'
+}
+
+async function loadHotboard() {
+  const now = Date.now()
+  if (hotboardData.value && (now - hotboardCacheTime.value) < HOTBOARD_CACHE_TTL) {
+    return
+  }
+  hotboardLoading.value = true
+  hotboardError.value = ''
+  try {
+    const result = await api.get('/api/shop/hotboard')
+    if (result.success && result.data) {
+      hotboardData.value = result.data
+      hotboardCacheTime.value = now
+    } else {
+      hotboardError.value = result.error?.message || '加载热榜失败'
+    }
+  } catch (e) {
+    hotboardError.value = '加载热榜失败，请稍后重试'
+    console.error('Load hotboard failed:', e)
+  } finally {
+    hotboardLoading.value = false
+    hotboardLoaded.value = true
+  }
 }
 
 async function loadBuyRequests(resetPage = true) {
@@ -858,6 +1114,8 @@ onMounted(async () => {
     await loadShops()
   } else if (activeSection.value === 'buy') {
     await loadBuyRequests(true)
+  } else if (activeSection.value === 'hotboard') {
+    await loadHotboard()
   }
 
   if (activeSection.value === 'products') {
@@ -882,6 +1140,8 @@ onActivated(async () => {
     setupInfiniteScroll()
   } else if (activeSection.value === 'buy' && !buyInitialized.value) {
     await loadBuyRequests(true)
+  } else if (activeSection.value === 'hotboard' && !hotboardLoaded.value) {
+    await loadHotboard()
   }
 })
 
@@ -915,6 +1175,50 @@ function setupInfiniteScroll() {
   )
 
   observer.observe(sentinel.value)
+}
+
+function getCatBarWidth(cat) {
+  const maxOrders = Math.max(1, ...hotboardData.value.categoryTrend.map(c =>
+    c.trend.reduce((s, t) => s + (t.orderCount || 0), 0)
+  ))
+  const catTotal = cat.trend.reduce((s, t) => s + (t.orderCount || 0), 0)
+  return Math.max(3, (catTotal / maxOrders) * 100)
+}
+
+// Trend chart: viewBox 480×200, X maps 0-24h, Y maps data proportionally
+const TVB_W = 480
+const TVB_H = 200
+const TVB_PAD = 8
+const TVB_PLOT_H = TVB_H - TVB_PAD * 2
+
+const hoveredTrendIdx = ref(-1)
+
+function trendX(hour) {
+  return (hour / 24) * TVB_W
+}
+
+function trendCurve(catTrend) {
+  if (!catTrend.length) return ''
+  const maxVal = Math.max(1, ...hotboardData.value.categoryTrend.flatMap(c => c.trend.map(t => t.orderCount || 0)))
+  const pts = catTrend.map(t => ({
+    x: trendX(t.hour),
+    y: TVB_PAD + TVB_PLOT_H - ((t.orderCount || 0) / maxVal) * TVB_PLOT_H
+  }))
+  if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`
+  // Catmull-Rom → cubic bezier
+  let d = `M ${pts[0].x} ${pts[0].y}`
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)]
+    const p1 = pts[i]
+    const p2 = pts[i + 1]
+    const p3 = pts[Math.min(pts.length - 1, i + 2)]
+    const cp1x = p1.x + (p2.x - p0.x) / 6
+    const cp1y = p1.y + (p2.y - p0.y) / 6
+    const cp2x = p2.x - (p3.x - p1.x) / 6
+    const cp2y = p2.y - (p3.y - p1.y) / 6
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`
+  }
+  return d
 }
 </script>
 
@@ -1700,6 +2004,569 @@ function setupInfiniteScroll() {
 
   .buy-toolbar {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ── Hotboard ── */
+.hotboard-section-wrapper {
+  animation: fadeIn 0.3s ease;
+}
+
+.hotboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Hero — liquid glass card */
+.hotboard-hero {
+  position: relative;
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-radius: 20px;
+  padding: 24px 28px 20px;
+  border: 1px solid var(--glass-border-light);
+  box-shadow:
+    0 8px 32px var(--glass-shadow),
+    0 2px 8px var(--glass-shadow-light),
+    inset 0 1px 0 var(--glass-shine-strong);
+  overflow: hidden;
+}
+
+.hotboard-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    180deg,
+    var(--glass-shine) 0%,
+    rgba(255, 255, 255, 0.05) 60%,
+    transparent 100%
+  );
+  border-radius: 20px 20px 50% 50%;
+  pointer-events: none;
+}
+
+.hotboard-hero-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.hotboard-hero-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.hotboard-hero-icon {
+  font-size: 26px;
+}
+
+.hotboard-hero-tl {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--color-primary-bg, rgba(181, 168, 152, 0.12));
+  color: var(--color-primary);
+  letter-spacing: 0.5px;
+}
+
+.hotboard-hero-stats {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-top: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.hotboard-hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 60px;
+}
+
+.hotboard-hero-stat-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--border-light);
+  flex-shrink: 0;
+}
+
+.hotboard-hero-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+.hotboard-hero-stat-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.hotboard-hero-hint {
+  margin: 14px 0 0;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  position: relative;
+  z-index: 1;
+}
+
+/* Section card — glass card */
+.hotboard-section {
+  position: relative;
+  background: var(--glass-bg, rgba(255,255,255,.06));
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid var(--glass-border, rgba(255,255,255,.1));
+  border-radius: 16px;
+  padding: 18px 22px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.hotboard-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(
+    180deg,
+    var(--glass-shine) 0%,
+    transparent 100%
+  );
+  border-radius: 16px 16px 50% 50%;
+  pointer-events: none;
+}
+
+.hotboard-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Seller list — clickable cards */
+.hotboard-seller-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+
+.hotboard-seller-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--glass-bg-medium, rgba(255,255,255,.05));
+  border: 1px solid var(--glass-border, rgba(255,255,255,.08));
+  border-radius: 14px;
+  padding: 14px 20px;
+  flex: 1;
+  min-width: 150px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.hotboard-seller-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px var(--glass-shadow);
+  border-color: var(--border-medium);
+}
+
+.hotboard-seller-item.seller-rank-1 {
+  border-color: rgba(255, 215, 0, 0.3);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.07) 0%, var(--glass-bg-medium) 100%);
+}
+
+.hotboard-seller-item.seller-rank-1:hover {
+  border-color: rgba(255, 215, 0, 0.5);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.15);
+}
+
+.hotboard-seller-item.seller-rank-2 {
+  border-color: rgba(192, 192, 192, 0.25);
+  background: linear-gradient(135deg, rgba(192, 192, 192, 0.06) 0%, var(--glass-bg-medium) 100%);
+}
+
+.hotboard-seller-item.seller-rank-2:hover {
+  border-color: rgba(192, 192, 192, 0.45);
+  box-shadow: 0 6px 20px rgba(192, 192, 192, 0.12);
+}
+
+.hotboard-seller-item.seller-rank-3 {
+  border-color: rgba(205, 127, 50, 0.25);
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.06) 0%, var(--glass-bg-medium) 100%);
+}
+
+.hotboard-seller-item.seller-rank-3:hover {
+  border-color: rgba(205, 127, 50, 0.45);
+  box-shadow: 0 6px 20px rgba(205, 127, 50, 0.12);
+}
+
+.hotboard-seller-medal {
+  font-size: 22px;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+
+.hotboard-seller-avatar {
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.hotboard-seller-name {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Product list */
+.hotboard-product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+.hotboard-product-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  background: var(--glass-bg-heavy, rgba(255,255,255,.03));
+  border: 1px solid var(--glass-border, rgba(255,255,255,.06));
+}
+
+.hotboard-product-item:hover {
+  background: var(--glass-bg-medium, rgba(255,255,255,.08));
+  border-color: var(--glass-border-light, rgba(255,255,255,.15));
+  transform: translateX(4px);
+  box-shadow: 0 2px 12px var(--glass-shadow-light);
+}
+
+.hotboard-product-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border-light);
+}
+
+.hotboard-product-image-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  flex-shrink: 0;
+  font-size: 20px;
+}
+
+.hotboard-product-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hotboard-product-name {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.hotboard-product-meta {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hotboard-product-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+  min-width: 56px;
+}
+
+.hotboard-product-count {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+.hotboard-count-unit {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin-left: 1px;
+}
+
+.hotboard-product-price {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.hotboard-price-unit {
+  font-size: 9px;
+  font-weight: 500;
+  margin-left: 1px;
+  opacity: 0.7;
+}
+
+/* Rank badge */
+.hotboard-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+
+.hotboard-rank-badge.rank-1 {
+  background: linear-gradient(135deg, #ffd700, #ffb800);
+  color: #5a4000;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+.hotboard-rank-badge.rank-2 {
+  background: linear-gradient(135deg, #d1d5db, #b0b5bc);
+  color: #3a3a3a;
+  box-shadow: 0 2px 8px rgba(192, 192, 192, 0.25);
+}
+
+.hotboard-rank-badge.rank-3 {
+  background: linear-gradient(135deg, #e8a860, #cd7f32);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(205, 127, 50, 0.25);
+}
+
+.hotboard-rank-badge.rank-4,
+.hotboard-rank-badge.rank-5 {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+/* Category distribution bars */
+.hotboard-cat-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.hotboard-cat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hotboard-cat-label {
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 70px;
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+.hotboard-cat-bar-track {
+  flex: 1;
+  height: 20px;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.hotboard-cat-bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  min-width: 4px;
+  transition: width 0.4s ease;
+  opacity: 0.75;
+}
+
+.hotboard-cat-bar-fill:hover {
+  opacity: 1;
+}
+
+/* Hourly trend section */
+.hotboard-hourly-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-light);
+}
+
+.hotboard-hourly-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin: 0 0 10px;
+}
+
+.hotboard-trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.hotboard-trend-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.hotboard-trend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.hotboard-trend-chart-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+.hotboard-trend-chart {
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+
+.hotboard-trend-path {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.hotboard-trend-legend-item {
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease, font-weight 0.15s ease;
+}
+
+.hotboard-trend-legend-item.active {
+  transform: scale(1.08);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.hotboard-trend-legend-item.dimmed {
+  opacity: 0.35;
+}
+
+.hotboard-trend-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.hotboard-trend-label {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.hotboard-error {
+  padding: 20px;
+}
+
+@media (max-width: 640px) {
+  .hotboard-hero {
+    padding: 18px 16px 16px;
+    border-radius: 16px;
+  }
+
+  .hotboard-hero-title {
+    font-size: 17px;
+  }
+
+  .hotboard-hero-icon {
+    font-size: 22px;
+  }
+
+  .hotboard-hero-stat-value {
+    font-size: 20px;
+  }
+
+  .hotboard-hero-stats {
+    margin-top: 16px;
+  }
+
+  .hotboard-section {
+    padding: 14px 16px;
+    border-radius: 14px;
+  }
+
+  .hotboard-seller-list {
+    flex-direction: column;
+  }
+
+  .hotboard-seller-item {
+    min-width: unset;
+  }
+
+  .hotboard-product-item:hover {
+    transform: none;
+  }
+
+  .hotboard-product-right {
+    min-width: 48px;
   }
 }
 </style>
