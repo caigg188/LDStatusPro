@@ -2,7 +2,7 @@
   <div class="buy-order-detail-page">
     <div class="page-container">
       <div class="top-nav">
-        <button class="back-btn" @click="goBack">← 返回订单列表</button>
+        <button class="back-btn" @click="goBack">← 返回</button>
       </div>
 
       <div v-if="loading" class="state-block">加载中...</div>
@@ -294,11 +294,20 @@ onMounted(loadOrderDetail)
 }
 
 .back-btn {
-  border: none;
-  background: transparent;
-  color: var(--text-tertiary);
-  cursor: pointer;
+  padding: 10px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
   font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-hover);
 }
 
 .state-block,

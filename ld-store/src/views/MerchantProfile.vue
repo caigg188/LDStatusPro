@@ -2,9 +2,7 @@
   <div class="merchant-profile-page">
     <div class="page-shell">
       <div class="back-row">
-        <button class="back-btn" type="button" @click="goBack">
-          ← 返回
-        </button>
+        <button class="back-btn" type="button" @click="goBack">← 返回</button>
       </div>
 
       <template v-if="loading">
@@ -36,65 +34,57 @@
 
       <template v-else-if="merchant">
         <section class="merchant-card">
-          <div class="merchant-main">
-            <div class="merchant-identity">
-              <AvatarImage
-                :candidates="merchantAvatarCandidates"
-                :seed="merchantAvatarSeed"
-                :size="128"
-                alt=""
-                class="merchant-avatar"
-                loading-mode="eager"
-              />
-
-              <div class="merchant-meta">
-                <p class="merchant-eyebrow">商家主页</p>
-                <h1 class="merchant-username">@{{ merchant.username }}</h1>
-                <p v-if="merchantDisplayName" class="merchant-name">{{ merchantDisplayName }}</p>
-                <div class="merchant-badges">
-                  <span :class="['trust-badge', trustBadgeClass]">
-                    信任等级 {{ trustLevelText }}
-                  </span>
-                </div>
-              </div>
+          <div class="merchant-header">
+            <AvatarImage
+              :candidates="merchantAvatarCandidates"
+              :seed="merchantAvatarSeed"
+              :size="128"
+              alt=""
+              class="merchant-avatar"
+              loading-mode="eager"
+            />
+            <div class="merchant-info">
+              <h1 class="merchant-username">@{{ merchant.username }}</h1>
+              <p v-if="merchantDisplayName" class="merchant-name">{{ merchantDisplayName }}</p>
+              <span :class="['trust-chip', trustBadgeClass]">
+                {{ trustLevelText }}
+              </span>
             </div>
-
             <div class="merchant-stats">
-              <div class="stat-card">
-                <span class="stat-label">在售物品</span>
+              <div class="stat-item">
                 <strong class="stat-value">{{ stats.onlineCount || 0 }}</strong>
+                <span class="stat-label">在售</span>
               </div>
-              <div class="stat-card">
-                <span class="stat-label">累计上架</span>
+              <div class="stat-item">
                 <strong class="stat-value">{{ stats.totalListedCount || 0 }}</strong>
+                <span class="stat-label">上架</span>
               </div>
-              <div class="stat-card">
-                <span class="stat-label">累计销量</span>
+              <div class="stat-item">
                 <strong class="stat-value">{{ stats.totalSoldCount || 0 }}</strong>
+                <span class="stat-label">销量</span>
               </div>
             </div>
           </div>
 
-          <div class="contact-grid">
-            <button class="contact-card" type="button" @click="openLinuxDoProfile">
-              <span class="contact-title">LinuxDo主页</span>
-              <span class="contact-desc">点击前往 Linux.do 联系</span>
+          <div class="merchant-actions">
+            <button class="action-chip chip-linuxdo" type="button" @click="openLinuxDoProfile">
+              <img src="https://img.ldstore.cc.cd/JackyLiii/20260424_logo-new-5_0vbj4s.png" alt="" class="chip-icon chip-icon--img" />
+              LinuxDo
             </button>
-            <button class="contact-card" type="button" @click="openStoreMessage">
-              <span class="contact-title">士多私信</span>
-              <span class="contact-desc">士多站内信</span>
+            <button class="action-chip chip-message" type="button" @click="openStoreMessage">
+              <svg class="chip-icon chip-icon--svg" width="15" height="15" viewBox="0 0 16 16" fill="none">
+                <rect x="1.5" y="3.5" width="13" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+                <path d="M2 4.5L8 8.5L14 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              士多私信
             </button>
           </div>
         </section>
 
         <section class="products-panel">
           <div class="section-header">
-            <div>
-              <h2 class="section-title">在售物品</h2>
-              <p class="section-subtitle">
-                {{ merchant.username }} 当前共有 {{ products.length }} 件公开在售物品
-              </p>
-            </div>
+            <h2 class="section-title">在售物品</h2>
+            <span class="section-count">{{ products.length }} 件</span>
           </div>
 
           <div v-if="products.length > 0" class="products-grid">
@@ -171,11 +161,11 @@ const merchantDisplayName = computed(() => {
 const trustLevelValue = computed(() => Number(merchant.value?.trustLevel || 0))
 const trustLevelText = computed(() => `TL${trustLevelValue.value}`)
 const trustBadgeClass = computed(() => {
-  if (trustLevelValue.value >= 4) return 'trust-badge--4'
-  if (trustLevelValue.value >= 3) return 'trust-badge--3'
-  if (trustLevelValue.value >= 2) return 'trust-badge--2'
-  if (trustLevelValue.value >= 1) return 'trust-badge--1'
-  return 'trust-badge--0'
+  if (trustLevelValue.value >= 4) return 'trust-chip--4'
+  if (trustLevelValue.value >= 3) return 'trust-chip--3'
+  if (trustLevelValue.value >= 2) return 'trust-chip--2'
+  if (trustLevelValue.value >= 1) return 'trust-chip--1'
+  return 'trust-chip--0'
 })
 const emptyHint = computed(() => {
   if (!userStore.isLoggedIn && Number(stats.value.onlineCount || 0) > products.value.length) {
@@ -252,7 +242,11 @@ function goBack() {
     router.back()
     return
   }
-  router.push('/')
+  if (route.query.from) {
+    router.push(String(route.query.from))
+    return
+  }
+  router.push({ name: 'Home', query: { tab: 'stores' } })
 }
 
 function openLinuxDoProfile() {
@@ -267,338 +261,310 @@ function openLinuxDoProfile() {
 function openStoreMessage() {
   toast.warning('该功能暂未开放')
 }
-
 </script>
 
 <style scoped>
 .merchant-profile-page {
   min-height: 100vh;
-  padding: 20px 0 72px;
-  color-scheme: light;
-  --merchant-panel-border: var(--glass-border-light, var(--border-light));
-  --merchant-panel-bg:
-    radial-gradient(circle at top left, rgba(247, 210, 139, 0.24), transparent 34%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(250, 245, 236, 0.96));
-  --merchant-panel-shadow: 0 22px 54px var(--glass-shadow-light, rgba(15, 23, 42, 0.08));
-  --merchant-title: #2f2515;
-  --merchant-title-strong: #2c1d0a;
-  --merchant-accent: #9b6c13;
-  --merchant-card-bg: rgba(255, 255, 255, 0.82);
-  --merchant-card-border: rgba(148, 112, 33, 0.12);
-  --merchant-card-hover-border: rgba(193, 138, 25, 0.36);
-  --merchant-card-hover-shadow: 0 16px 30px rgba(193, 138, 25, 0.14);
-  --merchant-empty-bg: rgba(255, 255, 255, 0.72);
-  --merchant-empty-border: rgba(148, 112, 33, 0.18);
-  --merchant-btn-bg: linear-gradient(135deg, #c78d1e, #8a5a15);
-  --merchant-avatar-shadow: 0 18px 40px rgba(145, 106, 31, 0.16);
-  --merchant-back-btn-bg: rgba(255, 255, 255, 0.9);
-  --merchant-back-btn-border: rgba(148, 112, 33, 0.14);
-  --merchant-back-btn-shadow: 0 10px 22px rgba(145, 106, 31, 0.12);
-  --product-card-bg: rgba(255, 255, 255, 0.9);
-  --product-card-border: rgba(148, 112, 33, 0.12);
-  --product-card-shadow: 0 12px 24px rgba(145, 106, 31, 0.08);
-  --product-card-cover-bg: rgba(248, 242, 233, 0.9);
-  --product-card-category-bg: rgba(89, 119, 64, 0.08);
-  --product-card-price: #b97a18;
-  --product-card-discount-bg: rgba(244, 63, 94, 0.1);
-  --product-card-discount-text: #be123c;
-  --product-card-discount-ring: rgba(225, 29, 72, 0.12);
-  --avatar-surface-bg: rgba(148, 163, 184, 0.18);
-  --avatar-placeholder-bg:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0)),
-    rgba(15, 23, 42, 0.05);
-  --avatar-shimmer-bg: linear-gradient(100deg, transparent 18%, rgba(255, 255, 255, 0.48) 50%, transparent 82%);
-  --skeleton-card-bg: rgba(255, 255, 255, 0.9);
-  --skeleton-card-border: rgba(148, 112, 33, 0.12);
-  --skeleton-card-shadow: 0 12px 24px rgba(145, 106, 31, 0.08);
+  padding: 16px 0 72px;
+  background: var(--bg-primary);
+  --merchant-card-bg: #fcfaf6;
+  --merchant-card-border: #e4dbcf;
+  --merchant-card-shadow: 0 2px 12px rgba(61, 61, 61, 0.05);
+  --merchant-subtle-bg: #f5f3ef;
+  --merchant-subtle-border: #e4dbcf;
+  --merchant-hover-border: #cad6cb;
+  --merchant-accent: #7f9681;
+  --merchant-accent-bg: #eef3ed;
+  --merchant-primary: #b5a898;
+  --merchant-empty-bg: #f5f3ef;
+  --merchant-empty-border: #ddd7ce;
+  --product-card-border: #f0ede9;
+  --product-card-category-bg: #eef3ed;
+  --product-card-discount-bg: #fce8ec;
+  --product-card-discount-ring: #f5c6d0;
+  --avatar-surface-bg: #dfe3e8;
+  --avatar-placeholder-bg: #f2f0ed;
+  --skeleton-card-border: #e4dbcf;
 }
 
 :global(html.dark .merchant-profile-page) {
-  color-scheme: dark;
-  --merchant-panel-border: rgba(255, 232, 205, 0.08);
-  --merchant-panel-bg:
-    radial-gradient(circle at top left, rgba(208, 162, 79, 0.16), transparent 34%),
-    linear-gradient(145deg, rgba(30, 25, 21, 0.96), rgba(18, 15, 12, 0.98));
-  --merchant-panel-shadow: 0 22px 54px rgba(0, 0, 0, 0.3);
-  --merchant-title: #f0e1c9;
-  --merchant-title-strong: #f6ead6;
-  --merchant-accent: #efc069;
-  --merchant-card-bg: rgba(43, 36, 31, 0.86);
-  --merchant-card-border: rgba(255, 232, 205, 0.08);
-  --merchant-card-hover-border: rgba(239, 192, 105, 0.24);
-  --merchant-card-hover-shadow: 0 16px 30px rgba(0, 0, 0, 0.22);
-  --merchant-empty-bg: rgba(37, 31, 27, 0.9);
-  --merchant-empty-border: rgba(239, 192, 105, 0.16);
-  --merchant-btn-bg: linear-gradient(135deg, #d8a33c, #8f661a);
-  --merchant-avatar-shadow: 0 18px 40px rgba(0, 0, 0, 0.26);
-  --merchant-back-btn-bg: rgba(38, 32, 28, 0.96);
-  --merchant-back-btn-border: rgba(255, 232, 205, 0.08);
-  --merchant-back-btn-shadow: 0 12px 26px rgba(0, 0, 0, 0.24);
-  --product-card-bg: rgba(43, 36, 31, 0.92);
-  --product-card-border: rgba(255, 232, 205, 0.08);
-  --product-card-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
-  --product-card-cover-bg: rgba(56, 47, 39, 0.92);
-  --product-card-category-bg: rgba(244, 201, 109, 0.12);
-  --product-card-price: #efc069;
-  --product-card-discount-bg: rgba(248, 113, 113, 0.16);
-  --product-card-discount-text: #fecaca;
-  --product-card-discount-ring: rgba(248, 113, 113, 0.16);
-  --avatar-surface-bg: rgba(71, 85, 105, 0.24);
-  --avatar-placeholder-bg:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0)),
-    rgba(15, 23, 42, 0.22);
-  --avatar-shimmer-bg: linear-gradient(100deg, transparent 18%, rgba(255, 255, 255, 0.14) 50%, transparent 82%);
-  --skeleton-card-bg: rgba(43, 36, 31, 0.92);
-  --skeleton-card-border: rgba(255, 232, 205, 0.08);
-  --skeleton-card-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
+  --merchant-card-bg: #22201e;
+  --merchant-card-border: #33302c;
+  --merchant-card-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  --merchant-subtle-bg: #28261f;
+  --merchant-subtle-border: #33302c;
+  --merchant-hover-border: #4a5048;
+  --merchant-accent: #8faa92;
+  --merchant-accent-bg: #2e342a;
+  --merchant-primary: #b5a898;
+  --merchant-empty-bg: #1e1c1a;
+  --merchant-empty-border: #33302c;
+  --product-card-border: #33302c;
+  --product-card-category-bg: #2e342a;
+  --product-card-discount-bg: #3a2225;
+  --product-card-discount-ring: #3f282c;
+  --avatar-surface-bg: #2c2a26;
+  --avatar-placeholder-bg: #2a2521;
+  --skeleton-card-border: #33302c;
 }
 
 .page-shell {
-  width: min(1120px, calc(100% - 32px));
+  max-width: 1200px;
+  width: calc(100% - 32px);
   margin: 0 auto;
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
+/* ── Back button ── */
 .back-row {
   display: flex;
   align-items: center;
 }
 
 .back-btn {
-  border: none;
-  border-radius: 999px;
-  background: var(--merchant-back-btn-bg);
-  color: var(--text-secondary);
   padding: 10px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
   font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
   cursor: pointer;
-  box-shadow: var(--merchant-back-btn-shadow);
-  border: 1px solid var(--merchant-back-btn-border);
+  transition: all 0.2s;
 }
 
+.back-btn:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-hover);
+}
+
+/* ── Merchant card ── */
 .merchant-card,
 .products-panel {
-  border: 1px solid var(--merchant-panel-border);
-  border-radius: 28px;
-  background: var(--merchant-panel-bg);
-  box-shadow: var(--merchant-panel-shadow);
+  border: 1px solid var(--merchant-card-border);
+  border-radius: 20px;
+  background: var(--merchant-card-bg);
+  box-shadow: var(--merchant-card-shadow);
+  isolation: isolate;
 }
 
 .merchant-card {
-  padding: 26px;
-  display: grid;
-  gap: 22px;
+  padding: 20px;
 }
 
-.merchant-main {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.9fr);
-  gap: 20px;
-  align-items: center;
-}
-
-.merchant-identity {
+.merchant-header {
   display: flex;
   align-items: center;
-  gap: 18px;
-  min-width: 0;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .merchant-avatar {
-  width: 92px;
-  height: 92px;
-  border-radius: 28px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
   object-fit: cover;
   flex-shrink: 0;
-  border: 1px solid var(--merchant-card-border);
-  box-shadow: var(--merchant-avatar-shadow);
+  border: 2px solid var(--merchant-accent-bg);
+  box-shadow: 0 2px 8px rgba(127, 150, 129, 0.15);
 }
 
-.merchant-meta {
+.merchant-info {
   min-width: 0;
-  display: grid;
+  flex: 1;
+  display: flex;
+  align-items: center;
   gap: 8px;
-}
-
-.merchant-eyebrow {
-  margin: 0;
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--merchant-accent);
+  flex-wrap: wrap;
 }
 
 .merchant-username {
   margin: 0;
-  font-size: clamp(28px, 5vw, 40px);
-  line-height: 1.05;
-  color: var(--merchant-title-strong);
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--text-primary);
   word-break: break-word;
+  font-weight: 700;
 }
 
 .merchant-name {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   color: var(--text-secondary);
+  white-space: nowrap;
 }
 
-.merchant-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.trust-badge {
+.trust-chip {
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
-  padding: 8px 12px;
-  font-size: 13px;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
-.trust-badge--0 {
-  background: rgba(107, 114, 128, 0.12);
-  color: #596172;
-}
+.trust-chip--0 { background: #eef1f5; color: #596172; }
+.trust-chip--1 { background: #e8eef8; color: #1d4ed8; }
+.trust-chip--2 { background: #e8f3eb; color: #15803d; }
+.trust-chip--3 { background: #f5eee3; color: #a16207; }
+.trust-chip--4 { background: #f5eaea; color: #b91c1c; }
 
-.trust-badge--1 {
-  background: rgba(37, 99, 235, 0.1);
-  color: #1d4ed8;
-}
+:global(html.dark .merchant-profile-page .trust-chip--0) { background: #2f3134; color: #d5d9e1; }
+:global(html.dark .merchant-profile-page .trust-chip--1) { background: #2a3040; color: #bfdbfe; }
+:global(html.dark .merchant-profile-page .trust-chip--2) { background: #2a3530; color: #bbf7d0; }
+:global(html.dark .merchant-profile-page .trust-chip--3) { background: #363024; color: #fde68a; }
+:global(html.dark .merchant-profile-page .trust-chip--4) { background: #3a2225; color: #fecaca; }
 
-.trust-badge--2 {
-  background: rgba(22, 163, 74, 0.12);
-  color: #15803d;
-}
-
-.trust-badge--3 {
-  background: rgba(202, 138, 4, 0.14);
-  color: #a16207;
-}
-
-.trust-badge--4 {
-  background: rgba(185, 28, 28, 0.12);
-  color: #b91c1c;
-}
-
+/* ── Stats ── */
 .merchant-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.stat-card {
-  padding: 18px 16px;
-  border-radius: 22px;
-  background: var(--merchant-card-bg);
-  border: 1px solid var(--merchant-card-border);
-  display: grid;
+  display: flex;
   gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
-.stat-label {
-  font-size: 13px;
-  color: var(--text-secondary);
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: var(--merchant-subtle-bg);
+  border: 1px solid var(--merchant-subtle-border);
+  gap: 2px;
+  min-width: 64px;
+  transition: border-color 0.15s;
+}
+
+.stat-item:hover {
+  border-color: var(--merchant-hover-border);
 }
 
 .stat-value {
-  font-size: clamp(24px, 4vw, 32px);
-  color: var(--merchant-title);
-  line-height: 1;
-}
-
-.contact-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.contact-card {
-  border: 1px solid var(--merchant-card-border);
-  border-radius: 22px;
-  background: var(--merchant-card-bg);
-  padding: 18px 20px;
-  text-align: left;
-  cursor: pointer;
-  display: grid;
-  gap: 6px;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-}
-
-.contact-card:hover {
-  transform: translateY(-1px);
-  border-color: var(--merchant-card-hover-border);
-  box-shadow: var(--merchant-card-hover-shadow);
-}
-
-.contact-title {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--merchant-accent);
+  line-height: 1.1;
 }
 
-.contact-desc {
-  font-size: 13px;
+.stat-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+/* ── Action chips ── */
+.merchant-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--merchant-subtle-border);
+}
+
+.action-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--merchant-subtle-border);
+  border-radius: 10px;
+  background: var(--merchant-subtle-bg);
   color: var(--text-secondary);
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s;
 }
 
+.action-chip:hover {
+  background: var(--merchant-accent-bg);
+  border-color: var(--merchant-hover-border);
+  color: var(--merchant-accent);
+  box-shadow: 0 2px 8px rgba(127, 150, 129, 0.12);
+}
+
+.chip-icon {
+  flex-shrink: 0;
+}
+
+.chip-icon--img {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  object-fit: contain;
+}
+
+.chip-icon--svg {
+  color: inherit;
+}
+
+.chip-linuxdo:hover .chip-icon--img {
+  filter: brightness(1.1);
+}
+
+/* ── Products panel ── */
 .products-panel {
-  padding: 24px;
+  padding: 20px;
 }
 
 .section-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 16px;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
 .section-title {
   margin: 0;
-  font-size: 24px;
-  color: var(--merchant-title);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
-.section-subtitle {
-  margin: 8px 0 0;
-  font-size: 14px;
-  color: var(--text-secondary);
+.section-count {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  background: var(--merchant-subtle-bg);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 500;
 }
 
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
 }
 
 .empty-panel {
-  border-radius: 22px;
+  border-radius: 12px;
   background: var(--merchant-empty-bg);
   border: 1px dashed var(--merchant-empty-border);
+  padding: 24px;
 }
 
+/* ── Error state ── */
 .error-card {
   justify-items: center;
   text-align: center;
-  padding: 48px 24px;
+  padding: 40px 20px;
 }
 
-.error-icon {
-  font-size: 44px;
-}
+.error-icon { font-size: 32px; }
 
 .error-title {
   margin: 0;
-  font-size: 24px;
+  font-size: 18px;
   color: var(--text-primary);
 }
 
 .error-hint {
-  margin: 0;
-  font-size: 14px;
+  margin: 4px 0 0;
+  font-size: 13px;
   color: var(--text-secondary);
 }
 
@@ -606,62 +572,57 @@ function openStoreMessage() {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 .action-btn {
-  border-radius: 999px;
-  padding: 11px 18px;
-  font-size: 14px;
-  font-weight: 700;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .action-btn.primary {
   border: none;
   color: #fff;
-  background: var(--merchant-btn-bg);
+  background: var(--merchant-accent);
 }
 
 .action-btn.secondary {
   border: 1px solid var(--border-light);
   color: var(--text-secondary);
-  background: var(--merchant-card-bg);
+  background: var(--bg-card);
 }
 
+/* ── Loading skeleton ── */
 .loading-card {
-  grid-template-columns: 92px minmax(0, 1fr);
-  gap: 18px;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 14px;
   align-items: center;
 }
 
 .loading-avatar {
-  width: 92px;
-  height: 92px;
-  border-radius: 28px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
 }
 
 .loading-body {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .loading-line {
-  height: 18px;
-  border-radius: 999px;
+  height: 14px;
+  border-radius: 6px;
 }
 
-.w-24 {
-  width: 24%;
-}
-
-.w-40 {
-  width: 40%;
-}
-
-.w-70 {
-  width: 70%;
-}
+.w-24 { width: 24%; }
+.w-40 { width: 40%; }
+.w-70 { width: 70%; }
 
 .skeleton-block {
   background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--bg-tertiary) 50%, var(--skeleton-base) 75%);
@@ -669,207 +630,186 @@ function openStoreMessage() {
   animation: merchant-shimmer 1.5s infinite;
 }
 
-:global(html.dark .merchant-profile-page .trust-badge--0) {
-  background: rgba(107, 114, 128, 0.22);
-  color: #d5d9e1;
-}
-
-:global(html.dark .merchant-profile-page .trust-badge--1) {
-  background: rgba(59, 130, 246, 0.18);
-  color: #bfdbfe;
-}
-
-:global(html.dark .merchant-profile-page .trust-badge--2) {
-  background: rgba(34, 197, 94, 0.18);
-  color: #bbf7d0;
-}
-
-:global(html.dark .merchant-profile-page .trust-badge--3) {
-  background: rgba(250, 204, 21, 0.18);
-  color: #fde68a;
-}
-
-:global(html.dark .merchant-profile-page .trust-badge--4) {
-  background: rgba(248, 113, 113, 0.18);
-  color: #fecaca;
-}
-
 @keyframes merchant-shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
-@media (max-width: 960px) {
-  .merchant-main {
-    grid-template-columns: 1fr;
+/* ── Responsive: Tablet ── */
+@media (max-width: 768px) {
+  .merchant-header {
+    flex-wrap: wrap;
   }
 
   .merchant-stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-left: 0;
+    width: 100%;
   }
 
-  .contact-grid {
+  .stat-item {
+    flex: 1;
+  }
+
+  .products-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 640px) {
+/* ── Responsive: Mobile ── */
+@media (max-width: 520px) {
   .merchant-profile-page {
-    padding-top: 12px;
+    padding-top: 8px;
     padding-bottom: 64px;
   }
 
   .page-shell {
-    width: min(100% - 16px, 1120px);
-    gap: 14px;
+    width: calc(100% - 16px);
+    gap: 10px;
   }
 
-  .merchant-card,
-  .products-panel {
-    border-radius: 20px;
-    padding: 14px;
+  .back-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: 10px;
   }
 
   .merchant-card {
-    gap: 14px;
+    padding: 14px;
+    border-radius: 16px;
   }
 
-  .merchant-main {
-    gap: 14px;
-  }
-
-  .merchant-identity {
-    align-items: center;
+  .merchant-header {
     gap: 12px;
   }
 
   .merchant-avatar,
   .loading-avatar {
-    width: 68px;
-    height: 68px;
-    border-radius: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
   }
 
-  .merchant-meta {
+  .merchant-info {
     gap: 4px;
-  }
-
-  .merchant-eyebrow {
-    font-size: 11px;
   }
 
   .merchant-username {
-    font-size: clamp(22px, 8vw, 28px);
+    font-size: 18px;
   }
 
   .merchant-name {
-    font-size: 13px;
-  }
-
-  .merchant-badges {
-    gap: 6px;
-  }
-
-  .trust-badge {
-    padding: 6px 10px;
     font-size: 12px;
+  }
+
+  .trust-chip {
+    padding: 1px 6px;
+    font-size: 10px;
   }
 
   .merchant-stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    gap: 6px;
+    margin-top: 2px;
   }
 
-  .stat-card {
-    padding: 12px 10px;
-    border-radius: 16px;
-    gap: 4px;
-  }
-
-  .stat-label {
-    font-size: 11px;
+  .stat-item {
+    padding: 6px 10px;
+    border-radius: 10px;
+    min-width: 0;
   }
 
   .stat-value {
-    font-size: clamp(18px, 6vw, 22px);
+    font-size: 16px;
   }
 
-  .contact-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+  .stat-label {
+    font-size: 10px;
   }
 
-  .contact-card {
-    padding: 12px;
-    border-radius: 16px;
-    gap: 4px;
+  .merchant-actions {
+    margin-top: 12px;
+    padding-top: 12px;
+    gap: 8px;
   }
 
-  .contact-title {
-    font-size: 14px;
-  }
-
-  .contact-desc {
+  .action-chip {
+    padding: 6px 10px;
     font-size: 12px;
-    line-height: 1.45;
+    gap: 4px;
+    border-radius: 8px;
+  }
+
+  .chip-icon--img {
+    width: 14px;
+    height: 14px;
+  }
+
+  .chip-icon--svg {
+    width: 13px;
+    height: 13px;
   }
 
   .products-panel {
     padding: 14px;
+    border-radius: 16px;
   }
 
   .section-header {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .section-title {
-    font-size: 20px;
+    font-size: 15px;
   }
 
-  .section-subtitle {
-    margin-top: 4px;
-    font-size: 12px;
+  .section-count {
+    font-size: 11px;
   }
 
   .products-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 10px;
   }
 
-  .error-card {
-    padding: 36px 16px;
-  }
-
-  .action-btn {
-    padding: 10px 14px;
-    font-size: 13px;
+  .empty-panel {
+    padding: 20px;
+    border-radius: 10px;
   }
 }
 
-@media (max-width: 420px) {
-  .merchant-card,
-  .products-panel {
-    border-radius: 18px;
+/* ── Responsive: Narrow ── */
+@media (max-width: 380px) {
+  .merchant-card {
     padding: 12px;
+    border-radius: 14px;
   }
 
-  .merchant-identity {
-    align-items: flex-start;
+  .merchant-avatar,
+  .loading-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
   }
 
-  .merchant-stats,
-  .contact-grid,
+  .merchant-username {
+    font-size: 16px;
+  }
+
+  .stat-item {
+    padding: 5px 8px;
+  }
+
+  .stat-value {
+    font-size: 14px;
+  }
+
+  .products-panel {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
   .products-grid {
     grid-template-columns: 1fr;
-  }
-
-  .stat-card,
-  .contact-card {
-    padding: 12px;
+    gap: 8px;
   }
 }
 </style>

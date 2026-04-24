@@ -184,6 +184,7 @@ onMounted(loadRequests)
 .my-buy-requests-page {
   min-height: 100vh;
   padding-bottom: 80px;
+  background: var(--bg-primary);
 }
 
 .page-container {
@@ -281,6 +282,7 @@ onMounted(loadRequests)
   border: 1px solid var(--border-light);
   border-radius: 14px;
   padding: 14px;
+  isolation: isolate;
 }
 
 .card-top {
@@ -314,7 +316,7 @@ onMounted(loadRequests)
 }
 
 .status-pending_review {
-  background: rgba(245, 158, 11, 0.14);
+  background: #fef3c7;
   color: #b45309;
 }
 
@@ -329,7 +331,7 @@ onMounted(loadRequests)
 }
 
 .status-matched {
-  background: rgba(59, 130, 246, 0.12);
+  background: #dbeafe;
   color: #2563eb;
 }
 
@@ -372,7 +374,7 @@ onMounted(loadRequests)
 .action-btn {
   border: 1px solid var(--border-color);
   border-radius: 10px;
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   color: var(--text-secondary);
   padding: 8px 12px;
   font-size: 13px;
@@ -385,8 +387,8 @@ onMounted(loadRequests)
 }
 
 .action-btn.danger {
-  background: rgba(220, 38, 38, 0.1);
-  border-color: rgba(220, 38, 38, 0.25);
+  background: #fee2e2;
+  border-color: #f5c6d0;
   color: #dc2626;
 }
 
@@ -398,5 +400,19 @@ onMounted(loadRequests)
   .page-header {
     flex-direction: column;
   }
+}
+
+/* Dark mode overrides */
+:global(html.dark) .status-pending_review {
+  background: #363024;
+}
+
+:global(html.dark) .status-matched {
+  background: #2a3040;
+}
+
+:global(html.dark) .action-btn.danger {
+  background: #3a2225;
+  border-color: #4a2c30;
 }
 </style>

@@ -10,7 +10,7 @@
           返回首页
         </router-link>
         <button class="back-btn" @click="goBack">
-          返回上页
+          ← 返回
         </button>
       </div>
       
@@ -106,20 +106,20 @@ function goBack() {
 }
 
 .back-btn {
-  padding: 14px 28px;
+  padding: 10px 16px;
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: 12px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .back-btn:hover {
   background: var(--bg-secondary);
-  border-color: var(--border-default);
+  border-color: var(--border-hover);
 }
 
 .suggestions {

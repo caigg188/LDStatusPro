@@ -84,10 +84,6 @@ if (typeof window !== 'undefined' && !window.__LD_STORE_CHUNK_ERROR_HANDLER__) {
       retryUrl.searchParams.set('__chunk_retry_manual', String(Date.now()))
       window.location.replace(retryUrl.toString())
     })
-
-    if (router.currentRoute.value?.path !== '/') {
-      router.replace('/').catch(() => {})
-    }
   })
 
   router.afterEach(() => {

@@ -1067,6 +1067,9 @@ watch(
 /* 更多菜单（移动端） */
 .more-dropdown {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .more-menu {
@@ -1128,18 +1131,24 @@ watch(
     font-size: 16px;
   }
 
+  .header-actions {
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+
   .action-btn {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
   }
 
   .user-info {
-    padding: 4px;
+    padding: 2px;
   }
 
   .user-avatar {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
   }
 
   .dropdown-arrow {

@@ -86,21 +86,18 @@ const route = useRoute()
 const userStore = useUserStore()
 const { announcementLoaded, fetchAnnouncements } = useAnnouncement()
 const isMaintenanceRoute = computed(() => route.name === 'Maintenance')
-const isRestrictedHomeRoute = computed(() => (
-  isRestrictedMaintenanceMode() && route.name === 'Home'
-))
+const isRestrictedHomeRoute = computed(() => false)
 const showRestrictedMaintenanceBanner = computed(() =>
   !isMaintenanceRoute.value && isRestrictedMaintenanceMode()
 )
-const hideRouteContent = computed(() => isRestrictedHomeRoute.value)
-const showDecorativeShell = computed(() => !isMaintenanceRoute.value && !isRestrictedHomeRoute.value)
+const hideRouteContent = computed(() => false)
+const showDecorativeShell = computed(() => !isMaintenanceRoute.value)
 const showHeader = computed(() => !isMaintenanceRoute.value && userStore.sessionReady)
 const showAnnouncementBar = computed(() => (
   !isMaintenanceRoute.value
-  && !isRestrictedHomeRoute.value
   && announcementLoaded.value
 ))
-const showRouterView = computed(() => !hideRouteContent.value && userStore.sessionReady)
+const showRouterView = computed(() => userStore.sessionReady)
 
 // 需要缓存的页面组件名称
 // Home = 首页(物品广场), Category = 分类页(小店集市等)

@@ -438,10 +438,10 @@ function handleImageError(e) {
   --product-featured-cover-shadow: inset 0 -1px 0 rgba(190, 149, 55, 0.18);
   --product-featured-title: #b88622;
   --product-featured-meta: #8a6b37;
-  --product-featured-category-bg: rgba(184, 140, 34, 0.1);
+  --product-featured-category-bg: #f3efe2;
   --product-featured-category-text: #8b6520;
-  --product-featured-category-ring: rgba(184, 140, 34, 0.16);
-  --product-featured-avatar-ring: rgba(199, 160, 73, 0.45);
+  --product-featured-category-ring: #eae3d3;
+  --product-featured-avatar-ring: #c9b87a;
   --product-selection-text: #fff9ef;
   --product-selection-bg:
     linear-gradient(135deg, #ffe49a 0%, #d69727 28%, #8f5d12 100%);
@@ -457,27 +457,28 @@ function handleImageError(e) {
   box-shadow: var(--product-card-shadow, var(--shadow-sm));
   border: 1px solid var(--product-card-border, var(--border-light));
   position: relative;
+  isolation: isolate;
   transform-style: preserve-3d;
   will-change: transform, box-shadow;
   transition: background 0.28s ease, border-color 0.28s ease;
 }
 
 :global(html.dark .product-card) {
-  --product-card-discount-bg: rgba(248, 113, 113, 0.16);
+  --product-card-discount-bg: #3a2225;
   --product-card-discount-text: #fecaca;
-  --product-card-discount-ring: rgba(248, 113, 113, 0.18);
+  --product-card-discount-ring: #3f282c;
   --product-card-price-discounted: #f87171;
-  --product-featured-border: rgba(244, 201, 109, 0.22);
+  --product-featured-border: #3d3526;
   --product-featured-shadow:
     0 12px 28px rgba(0, 0, 0, 0.24),
-    0 0 0 1px rgba(244, 201, 109, 0.18) inset;
-  --product-featured-cover-shadow: inset 0 -1px 0 rgba(244, 201, 109, 0.18);
+    0 0 0 1px #3d3526 inset;
+  --product-featured-cover-shadow: inset 0 -1px 0 #3d3526;
   --product-featured-title: #efc775;
   --product-featured-meta: #d9c29a;
-  --product-featured-category-bg: rgba(244, 201, 109, 0.14);
+  --product-featured-category-bg: #363024;
   --product-featured-category-text: #f4d490;
-  --product-featured-category-ring: rgba(244, 201, 109, 0.18);
-  --product-featured-avatar-ring: rgba(244, 201, 109, 0.28);
+  --product-featured-category-ring: #3d3526;
+  --product-featured-avatar-ring: #4a3d28;
   --product-selection-text: #fff6df;
   --product-selection-bg:
     linear-gradient(135deg, #c79224 0%, #8f661a 40%, #5b3d11 100%);
@@ -839,9 +840,9 @@ function handleImageError(e) {
 }
 
 .product-discount {
-  background: var(--product-card-discount-bg, rgba(244, 63, 94, 0.12));
+  background: var(--product-card-discount-bg, #fce8ec);
   color: var(--product-card-discount-text, #e11d48);
-  box-shadow: inset 0 0 0 1px var(--product-card-discount-ring, rgba(225, 29, 72, 0.14));
+  box-shadow: inset 0 0 0 1px var(--product-card-discount-ring, #f5c6d0);
 }
 
 .product-time {

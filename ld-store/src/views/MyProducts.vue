@@ -937,6 +937,7 @@ onMounted(() => {
 .my-products-page {
   min-height: 100vh;
   padding-bottom: 80px;
+  background: var(--bg-primary);
 }
 
 .page-container {
@@ -1062,6 +1063,7 @@ onMounted(() => {
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   border: 1px solid var(--border-light);
+  isolation: isolate;
 }
 
 .product-card:hover {
@@ -1193,7 +1195,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
 }
 
 .product-image img {
@@ -1450,7 +1452,7 @@ onMounted(() => {
 }
 
 .load-more-btn:hover:not(:disabled) {
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   border-color: var(--border-hover);
 }
 
@@ -1488,7 +1490,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 16px 20px;
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-light);
 }
 
@@ -1541,7 +1543,7 @@ onMounted(() => {
   flex: 1;
   text-align: center;
   padding: 12px;
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   border-radius: 12px;
 }
 
@@ -1562,7 +1564,7 @@ onMounted(() => {
 }
 
 .stat-item.sold {
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
 }
 
 .stat-item.sold .stat-value {
@@ -1679,7 +1681,7 @@ onMounted(() => {
 }
 
 .cdk-item:hover {
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
 }
 
 .cdk-item.available {
@@ -1691,7 +1693,7 @@ onMounted(() => {
 }
 
 .cdk-item.sold {
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
 }
 
 .cdk-item.sold .cdk-code {
@@ -1781,7 +1783,7 @@ onMounted(() => {
 .cdk-input {
   width: 100%;
   padding: 12px;
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   font-family: 'Monaco', 'Consolas', monospace;
@@ -1829,29 +1831,161 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-/* 响应式调整 */
-@media (max-width: 400px) {
-  .product-image {
-    width: 72px;
-    height: 72px;
+/* Mobile */
+@media (max-width: 640px) {
+  .page-header {
+    margin-bottom: 12px;
+    padding-bottom: 10px;
   }
-  
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .add-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .products-list {
+    gap: 10px;
+  }
+
+  .product-card {
+    border-radius: 14px;
+  }
+
+  .product-main {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .product-image {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+  }
+
+  .image-placeholder {
+    font-size: 26px;
+  }
+
+  .type-badge {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+    border-radius: 5px;
+  }
+
   .product-info {
     padding-right: 50px;
   }
-  
-  .status-badge {
-    padding: 3px 8px;
+
+  .product-name {
+    font-size: 14px;
+  }
+
+  .product-desc {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .product-meta {
+    gap: 3px;
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .price-value {
+    font-size: 14px;
+  }
+
+  .price-unit {
     font-size: 11px;
   }
-  
-  .product-actions {
+
+  .status-badge {
+    top: 8px;
+    right: 8px;
+    padding: 3px 8px;
+    font-size: 11px;
+    gap: 3px;
+  }
+
+  .status-icon {
+    font-size: 10px;
+  }
+
+  .product-tags {
+    gap: 4px;
+  }
+
+  .tag {
+    padding: 2px 7px;
+    font-size: 10px;
+  }
+
+  .reject-reason {
+    padding: 8px 10px;
     gap: 6px;
   }
-  
+
+  .reason-icon {
+    font-size: 14px;
+  }
+
+  .reason-text {
+    font-size: 12px;
+  }
+
+  .product-actions {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
   .action-btn {
     padding: 6px 10px;
     font-size: 12px;
+  }
+
+  /* CDK modal mobile */
+  .modal-content {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 16px;
+  }
+
+  .modal-header {
+    padding: 12px 14px;
+  }
+
+  .modal-title {
+    font-size: 16px;
+  }
+
+  .modal-body {
+    padding: 14px;
+  }
+
+  .cdk-stats {
+    gap: 8px;
+  }
+
+  .stat-item {
+    padding: 8px;
+  }
+
+  .stat-value {
+    font-size: 16px;
+  }
+
+  .cdk-filter {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .clear-all-btn {
+    flex: 0 0 100%;
   }
 }
 </style>

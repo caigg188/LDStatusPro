@@ -2,7 +2,7 @@
   <div class="my-report-detail-page">
     <div class="page-container">
       <div class="page-header">
-        <button class="back-btn" @click="goBack">← 返回我的举报</button>
+        <button class="back-btn" @click="goBack">← 返回</button>
       </div>
 
       <div v-if="loading" class="detail-loading">
@@ -206,25 +206,24 @@ onMounted(() => {
   margin-bottom: 14px;
 }
 
-.back-btn,
-.back-home-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 40px;
-  padding: 0 16px;
-  border: 1px solid rgba(176, 154, 124, 0.2);
-  border-radius: 999px;
-  background: rgba(255, 252, 247, 0.9);
-  color: #6f5945;
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: 0 12px 24px rgba(113, 86, 54, 0.08);
-  -webkit-tap-highlight-color: transparent;
+.back-btn {
+  padding: 10px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.back-btn:focus-visible,
-.back-home-btn:focus-visible {
+.back-btn:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-hover);
+}
+
+.back-btn:focus-visible {
   outline: 2px solid rgba(98, 125, 102, 0.42);
   outline-offset: 2px;
 }

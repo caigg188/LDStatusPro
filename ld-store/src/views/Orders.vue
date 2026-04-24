@@ -6,35 +6,14 @@
       </div>
       
       <!-- 角色切换 -->
-      <div class="role-tabs">
-        <button
-          :class="['role-tab', { active: currentRole === 'buyer' }]"
-          @click="switchRole('buyer')"
-        >
-          🛒 我买的
-        </button>
-        <button
-          :class="['role-tab', { active: currentRole === 'seller' }]"
-          @click="switchRole('seller')"
-        >
-          📦 我卖的
-        </button>
-        <button
-          :class="['role-tab', { active: currentRole === 'buy' }]"
-          @click="switchRole('buy')"
-        >
-          🌱 求购订单
-        </button>
-      </div>
+      <LiquidTabs
+        :modelValue="currentRole"
+        :tabs="roleTabs"
+        class="role-tabs"
+        @update:modelValue="switchRole"
+      />
 
       <div class="orders-filters">
-        <input
-          v-model.trim="orderSearch"
-          class="filter-input"
-          type="text"
-          placeholder="搜索订单号、商品名、用户名"
-          @keyup.enter="applyFilters"
-        />
         <AppSelect
           v-model="timeRange"
           class="filter-select-wrap"
@@ -42,17 +21,19 @@
           placeholder="选择时间范围"
           @change="applyFilters"
         />
-        <button class="filter-btn" :disabled="loading || loadingMore" @click="applyFilters">
-          搜索
-        </button>
-        <button
-          v-if="orderSearch"
-          class="filter-btn secondary"
-          :disabled="loading || loadingMore"
-          @click="clearSearch"
-        >
-          清空
-        </button>
+        <div class="filter-search">
+          <input
+            v-model.trim="orderSearch"
+            class="filter-input"
+            type="text"
+            placeholder="搜索订单号、商品名"
+            @keyup.enter="applyFilters"
+          />
+          <button class="filter-search-btn" :disabled="loading || loadingMore" @click="applyFilters">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <button v-if="orderSearch" class="filter-search-clear" :disabled="loading || loadingMore" @click="clearSearch">×</button>
+        </div>
       </div>
       
       <!-- 加载中 -->
@@ -292,6 +273,7 @@ import { isMaintenanceFeatureEnabled, isRestrictedMaintenanceMode } from '@/conf
 import { useToast } from '@/composables/useToast'
 import { useDialog } from '@/composables/useDialog'
 import AppSelect from '@/components/common/AppSelect.vue'
+import LiquidTabs from '@/components/common/LiquidTabs.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { isValidLdcPaymentUrl } from '@/utils/security'
 import { prepareNewTab, openInNewTab, cleanupPreparedTab } from '@/utils/newTab'
@@ -315,6 +297,11 @@ const page = ref(1)
 const hasMore = ref(false)
 const pageSize = 20
 const currentRole = ref('buyer')
+const roleTabs = [
+  { value: 'buyer', label: '我买的', icon: '🛒' },
+  { value: 'seller', label: '我卖的', icon: '📦' },
+  { value: 'buy', label: '求购订单', icon: '🌱' }
+]
 const orderSearch = ref('')
 const timeRange = ref('1m')
 const activeCategoryId = ref(0)
@@ -1027,42 +1014,101 @@ onUnmounted(() => {
 
 /* 角色切换 */
 .role-tabs {
-  display: flex;
-  gap: 12px;
+  width: 100%;
   margin-bottom: 16px;
 }
 
-.role-tab {
+.role-tabs :deep(.liquid-tab) {
   flex: 1;
-  padding: 14px 20px;
-  background: var(--bg-card);
-  border: 2px solid var(--border-color);
-  border-radius: 14px;
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.role-tab:hover {
-  border-color: var(--border-hover);
-  background: var(--bg-secondary);
-}
-
-.role-tab.active {
-  background: #e8ede7;
-  border-color: #8fa38d;
-  color: #6b7d69;
-  font-weight: 600;
+  justify-content: center;
 }
 
 .orders-filters {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
   margin-bottom: 16px;
+}
+
+.filter-search {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.filter-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 14px;
+  padding-right: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.filter-search-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  background: var(--glass-bg-heavy);
+  color: var(--text-secondary);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.filter-search-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.filter-search-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.filter-search-clear {
+  position: absolute;
+  right: 38px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  border: none;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.filter-search-clear:hover {
+  background: var(--border-color);
+  color: var(--text-secondary);
 }
 
 .direct-filter-bar {
@@ -1101,48 +1147,9 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-.filter-input {
-  flex: 1;
-  min-width: 220px;
-  height: 42px;
-  padding: 0 14px;
-  border-radius: 12px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-card);
-  color: var(--text-primary);
-  font-size: 14px;
-}
-
-.filter-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-}
-
 .filter-select-wrap {
+  flex-shrink: 0;
   min-width: 118px;
-}
-
-.filter-btn {
-  height: 42px;
-  padding: 0 14px;
-  border-radius: 12px;
-  border: none;
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.filter-btn.secondary {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-}
-
-.filter-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 /* 加载骨架 */
@@ -1664,17 +1671,197 @@ onUnmounted(() => {
 }
 
 @media (max-width: 640px) {
-  .filter-input {
-    min-width: 100%;
+  /* role-tabs via LiquidTabs */
+  .role-tabs {
+    margin-bottom: 12px;
   }
 
-  .filter-select,
-  .filter-btn {
+  .role-tabs :deep(.liquid-tab) {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .role-tabs :deep(.tab-icon) {
+    font-size: 14px;
+  }
+
+  /* orders-filters single row */
+  .orders-filters {
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .filter-search {
     flex: 1;
+    min-width: 0;
+  }
+
+  .filter-input {
+    height: 36px;
+    box-sizing: border-box;
+    padding: 0 10px;
+    padding-right: 34px;
+    border-radius: 10px;
+    font-size: 13px;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .filter-input:focus {
+    outline: none;
+    background: var(--input-focus-bg);
+    border-color: var(--input-focus-border);
+    box-shadow: 0 2px 8px var(--glass-shadow-light);
+  }
+
+  .filter-input::placeholder {
+    color: var(--text-placeholder);
+  }
+
+  .filter-search-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .filter-search-clear {
+    right: 34px;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+  }
+
+  .filter-select-wrap {
+    flex-shrink: 0;
+    min-width: unset;
+  }
+
+  .filter-select-wrap :deep(.select-trigger) {
+    height: 36px;
+    box-sizing: border-box;
+    min-height: unset;
+    min-width: unset;
+    width: auto;
+    padding: 0 28px 0 10px;
+    font-size: 13px;
+  }
+
+  .filter-select-wrap :deep(.select-arrow) {
+    right: 8px;
+    width: 14px;
+    height: 14px;
+  }
+
+  /* compact order-card */
+  .order-card {
+    padding: 12px 14px;
+    border-radius: 14px;
   }
 
   .order-header {
-    align-items: flex-start;
+    margin-bottom: 8px;
+    gap: 8px;
+  }
+
+  .order-date {
+    font-size: 12px;
+  }
+
+  .order-expire-chip {
+    min-height: 22px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .order-status {
+    min-height: 24px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .order-content {
+    margin-bottom: 8px;
+  }
+
+  .product-name-row {
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .product-name {
+    font-size: 14px;
+  }
+
+  .order-quantity-badge {
+    min-height: 22px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .order-info {
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .order-manual-hint {
+    margin-top: 6px;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .order-footer {
+    padding-top: 8px;
+    gap: 8px;
+  }
+
+  .order-amount {
+    font-size: 15px;
+  }
+
+  .order-count {
+    font-size: 11px;
+  }
+
+  .order-actions {
+    gap: 6px;
+  }
+
+  .action-btn {
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 12px;
+  }
+
+  .maintenance-order-hint {
+    margin-top: 6px;
+    font-size: 11px;
+  }
+
+  .cdk-display {
+    margin: 8px 0;
+    padding: 10px;
+    border-radius: 10px;
+  }
+
+  .cdk-label {
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+
+  .cdk-code {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .cdk-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+
+  .order-header {
+    align-items: center;
   }
 
   .product-name {
@@ -1693,6 +1880,20 @@ onUnmounted(() => {
 
   .order-actions {
     justify-content: flex-start;
+  }
+
+  .deliver-form {
+    margin-top: 8px;
+    padding: 8px;
+  }
+
+  .deliver-input {
+    min-height: 56px;
+    font-size: 12px;
+  }
+
+  .deliver-hint {
+    font-size: 11px;
   }
 }
 </style>

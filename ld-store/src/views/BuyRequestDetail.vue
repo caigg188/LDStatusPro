@@ -876,11 +876,20 @@ watch(
 }
 
 .back-btn {
-  border: none;
-  background: transparent;
-  color: var(--text-tertiary);
+  padding: 10px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
   font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-hover);
 }
 
 .state-block {
@@ -889,6 +898,7 @@ watch(
   border-radius: 14px;
   padding: 24px;
   color: var(--text-tertiary);
+  isolation: isolate;
 }
 
 .request-card,
@@ -899,6 +909,7 @@ watch(
   border-radius: 14px;
   padding: 16px;
   margin-bottom: 12px;
+  isolation: isolate;
 }
 
 .request-head {
@@ -992,8 +1003,8 @@ watch(
 }
 
 .small-btn.danger {
-  background: rgba(220, 38, 38, 0.1);
-  border-color: rgba(220, 38, 38, 0.25);
+  background: #fee2e2;
+  border-color: #f5c6d0;
   color: #dc2626;
 }
 
@@ -1028,8 +1039,8 @@ watch(
 }
 
 .session-item.has-unread {
-  border-color: rgba(220, 38, 38, 0.35);
-  background: rgba(220, 38, 38, 0.05);
+  border-color: #f5c6d0;
+  background: #fef2f2;
 }
 
 .session-main {
@@ -1061,7 +1072,7 @@ watch(
   align-items: center;
   border-radius: 999px;
   padding: 2px 8px;
-  background: rgba(220, 38, 38, 0.1);
+  background: #fee2e2;
   color: #dc2626;
   font-size: 11px;
   font-weight: 700;
@@ -1098,6 +1109,7 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 8px;
+  isolation: isolate;
 }
 
 .history-actions,
@@ -1133,12 +1145,13 @@ watch(
   padding: 8px 10px;
   background: var(--bg-card);
   border: 1px solid var(--border-light);
+  isolation: isolate;
 }
 
 .chat-message.self {
   margin-left: auto;
   background: var(--color-success-bg);
-  border-color: rgba(34, 197, 94, 0.35);
+  border-color: #bde8cc;
 }
 
 .chat-message.other {
@@ -1222,5 +1235,24 @@ watch(
     width: 100%;
     justify-content: flex-start;
   }
+}
+
+/* Dark mode overrides */
+:global(html.dark) .small-btn.danger {
+  background: #3a2225;
+  border-color: #4a2c30;
+}
+
+:global(html.dark) .session-item.has-unread {
+  border-color: #4a2c30;
+  background: #2c1f20;
+}
+
+:global(html.dark) .session-unread {
+  background: #3a2225;
+}
+
+:global(html.dark) .chat-message.self {
+  border-color: #2a3f2e;
 }
 </style>

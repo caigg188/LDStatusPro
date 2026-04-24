@@ -198,7 +198,7 @@ async function getProductMetadata(url, env, baseMeta) {
     ogType: 'product',
     image: productImage,
     imageAlt: `${productName} - LD士多`,
-    cacheControl: 'public, max-age=180'
+    cacheControl: 'no-store, no-cache, must-revalidate'
   })
 }
 
@@ -236,7 +236,7 @@ async function getShopMetadata(url, env, baseMeta) {
     description,
     image: shopImage,
     imageAlt: `${shopName} - LD士多`,
-    cacheControl: 'public, max-age=180'
+    cacheControl: 'no-store, no-cache, must-revalidate'
   })
 }
 
@@ -272,7 +272,7 @@ async function getMerchantMetadata(url, env, baseMeta) {
     ogType: 'profile',
     image: merchantImage,
     imageAlt: `${merchantUsername}的小店 - LD士多`,
-    cacheControl: 'public, max-age=180'
+    cacheControl: 'no-store, no-cache, must-revalidate'
   })
 }
 

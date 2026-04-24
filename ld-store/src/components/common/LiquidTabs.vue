@@ -73,7 +73,8 @@ function updateIndicator() {
   const containerRect = container.getBoundingClientRect()
   const tabRect = tab.getBoundingClientRect()
   
-  const left = tabRect.left - containerRect.left
+  const scrollLeft = container.scrollLeft || 0
+  const left = tabRect.left - containerRect.left + scrollLeft
   const width = tabRect.width
   
   indicatorStyle.value = {
@@ -86,6 +87,12 @@ function updateIndicator() {
 // 选择 Tab
 function selectTab(value) {
   emit('update:modelValue', value)
+  nextTick(() => {
+    const index = props.tabs.findIndex(tab => tab.value === value)
+    if (index >= 0 && tabRefs.value[index]) {
+      tabRefs.value[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    }
+  })
 }
 
 // 监听值变化
@@ -270,10 +277,17 @@ onUnmounted(() => {
     max-width: 100%;
     padding: 4px;
     border-radius: 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
-  
+
+  .liquid-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
   .liquid-tab {
-    flex: 1;
+    flex-shrink: 0;
     justify-content: center;
     padding: 10px 14px;
     font-size: 13px;

@@ -178,8 +178,10 @@ const handleImageError = (e) => {
 function goBack() {
   if (window.history.length > 1) {
     router.back()
+  } else if (route.query.from) {
+    router.push(String(route.query.from))
   } else {
-    router.push('/?tab=stores')
+    router.push({ name: 'Home', query: { tab: 'stores' } })
   }
 }
 

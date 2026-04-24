@@ -67,7 +67,7 @@
         :description="isProductListHiddenByMaintenance ? maintenanceCatalogDescription : `${categoryName} 分类下暂时没有符合条件的物品`"
       >
         <router-link v-if="!isProductListHiddenByMaintenance" to="/" class="back-btn">
-          浏览全部物品
+          ← 返回
         </router-link>
       </EmptyState>
 
@@ -446,10 +446,11 @@ onDeactivated(() => {
 
 .back-btn {
   display: inline-block;
-  padding: 12px 24px;
-  background: var(--color-primary);
-  color: white;
+  padding: 10px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
+  color: var(--text-primary);
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
@@ -457,7 +458,8 @@ onDeactivated(() => {
 }
 
 .back-btn:hover {
-  background: var(--color-primary-hover);
+  background: var(--bg-secondary);
+  border-color: var(--border-hover);
 }
 
 .products-grid {

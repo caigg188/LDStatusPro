@@ -271,7 +271,9 @@ export async function ensureMaintenanceStatusLoaded(options = {}) {
       const payload = await fetchSystemStatus()
       applyMaintenanceStatus(payload)
     } catch {
-      applyMaintenanceStatus({ mode: maintenanceState.mode })
+      if (!hasFetched) {
+        applyMaintenanceStatus({ mode: resolveFallbackMode() })
+      }
     } finally {
       hasFetched = true
       lastFetchedAt = Date.now()

@@ -6,7 +6,6 @@
           <h1 class="page-title">我的消息</h1>
           <p class="page-subtitle">集中查看系统消息与求购洽谈进展</p>
         </div>
-        <router-link to="/user/buy-requests" class="link-btn">我发布的求购</router-link>
       </div>
 
       <div class="summary-card">
@@ -24,24 +23,12 @@
         </div>
       </div>
 
-      <div class="tab-switch">
-        <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'system' }"
-          @click="switchTab('system')"
-        >
-          系统消息
-          <span v-if="summary.systemUnread > 0" class="tab-badge">{{ unreadDisplay(summary.systemUnread) }}</span>
-        </button>
-        <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'buy' }"
-          @click="switchTab('buy')"
-        >
-          求购洽谈
-          <span v-if="summary.buyChatUnread > 0" class="tab-badge">{{ unreadDisplay(summary.buyChatUnread) }}</span>
-        </button>
-      </div>
+      <LiquidTabs
+        :modelValue="activeTab"
+        :tabs="messageTabs"
+        class="tab-switch"
+        @update:modelValue="switchTab"
+      />
 
       <section v-if="activeTab === 'system'" class="panel-wrap">
         <div class="toolbar">
@@ -50,25 +37,28 @@
             class="toolbar-select"
             :options="systemReadStatusOptions"
             placeholder="全部状态"
-            full-width
             variant="toolbar"
             @change="loadSystemMessages(true)"
           />
-          <input
-            v-model="systemFilter.search"
-            type="text"
-            class="toolbar-input"
-            placeholder="搜索系统消息"
-            @keyup.enter="loadSystemMessages(true)"
-          />
-          <button class="toolbar-btn search-btn primary" @click="loadSystemMessages(true)">搜索</button>
-          <button class="toolbar-btn" @click="resetSystemFilter">重置</button>
+          <div class="toolbar-search">
+            <input
+              v-model="systemFilter.search"
+              type="text"
+              class="toolbar-input"
+              placeholder="搜索系统消息"
+              @keyup.enter="loadSystemMessages(true)"
+            />
+            <button class="toolbar-search-btn" @click="loadSystemMessages(true)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+            <button v-if="systemFilter.search" class="toolbar-search-clear" @click="resetSystemFilter">×</button>
+          </div>
           <button
-            class="toolbar-btn"
+            class="toolbar-link-btn"
             :disabled="markAllSystemLoading || summary.systemUnread <= 0"
             @click="markAllSystemRead"
           >
-            {{ markAllSystemLoading ? '处理中...' : '全部标记已读' }}
+            {{ markAllSystemLoading ? '处理中...' : '全部已读' }}
           </button>
         </div>
 
@@ -107,7 +97,7 @@
               <div class="system-actions">
                 <button
                   v-if="!item.isRead"
-                  class="mini-btn"
+                  class="mini-btn mark-read-btn"
                   :disabled="markingSystemId === item.id"
                   @click="markSystemMessageRead(item)"
                 >
@@ -139,7 +129,6 @@
             class="toolbar-select"
             :options="buyRoleOptions"
             placeholder="全部身份"
-            full-width
             variant="toolbar"
             @change="loadSessions(true)"
           />
@@ -147,20 +136,23 @@
             v-model="buyFilter.status"
             class="toolbar-select"
             :options="sessionStatusOptions"
-            placeholder="全部会话状态"
-            full-width
+            placeholder="全部状态"
             variant="toolbar"
             @change="loadSessions(true)"
           />
-          <input
-            v-model="buyFilter.search"
-            type="text"
-            class="toolbar-input"
-            placeholder="搜索求购标题/公开账号"
-            @keyup.enter="loadSessions(true)"
-          />
-          <button class="toolbar-btn search-btn primary" @click="loadSessions(true)">搜索</button>
-          <button class="toolbar-btn" @click="resetBuyFilter">重置</button>
+          <div class="toolbar-search">
+            <input
+              v-model="buyFilter.search"
+              type="text"
+              class="toolbar-input"
+              placeholder="搜索求购标题/公开账号"
+              @keyup.enter="loadSessions(true)"
+            />
+            <button class="toolbar-search-btn" @click="loadSessions(true)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+            <button v-if="buyFilter.role || buyFilter.status || buyFilter.search" class="toolbar-search-clear" @click="resetBuyFilter">×</button>
+          </div>
         </div>
 
         <div v-if="buyLoading" class="state-wrap">加载中...</div>
@@ -230,13 +222,14 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, reactive, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '@/utils/api'
 import { useToast } from '@/composables/useToast'
 import { formatPrice, formatRelativeTime } from '@/utils/format'
 import { fetchMyConversations, resolveConversationPath } from '@/utils/conversation'
 import AppSelect from '@/components/common/AppSelect.vue'
+import LiquidTabs from '@/components/common/LiquidTabs.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ExpandableText from '@/components/common/ExpandableText.vue'
 
@@ -245,6 +238,11 @@ const toast = useToast()
 const MESSAGE_PAGE_SIZE = 20
 
 const activeTab = ref('system')
+
+const messageTabs = computed(() => [
+  { value: 'system', label: `系统消息${summary.value.systemUnread > 0 ? ' ' + unreadDisplay(summary.value.systemUnread) : ''}`, icon: '📬' },
+  { value: 'buy', label: `求购洽谈${summary.value.buyChatUnread > 0 ? ' ' + unreadDisplay(summary.value.buyChatUnread) : ''}`, icon: '💬' }
+])
 
 const summary = ref({
   totalUnread: 0,
@@ -585,6 +583,7 @@ onUnmounted(() => {
 .messages-page {
   min-height: 100vh;
   padding-bottom: 80px;
+  background: var(--bg-primary);
 }
 
 .page-container {
@@ -613,16 +612,6 @@ onUnmounted(() => {
   color: var(--text-tertiary);
 }
 
-.link-btn {
-  border: 1px solid var(--border-color);
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  border-radius: 10px;
-  text-decoration: none;
-  padding: 8px 12px;
-  font-size: 13px;
-}
-
 .summary-card {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -638,6 +627,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  isolation: isolate;
 }
 
 .summary-label {
@@ -655,40 +645,14 @@ onUnmounted(() => {
   color: var(--color-warning);
 }
 
+/* tab-switch via LiquidTabs */
 .tab-switch {
-  display: flex;
-  gap: 8px;
+  width: 100%;
   margin-bottom: 12px;
 }
 
-.tab-btn {
-  border: 1px solid var(--border-color);
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  border-radius: 10px;
-  padding: 8px 14px;
-  font-size: 13px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tab-btn.active {
-  border-color: var(--color-success);
-  color: var(--color-success);
-  background: var(--color-success-bg);
-}
-
-.tab-badge {
-  min-width: 18px;
-  height: 18px;
-  padding: 0 6px;
-  border-radius: 999px;
-  font-size: 11px;
-  color: #fff;
-  background: #dc2626;
-  display: inline-flex;
-  align-items: center;
+.tab-switch :deep(.liquid-tab) {
+  flex: 1;
   justify-content: center;
 }
 
@@ -697,55 +661,128 @@ onUnmounted(() => {
 }
 
 .toolbar {
-  display: grid;
-  grid-template-columns: 160px 180px 1fr auto auto;
-  gap: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 .toolbar-select {
+  flex-shrink: 0;
   min-width: 0;
 }
 
+.toolbar-search {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
 .toolbar-input {
+  width: 100%;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  padding-right: 40px;
   border: 1px solid var(--border-color);
   border-radius: 10px;
   background: var(--bg-card);
   color: var(--text-primary);
-  padding: 10px 12px;
   font-size: 14px;
-  height: 40px;
-  box-sizing: border-box;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 
-.toolbar-btn {
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  padding: 0 14px;
-  font-size: 13px;
-  height: 40px;
-  display: inline-flex;
+.toolbar-input:focus {
+  outline: none;
+  border-color: var(--color-success);
+  background: var(--input-focus-bg);
+  box-shadow: 0 2px 8px var(--glass-shadow-light);
+}
+
+.toolbar-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.toolbar-search-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
   align-items: center;
   justify-content: center;
-  justify-self: start;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 8px;
+  background: var(--glass-bg-heavy);
+  color: var(--text-secondary);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.toolbar-search-btn:hover {
+  opacity: 0.85;
+}
+
+.toolbar-search-clear {
+  position: absolute;
+  right: 36px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  border: none;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.toolbar-search-clear:hover {
+  background: var(--border-color);
+  color: var(--text-secondary);
+}
+
+.toolbar-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(143, 163, 141, 0.25);
+  border-radius: 10px;
+  background: rgba(143, 163, 141, 0.1);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  color: #6b8068;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0 10px;
+  height: 40px;
+  cursor: pointer;
   white-space: nowrap;
+  transition: border-color 0.2s, color 0.2s;
 }
 
-.toolbar-btn:disabled {
-  opacity: 0.6;
+.toolbar-link-btn:hover:not(:disabled) {
+  border-color: rgba(143, 163, 141, 0.45);
+  color: #5a7060;
 }
 
-.toolbar-btn.search-btn {
-  min-width: 72px;
-  padding: 0 12px;
-}
-
-.toolbar-btn.primary {
-  border-color: var(--color-success);
-  background: var(--color-success);
-  color: #fff;
+.toolbar-link-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .state-wrap {
@@ -765,6 +802,7 @@ onUnmounted(() => {
   border: 1px solid var(--border-light);
   border-radius: 14px;
   padding: 14px;
+  isolation: isolate;
 }
 
 .system-card.unread {
@@ -809,7 +847,7 @@ onUnmounted(() => {
 
 .status-pill.read {
   color: var(--text-tertiary);
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
 }
 
 .system-content {
@@ -848,10 +886,12 @@ onUnmounted(() => {
   font-size: 12px;
 }
 
+.mini-btn.mark-read-btn {
+  color: #6b8068;
+}
+
 .mini-btn.primary {
-  border-color: var(--color-success);
-  background: var(--color-success);
-  color: #fff;
+  color: var(--color-primary);
 }
 
 .session-list {
@@ -865,6 +905,7 @@ onUnmounted(() => {
   border: 1px solid var(--border-light);
   border-radius: 14px;
   padding: 14px;
+  isolation: isolate;
 }
 
 .session-card.has-unread {
@@ -916,7 +957,7 @@ onUnmounted(() => {
 .role-badge {
   font-size: 12px;
   color: var(--text-secondary);
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   border: 1px solid var(--border-light);
   border-radius: 999px;
   padding: 2px 10px;
@@ -945,7 +986,7 @@ onUnmounted(() => {
 
 .status-closed,
 .status-cancelled {
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   color: var(--text-tertiary);
 }
 
@@ -970,7 +1011,7 @@ onUnmounted(() => {
 .latest-message {
   margin-top: 10px;
   border: 1px solid var(--border-light);
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   border-radius: 10px;
   padding: 10px;
   font-size: 13px;
@@ -1003,7 +1044,7 @@ onUnmounted(() => {
 }
 
 .unread-badge.muted {
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   color: var(--text-tertiary);
 }
 
@@ -1043,28 +1084,201 @@ onUnmounted(() => {
   opacity: 0.55;
 }
 
-@media (max-width: 760px) {
+/* Mobile */
+@media (max-width: 640px) {
+  .page-header {
+    margin-bottom: 10px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .page-subtitle {
+    font-size: 12px;
+  }
+
   .summary-card {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
   }
 
+  .summary-item {
+    padding: 8px;
+    border-radius: 10px;
+  }
+
+  .summary-label {
+    font-size: 11px;
+  }
+
+  .summary-value {
+    font-size: 18px;
+  }
+
+  .tab-switch :deep(.liquid-tab) {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .tab-switch :deep(.tab-icon) {
+    font-size: 14px;
+  }
+
+  /* toolbar single row */
   .toolbar {
-    grid-template-columns: 1fr;
+    gap: 6px;
+    flex-wrap: nowrap;
   }
 
-  .card-top,
-  .system-top,
+  .toolbar-select {
+    flex-shrink: 0;
+  }
+
+  .toolbar-select :deep(.select-trigger) {
+    height: 36px;
+    box-sizing: border-box;
+    min-height: unset;
+    min-width: unset;
+    width: auto;
+    padding: 0 24px 0 8px;
+    font-size: 12px;
+  }
+
+  .toolbar-select :deep(.select-arrow) {
+    right: 6px;
+    width: 14px;
+    height: 14px;
+  }
+
+  .toolbar-search {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .toolbar-input {
+    height: 36px;
+    padding: 0 8px;
+    padding-right: 34px;
+    font-size: 13px;
+  }
+
+  .toolbar-search-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .toolbar-search-clear {
+    right: 34px;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+  }
+
+  .toolbar-link-btn {
+    height: 36px;
+    box-sizing: border-box;
+    padding: 0 8px;
+    font-size: 12px;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  /* compact system-card */
+  .system-card {
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+
+  .system-title {
+    font-size: 14px;
+  }
+
+  .system-content {
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
   .system-bottom {
+    margin-top: 8px;
     flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .system-actions {
+    width: 100%;
+  }
+
+  .mini-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  /* compact session-card */
+  .session-card {
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+
+  .card-top {
+    flex-direction: column;
+    gap: 6px;
   }
 
   .top-right {
     justify-content: flex-start;
     flex-wrap: wrap;
+    gap: 6px;
   }
 
-  .system-actions {
-    width: 100%;
+  .request-title {
+    font-size: 15px;
+  }
+
+  .request-meta {
+    margin-top: 4px;
+    font-size: 11px;
+  }
+
+  .new-msg-pill,
+  .role-badge,
+  .status-badge,
+  .deal-badge {
+    font-size: 11px;
+    padding: 1px 8px;
+  }
+
+  .identity-row {
+    margin-top: 6px;
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .latest-message {
+    margin-top: 6px;
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .card-bottom {
+    margin-top: 8px;
+  }
+
+  .enter-btn {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .pager {
+    font-size: 12px;
+    gap: 8px;
+  }
+
+  .pager button {
+    padding: 4px 8px;
+    font-size: 12px;
   }
 }
 </style>

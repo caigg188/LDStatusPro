@@ -254,13 +254,25 @@ onUnmounted(() => {
 /* 移动端适配 */
 @media (max-width: 640px) {
   .theme-btn {
-    padding: 8px 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
   }
-  
+
+  .theme-icon :deep(svg) {
+    width: 16px;
+    height: 16px;
+  }
+
+  .theme-icon {
+    width: 16px;
+    height: 16px;
+  }
+
   .theme-text {
     display: none;
   }
-  
+
   .theme-menu {
     right: -10px;
   }

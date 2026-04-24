@@ -246,6 +246,7 @@ onMounted(async () => {
 .my-favorites-page {
   min-height: 100vh;
   padding-bottom: 80px;
+  background: var(--bg-primary);
 }
 
 .page-container {
@@ -288,6 +289,7 @@ onMounted(async () => {
   border: 1px solid var(--border-light);
   border-radius: 14px;
   overflow: hidden;
+  isolation: isolate;
 }
 
 .card-main {
@@ -364,7 +366,7 @@ onMounted(async () => {
   font-size: 12px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   color: var(--text-secondary);
 }
 
@@ -418,7 +420,7 @@ onMounted(async () => {
   gap: 10px;
   padding: 12px 14px;
   border-top: 1px solid var(--border-light);
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
 }
 
 .action-btn {
@@ -462,19 +464,88 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
+/* Mobile */
 @media (max-width: 640px) {
+  .page-header {
+    margin-bottom: 10px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .page-subtitle {
+    font-size: 12px;
+  }
+
+  .favorite-list {
+    gap: 8px;
+  }
+
+  .favorite-card {
+    border-radius: 12px;
+  }
+
   .card-main {
-    align-items: center;
+    gap: 10px;
+    padding: 10px;
   }
 
   .card-cover {
-    width: 74px;
-    height: 74px;
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+  }
+
+  .cover-placeholder {
+    font-size: 24px;
+  }
+
+  .card-title {
+    font-size: 14px;
+  }
+
+  .card-desc {
+    margin: 4px 0;
+    font-size: 12px;
+  }
+
+  .card-meta {
+    gap: 4px;
+  }
+
+  .meta-tag,
+  .meta-info,
+  .meta-time {
+    font-size: 11px;
+  }
+
+  .meta-price {
+    font-size: 12px;
+  }
+
+  .meta-info {
+    padding: 1px 6px;
+  }
+
+  .meta-status {
+    font-size: 10px;
+    padding: 1px 6px;
   }
 
   .meta-time {
     margin-left: 0;
     width: 100%;
+  }
+
+  .card-actions {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .action-btn {
+    padding: 6px 10px;
+    font-size: 12px;
   }
 }
 </style>

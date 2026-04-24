@@ -5,6 +5,13 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   X-Robots-Tag: noindex, nofollow, noarchive
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://mxana.tacool.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self' https: data:; connect-src 'self' https://api2.ldspro.qzz.io https://api1.ldspro.qzz.io https://api.ldspro.qzz.io https://credit.linux.do https://linux.do https://*.linux.do https://*.workers.dev
+
+/index.html
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/*.html
+  Cache-Control: no-store, no-cache, must-revalidate
 
 /assets/*
   Cache-Control: public, max-age=31536000, immutable

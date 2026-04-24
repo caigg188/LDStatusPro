@@ -223,21 +223,26 @@
         </div>
 
         <div class="buy-toolbar">
-          <select v-model="buyStatusFilter" class="buy-toolbar-select" @change="loadBuyRequests(true)">
-            <option value="">全部状态</option>
-            <option v-for="status in buyStatusOptions" :key="status.value" :value="status.value">
-              {{ status.label }}
-            </option>
-          </select>
-          <input
-            v-model="buySearchKeyword"
-            type="text"
-            class="buy-toolbar-input"
-            placeholder="搜索求购标题或内容"
-            @keyup.enter="loadBuyRequests(true)"
+          <AppSelect
+            v-model="buyStatusFilter"
+            :options="[{ value: '', label: '全部状态' }, ...buyStatusOptions]"
+            variant="toolbar"
+            class="buy-toolbar-select"
+            @change="loadBuyRequests(true)"
           />
-          <button class="buy-toolbar-btn" @click="loadBuyRequests(true)">搜索</button>
-          <button class="buy-toolbar-btn secondary" @click="loadBuyRequests(false)">换一批</button>
+          <div class="buy-toolbar-search">
+            <input
+              v-model="buySearchKeyword"
+              type="text"
+              class="buy-toolbar-input"
+              placeholder="搜索求购标题或内容"
+              @keyup.enter="loadBuyRequests(true)"
+            />
+            <button class="buy-toolbar-btn buy-toolbar-btn-search" @click="loadBuyRequests(true)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+          </div>
+          <button class="buy-toolbar-btn secondary buy-toolbar-btn-refresh" @click="loadBuyRequests(false)">换一批</button>
         </div>
 
         <div class="products-header">
@@ -533,6 +538,7 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
 import LiquidTabs from '@/components/common/LiquidTabs.vue'
 import AvatarImage from '@/components/common/AvatarImage.vue'
+import AppSelect from '@/components/common/AppSelect.vue'
 import { MAINTENANCE_STATE, isMaintenanceFeatureEnabled, isRestrictedMaintenanceMode } from '@/config/maintenance'
 
 defineOptions({ name: 'Home' })
@@ -555,8 +561,8 @@ const sentinel = ref(null)
 const sectionTabs = computed(() => {
   const tabs = [
     { value: 'products', label: '物品广场', icon: '🛒' },
-    { value: 'stores', label: '小店集市', icon: '🏪' },
-    { value: 'buy', label: '求购广场', icon: '🌱' }
+    { value: 'buy', label: '求购广场', icon: '🌱' },
+    { value: 'stores', label: '小店集市', icon: '🏪' }
   ]
   if (userStore.isLoggedIn && (userStore.trustLevel || 0) >= 1) {
     tabs.push({ value: 'hotboard', label: '士多热榜', icon: '📊' })
@@ -1602,8 +1608,8 @@ function trendCurve(catTrend) {
 .buy-header {
   margin-bottom: 14px;
   padding: 16px 20px;
-  background: rgba(34, 197, 94, 0.08);
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  background: #eef7f0;
+  border: 1px solid #bde8cc;
   border-radius: 14px;
   display: flex;
   align-items: center;
@@ -1630,20 +1636,48 @@ function trendCurve(catTrend) {
 }
 
 .buy-toolbar {
-  display: grid;
-  grid-template-columns: 180px 1fr 96px 96px;
+  display: flex;
+  align-items: center;
   gap: 10px;
   margin-bottom: 12px;
 }
 
-.buy-toolbar-select,
+.buy-toolbar-select {
+  flex-shrink: 0;
+  min-width: 120px;
+}
+
+.buy-toolbar-select .select-trigger {
+  min-width: 120px;
+}
+
+.buy-toolbar-search {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
 .buy-toolbar-input {
+  width: 100%;
   border: 1px solid var(--border-color);
   border-radius: 10px;
-  background: var(--bg-card);
+  background: var(--input-bg);
   color: var(--text-primary);
   font-size: 14px;
   padding: 10px 12px;
+  padding-right: 40px;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.buy-toolbar-input:focus {
+  outline: none;
+  background: var(--input-focus-bg);
+  border-color: var(--input-focus-border);
+  box-shadow: 0 2px 8px var(--glass-shadow-light);
+}
+
+.buy-toolbar-input::placeholder {
+  color: var(--text-placeholder);
 }
 
 .buy-toolbar-btn {
@@ -1654,11 +1688,35 @@ function trendCurve(catTrend) {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  padding: 10px 16px;
+  white-space: nowrap;
 }
 
 .buy-toolbar-btn.secondary {
   background: var(--bg-tertiary);
   color: var(--text-secondary);
+}
+
+.buy-toolbar-btn-search {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  background: var(--glass-bg-heavy);
+  color: var(--text-secondary);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.buy-toolbar-btn-refresh {
+  flex-shrink: 0;
 }
 
 .buy-grid {
@@ -1677,6 +1735,7 @@ function trendCurve(catTrend) {
   height: 100%;
   cursor: pointer;
   transition: all 0.2s ease;
+  isolation: isolate;
 }
 
 .buy-card:hover {
@@ -1917,19 +1976,56 @@ function trendCurve(catTrend) {
     gap: 4px;
   }
 
+  .sort-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .sort-options {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex-wrap: nowrap;
+  }
+
+  .sort-options::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sort-btn {
+    flex-shrink: 0;
+  }
+
   .catalog-filters {
+    flex: 0 0 auto;
     width: 100%;
     justify-content: flex-start;
+    gap: 8px;
+    flex-wrap: nowrap;
   }
 
   .price-filter {
-    width: 100%;
+    width: auto;
+    gap: 4px;
+    flex-shrink: 1;
+    min-width: 0;
   }
 
   .price-filter-input {
-    flex: 1 1 120px;
+    flex: 1 1 0;
     width: auto;
     min-width: 0;
+    padding: 6px 6px;
+  }
+
+  .price-filter-separator {
+    flex-shrink: 0;
+  }
+
+  .price-filter-btn {
+    padding: 6px 8px;
+    flex-shrink: 0;
   }
   
   .tab-icon {
@@ -2003,7 +2099,41 @@ function trendCurve(catTrend) {
   }
 
   .buy-toolbar {
-    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .buy-toolbar-select {
+    min-width: unset;
+    width: auto;
+  }
+
+  .buy-toolbar-select .select-trigger {
+    min-width: unset;
+    min-height: 36px;
+    padding: 7px 28px 7px 10px;
+    font-size: 13px;
+  }
+
+  .buy-toolbar-select .select-arrow {
+    right: 10px;
+    width: 14px;
+    height: 14px;
+  }
+
+  .buy-toolbar-input {
+    padding: 8px 8px;
+    padding-right: 34px;
+    font-size: 13px;
+  }
+
+  .buy-toolbar-btn-search {
+    width: 28px;
+    height: 28px;
+  }
+
+  .buy-toolbar-btn-refresh {
+    padding: 8px 10px;
+    font-size: 12px;
   }
 }
 
@@ -2568,5 +2698,11 @@ function trendCurve(catTrend) {
   .hotboard-product-right {
     min-width: 48px;
   }
+}
+
+/* Dark mode overrides */
+:global(html.dark) .buy-header {
+  background: #1e2a20;
+  border-color: #2a3f2e;
 }
 </style>

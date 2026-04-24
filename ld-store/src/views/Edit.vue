@@ -44,7 +44,7 @@
         description="无法找到该物品信息"
       >
         <router-link to="/user/products" class="back-btn">
-          返回我的物品
+          ← 返回
         </router-link>
       </EmptyState>
       
@@ -888,10 +888,11 @@ onMounted(async () => {
 /* 返回按钮 */
 .back-btn {
   display: inline-block;
-  padding: 12px 24px;
-  background: var(--color-primary);
-  color: white;
+  padding: 10px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
+  color: var(--text-primary);
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
@@ -899,7 +900,8 @@ onMounted(async () => {
 }
 
 .back-btn:hover {
-  background: var(--color-primary-hover);
+  background: var(--bg-secondary);
+  border-color: var(--border-hover);
 }
 
 /* 表单卡片 */

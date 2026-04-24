@@ -3,8 +3,7 @@
     <div class="page-container">
       <div class="top-nav">
         <button class="top-back-btn" type="button" @click="goBack">
-          <span class="top-back-btn__icon">←</span>
-          <span>返回订单列表</span>
+          ← 返回
         </button>
         <router-link to="/support" class="support-btn top-support-btn">
           <span class="support-heart">💖</span>
@@ -29,7 +28,7 @@
         description="无法找到该订单信息"
       >
         <router-link to="/user/orders" class="back-btn">
-          返回订单列表
+          ← 返回
         </router-link>
       </EmptyState>
       
@@ -780,36 +779,20 @@ onUnmounted(() => {
 }
 
 .top-back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid var(--border-light);
-  border-radius: 999px;
+  padding: 10px 16px;
   background: var(--bg-card);
-  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  color: var(--text-primary);
   font-size: 14px;
-  font-weight: 600;
-  line-height: 1;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  transition: all 0.2s;
 }
 
 .top-back-btn:hover {
   background: var(--bg-secondary);
-  border-color: var(--border-medium);
-  color: var(--text-primary);
-  transform: translateY(-1px);
-}
-
-.top-back-btn:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-primary, #a5b4a3) 60%, white 40%);
-  outline-offset: 2px;
-}
-
-.top-back-btn__icon {
-  font-size: 15px;
+  border-color: var(--border-hover);
 }
 
 @media (max-width: 640px) {
@@ -827,7 +810,7 @@ onUnmounted(() => {
     flex: 1 1 0;
     min-width: 0;
     justify-content: center;
-    padding: 0 10px;
+    padding: 8px 10px;
     font-size: 13px;
   }
 }
@@ -874,10 +857,11 @@ onUnmounted(() => {
 /* 返回按钮 */
 .back-btn {
   display: inline-block;
-  padding: 12px 24px;
-  background: #a5b4a3;
-  color: white;
+  padding: 10px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
+  color: var(--text-primary);
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
@@ -885,7 +869,8 @@ onUnmounted(() => {
 }
 
 .back-btn:hover {
-  background: #95a493;
+  background: var(--bg-secondary);
+  border-color: var(--border-hover);
 }
 
 /* 状态卡片 */

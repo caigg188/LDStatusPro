@@ -6,8 +6,10 @@ compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
 
 # 环境变量（构建时使用）
-# 注意：部署前请修改为你自己的 API 地址
+# 注意：Cloudflare Pages / Wrangler 中的变量名需要与前端代码保持一致
 [vars]
-VITE_API_BASE_URL = "https://your-api-domain.com"
+VITE_API_BASE = "https://api2.ldspro.qzz.io"
+VITE_AUTH_API_BASE = "https://api1.ldspro.qzz.io"
+VITE_IMAGE_API_BASE = "https://api.ldspro.qzz.io"
 VITE_LDC_URL = "https://credit.linux.do"
 VITE_LINUXDO_URL = "https://linux.do"

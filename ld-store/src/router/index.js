@@ -203,6 +203,14 @@ const keepScrollRoutes = ['Home', 'Category']
 const fullMaintenanceAllowedRoutes = new Set(['Maintenance', 'Login', 'AuthCallback'])
 const restrictedMaintenanceAllowedRoutes = new Set([
   'Home',
+  'ProductDetail',
+  'ShopDetail',
+  'MerchantProfile',
+  'Category',
+  'Search',
+  'Docs',
+  'DocsSection',
+  'Support',
   'Login',
   'AuthCallback',
   'Orders',
