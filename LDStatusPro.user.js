@@ -29,7 +29,7 @@
     // @connect      api2.ldspro.qzz.io
     // @updateURL    https://raw.githubusercontent.com/caigg188/LDStatusPro/main/LDStatusPro.user.js
     // @downloadURL  https://raw.githubusercontent.com/caigg188/LDStatusPro/main/LDStatusPro.user.js
-    // @icon         https://linux.do/uploads/default/optimized/4X/6/a/6/6a6affc7b1ce8140279e959d32671304db06d5ab_2_180x180.png
+    // @icon         https://img.ldstore.cc.cd/JackyLiii/20260424_logo-new-5_0vbj4s.png
     // ==/UserScript==
 
     (function() {
@@ -38,11 +38,7 @@
         // 提前定义跨域白名单 & 调试开关（桥接逻辑需要）
         const ALLOWED_ORIGINS = ['https://linux.do', 'https://www.linux.do', 'https://idcflare.com', 'https://www.idcflare.com'];
         const STORE_WEB_URL = 'https://ldcstore.com/';
-        // 使用独立 data URI 保留原 SVG 设计，同时规避内联 gradient/filter 在部分站点环境中的渲染异常。
-        const COLLAPSED_LOGO_DATA_URI = (() => {
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="ldsp-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#8fa8f8"/><stop offset="100%" stop-color="#7ed4c4"/></linearGradient></defs><path d="M 31,4 A 28,28 0 1,1 11,52" fill="none" stroke="url(#ldsp-logo-grad)" stroke-width="8" stroke-linecap="round"/><rect x="25" y="26" width="12" height="12" rx="3" fill="url(#ldsp-logo-grad)" transform="rotate(45 31 32)"/></svg>`;
-            return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-        })();
+        const COLLAPSED_LOGO_DATA_URI = 'https://img.ldstore.cc.cd/JackyLiii/20260424_logo-new-5_0vbj4s.png';
         const DEBUG = {
             bridgeLogs: (typeof GM_getValue === 'function' && GM_getValue('ldsp_debug_bridge', false)) || false
         };
