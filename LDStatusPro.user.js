@@ -10859,7 +10859,7 @@ a:hover{text-decoration:underline;}
                 return {
                     values: sorted.map(i => {
                         const item = weekly.get(i);
-                        return Math.max(0, Utils.toSafeNumber(Utils.getMetricValue(item?.endData || item?.data, name, 0), 0));
+                        return Math.max(0, Utils.toSafeNumber(Utils.getMetricValue(item?.endData, name, 0), 0));
                     }),
                     labels: sorted.map(i => weekly.get(i).label)
                 };
@@ -10872,7 +10872,7 @@ a:hover{text-decoration:underline;}
                 return {
                     values: sorted.map(m => {
                         const item = monthly.get(m);
-                        return Math.max(0, Utils.toSafeNumber(Utils.getMetricValue(item?.endData || item?.data || item, name, 0), 0));
+                        return Math.max(0, Utils.toSafeNumber(Utils.getMetricValue(item?.endData, name, 0), 0));
                     }),
                     dates: sorted.map(m => `${new Date(m).getMonth() + 1}月`)
                 };
