@@ -495,7 +495,8 @@
                 readingGoalHours: 'reading_goal_hours',
                 fontSizeLevel: 'font_size_level',
                 readingLevels: 'reading_levels', readingLevelsTime: 'reading_levels_time',
-                websiteUrl: 'website_url', websiteUrlDate: 'website_url_date'
+                websiteUrl: 'website_url', websiteUrlDate: 'website_url_date',
+                requirementsDisplayMode: 'requirements_display_mode'
             },
             // 用户特定的存储键
             USER_KEYS: new Set(['history', 'milestones', 'lastVisit', 'todayData', 'userAvatar', 'readingTime']),
@@ -10497,6 +10498,10 @@ a:hover{text-decoration:underline;}
                 const canUp = lv < 3, tgt = canUp ? lv + 1 : lv;
                 const [tipText, tipClass] = !canUp ? [lv >= 4 ? '🏆 已达最高等级' : '🎖️ 已达普通用户最高等级', 'max'] : remain > 0 ? [`⏳ 距升级还需完成 ${remain} 项要求`, 'progress'] : ['🎉 已满足升级条件', 'ok'];
 
+                // Filter items for display only; ring stats always reflect full data
+                const rdm = this.panel.storage.getGlobal('requirementsDisplayMode', 'all');
+                const displayReqs = rdm === 'incomplete' ? reqs.filter(item => !item.isSuccess) : reqs;
+
                 const colors = ['#5070d0','#5bb5a6','#f97316','#22c55e','#eab308','#ec4899','#f43f5e','#6b8cef'];
                 const shapes = '●■★❤✨❀';
                 const confetti = pct === 100 ? Array.from({length:28},(_,i)=>{const a=(i/28)*360+(Math.random()-.5)*25,rad=a*Math.PI/180,d=55+Math.random()*45;return`<span class="ldsp-confetti-piece" style="color:${colors[i%8]};--tx:${Math.cos(rad)*d}px;--ty:${Math.sin(rad)*d*.7}px;--drift:${(Math.random()-.5)*40}px;--rot:${(Math.random()-.5)*900}deg;animation-delay:${Math.random()*.06}s">${shapes[Math.floor(Math.random()*6)]}</span>`}).join('') : '';
@@ -10507,13 +10512,17 @@ a:hover{text-decoration:underline;}
                     `<div class="ldsp-ring-stat"><div class="ldsp-ring-stat-val fail">○${remain}</div><div class="ldsp-ring-stat-lbl">待完成</div></div></div>`,
                     `<div class="ldsp-ring-tip ${tipClass}">${tipText}</div>`);
 
-                for (const req of reqs) {
-                    const name = Utils.simplifyName(req.name), prev = this.prevValues.get(req.name);
-                    const upd = prev !== undefined && prev !== req.currentValue;
-                    const chg = req.change ? `<span class="ldsp-item-chg ${req.change>0?'up':'down'}">${req.change>0?'+':''}${req.change}</span>` : '';
-                    h.push(`<div class="ldsp-item ${req.isSuccess?'ok':'fail'}"><span class="ldsp-item-icon">${req.isSuccess?'✓':'○'}</span><span class="ldsp-item-name">${name}</span><div class="ldsp-item-vals"><span class="ldsp-item-cur${upd?' upd':''}">${req.currentValue}</span><span class="ldsp-item-sep">/</span><span class="ldsp-item-req">${req.requiredValue}</span></div>${chg}</div>`);
-                    this.prevValues.set(req.name, req.currentValue);
+                if (displayReqs.length === 0 && rdm === 'incomplete') {
+                    h.push(`<div class="ldsp-empty"><div class="ldsp-empty-icon">🎉</div><div class="ldsp-empty-txt">所有升级要求都已完成</div></div>`);
+                } else {
+                    for (const req of displayReqs) {
+                        const name = Utils.simplifyName(req.name), prev = this.prevValues.get(req.name);
+                        const upd = prev !== undefined && prev !== req.currentValue;
+                        const chg = req.change ? `<span class="ldsp-item-chg ${req.change>0?'up':'down'}">${req.change>0?'+':''}${req.change}</span>` : '';
+                        h.push(`<div class="ldsp-item ${req.isSuccess?'ok':'fail'}"><span class="ldsp-item-icon">${req.isSuccess?'✓':'○'}</span><span class="ldsp-item-name">${name}</span><div class="ldsp-item-vals"><span class="ldsp-item-cur${upd?' upd':''}">${req.currentValue}</span><span class="ldsp-item-sep">/</span><span class="ldsp-item-req">${req.requiredValue}</span></div>${chg}</div>`);
+                    }
                 }
+                this.prevValues = new Map(reqs.map(req => [req.name, req.currentValue]));
                 h.push(`<a class="ldsp-learn-trust" href="https://linux.do/t/topic/2460" target="_blank" rel="noopener">了解论坛信任等级 →</a>`);
                 this.panel.$.reqs.innerHTML = h.join('');
 
@@ -12083,6 +12092,11 @@ a:hover{text-decoration:underline;}
                                         <span class="ldsp-settings-nav-value" data-settings-actions-value></span>
                                         <span class="ldsp-settings-nav-arrow">›</span>
                                     </button>
+                                    <button class="ldsp-settings-nav" data-settings-open="requirements-display">
+                                        <span class="ldsp-settings-nav-main">📋 要求展示</span>
+                                        <span class="ldsp-settings-nav-value" data-settings-requirements-value></span>
+                                        <span class="ldsp-settings-nav-arrow">›</span>
+                                    </button>
                                 </div>
                                 <div class="ldsp-settings-view" data-settings-view="theme">
                                     <div class="ldsp-settings-head">
@@ -12186,6 +12200,26 @@ a:hover{text-decoration:underline;}
                                         <div class="ldsp-settings-order-item" draggable="true" data-order-key="ticket"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">工单按钮</span></div>
                                     </div>
                                     <button class="ldsp-settings-order-reset" type="button">恢复默认顺序</button>
+                                </div>
+                                <div class="ldsp-settings-view" data-settings-view="requirements-display">
+                                    <div class="ldsp-settings-head">
+                                        <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
+                                        <span class="ldsp-settings-head-title">要求展示</span>
+                                    </div>
+                                    <button class="ldsp-settings-option" data-requirements-display-mode="all">
+                                        <span class="ldsp-settings-option-main">
+                                            <span class="ldsp-settings-option-label">展示所有升级数据</span>
+                                            <span class="ldsp-settings-option-desc">默认展示已完成和未完成的升级要求</span>
+                                        </span>
+                                        <span class="ldsp-settings-option-check">✔</span>
+                                    </button>
+                                    <button class="ldsp-settings-option" data-requirements-display-mode="incomplete">
+                                        <span class="ldsp-settings-option-main">
+                                            <span class="ldsp-settings-option-label">只显示未完成</span>
+                                            <span class="ldsp-settings-option-desc">要求板块仅保留尚未达成的项目</span>
+                                        </span>
+                                        <span class="ldsp-settings-option-check">✔</span>
+                                    </button>
                                 </div>
                             </div>
                             <button class="ldsp-toggle" title="折叠面板" aria-label="折叠面板"><span class="ldsp-toggle-arrow">◀</span><img class="ldsp-toggle-logo" src="${COLLAPSED_LOGO_DATA_URI}" alt="" aria-hidden="true" draggable="false"></button>
@@ -12323,6 +12357,8 @@ a:hover{text-decoration:underline;}
                     settingsGoalValues: this.el.querySelectorAll('[data-settings-goal-value]'),
                     settingsFontValues: this.el.querySelectorAll('[data-settings-font-value]'),
                     settingsActionsValues: this.el.querySelectorAll('[data-settings-actions-value]'),
+                    settingsRequirementsValues: this.el.querySelectorAll('[data-settings-requirements-value]'),
+                    settingsRequirementsOptions: this.el.querySelectorAll('.ldsp-settings-option[data-requirements-display-mode]'),
                     settingsThemeOptions: this.el.querySelectorAll('.ldsp-settings-option[data-theme-mode]'),
                     settingsActionInputs: this.el.querySelectorAll('.ldsp-settings-toggle input[data-action-key]'),
                     settingsGoalRange: this.el.querySelector('.ldsp-settings-goal-range'),
@@ -12495,6 +12531,15 @@ a:hover{text-decoration:underline;}
                     if (themeOption) {
                         const mode = themeOption.dataset.themeMode;
                         if (mode) this._setThemeMode(mode);
+                    }
+
+                    const reqDisplayBtn = e.target.closest('[data-requirements-display-mode]');
+                    if (reqDisplayBtn) {
+                        const mode = reqDisplayBtn.dataset.requirementsDisplayMode || 'all';
+                        this.storage.setGlobalNow('requirementsDisplayMode', mode);
+                        this._syncSettingsMenuState();
+                        this._refreshReqsFromCache();
+                        return;
                     }
                 });
                 this.$.settingsMenu?.addEventListener('change', e => {
@@ -13489,7 +13534,21 @@ a:hover{text-decoration:underline;}
                     el.textContent = actionSummary;
                 });
 
+                const rdm = this.storage.getGlobal('requirementsDisplayMode', 'all');
+                this.$.settingsRequirementsOptions?.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.requirementsDisplayMode === rdm);
+                });
+                this.$.settingsRequirementsValues?.forEach(el => {
+                    el.textContent = rdm === 'incomplete' ? '只显示未完成' : '展示全部';
+                });
+
                 this._renderActionOrderList();
+            }
+
+            _refreshReqsFromCache() {
+                if (!this.cachedReqs.length) return;
+                this.animRing = true;
+                this.renderer.renderReqs(this.cachedReqs);
             }
 
             _showSettingsMenu() {
