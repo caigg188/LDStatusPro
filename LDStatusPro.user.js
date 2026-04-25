@@ -2227,8 +2227,7 @@
                         weekDays.push(cursor.toDateString());
                         cursor.setDate(cursor.getDate() + 1);
                     }
-                    const lastDayKey = weekDays.at(-1);
-                    const weekRecord = lastDayKey ? dailyMap.get(lastDayKey) : null;
+                    const weekRecord = [...weekDays].reverse().map(dayKey => dailyMap.get(dayKey)).find(Boolean) || null;
                     const weekData = {};
                     reqs.forEach(r => {
                         const currentVal = Utils.getMetricValue(weekRecord?.endData, r.name, 0);
@@ -2238,7 +2237,7 @@
                     if (weekRecord?.endData) {
                         prevWeekEndData = { ...weekRecord.endData };
                     }
-                    result.set(i, { weekNum: i + 1, start: week.start, end: week.end, label: `第${i + 1}周`, data: weekData });
+                    result.set(i, { weekNum: i + 1, start: week.start, end: week.end, label: `第${i + 1}周`, data: weekData, endData: weekRecord?.endData ? { ...weekRecord.endData } : null });
                 });
 
                 this.cache.set(cacheKey, result);
@@ -2274,7 +2273,7 @@
                     if (latest?.endData) {
                         prevMonthEndData = { ...latest.endData };
                     }
-                    result.set(month, monthData);
+                    result.set(month, { data: monthData, endData: latest?.endData ? { ...latest.endData } : null });
                 });
 
                 this.cache.set(cacheKey, result);
@@ -10624,13 +10623,13 @@ a:hover{text-decoration:underline;}
             renderWeekTrend(hist, reqs, hm, tracker) {
                 let h = this._renderWeekChart(tracker);
                 if (reqs?.length) {
-                    const daily = hm.aggregateDaily(hist, reqs, 7), trends = [];
+                    const daily = this._getCurrentWeekRecords(hist), trends = [];
                     for (const f of this.getTrendFields(reqs)) {
-                        const d = this._calcDailyTrend(daily, f.name, 7);
+                        const d = this._calcAbsoluteDailyTrend(daily, f.name);
                         if (d.values.some(v => v !== 0)) trends.push({label: f.label, ...d, current: f.req.currentValue});
                     }
                     if (trends.length) {
-                        h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 本周每日新增<span class="ldsp-chart-sub">较前一日</span></div>${this._renderSparkRows(trends)}${trends[0].dates.length?`<div class="ldsp-date-labels">${trends[0].dates.map(d=>`<span class="ldsp-date-lbl">${d}</span>`).join('')}</div>`:''}</div>`;
+                        h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 本周每日数据<span class="ldsp-chart-sub">对应日期阅读数据</span></div>${this._renderSparkRows(trends,false,true)}${trends[0].dates.length?`<div class="ldsp-date-labels">${trends[0].dates.map(d=>`<span class="ldsp-date-lbl">${d}</span>`).join('')}</div>`:''}</div>`;
                     }
                 }
                 return h;
@@ -10641,11 +10640,11 @@ a:hover{text-decoration:underline;}
                 if (reqs?.length && hist.length >= 1) {
                     const weekly = hm.aggregateWeekly(hist, reqs), trends = [];
                     for (const f of this.getTrendFields(reqs)) {
-                        const d = this._calcWeeklyTrend(weekly, f.name);
+                        const d = this._calcAbsoluteWeeklyTrend(weekly, f.name);
                         if (d.values.some(v => v !== 0)) trends.push({label: f.label, ...d, current: f.req.currentValue});
                     }
                     if (trends.length) {
-                        h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 本月每周新增<span class="ldsp-chart-sub">较前一周</span></div>${this._renderSparkRows(trends,true)}${trends[0].labels?.length?`<div class="ldsp-date-labels" style="padding-left:60px">${trends[0].labels.map(l=>`<span class="ldsp-date-lbl">${l}</span>`).join('')}</div>`:''}</div>`;
+                        h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 本月每周数据<span class="ldsp-chart-sub">对应周阅读数据</span></div>${this._renderSparkRows(trends,true,true)}${trends[0].labels?.length?`<div class="ldsp-date-labels" style="padding-left:60px">${trends[0].labels.map(l=>`<span class="ldsp-date-lbl">${l}</span>`).join('')}</div>`:''}</div>`;
                     }
                 }
                 return h;
@@ -10658,16 +10657,11 @@ a:hover{text-decoration:underline;}
                     if (hist.length >= 1) {
                         const monthly = hm.aggregateMonthly(hist, reqs), trends = [];
                         for (const f of this.getTrendFields(reqs)) {
-                            const d = this._calcMonthlyTrend(monthly, f.name, currentYear);
+                            const d = this._calcAbsoluteMonthlyTrend(monthly, f.name, currentYear);
                             if (d.values.some(v => v !== 0)) trends.push({label: f.label, ...d, current: f.req.currentValue});
                         }
                         if (trends.length) {
-                            h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📊 本年每月新增<span class="ldsp-chart-sub">较前一月</span></div>`;
-                            trends.forEach(t => {
-                                const maxAbs = Math.max(...t.values.map(v => Math.abs(v)), 1);
-                                h += `<div class="ldsp-spark-row"><span class="ldsp-spark-lbl">${t.label}</span><div class="ldsp-spark-bars" style="max-width:100%">${t.values.map((v,i)=>`<div class="ldsp-spark-bar${i===t.values.length-1?' ldsp-spark-current':''}${v<0?' ldsp-spark-negative':''}" style="height:${Math.max(Math.abs(v)/maxAbs*16,2)}px" data-v="${t.dates?.[i] || `${i + 1}月`}: ${v > 0 ? '+' : ''}${v}"></div>`).join('')}</div><span class="ldsp-spark-val">${t.current}</span></div>`;
-                            });
-                            h += `</div>`;
+                            h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📊 本年每月数据<span class="ldsp-chart-sub">对应月份阅读数据</span></div>${this._renderSparkRows(trends,false,true)}</div>`;
                         }
                     }
                 }
@@ -10838,10 +10832,56 @@ a:hover{text-decoration:underline;}
                 };
             }
 
+            _getCurrentWeekRecords(hist) {
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const start = new Date(today);
+                start.setDate(today.getDate() - (today.getDay() || 7) + 1);
+                const daily = new Map((hist || []).map(record => [new Date(record.dayKey || record.date || record.ts).toDateString(), record]));
+                const records = [];
+                for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
+                    const dayKey = d.toDateString();
+                    const record = daily.get(dayKey);
+                    if (record) records.push({ dayKey, endData: record.endData || record.data || {} });
+                }
+                return records;
+            }
+
+            _calcAbsoluteDailyTrend(records, name) {
+                return {
+                    values: records.map(record => Math.max(0, Utils.toSafeNumber(Utils.getMetricValue(record.endData, name, 0), 0))),
+                    dates: records.map(record => Utils.formatDate(new Date(record.dayKey).getTime(), 'short'))
+                };
+            }
+
+            _calcAbsoluteWeeklyTrend(weekly, name) {
+                const sorted = [...weekly.keys()].sort((a, b) => a - b);
+                return {
+                    values: sorted.map(i => {
+                        const item = weekly.get(i);
+                        return Math.max(0, Utils.toSafeNumber(Utils.getMetricValue(item?.endData || item?.data, name, 0), 0));
+                    }),
+                    labels: sorted.map(i => weekly.get(i).label)
+                };
+            }
+
+            _calcAbsoluteMonthlyTrend(monthly, name, year = null) {
+                const sorted = [...monthly.keys()]
+                    .sort((a, b) => new Date(a) - new Date(b))
+                    .filter(m => year === null || new Date(m).getFullYear() === year);
+                return {
+                    values: sorted.map(m => {
+                        const item = monthly.get(m);
+                        return Math.max(0, Utils.toSafeNumber(Utils.getMetricValue(item?.endData || item?.data || item, name, 0), 0));
+                    }),
+                    dates: sorted.map(m => `${new Date(m).getMonth() + 1}月`)
+                };
+            }
+
             _calcWeeklyTrend(weekly, name) {
                 const sorted = [...weekly.keys()].sort((a, b) => a - b);
                 return {
-                    values: sorted.map(i => Utils.toSafeNumber(weekly.get(i).data[name], 0)),
+                    values: sorted.map(i => Utils.toSafeNumber(weekly.get(i).data?.[name], 0)),
                     labels: sorted.map(i => weekly.get(i).label)
                 };
             }
@@ -10851,7 +10891,7 @@ a:hover{text-decoration:underline;}
                     .sort((a, b) => new Date(a) - new Date(b))
                     .filter(m => year === null || new Date(m).getFullYear() === year);
                 return {
-                    values: sorted.map(m => Utils.toSafeNumber(monthly.get(m)[name], 0)),
+                    values: sorted.map(m => Utils.toSafeNumber(monthly.get(m).data?.[name], 0)),
                     dates: sorted.map(m => `${new Date(m).getMonth() + 1}月`)
                 };
             }
