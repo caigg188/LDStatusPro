@@ -25,7 +25,7 @@
           <div class="status-content">
             <span class="status-text">{{ statusText }}</span>
             <span v-if="myShop.reject_reason" class="reject-reason">
-              拒绝原因: {{ myShop.reject_reason }}
+              原因: {{ myShop.reject_reason }}
             </span>
           </div>
         </div>
