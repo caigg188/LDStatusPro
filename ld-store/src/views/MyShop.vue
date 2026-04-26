@@ -83,14 +83,21 @@
 
         <!-- 操作按钮 -->
         <div class="action-buttons" v-if="!showEditForm">
-          <button 
+          <button
             v-if="myShop.status !== 'offline'"
             class="btn btn-secondary"
             @click="showEditForm = true"
           >
             ✏️ 编辑信息
           </button>
-          <button 
+          <button
+            v-if="myShop.status === 'offline'"
+            class="btn btn-secondary"
+            @click="showEditForm = true"
+          >
+            ✏️ 编辑并重新提交
+          </button>
+          <button
             v-if="myShop.status === 'active'"
             class="btn btn-danger"
             @click="handleOffline"
@@ -98,7 +105,7 @@
           >
             {{ submitting ? '下架中...' : '📤 下架小店' }}
           </button>
-          <a 
+          <a
             v-if="myShop.status === 'active'"
             :href="myShop.shop_url"
             target="_blank"

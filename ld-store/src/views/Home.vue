@@ -199,6 +199,15 @@
             :key="shop.id"
             :shop="shop"
           />
+
+          <div v-if="shopsHasMore" id="shops-sentinel" class="load-more">
+            <div v-if="shopsLoading" class="loading-indicator">
+              <span class="spinner"></span>
+              <span>加载中...</span>
+            </div>
+            <span v-else class="load-hint">⬇️ 滚动加载更多</span>
+          </div>
+          <div v-else class="loaded-all">✨ 已加载全部</div>
         </div>
         
         <EmptyState
@@ -208,7 +217,7 @@
           hint="快来入驻开设你的第一家小店吧~"
         >
           <template #action>
-            <router-link to="/my-shop" class="btn btn-primary mt-4">
+            <router-link to="/user/my-shop" class="btn btn-primary mt-4">
               🏪 小店入驻
             </router-link>
           </template>
@@ -594,6 +603,10 @@ const shops = ref([])
 const shopsLoading = ref(false)
 const shopsLoaded = ref(false)
 const shopsTotal = ref(0)
+const shopsPage = ref(1)
+const shopsPageSize = 20
+const shopsHasMore = ref(false)
+let shopsObserver = null
 
 const buyRequests = ref([])
 const buyLoading = ref(false)
@@ -805,8 +818,12 @@ async function switchSection(section) {
     }
   }
 
-  if (section === 'stores' && !shopsLoaded.value) {
-    await loadShops()
+  if (section === 'stores') {
+    if (!shopsLoaded.value) {
+      await loadShops()
+    }
+    await nextTick()
+    setupShopsInfiniteScroll()
   }
 
   if (section === 'buy' && !buyInitialized.value) {
@@ -823,16 +840,27 @@ async function switchSection(section) {
   }
 }
 
-async function loadShops() {
+async function loadShops(resetPage = true) {
+  if (resetPage) {
+    shopsPage.value = 1
+    shops.value = []
+  }
   shopsLoading.value = true
   try {
-    const result = await api.get('/api/shops?pageSize=50')
+    const result = await api.get(`/api/shops?page=${shopsPage.value}&pageSize=${shopsPageSize}`)
     if (result.success && result.data?.shops) {
-      shops.value = result.data.shops
-      shopsTotal.value = result.data.pagination?.total || result.data.shops.length
+      const newShops = result.data.shops
+      if (resetPage) {
+        shops.value = newShops
+      } else {
+        shops.value = [...shops.value, ...newShops]
+      }
+      shopsTotal.value = result.data.pagination?.total || newShops.length
+      shopsHasMore.value = shopsPage.value < (result.data.pagination?.totalPages || 1)
     } else {
-      shops.value = []
+      if (resetPage) shops.value = []
       shopsTotal.value = 0
+      shopsHasMore.value = false
       toast.error(result.error || '加载小店列表失败，请稍后重试')
     }
   } catch (error) {
@@ -842,6 +870,28 @@ async function loadShops() {
     shopsLoading.value = false
     shopsLoaded.value = true
   }
+}
+
+async function loadMoreShops() {
+  if (shopsLoading.value || !shopsHasMore.value) return
+  shopsPage.value++
+  await loadShops(false)
+}
+
+function setupShopsInfiniteScroll() {
+  if (shopsObserver) shopsObserver.disconnect()
+  const sentinel = document.getElementById('shops-sentinel')
+  if (!sentinel || !shopsHasMore.value) return
+
+  shopsObserver = new IntersectionObserver(
+    async (entries) => {
+      if (entries[0].isIntersecting && !shopsLoading.value && shopsHasMore.value) {
+        await loadMoreShops()
+      }
+    },
+    { rootMargin: '100px' }
+  )
+  shopsObserver.observe(sentinel)
 }
 
 function buyStatusText(status) {
@@ -1132,6 +1182,7 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('resize', updateGridColumns)
   if (observer) observer.disconnect()
+  if (shopsObserver) shopsObserver.disconnect()
 })
 
 onActivated(async () => {
@@ -1144,6 +1195,12 @@ onActivated(async () => {
     await recoverProductsIfNeeded()
     await nextTick()
     setupInfiniteScroll()
+  } else if (activeSection.value === 'stores') {
+    if (!shopsLoaded.value) {
+      await loadShops()
+    }
+    await nextTick()
+    setupShopsInfiniteScroll()
   } else if (activeSection.value === 'buy' && !buyInitialized.value) {
     await loadBuyRequests(true)
   } else if (activeSection.value === 'hotboard' && !hotboardLoaded.value) {

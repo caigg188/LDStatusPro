@@ -181,7 +181,7 @@ function goBack() {
   } else if (route.query.from) {
     router.push(String(route.query.from))
   } else {
-    router.push({ name: 'Home', query: { tab: 'stores' } })
+    router.push({ name: 'Home', query: { section: 'stores' } })
   }
 }
 
