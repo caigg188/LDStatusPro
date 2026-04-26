@@ -189,10 +189,10 @@
           </span>
         </div>
         
-        <div v-if="shopsLoading || !shopsLoaded" class="products-loading">
+        <div v-if="shopsInitialLoading" class="products-loading">
           <Skeleton type="card" :count="4" :columns="gridColumns" />
         </div>
-        
+
         <div v-else-if="shops.length > 0" class="products-grid stores-grid">
           <ShopCard
             v-for="shop in shops"
@@ -200,7 +200,7 @@
             :shop="shop"
           />
 
-          <div v-if="shopsHasMore" id="shops-sentinel" class="load-more">
+          <div v-if="shopsHasMore" ref="shopsSentinel" class="load-more">
             <div v-if="shopsLoading" class="loading-indicator">
               <span class="spinner"></span>
               <span>加载中...</span>
@@ -602,10 +602,12 @@ const priceMaxInput = ref('')
 const shops = ref([])
 const shopsLoading = ref(false)
 const shopsLoaded = ref(false)
+const shopsInitialLoading = ref(true)
 const shopsTotal = ref(0)
 const shopsPage = ref(1)
 const shopsPageSize = 20
 const shopsHasMore = ref(false)
+const shopsSentinel = ref(null)
 let shopsObserver = null
 
 const buyRequests = ref([])
@@ -844,6 +846,7 @@ async function loadShops(resetPage = true) {
   if (resetPage) {
     shopsPage.value = 1
     shops.value = []
+    shopsInitialLoading.value = true
   }
   shopsLoading.value = true
   try {
@@ -868,6 +871,7 @@ async function loadShops(resetPage = true) {
     toast.error(error.message || '加载小店列表失败，请稍后重试')
   } finally {
     shopsLoading.value = false
+    shopsInitialLoading.value = false
     shopsLoaded.value = true
   }
 }
@@ -880,8 +884,7 @@ async function loadMoreShops() {
 
 function setupShopsInfiniteScroll() {
   if (shopsObserver) shopsObserver.disconnect()
-  const sentinel = document.getElementById('shops-sentinel')
-  if (!sentinel || !shopsHasMore.value) return
+  if (!shopsSentinel.value || !shopsHasMore.value) return
 
   shopsObserver = new IntersectionObserver(
     async (entries) => {
@@ -891,7 +894,7 @@ function setupShopsInfiniteScroll() {
     },
     { rootMargin: '100px' }
   )
-  shopsObserver.observe(sentinel)
+  shopsObserver.observe(shopsSentinel.value)
 }
 
 function buyStatusText(status) {
@@ -1168,6 +1171,8 @@ onMounted(async () => {
 
   if (activeSection.value === 'stores') {
     await loadShops()
+    await nextTick()
+    setupShopsInfiniteScroll()
   } else if (activeSection.value === 'buy') {
     await loadBuyRequests(true)
   } else if (activeSection.value === 'hotboard') {
@@ -1211,11 +1216,18 @@ onActivated(async () => {
 onDeactivated(() => {
   savedScrollPosition = window.scrollY
   if (observer) observer.disconnect()
+  if (shopsObserver) shopsObserver.disconnect()
 })
 
 watch(hasMore, (newVal) => {
   if (newVal && activeSection.value === 'products') {
     setupInfiniteScroll()
+  }
+})
+
+watch(shopsHasMore, (newVal) => {
+  if (newVal && activeSection.value === 'stores') {
+    setupShopsInfiniteScroll()
   }
 })
 
