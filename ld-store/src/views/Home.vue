@@ -863,7 +863,7 @@ async function switchSection(section) {
   }
 
   if (section === 'stores') {
-    if (!shopsLoaded.value) {
+    if (!shopsLoaded.value && !shopsLoading.value) {
       await loadShops()
     }
     await nextTick()
@@ -1244,7 +1244,9 @@ onMounted(async () => {
   }
 
   if (activeSection.value === 'stores') {
-    await loadShops()
+    if (!shopsLoaded.value && !shopsLoading.value) {
+      await loadShops()
+    }
     await nextTick()
     setupShopsInfiniteScroll()
   } else if (activeSection.value === 'buy') {
@@ -1275,7 +1277,7 @@ onActivated(async () => {
     await nextTick()
     setupInfiniteScroll()
   } else if (activeSection.value === 'stores') {
-    if (!shopsLoaded.value) {
+    if (!shopsLoaded.value && !shopsLoading.value) {
       await loadShops()
     }
     await nextTick()
