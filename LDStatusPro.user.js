@@ -1,36 +1,36 @@
- // ==UserScript==
-    // @name         LDStatus Pro
-    // @namespace    http://tampermonkey.net/
-    // @version      3.9.0.2
-    // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
-    // @author       JackLiii
-    // @license      MIT
-    // @match        https://linux.do/*
-    // @match        https://idcflare.com/*
-    // @match        https://cdk.linux.do/*
-    // @match        https://credit.linux.do/*
-    // @run-at       document-start
-    // @grant        GM_xmlhttpRequest
-    // @grant        GM_setValue    
-    // @grant        GM_getValue
-    // @grant        GM_info
-    // @grant        GM_openInTab
-    // @grant        GM_notification
-    // @connect      connect.linux.do
-    // @connect      linux.do
-    // @connect      credit.linux.do
-    // @connect      cdk.linux.do
-    // @connect      connect.idcflare.com
-    // @connect      idcflare.com
-    // @connect      github.com
-    // @connect      raw.githubusercontent.com
-    // @connect      api.ldspro.qzz.io
-    // @connect      api1.ldspro.qzz.io
-    // @connect      api2.ldspro.qzz.io
-    // @updateURL    https://raw.githubusercontent.com/caigg188/LDStatusPro/main/LDStatusPro.user.js
-    // @downloadURL  https://raw.githubusercontent.com/caigg188/LDStatusPro/main/LDStatusPro.user.js
-    // @icon         https://img.ldstore.cc.cd/JackyLiii/20260424_logo-new-5_0vbj4s.png
-    // ==/UserScript==
+// ==UserScript==
+// @name         LDStatus Pro
+// @namespace    http://tampermonkey.net/
+// @version      3.9.0.3
+// @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
+// @author       JackLiii
+// @license      MIT
+// @match        https://linux.do/*
+// @match        https://idcflare.com/*
+// @match        https://cdk.linux.do/*
+// @match        https://credit.linux.do/*
+// @run-at       document-start
+// @grant        GM_xmlhttpRequest
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant        GM_info
+// @grant        GM_openInTab
+// @grant        GM_notification
+// @connect      connect.linux.do
+// @connect      linux.do
+// @connect      credit.linux.do
+// @connect      cdk.linux.do
+// @connect      connect.idcflare.com
+// @connect      idcflare.com
+// @connect      github.com
+// @connect      raw.githubusercontent.com
+// @connect      api.ldspro.qzz.io
+// @connect      api1.ldspro.qzz.io
+// @connect      api2.ldspro.qzz.io
+// @updateURL    https://raw.githubusercontent.com/caigg188/LDStatusPro/main/LDStatusPro.user.js
+// @downloadURL  https://raw.githubusercontent.com/caigg188/LDStatusPro/main/LDStatusPro.user.js
+// @icon         https://img.ldstore.cc.cd/JackyLiii/20260424_logo-new-5_0vbj4s.png
+// ==/UserScript==
 
     (function() {
         'use strict';
@@ -5569,6 +5569,30 @@
     .ldsp-bookmark-excerpt .emoji{width:18px!important;height:18px!important;vertical-align:middle!important}
     .ldsp-bookmark-excerpt .lightbox,.ldsp-bookmark-excerpt .lightbox img{display:inline!important;max-width:18px!important;max-height:18px!important}
     .ldsp-bookmark-excerpt .anchor{display:none!important}
+    .ldsp-bookmark-toolbar{grid-template-columns:minmax(0,1fr) auto}
+    .ldsp-bookmark-manage{grid-column:1/-1;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+    .ldsp-bookmark-group-filter,.ldsp-bookmark-export{display:flex;align-items:center;gap:6px;height:28px;padding:0 8px;background:var(--bg-el);border:1px solid var(--border);border-radius:999px;box-sizing:border-box}
+    .ldsp-bookmark-group-filter{flex:1 1 160px;min-width:130px}
+    .ldsp-bookmark-export{flex:0 0 auto}
+    .ldsp-bookmark-manage-label{font-size:10px;color:var(--txt-mut);white-space:nowrap;line-height:1}
+    #ldsp-panel .ldsp-bookmark-group-select,#ldsp-panel .ldsp-bookmark-export-select{display:block;box-sizing:border-box;margin:0;padding:0 18px 0 8px;height:22px;line-height:20px;border:1px solid var(--border);border-radius:7px;background-color:var(--bg-card);background-image:linear-gradient(45deg,transparent 50%,var(--txt-mut) 50%),linear-gradient(135deg,var(--txt-mut) 50%,transparent 50%);background-position:calc(100% - 10px) 50%,calc(100% - 6px) 50%;background-size:4px 4px,4px 4px;background-repeat:no-repeat;color:var(--txt);font-size:11px;font-weight:600;cursor:pointer;outline:none;transition:border-color .15s,background-color .15s,box-shadow .15s,color .15s;appearance:none!important;-webkit-appearance:none!important;-moz-appearance:none!important}
+    #ldsp-panel .ldsp-bookmark-group-select{width:100%;min-width:0}
+    #ldsp-panel .ldsp-bookmark-export-select{width:58px}
+    #ldsp-panel .ldsp-bookmark-group-select:hover,#ldsp-panel .ldsp-bookmark-group-select:focus,#ldsp-panel .ldsp-bookmark-export-select:hover,#ldsp-panel .ldsp-bookmark-export-select:focus{border-color:#f59e0b;background-color:var(--bg-hover);box-shadow:0 0 0 2px rgba(245,158,11,.14)}
+    .ldsp-bookmark-action{height:28px;display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:0 9px;border:1px solid var(--border);border-radius:999px;background:var(--bg-el);color:var(--txt-sec);font-size:10px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s,color .15s,transform .15s;white-space:nowrap}
+    .ldsp-bookmark-action:hover:not(:disabled){background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.42);color:#b45309;transform:translateY(-1px)}
+    .ldsp-bookmark-action.active{background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.48);color:#b45309}
+    .ldsp-bookmark-action.danger:hover:not(:disabled){background:var(--err-bg);border-color:var(--err);color:var(--err)}
+    .ldsp-bookmark-action:disabled{opacity:.45;cursor:not-allowed;transform:none}
+    .ldsp-bookmark-item.select-mode{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:flex-start;column-gap:8px;cursor:default}
+    .ldsp-bookmark-item.select-mode:hover{transform:none}
+    .ldsp-bookmark-item.selected{border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.08)}
+    .ldsp-bookmark-check{display:flex;align-items:center;justify-content:center;width:18px;height:22px;cursor:pointer}
+    #ldsp-panel .ldsp-bookmark-checkbox{width:15px;height:15px;margin:0;accent-color:#f59e0b;cursor:pointer}
+    .ldsp-bookmark-main{display:flex;flex-direction:column;gap:6px;min-width:0}
+    .ldsp-bookmark-group-chip{display:inline-flex;align-items:center;gap:3px;max-width:110px;padding:1px 6px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.24);border-radius:8px;font-size:8px;font-weight:600;color:#059669;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    @media (max-width:430px){.ldsp-bookmark-manage{gap:5px}.ldsp-bookmark-group-filter{flex-basis:100%;height:26px}.ldsp-bookmark-export{height:26px}.ldsp-bookmark-action{height:26px;padding:0 8px;font-size:9px}#ldsp-panel .ldsp-bookmark-group-select,#ldsp-panel .ldsp-bookmark-export-select{height:20px;line-height:18px;font-size:10px}}
+    @media (max-width:320px){.ldsp-bookmark-action span.ldsp-bookmark-action-text,.ldsp-bookmark-manage-label{display:none}.ldsp-bookmark-action{width:28px;padding:0}.ldsp-bookmark-export{padding:0 6px}}
     .ldsp-reply-list{display:flex;flex-direction:column;gap:8px}
     .ldsp-reply-item{display:flex;flex-direction:column;gap:6px;padding:10px;background:var(--bg-card);border:1px solid var(--border);border-left:3px solid #10b981;border-radius:var(--r-md);cursor:pointer;transition:all .15s ease}
     .ldsp-reply-item:hover{background:var(--bg-hover);border-color:rgba(16,185,129,.5);border-left-color:#059669;transform:translateX(2px);box-shadow:0 2px 8px rgba(16,185,129,.1)}
@@ -11038,20 +11062,42 @@ a:hover{text-decoration:underline;}
                 return this._renderBookmarkItems(bm, hasMore);
             }
 
-            renderBookmarkListWithSearch(bookmarks, hasMore, search = '', batchSize = 20, totalLoaded = 0) {
-                const toolbar = `<div class="ldsp-activity-toolbar"><div class="ldsp-activity-search"><span class="ldsp-activity-search-icon">🔍</span><input type="text" placeholder="搜索标题或标签..." value="${Utils.escapeHtml(search)}"><button class="ldsp-activity-search-clear ${search ? 'show' : ''}">×</button></div><div class="ldsp-activity-toolbar-divider"></div><div class="ldsp-activity-batch"><span class="ldsp-activity-batch-label">加载</span><select class="ldsp-activity-batch-select"><option value="20"${batchSize===20?' selected':''}>20</option><option value="50"${batchSize===50?' selected':''}>50</option><option value="100"${batchSize===100?' selected':''}>100</option><option value="200"${batchSize===200?' selected':''}>200</option><option value="300"${batchSize===300?' selected':''}>300</option></select></div></div>`;
-                const stats = `<div class="ldsp-activity-stats">已加载 <strong>${totalLoaded}</strong> 条${search ? ` · 匹配 <strong>${bookmarks.length}</strong> 条` : ''}</div>`;
-                if (!bookmarks?.length) return toolbar + stats + this.renderActivityEmpty('⭐', search ? '未找到匹配的收藏' : '暂无收藏');
-                return toolbar + stats + this._renderBookmarkItems(bookmarks, hasMore);
+            renderBookmarkListWithSearch(bookmarks, hasMore, search = '', batchSize = 20, totalLoaded = 0, options = {}) {
+                const groups = Array.isArray(options.groups) ? options.groups : [];
+                const activeGroup = options.activeGroup || '__all__';
+                const selectMode = !!options.selectMode;
+                const selectedCount = Number(options.selectedCount || 0);
+                const listCount = bookmarks?.length || 0;
+                const groupOptions = [
+                    `<option value="__all__"${activeGroup === '__all__' ? ' selected' : ''}>全部分组</option>`,
+                    `<option value="__ungrouped__"${activeGroup === '__ungrouped__' ? ' selected' : ''}>未分组</option>`,
+                    ...groups.map(g => `<option value="${Utils.escapeHtml(g)}"${activeGroup === g ? ' selected' : ''}>${Utils.escapeHtml(g)}</option>`)
+                ].join('');
+                const toolbar = `<div class="ldsp-activity-toolbar ldsp-bookmark-toolbar"><div class="ldsp-activity-search"><span class="ldsp-activity-search-icon">🔍</span><input type="text" placeholder="搜索标题、标签或内容..." value="${Utils.escapeHtml(search)}"><button class="ldsp-activity-search-clear ${search ? 'show' : ''}">×</button></div><div class="ldsp-activity-batch"><span class="ldsp-activity-batch-label">加载</span><select class="ldsp-activity-batch-select"><option value="20"${batchSize===20?' selected':''}>20</option><option value="50"${batchSize===50?' selected':''}>50</option><option value="100"${batchSize===100?' selected':''}>100</option><option value="200"${batchSize===200?' selected':''}>200</option><option value="300"${batchSize===300?' selected':''}>300</option></select></div><div class="ldsp-bookmark-manage"><div class="ldsp-bookmark-group-filter"><span class="ldsp-bookmark-manage-label">分组</span><select class="ldsp-bookmark-group-select">${groupOptions}</select></div><button class="ldsp-bookmark-action ldsp-bookmark-select-toggle ${selectMode ? 'active' : ''}" title="${selectMode ? '退出选择模式' : '进入选择模式'}">☑<span class="ldsp-bookmark-action-text">${selectMode ? '退出' : '选择'}</span></button><button class="ldsp-bookmark-action ldsp-bookmark-select-visible" ${listCount ? '' : 'disabled'} title="全选当前筛选结果">☷<span class="ldsp-bookmark-action-text">全选</span></button><button class="ldsp-bookmark-action ldsp-bookmark-group-set" ${selectedCount ? '' : 'disabled'} title="给已选收藏设置本地分组">📁<span class="ldsp-bookmark-action-text">分组</span></button><button class="ldsp-bookmark-action ldsp-bookmark-group-clear" ${selectedCount ? '' : 'disabled'} title="移出已选收藏的本地分组">↩<span class="ldsp-bookmark-action-text">移出</span></button><button class="ldsp-bookmark-action danger ldsp-bookmark-delete" ${selectedCount ? '' : 'disabled'} title="从论坛收藏中批量取消收藏">🗑<span class="ldsp-bookmark-action-text">删除</span></button><div class="ldsp-bookmark-export"><span class="ldsp-bookmark-manage-label">导出</span><select class="ldsp-bookmark-export-select"><option value="md">MD</option><option value="json">JSON</option><option value="csv">CSV</option></select></div><button class="ldsp-bookmark-action ldsp-bookmark-export-run" ${(listCount || selectedCount) ? '' : 'disabled'} title="导出已选收藏；未选择时导出当前筛选结果">⬇<span class="ldsp-bookmark-action-text">导出</span></button></div></div>`;
+                const statsParts = [`已加载 <strong>${totalLoaded}</strong> 条`];
+                if (search) statsParts.push(`匹配 <strong>${listCount}</strong> 条`);
+                if (activeGroup && activeGroup !== '__all__') statsParts.push(`分组 <strong>${Utils.escapeHtml(activeGroup === '__ungrouped__' ? '未分组' : activeGroup)}</strong>`);
+                if (selectedCount) statsParts.push(`已选 <strong>${selectedCount}</strong> 条`);
+                const stats = `<div class="ldsp-activity-stats">${statsParts.join(' · ')}</div>`;
+                if (!bookmarks?.length) return toolbar + stats + this.renderActivityEmpty('⭐', (search || activeGroup !== '__all__') ? '未找到匹配的收藏' : '暂无收藏');
+                return toolbar + stats + this._renderBookmarkItems(bookmarks, hasMore, options);
             }
 
-            _renderBookmarkItems(bm, hasMore) {
+            _renderBookmarkItems(bm, hasMore, options = {}) {
                 const ic = { clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>', calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' };
                 // 提取tag名称，兼容新旧格式（新格式是对象数组 {id,name,slug}，旧格式是字符串数组）
                 const getTagName = tag => typeof tag === 'string' ? tag : (tag?.name || '');
+                const selectMode = !!options.selectMode;
+                const selectedIds = new Set((options.selectedIds || []).map(id => String(id)));
+                const groupMap = options.groupMap || {};
                 let h = '<div class="ldsp-bookmark-list">';
                 bm.forEach((b,i) => {
-                    const title = Utils.escapeHtml(b.title||b.fancy_title||'无标题'), tags = b.tags||[], rt = Utils.formatRelativeTime(b.bumped_at), ct = Utils.formatDateTime(b.created_at), url = b.bookmarkable_url||'#', ex = b.excerpt||'';
+                    const rawId = b.id ?? b.bookmark_id ?? b.bookmarkId ?? b.topic_id ?? b.bookmarkable_url ?? i;
+                    const bookmarkId = String(rawId);
+                    const title = Utils.escapeHtml(b.title||b.fancy_title||'无标题'), tags = b.tags||[], rt = Utils.formatRelativeTime(b.bumped_at), ct = Utils.formatDateTime(b.created_at), url = Utils.escapeHtml(b.bookmarkable_url||'#'), ex = b.excerpt||'';
+                    const selected = selectedIds.has(bookmarkId);
+                    const groupName = groupMap[bookmarkId] || '';
+                    const groupH = groupName ? `<span class="ldsp-bookmark-group-chip" title="本地分组">🏷 ${Utils.escapeHtml(groupName)}</span>` : '';
                     const catName = (typeof b.category_name === 'string' && b.category_name.trim())
                         ? b.category_name
                         : (typeof b.category === 'string' ? b.category : (b.category?.name || ''));
@@ -11063,7 +11109,8 @@ a:hover{text-decoration:underline;}
                         : '';
                     const catH = catName ? `<span class="ldsp-bookmark-tag ldsp-bookmark-category" ${catStyle}>📁 ${Utils.escapeHtml(catName)}</span>` : '';
                     const tagsH = (catName || tags.length)?`<div class="ldsp-bookmark-tags">${catH}${tags.slice(0,4).map(t=>`<span class="ldsp-bookmark-tag">${Utils.escapeHtml(getTagName(t))}</span>`).join('')}${tags.length>4?`<span class="ldsp-bookmark-tag-more">+${tags.length-4}</span>`:''}</div>`:'';
-                    h += `<div class="ldsp-bookmark-item" data-url="${url}" data-scroll-key="bookmark-${b.id}" style="animation-delay:${i*30}ms"><div class="ldsp-bookmark-title">${title}</div><div class="ldsp-bookmark-meta"><span class="ldsp-bookmark-time" title="收藏时间">${ic.calendar}${ct||'--'}</span><span class="ldsp-bookmark-time" title="最后活动">${ic.clock}${rt||'--'}</span></div>${tagsH}${ex?`<div class="ldsp-bookmark-excerpt">${ex}</div>`:''}</div>`;
+                    const checkH = selectMode ? `<label class="ldsp-bookmark-check" title="选择收藏"><input type="checkbox" class="ldsp-bookmark-checkbox" data-bookmark-id="${Utils.escapeHtml(bookmarkId)}"${selected ? ' checked' : ''}></label>` : '';
+                    h += `<div class="ldsp-bookmark-item${selectMode ? ' select-mode' : ''}${selected ? ' selected' : ''}" data-bookmark-id="${Utils.escapeHtml(bookmarkId)}" data-url="${url}" data-scroll-key="bookmark-${Utils.escapeHtml(bookmarkId)}" style="animation-delay:${i*30}ms">${checkH}<div class="ldsp-bookmark-main"><div class="ldsp-bookmark-title">${title}</div><div class="ldsp-bookmark-meta"><span class="ldsp-bookmark-time" title="收藏时间">${ic.calendar}${ct||'--'}</span><span class="ldsp-bookmark-time" title="最后活动">${ic.clock}${rt||'--'}</span>${groupH}</div>${tagsH}${ex?`<div class="ldsp-bookmark-excerpt">${ex}</div>`:''}</div></div>`;
                 });
                 return h+'</div>'+(hasMore?'<div class="ldsp-load-more"><div class="ldsp-load-more-spinner"></div><span>加载更多...</span></div>':'');
             }
@@ -11424,6 +11471,36 @@ a:hover{text-decoration:underline;}
                 }
             }
 
+            async deleteBookmark(bookmarkId) {
+                const id = String(bookmarkId || '').trim();
+                if (!id) throw new Error('收藏 ID 无效');
+
+                const requestDelete = async (url) => {
+                    await this.network.fetch(url, {
+                        method: 'DELETE',
+                        maxRetries: 1,
+                        headers: {
+                            'Accept': 'application/json, text/javascript, */*; q=0.01',
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                };
+
+                const jsonUrl = `https://${CURRENT_SITE.domain}/bookmarks/${encodeURIComponent(id)}.json`;
+                try {
+                    await requestDelete(jsonUrl);
+                } catch (e) {
+                    if (!/HTTP 404/.test(e.message || '')) {
+                        throw new Error(e.message || '删除收藏失败');
+                    }
+                    const fallbackUrl = `https://${CURRENT_SITE.domain}/bookmarks/${encodeURIComponent(id)}`;
+                    await requestDelete(fallbackUrl);
+                }
+
+                this.clearCacheEntries('bookmarks');
+                return true;
+            }
+
             // 获取回复列表
             async getReplies(offset = 0, username) {
                 if (!username) throw new Error('未登录');
@@ -11689,14 +11766,22 @@ a:hover{text-decoration:underline;}
             }
 
             // 清除缓存和分页状态
+            clearCacheEntries(type) {
+                if (!type) {
+                    this._cache.clear();
+                    return;
+                }
+                for (const key of this._cache.keys()) {
+                    if (key.startsWith(type)) {
+                        this._cache.delete(key);
+                    }
+                }
+            }
+
             clearCache(type) {
                 if (type) {
                     // 清除特定类型的缓存
-                    for (const key of this._cache.keys()) {
-                        if (key.startsWith(type)) {
-                            this._cache.delete(key);
-                        }
-                    }
+                    this.clearCacheEntries(type);
                     // 同时清除分页状态
                     this._pageState.delete(type);
                 } else {
@@ -16274,6 +16359,407 @@ a:hover{text-decoration:underline;}
                 });
             }
 
+            _normalizeBookmarkState(state) {
+                const source = state && typeof state === 'object' ? state : {};
+                const batchSize = parseInt(source.batchSize, 10);
+                const page = parseInt(source.page, 10);
+                return {
+                    page: Number.isFinite(page) ? page : 0,
+                    allItems: Array.isArray(source.allItems) ? source.allItems : [],
+                    hasMore: source.hasMore !== false,
+                    search: typeof source.search === 'string' ? source.search : '',
+                    batchSize: Number.isFinite(batchSize) && batchSize > 0 ? batchSize : 20,
+                    groupFilter: typeof source.groupFilter === 'string' && source.groupFilter ? source.groupFilter : '__all__',
+                    selectMode: !!source.selectMode,
+                    selectedIds: Array.isArray(source.selectedIds)
+                        ? [...new Set(source.selectedIds.map(id => String(id)).filter(Boolean))]
+                        : []
+                };
+            }
+
+            _getBookmarkId(item) {
+                const id = item?.id ?? item?.bookmark_id ?? item?.bookmarkId ?? item?.topic_id ?? item?.bookmarkable_url;
+                return id == null ? '' : String(id);
+            }
+
+            _getBookmarkGroupsKey(username = this.storage.getUser()) {
+                const safeUser = String(username || 'anonymous').replace(/[^A-Za-z0-9_.-]/g, '_');
+                return `ldsp_${CURRENT_SITE.prefix}_bookmark_groups_${safeUser}`;
+            }
+
+            _getBookmarkGroups(username = this.storage.getUser()) {
+                const raw = GM_getValue(this._getBookmarkGroupsKey(username), null);
+                const data = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+                const legacyMap = data.items ? null : data;
+                const rawItems = data.items && typeof data.items === 'object' ? data.items : legacyMap;
+                const items = {};
+                Object.entries(rawItems || {}).forEach(([id, group]) => {
+                    const cleanId = String(id || '').trim();
+                    const cleanGroup = String(group || '').trim();
+                    if (cleanId && cleanGroup) items[cleanId] = cleanGroup;
+                });
+                const groups = [
+                    ...(Array.isArray(data.groups) ? data.groups : []),
+                    ...Object.values(items)
+                ].map(g => String(g || '').trim()).filter(Boolean);
+                return {
+                    version: 1,
+                    items,
+                    groups: [...new Set(groups)].sort((a, b) => a.localeCompare(b, 'zh-CN'))
+                };
+            }
+
+            _saveBookmarkGroups(username, data) {
+                const items = {};
+                Object.entries(data?.items || {}).forEach(([id, group]) => {
+                    const cleanId = String(id || '').trim();
+                    const cleanGroup = String(group || '').trim();
+                    if (cleanId && cleanGroup) items[cleanId] = cleanGroup;
+                });
+                const groups = [
+                    ...(Array.isArray(data?.groups) ? data.groups : []),
+                    ...Object.values(items)
+                ].map(g => String(g || '').trim()).filter(Boolean);
+                GM_setValue(this._getBookmarkGroupsKey(username), {
+                    version: 1,
+                    items,
+                    groups: [...new Set(groups)].sort((a, b) => a.localeCompare(b, 'zh-CN')),
+                    updatedAt: Date.now()
+                });
+            }
+
+            _getBookmarkGroupNames(state, groupData) {
+                const groups = [
+                    ...(groupData?.groups || []),
+                    ...(state.allItems || []).map(item => groupData?.items?.[this._getBookmarkId(item)] || '')
+                ].map(g => String(g || '').trim()).filter(Boolean);
+                return [...new Set(groups)].sort((a, b) => a.localeCompare(b, 'zh-CN'));
+            }
+
+            _filterBookmarkItems(state, groupData) {
+                const search = state.search || '';
+                let filteredItems = state.allItems || [];
+                if (search) {
+                    const kw = search.toLowerCase();
+                    const getTagName = tag => typeof tag === 'string' ? tag : (tag?.name || '');
+                    filteredItems = filteredItems.filter(b =>
+                        (b.title && b.title.toLowerCase().includes(kw)) ||
+                        (b.fancy_title && b.fancy_title.toLowerCase().includes(kw)) ||
+                        (b.tags && b.tags.some(tag => getTagName(tag).toLowerCase().includes(kw))) ||
+                        (b.excerpt && b.excerpt.toLowerCase().includes(kw))
+                    );
+                }
+
+                const activeGroup = state.groupFilter || '__all__';
+                if (activeGroup !== '__all__') {
+                    filteredItems = filteredItems.filter(item => {
+                        const group = groupData?.items?.[this._getBookmarkId(item)] || '';
+                        return activeGroup === '__ungrouped__' ? !group : group === activeGroup;
+                    });
+                }
+
+                return filteredItems;
+            }
+
+            _renderBookmarkState(container, state) {
+                const username = this.storage.getUser();
+                const groupData = this._getBookmarkGroups(username);
+                const loadedIds = new Set((state.allItems || []).map(item => this._getBookmarkId(item)).filter(Boolean));
+                state.selectedIds = (state.selectedIds || []).filter(id => loadedIds.has(String(id)));
+
+                const filteredItems = this._filterBookmarkItems(state, groupData);
+                const options = {
+                    groups: this._getBookmarkGroupNames(state, groupData),
+                    activeGroup: state.groupFilter || '__all__',
+                    selectMode: state.selectMode,
+                    selectedIds: state.selectedIds,
+                    selectedCount: state.selectedIds.length,
+                    groupMap: groupData.items
+                };
+
+                const search = state.search || '';
+                const batchSize = state.batchSize || 20;
+                this.activityMgr.setPageState('bookmarks', state);
+                container.innerHTML = this.renderer.renderBookmarkListWithSearch(filteredItems, state.hasMore && !search, search, batchSize, state.allItems.length, options);
+                this._bindBookmarkClicks(container, state);
+                this._bindBookmarkSearchEvents(container, state);
+                this._bindBookmarkManageEvents(container, state, filteredItems, groupData);
+
+                if (state.hasMore && !search) {
+                    this._bindActivityScroll(container, 'bookmarks');
+                }
+            }
+
+            _setBookmarkSelection(state, bookmarkId, selected) {
+                const id = String(bookmarkId || '').trim();
+                if (!id) return;
+                const selectedIds = new Set((state.selectedIds || []).map(x => String(x)));
+                if (selected) selectedIds.add(id);
+                else selectedIds.delete(id);
+                state.selectedIds = [...selectedIds];
+            }
+
+            _assignBookmarkGroup(bookmarkIds, groupName) {
+                const username = this.storage.getUser();
+                const data = this._getBookmarkGroups(username);
+                const cleanGroup = String(groupName || '').trim().slice(0, 60);
+                bookmarkIds.map(id => String(id || '').trim()).filter(Boolean).forEach(id => {
+                    if (cleanGroup) data.items[id] = cleanGroup;
+                    else delete data.items[id];
+                });
+                if (cleanGroup && !data.groups.includes(cleanGroup)) data.groups.push(cleanGroup);
+                this._saveBookmarkGroups(username, data);
+            }
+
+            _stripBookmarkHtml(html) {
+                const div = document.createElement('div');
+                div.innerHTML = html || '';
+                return (div.textContent || '').replace(/\s+/g, ' ').trim();
+            }
+
+            _getBookmarkAbsoluteUrl(item) {
+                const raw = item?.bookmarkable_url || item?.url || '';
+                if (!raw) return '';
+                try {
+                    return new URL(raw, `https://${CURRENT_SITE.domain}`).href;
+                } catch {
+                    return raw;
+                }
+            }
+
+            _getBookmarkTagNames(tags) {
+                return (tags || []).map(tag => typeof tag === 'string' ? tag : (tag?.name || '')).filter(Boolean);
+            }
+
+            _getBookmarkCategoryName(item) {
+                return (typeof item?.category_name === 'string' && item.category_name.trim())
+                    ? item.category_name
+                    : (typeof item?.category === 'string' ? item.category : (item?.category?.name || ''));
+            }
+
+            _buildBookmarkExportRows(items, groupData) {
+                return (items || []).map(item => {
+                    const id = this._getBookmarkId(item);
+                    return {
+                        id,
+                        title: item.title || item.fancy_title || '无标题',
+                        url: this._getBookmarkAbsoluteUrl(item),
+                        group: groupData?.items?.[id] || '',
+                        category: this._getBookmarkCategoryName(item),
+                        tags: this._getBookmarkTagNames(item.tags),
+                        created_at: item.created_at || '',
+                        bumped_at: item.bumped_at || '',
+                        excerpt: this._stripBookmarkHtml(item.excerpt || '')
+                    };
+                });
+            }
+
+            _csvCell(value) {
+                const text = Array.isArray(value) ? value.join('; ') : String(value ?? '');
+                return `"${text.replace(/"/g, '""')}"`;
+            }
+
+            _downloadBookmarkText(content, filename, type) {
+                const url = URL.createObjectURL(new Blob([content], { type }));
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            _exportBookmarks(items, format, groupData) {
+                const rows = this._buildBookmarkExportRows(items, groupData);
+                if (!rows.length) {
+                    this.renderer.showToast('⚠️ 没有可导出的收藏');
+                    return;
+                }
+
+                const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '').replace('T', '_');
+                let content = '';
+                let type = 'text/plain;charset=utf-8';
+                let ext = format;
+
+                if (format === 'json') {
+                    content = JSON.stringify({ exported_at: new Date().toISOString(), count: rows.length, bookmarks: rows }, null, 2);
+                    type = 'application/json;charset=utf-8';
+                } else if (format === 'csv') {
+                    const header = ['id', 'title', 'url', 'group', 'category', 'tags', 'created_at', 'bumped_at', 'excerpt'];
+                    content = [
+                        header.join(','),
+                        ...rows.map(row => header.map(key => this._csvCell(row[key])).join(','))
+                    ].join('\n');
+                    type = 'text/csv;charset=utf-8';
+                } else {
+                    ext = 'md';
+                    content = [
+                        '# LDStatus Pro 收藏导出',
+                        '',
+                        `导出时间：${Utils.formatDateTime(new Date().toISOString())}`,
+                        `数量：${rows.length}`,
+                        '',
+                        ...rows.map((row, index) => {
+                            const meta = [
+                                row.group ? `分组：${row.group}` : '',
+                                row.category ? `分类：${row.category}` : '',
+                                row.tags.length ? `标签：${row.tags.join(', ')}` : '',
+                                row.created_at ? `收藏时间：${Utils.formatDateTime(row.created_at)}` : '',
+                                row.bumped_at ? `最后活动：${Utils.formatDateTime(row.bumped_at)}` : ''
+                            ].filter(Boolean);
+                            return [
+                                `## ${index + 1}. ${row.title}`,
+                                '',
+                                `链接：${row.url}`,
+                                meta.length ? meta.join(' · ') : '',
+                                row.excerpt ? `\n> ${row.excerpt}` : ''
+                            ].filter(Boolean).join('\n');
+                        })
+                    ].join('\n\n');
+                    type = 'text/markdown;charset=utf-8';
+                }
+
+                this._downloadBookmarkText(content, `LDStatusPro_bookmarks_${stamp}.${ext}`, type);
+                this.renderer.showToast(`✅ 已导出 ${rows.length} 条收藏`);
+            }
+
+            async _confirmBookmarkAction(message, options = {}) {
+                if (typeof LDSPDialog !== 'undefined' && LDSPDialog?.confirm) {
+                    return await LDSPDialog.confirm(message, options);
+                }
+                return window.confirm(String(message || '').replace(/<[^>]+>/g, ''));
+            }
+
+            async _deleteSelectedBookmarks(container, state) {
+                const ids = [...new Set((state.selectedIds || []).map(id => String(id)).filter(Boolean))];
+                if (!ids.length) {
+                    this.renderer.showToast('⚠️ 请先选择收藏');
+                    return;
+                }
+
+                const confirmed = await this._confirmBookmarkAction(
+                    `确定要从论坛收藏中取消这 ${ids.length} 条收藏吗？<br>这个操作会影响论坛收藏列表。`,
+                    { title: '批量删除收藏', icon: '🗑', okText: '删除', cancelText: '取消', danger: true }
+                );
+                if (!confirmed) return;
+
+                this.renderer.showToast(`⏳ 正在删除 ${ids.length} 条收藏...`);
+                const failedIds = [];
+                const okIds = [];
+                for (const id of ids) {
+                    try {
+                        await this.activityMgr.deleteBookmark(id);
+                        okIds.push(id);
+                    } catch (e) {
+                        failedIds.push(id);
+                        console.warn('[LDStatus Pro] 删除收藏失败:', id, e);
+                    }
+                }
+
+                if (okIds.length) {
+                    const okSet = new Set(okIds);
+                    state.allItems = (state.allItems || []).filter(item => !okSet.has(this._getBookmarkId(item)));
+                    const username = this.storage.getUser();
+                    const groupData = this._getBookmarkGroups(username);
+                    okIds.forEach(id => delete groupData.items[id]);
+                    this._saveBookmarkGroups(username, groupData);
+                }
+
+                state.selectedIds = failedIds;
+                state.selectMode = failedIds.length > 0;
+                this.activityMgr.setPageState('bookmarks', state);
+                await this._loadBookmarks(container, true);
+
+                if (failedIds.length) {
+                    this.renderer.showToast(`⚠️ 已删除 ${okIds.length} 条，${failedIds.length} 条失败`);
+                } else {
+                    this.renderer.showToast(`✅ 已删除 ${okIds.length} 条收藏`);
+                }
+            }
+
+            _bindBookmarkManageEvents(container, state, filteredItems, groupData) {
+                const rerender = () => {
+                    this.activityMgr.setPageState('bookmarks', state);
+                    this._loadBookmarks(container, true);
+                };
+
+                container.querySelector('.ldsp-bookmark-group-select')?.addEventListener('change', (e) => {
+                    state.groupFilter = e.target.value || '__all__';
+                    state.selectedIds = [];
+                    rerender();
+                });
+
+                container.querySelector('.ldsp-bookmark-select-toggle')?.addEventListener('click', () => {
+                    state.selectMode = !state.selectMode;
+                    if (!state.selectMode) state.selectedIds = [];
+                    rerender();
+                });
+
+                container.querySelector('.ldsp-bookmark-select-visible')?.addEventListener('click', () => {
+                    const visibleIds = filteredItems.map(item => this._getBookmarkId(item)).filter(Boolean);
+                    if (!visibleIds.length) return;
+                    state.selectMode = true;
+                    const selected = new Set((state.selectedIds || []).map(id => String(id)));
+                    const allSelected = visibleIds.every(id => selected.has(id));
+                    visibleIds.forEach(id => allSelected ? selected.delete(id) : selected.add(id));
+                    state.selectedIds = [...selected];
+                    rerender();
+                });
+
+                container.querySelectorAll('.ldsp-bookmark-checkbox').forEach(input => {
+                    input.addEventListener('click', e => e.stopPropagation());
+                    input.addEventListener('change', (e) => {
+                        this._setBookmarkSelection(state, e.target.dataset.bookmarkId, e.target.checked);
+                        rerender();
+                    });
+                });
+
+                container.querySelector('.ldsp-bookmark-group-set')?.addEventListener('click', () => {
+                    if (!state.selectedIds?.length) {
+                        this.renderer.showToast('⚠️ 请先选择收藏');
+                        return;
+                    }
+                    const existing = (groupData.groups || []).slice(0, 8).join('、');
+                    const groupName = prompt(`输入分组名称${existing ? `\n已有：${existing}` : ''}`, '');
+                    if (groupName === null) return;
+                    const cleanGroup = groupName.trim().slice(0, 60);
+                    if (!cleanGroup) {
+                        this.renderer.showToast('⚠️ 分组名称不能为空');
+                        return;
+                    }
+                    this._assignBookmarkGroup(state.selectedIds, cleanGroup);
+                    state.selectedIds = [];
+                    this.renderer.showToast(`✅ 已加入分组：${Utils.escapeHtml(cleanGroup)}`);
+                    rerender();
+                });
+
+                container.querySelector('.ldsp-bookmark-group-clear')?.addEventListener('click', () => {
+                    if (!state.selectedIds?.length) {
+                        this.renderer.showToast('⚠️ 请先选择收藏');
+                        return;
+                    }
+                    this._assignBookmarkGroup(state.selectedIds, '');
+                    state.selectedIds = [];
+                    this.renderer.showToast('✅ 已移出分组');
+                    rerender();
+                });
+
+                container.querySelector('.ldsp-bookmark-delete')?.addEventListener('click', async (e) => {
+                    e.currentTarget.disabled = true;
+                    await this._deleteSelectedBookmarks(container, state);
+                });
+
+                container.querySelector('.ldsp-bookmark-export-run')?.addEventListener('click', () => {
+                    const format = container.querySelector('.ldsp-bookmark-export-select')?.value || 'md';
+                    const selected = new Set((state.selectedIds || []).map(id => String(id)));
+                    const exportItems = selected.size
+                        ? filteredItems.filter(item => selected.has(this._getBookmarkId(item)))
+                        : filteredItems;
+                    this._exportBookmarks(exportItems, format, this._getBookmarkGroups(this.storage.getUser()));
+                });
+            }
+
             async _loadBookmarks(container, searchOnly = false, targetBatchSize = null) {
                 // 获取当前用户名
                 const username = this.storage.getUser();
@@ -16283,11 +16769,11 @@ a:hover{text-decoration:underline;}
                 }
 
                 // 获取当前分页状态
-                let state = this.activityMgr.getPageState('bookmarks');
+                let state = this._normalizeBookmarkState(this.activityMgr.getPageState('bookmarks'));
                 
                 // 如果是首次加载，重置状态
                 if (!state.allItems || state.allItems.length === 0) {
-                    state = { page: 0, allItems: [], hasMore: true, search: '', batchSize: 20 };
+                    state = this._normalizeBookmarkState({ ...state, page: 0, allItems: [], hasMore: true });
                 }
 
                 // 使用 targetBatchSize 或 state.batchSize
@@ -16307,8 +16793,8 @@ a:hover{text-decoration:underline;}
                                 const result = await this.activityMgr.getBookmarks(state.page, username);
                                 
                                 // 合并收藏（避免重复）
-                                const existingIds = new Set(state.allItems.map(b => b.id));
-                                const newItems = result.bookmarks.filter(b => !existingIds.has(b.id));
+                                const existingIds = new Set(state.allItems.map(b => this._getBookmarkId(b)));
+                                const newItems = result.bookmarks.filter(b => !existingIds.has(this._getBookmarkId(b)));
                                 state.allItems = [...state.allItems, ...newItems];
                                 state.hasMore = result.hasMore;
                                 state.page = result.page + 1;
@@ -16324,31 +16810,7 @@ a:hover{text-decoration:underline;}
                     }
                 }
 
-                // 根据搜索词过滤
-                const search = state.search || '';
-                let filteredItems = state.allItems;
-                if (search) {
-                    const kw = search.toLowerCase();
-                    // 兼容新旧tags格式（新格式是对象数组 {id,name,slug}，旧格式是字符串数组）
-                    const getTagName = tag => typeof tag === 'string' ? tag : (tag?.name || '');
-                    filteredItems = state.allItems.filter(b => 
-                        (b.title && b.title.toLowerCase().includes(kw)) ||
-                        (b.fancy_title && b.fancy_title.toLowerCase().includes(kw)) ||
-                        (b.tags && b.tags.some(tag => getTagName(tag).toLowerCase().includes(kw))) ||
-                        (b.excerpt && b.excerpt.toLowerCase().includes(kw))
-                    );
-                }
-
-                container.innerHTML = this.renderer.renderBookmarkListWithSearch(filteredItems, state.hasMore && !search, search, batchSize, state.allItems.length);
-                this._bindBookmarkClicks(container);
-
-                // 绑定搜索事件
-                this._bindBookmarkSearchEvents(container, state);
-
-                // 绑定瀑布流滚动加载（搜索时禁用）
-                if (state.hasMore && !search) {
-                    this._bindActivityScroll(container, 'bookmarks');
-                }
+                this._renderBookmarkState(container, state);
             }
 
             _bindBookmarkSearchEvents(container, state) {
@@ -16358,7 +16820,9 @@ a:hover{text-decoration:underline;}
                 
                 const doSearch = () => {
                     clearTimeout(this._bookmarkSearchTimer);
-                    state.search = input.value.trim();
+                    const nextSearch = input.value.trim();
+                    if (state.search !== nextSearch) state.selectedIds = [];
+                    state.search = nextSearch;
                     this.activityMgr.setPageState('bookmarks', state);
                     this._loadBookmarks(container, true);
                 };
@@ -16381,6 +16845,7 @@ a:hover{text-decoration:underline;}
                 clear?.addEventListener('click', () => {
                     input.value = '';
                     clear.classList.remove('show');
+                    if (state.search) state.selectedIds = [];
                     state.search = '';
                     this.activityMgr.setPageState('bookmarks', state);
                     this._loadBookmarks(container, true);
@@ -16721,29 +17186,15 @@ a:hover{text-decoration:underline;}
                             const username = this.storage.getUser();
 
                             if (type === 'bookmarks') {
+                                Object.assign(state, this._normalizeBookmarkState(state));
                                 result = await this.activityMgr.getBookmarks(state.page, username);
-                                const existingIds = new Set(state.allItems.map(b => b.id));
-                                newItems = result.bookmarks.filter(b => !existingIds.has(b.id));
+                                const existingIds = new Set(state.allItems.map(b => this._getBookmarkId(b)));
+                                newItems = result.bookmarks.filter(b => !existingIds.has(this._getBookmarkId(b)));
                                 state.allItems = [...state.allItems, ...newItems];
                                 state.hasMore = result.hasMore;
                                 state.page = result.page + 1;
                                 this.activityMgr.setPageState(type, state);
-                                const search = state.search || '';
-                                const batchSize = state.batchSize || 20;
-                                let filteredItems = state.allItems;
-                                if (search) {
-                                    const kw = search.toLowerCase();
-                                    const getTagName = tag => typeof tag === 'string' ? tag : (tag?.name || '');
-                                    filteredItems = state.allItems.filter(b =>
-                                        (b.title && b.title.toLowerCase().includes(kw)) ||
-                                        (b.fancy_title && b.fancy_title.toLowerCase().includes(kw)) ||
-                                        (b.tags && b.tags.some(tag => getTagName(tag).toLowerCase().includes(kw))) ||
-                                        (b.excerpt && b.excerpt.toLowerCase().includes(kw))
-                                    );
-                                }
-                                container.innerHTML = this.renderer.renderBookmarkListWithSearch(filteredItems, state.hasMore && !search, search, batchSize, state.allItems.length);
-                                this._bindBookmarkClicks(container);
-                                this._bindBookmarkSearchEvents(container, state);
+                                this._renderBookmarkState(container, state);
                             } else if (type === 'replies') {
                                 state.offset += 30;
                                 result = await this.activityMgr.getReplies(state.offset, username);
@@ -16811,7 +17262,7 @@ a:hover{text-decoration:underline;}
                             if (state.hasMore) {
                                 isLoading = false;
                             } else {
-                                this._cleanupActivityScroll();
+                                this._cleanupActivityScroll(false);
                             }
                         } catch (e) {
                             this.renderer.showToast(`⚠️ 加载更多失败: ${e.message}`);
@@ -16834,11 +17285,23 @@ a:hover{text-decoration:underline;}
                 content.addEventListener('scroll', this._activityScrollHandler, { passive: true });
             }
 
-            _bindBookmarkClicks(container) {
+            _bindBookmarkClicks(container, state = null) {
                 container.querySelectorAll('.ldsp-bookmark-item[data-url]').forEach(item => {
                     item.addEventListener('click', (e) => {
                         // 如果点击的是excerpt内的链接，不阻止默认行为
                         if (e.target.closest('.ldsp-bookmark-excerpt a')) {
+                            return;
+                        }
+                        if (e.target.closest('.ldsp-bookmark-check,.ldsp-bookmark-checkbox')) {
+                            return;
+                        }
+                        if (state?.selectMode) {
+                            e.preventDefault();
+                            const id = item.dataset.bookmarkId;
+                            const selected = !(state.selectedIds || []).map(x => String(x)).includes(String(id));
+                            this._setBookmarkSelection(state, id, selected);
+                            this.activityMgr.setPageState('bookmarks', state);
+                            this._loadBookmarks(container, true);
                             return;
                         }
                         e.preventDefault();
@@ -16850,7 +17313,7 @@ a:hover{text-decoration:underline;}
                 });
             }
 
-            _cleanupActivityScroll() {
+            _cleanupActivityScroll(resetState = true) {
                 if (this._activityScrollHandler) {
                     const content = this.el.querySelector('.ldsp-content');
                     if (content) {
@@ -16858,9 +17321,10 @@ a:hover{text-decoration:underline;}
                     }
                     this._activityScrollHandler = null;
                 }
+                if (!resetState) return;
                 // 重置分页状态
                 this.activityMgr.setPageState('read', { page: 0, allTopics: [], hasMore: true, search: '', batchSize: 20 });
-                this.activityMgr.setPageState('bookmarks', { page: 0, allItems: [], hasMore: true });
+                this.activityMgr.setPageState('bookmarks', { page: 0, allItems: [], hasMore: true, search: '', batchSize: 20, groupFilter: '__all__', selectMode: false, selectedIds: [] });
                 this.activityMgr.setPageState('replies', { offset: 0, allItems: [], hasMore: true });
                 this.activityMgr.setPageState('likes', { offset: 0, allItems: [], hasMore: true });
                 this.activityMgr.setPageState('reactions', { lastId: null, allItems: [], hasMore: true });
