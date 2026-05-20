@@ -11854,6 +11854,7 @@ a:hover{text-decoration:underline;}
                 this.registrationPaused = false;  // 后端暂停新用户注册开关（通过 /api/user/status 透出）
                 this.hasJoinedBefore = false;    // 后端 hasJoinedBefore 字段（用于判断老用户）
                 this._readingTimer = null;
+                this._ssoHandled = false;
                 this._destroyed = false;  // 销毁标记
                 this._followDataLoaded = false;
                 this._followProfileLoaded = false;
@@ -11914,7 +11915,6 @@ a:hover{text-decoration:underline;}
                 this.renderer = new Renderer(this);
                 this._bindEvents();
                 this._restore();
-                this.fetch();
 
                 // 初始化全局弹窗管理器（传入面板根元素）
                 LDSPDialog.init(this.el);
@@ -12002,8 +12002,11 @@ a:hover{text-decoration:underline;}
                     justLoggedIn = this._checkPendingOAuthLogin();
                 }
 
-                if (!this.hasLeaderboard) return;
-                
+                if (!this.hasLeaderboard) {
+                    this.fetch();
+                    return;
+                }
+
                 // 注册同步状态回调
                 this.cloudSync.setSyncStateCallback(syncing => {
                     if (this._destroyed) return;
@@ -12023,6 +12026,7 @@ a:hover{text-decoration:underline;}
                 } else {
                     this._checkLoginPrompt();
                 }
+                this.fetch();
             }
             
             // 初始化已登录用户
@@ -12119,6 +12123,7 @@ a:hover{text-decoration:underline;}
                 // 定期刷新数据（只有领导者标签页执行）
                 this._refreshTimer = setInterval(() => {
                     if (!this._destroyed && TabLeader.isLeader()) {
+                        this._ssoHandled = false;
                         this.fetch();
                     }
                 }, CONFIG.INTERVALS.REFRESH);
@@ -12589,6 +12594,7 @@ a:hover{text-decoration:underline;}
                 this.$.btnRefresh.addEventListener('click', () => {
                     if (this.loading) return;
                     this.animRing = true;
+                    this._ssoHandled = false;
                     this.fetch();
                     // 刷新数据时同步检查未读工单
                     this.ticketManager?._checkUnread();
@@ -14282,21 +14288,39 @@ a:hover{text-decoration:underline;}
 
             async fetch() {
                 if (this.loading) return;
+                console.log('[LDSP] fetch() 开始, url:', CURRENT_SITE.apiUrl);
                 this._setLoading(true);
                 this.$.reqs.innerHTML = `<div class="ldsp-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>`;
 
                 try {
                     const url = CURRENT_SITE.apiUrl;
-                    
+
                     // 使用 network.fetch（包含 GM_xmlhttpRequest 绕过跨域，以及 fallback）
-                    const html = await this.network.fetch(url);
-                    
+                    let html = await this.network.fetch(url);
+                    console.log('[LDSP] fetch() HTML 长度:', html ? html.length : 0);
+
+                    // 检测 Connect 页面 SSO 重定向响应
+                    // 首次打开浏览器时 connect 子域名无 session，返回 JSON 重定向而非 HTML
+                    if (html && !this._ssoHandled) {
+                        try {
+                            const json = JSON.parse(html);
+                            if (json.redirect_url) {
+                                console.log('[LDSP] fetch() 检测到 SSO 重定向，跟随 redirect_url');
+                                this._ssoHandled = true;
+                                await this.network.fetch(json.redirect_url);
+                                html = await this.network.fetch(url);
+                                console.log('[LDSP] fetch() SSO 后 HTML 长度:', html ? html.length : 0);
+                            }
+                        } catch (_) { /* 非 JSON，正常 HTML */ }
+                    }
+
                     if (!html) {
                         throw new Error('无法获取数据');
                     }
-                    
+
                     await this._parse(html);
                 } catch (e) {
+                    console.log('[LDSP] fetch() 异常:', e.message || e);
                     // v3.5.2.9: 使用统一的错误格式化
                     this._showError(ErrorFormatter.format(e));
                     // 即使获取升级要求失败，也要确保阅读追踪器正常初始化
@@ -14372,6 +14396,7 @@ a:hover{text-decoration:underline;}
             // 当没有升级要求表格时显示备选内容
             // 优先级：1. 服务端同步的数据 2. summary API 数据
             async _showFallbackStats(username, level) {
+                console.log('[LDSP] _showFallbackStats 触发, username:', username, 'level:', level);
                 const $ = this.$;
                 
                 // 优先从 OAuth 获取用户信息（更可靠，尤其在移动端）
@@ -14546,6 +14571,7 @@ a:hover{text-decoration:underline;}
              * @param {number} level - 信任等级
              */
             _renderCloudRequirements(cloudReqs, username, level) {
+                console.log('[LDSP] 云端升级数据:', JSON.stringify(cloudReqs));
                 const normalizedLevel = Number.parseInt(level, 10);
                 // 0-1级用户使用固定升级目标，避免复用 2+ 规则导致目标值错误
                 if (normalizedLevel === 0 || normalizedLevel === 1) {
@@ -14855,6 +14881,8 @@ a:hover{text-decoration:underline;}
              * 使用与 2 级用户相同的 renderReqs 方法显示进度
              */
             _renderSummaryData(data, username, level) {
+                console.log('[LDSP] Summary 数据:', JSON.stringify(data));
+                console.log('[LDSP] username:', username, 'level:', level);
                 // 构建要求数据结构（用于显示和趋势）
                 const reqs = [];
                 
@@ -14898,8 +14926,8 @@ a:hover{text-decoration:underline;}
                         { key: '访问天数', required: 0, isStats: true },
                         { key: '浏览话题', required: 0, isStats: true },
                         { key: '已读帖子', required: 0, isStats: true },
-                        { key: '回复话题', required: 0, isStats: true },
-                        { key: '点赞', required: 0, isStats: true },
+                        { key: '回复话题', required: 0, isStats: true, aliases: ['回复话题', '回复的话题', '回复'] },
+                        { key: '点赞', required: 0, isStats: true, aliases: ['点赞', '送出赞'] },
                         { key: '获赞', required: 0, isStats: true },
                         { key: '获赞天数', required: 0, isStats: true },
                         { key: '获赞用户', required: 0, isStats: true },
@@ -14924,16 +14952,17 @@ a:hover{text-decoration:underline;}
                         }
                     }
                     const requiredValue = shouldShowFallbackTargets ? (targetMap[this._normalizeConnectRequirementName(config.key)] ?? config.required) : config.required;
-                    const isSuccess = requiredValue <= 0 ? currentValue <= 0 : currentValue >= requiredValue;
+                    const isReverse = PATTERNS.REVERSE.test(config.key);
+                    const isSuccess = isReverse ? currentValue <= requiredValue : currentValue >= requiredValue;
                     const prev = this.prevReqs.find(p => p.name === config.key || aliases.includes(p.name));
-                    
+
                     reqs.push({
                         name: config.key,
                         currentValue,
                         requiredValue,
                         isSuccess,
                         change: prev ? currentValue - prev.currentValue : 0,
-                        isReverse: false
+                        isReverse
                     });
                 });
                 
@@ -15405,6 +15434,13 @@ a:hover{text-decoration:underline;}
                 if (!reqs.length) {
                     return await this._showFallbackStats(username, level);
                 }
+                console.log('[LDSP] 升级数据:', JSON.stringify(reqs.map(r => ({
+                    name: r.name,
+                    cur: r.currentValue,
+                    req: r.requiredValue,
+                    ok: r.isSuccess,
+                    rev: r.isReverse
+                }))));
                 const orderedReqs = Utils.reorderRequirements(reqs);
                 let isOK = orderedReqs.every(r => r.isSuccess);
                 const statusEl = section.querySelector('.badge, .status-met, .status-unmet, p[class*="status"]');
