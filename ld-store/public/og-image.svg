@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f5f0e8"/>
+      <stop offset="100%" style="stop-color:#e8dfd3"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#b5a898"/>
+      <stop offset="100%" style="stop-color:#8b7d6b"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  
+  <!-- Decorative elements -->
+  <circle cx="100" cy="100" r="200" fill="#b5a898" opacity="0.1"/>
+  <circle cx="1100" cy="530" r="250" fill="#b5a898" opacity="0.1"/>
+  
+  <!-- Main content -->
+  <g transform="translate(600, 280)">
+    <!-- Store icon -->
+    <text x="0" y="-60" text-anchor="middle" font-size="120" fill="#b5a898">🏪</text>
+    
+    <!-- Title -->
+    <text x="0" y="60" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="bold" fill="#5a4d3f">LD士多</text>
+    
+    <!-- Subtitle -->
+    <text x="0" y="130" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="36" fill="#8b7d6b">LDC积分商城</text>
+    
+    <!-- Description -->
+    <text x="0" y="200" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="24" fill="#a09080">在这里兑换各种有趣的商品和服务</text>
+  </g>
+  
+  <!-- Bottom accent bar -->
+  <rect x="0" y="610" width="1200" height="20" fill="url(#accent)"/>
+</svg>

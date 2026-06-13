@@ -1,0 +1,3019 @@
+<template>
+  <div class="home-page">
+    <div class="page-container">
+      <!-- Banner -->
+      <div class="home-banner">
+        <div class="banner-content">
+          <h1 class="banner-title">🍔 LD士多</h1>
+          <p class="banner-subtitle">
+            <a href="https://linux.do" target="_blank" class="link-linuxdo">LinuxDo社区</a>
+            虚拟物品与服务 <span class="highlight-red">兑换中心</span>
+          </p>
+          <p class="banner-subtitle">
+            快使用你的
+            <a href="https://credit.linux.do/" target="_blank" class="highlight-yellow link-credit">社区积分</a>
+            兑换物品吧
+          </p>
+        </div>
+        <div class="banner-stats">
+          <div class="stat-group">
+            <div class="stat-item">
+              <span class="stat-value">{{ stats.products?.online || 0 }}</span>
+              <span class="stat-label">在售物品</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ stats.products?.total || 0 }}</span>
+              <span class="stat-label">累计上架</span>
+            </div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-group">
+            <div class="stat-item">
+              <span class="stat-value">{{ stats.orders?.today || 0 }}</span>
+              <span class="stat-label">今日成交</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ stats.orders?.week || 0 }}</span>
+              <span class="stat-label">7日成交</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">{{ stats.orders?.total || 0 }}</span>
+              <span class="stat-label">累计成交</span>
+            </div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-group">
+            <div class="stat-item">
+              <span class="stat-value">{{ stats.stores || 0 }}</span>
+              <span class="stat-label">入驻小店</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 板块切换 -->
+      <div class="section-tabs-wrapper">
+        <LiquidTabs
+          v-model="activeSection"
+          :tabs="sectionTabs"
+          @update:model-value="switchSection"
+        />
+      </div>
+      
+      <!-- 物品广场 -->
+      <div v-show="activeSection === 'products'" class="section-content">
+        <!-- 分类筛选（排除小店） -->
+        <div class="filter-section">
+          <CategoryFilter
+            :categories="marketCategories"
+            :current-category="currentCategory"
+            @select="handleCategorySelect"
+          />
+        </div>
+        
+        <!-- 排序和筛选选项 -->
+        <div class="sort-section">
+          <div class="sort-options">
+            <button
+              v-for="tab in sortTabs"
+              :key="tab.value"
+              class="sort-btn"
+              :class="{ active: currentSort === tab.value }"
+              @click="handleSortChange(tab.value)"
+            >
+              {{ tab.label }}
+            </button>
+          </div>
+          <div class="catalog-filters">
+            <div class="price-filter">
+              <input
+                v-model="priceMinInput"
+                type="number"
+                min="0"
+                step="0.01"
+                class="price-filter-input"
+                placeholder="最低折后价"
+                @keyup.enter="applyPriceFilter"
+              />
+              <span class="price-filter-separator">-</span>
+              <input
+                v-model="priceMaxInput"
+                type="number"
+                min="0"
+                step="0.01"
+                class="price-filter-input"
+                placeholder="最高折后价"
+                @keyup.enter="applyPriceFilter"
+              />
+              <button class="price-filter-btn" @click="applyPriceFilter">筛选</button>
+              <button
+                v-if="hasDraftPriceFilter || hasActivePriceFilter"
+                class="price-filter-btn secondary"
+                @click="clearPriceFilter"
+              >
+                清空
+              </button>
+            </div>
+            <label class="stock-filter" @click="handleToggleInStock">
+              <span class="checkbox" :class="{ checked: inStockOnly }">
+                <span class="checkmark" v-if="inStockOnly">✓</span>
+              </span>
+              <span class="filter-label">只看有货</span>
+            </label>
+          </div>
+        </div>
+        
+        <!-- 物品统计 -->
+        <div class="products-header">
+          <span class="products-count">
+            <template v-if="isProductListHiddenByMaintenance">
+              {{ maintenanceTitle }}
+            </template>
+            <template v-else>
+              {{ currentCategoryName }} 共 <strong>{{ total }}</strong> 件物品
+            </template>
+            <span v-if="inStockOnly" class="filter-tag">有库存</span>
+            <span v-if="hasActivePriceFilter" class="filter-tag price-tag">{{ activePriceFilterLabel }}</span>
+          </span>
+        </div>
+        
+        <!-- 物品列表 -->
+        <div v-if="initialLoading" class="products-loading">
+          <Skeleton type="card" :count="6" :columns="gridColumns" />
+        </div>
+        
+        <div v-else-if="marketProducts.length > 0" class="products-grid">
+          <ProductCard
+            v-for="product in marketProducts"
+            :key="product.id"
+            :product="product"
+            :categories="categories"
+          />
+          
+          <!-- 加载更多 -->
+          <div v-if="hasMore" ref="sentinel" class="load-more">
+            <div v-if="loading" class="loading-indicator">
+              <span class="spinner"></span>
+              <span>加载中...</span>
+            </div>
+            <span v-else class="load-hint">⬇️ 滚动加载更多</span>
+          </div>
+          <div v-else class="loaded-all">✨ 已加载全部</div>
+        </div>
+        
+        <!-- 空状态 -->
+        <EmptyState
+          v-else
+          :icon="isProductListHiddenByMaintenance ? '🚧' : '🛒'"
+          :text="isProductListHiddenByMaintenance ? maintenanceTitle : '暂无物品'"
+          :hint="isProductListHiddenByMaintenance ? maintenanceCatalogHint : '快来发布第一个物品吧~'"
+        >
+          <template v-if="!isProductListHiddenByMaintenance" #action>
+            <router-link to="/publish" class="btn btn-primary mt-4">
+              ➕ 发布物品
+            </router-link>
+          </template>
+        </EmptyState>
+      </div>
+      
+      <!-- 小店集市 -->
+      <div v-show="activeSection === 'stores'" class="section-content">
+        <div class="stores-header">
+          <p class="stores-desc">🏪 汇集各路大佬的自建小店，欢迎入驻🎉</p>
+        </div>
+
+        <!-- 小店筛选 -->
+        <div class="stores-filter">
+          <div class="stores-tag-filter">
+            <button
+              v-for="tag in SHOPS_TAGS"
+              :key="tag"
+              class="stores-tag-btn"
+              :class="{ active: shopsTagFilter.includes(tag), ['tag-' + tagClassMap[tag]]: shopsTagFilter.includes(tag) }"
+              @click="toggleShopsTag(tag)"
+            >
+              <span>{{ tag }}</span>
+              <span v-if="shopsTagFilter.includes(tag)" class="tag-remove" @click.stop="removeShopsTag(tag)">×</span>
+            </button>
+          </div>
+          <div class="stores-search">
+            <input
+              v-model="shopsSearchKeyword"
+              type="text"
+              class="stores-search-input"
+              placeholder="搜索小店名称、店主或描述"
+              @keyup.enter="loadShops(true)"
+            />
+            <button class="stores-search-btn" @click="loadShops(true)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+          </div>
+          <button
+            v-if="shopsTagFilter.length || shopsSearchKeyword.trim()"
+            class="stores-reset-btn"
+            @click="resetShopsFilter"
+          >重置</button>
+        </div>
+        
+        <!-- 小店统计 -->
+        <div class="products-header">
+          <span class="products-count">
+            <template v-if="shopsTagFilter.length || shopsSearchKeyword.trim()">
+              筛选结果 共 <strong>{{ shopsTotal }}</strong> 个小店
+            </template>
+            <template v-else>
+              全部 共 <strong>{{ shopsTotal }}</strong> 个小店
+            </template>
+          </span>
+        </div>
+        
+        <div v-if="shopsInitialLoading" class="products-loading">
+          <Skeleton type="card" :count="4" :columns="gridColumns" />
+        </div>
+
+        <div v-else-if="shops.length > 0" class="products-grid stores-grid">
+          <ShopCard
+            v-for="shop in shops"
+            :key="shop.id"
+            :shop="shop"
+          />
+
+          <div v-if="shopsHasMore" ref="shopsSentinel" class="load-more">
+            <div v-if="shopsLoading" class="loading-indicator">
+              <span class="spinner"></span>
+              <span>加载中...</span>
+            </div>
+            <span v-else class="load-hint">⬇️ 滚动加载更多</span>
+          </div>
+          <div v-else class="loaded-all">✨ 已加载全部</div>
+        </div>
+        
+        <EmptyState
+          v-else
+          icon="🏬"
+          text="暂无小店"
+          hint="快来入驻开设你的第一家小店吧~"
+        >
+          <template #action>
+            <router-link to="/user/my-shop" class="btn btn-primary mt-4">
+              🏪 小店入驻
+            </router-link>
+          </template>
+        </EmptyState>
+      </div>
+
+      <div v-show="activeSection === 'buy'" class="section-content">
+        <div class="buy-header">
+          <p class="buy-desc">🚨 为了保证双方的权益，请勿在私信中直接联系方式。沟通好积分后支付LDC后会开放双方L站联系方式！🪧<a href="/docs/buy-request" style="color: green;">查看求购操作指南👈</a></p>
+          
+          <button class="buy-publish-btn" @click="publishBuyRequest">+ 发布求购</button>
+        </div>
+
+        <div class="buy-toolbar">
+          <AppSelect
+            v-model="buyStatusFilter"
+            :options="[{ value: '', label: '全部状态' }, ...buyStatusOptions]"
+            variant="toolbar"
+            class="buy-toolbar-select"
+            @change="loadBuyRequests(true)"
+          />
+          <div class="buy-toolbar-search">
+            <input
+              v-model="buySearchKeyword"
+              type="text"
+              class="buy-toolbar-input"
+              placeholder="搜索求购标题或内容"
+              @keyup.enter="loadBuyRequests(true)"
+            />
+            <button class="buy-toolbar-btn buy-toolbar-btn-search" @click="loadBuyRequests(true)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+          </div>
+          <button class="buy-toolbar-btn secondary buy-toolbar-btn-refresh" @click="loadBuyRequests(false)">换一批</button>
+        </div>
+
+        <div class="products-header">
+          <span class="products-count">
+            求购信息 <strong>{{ buyPagination.total }}</strong> 条
+          </span>
+        </div>
+
+        <div v-if="buyLoading || !buyInitialized" class="products-loading">
+          <Skeleton type="card" :count="6" :columns="gridColumns" />
+        </div>
+
+        <div v-else-if="buyRequests.length > 0" class="buy-grid">
+          <article
+            v-for="item in buyRequests"
+            :key="item.id"
+            class="buy-card"
+            @click="goBuyRequestDetail(item.id)"
+          >
+            <div class="buy-card-head">
+              <h3 class="buy-card-title">{{ item.title }}</h3>
+              <span :class="['buy-status-pill', `buy-status-${buyStatusClass(item.status)}`]">
+                {{ buyStatusText(item.status) }}
+              </span>
+            </div>
+            <p class="buy-card-detail">{{ item.details }}</p>
+            <div class="buy-card-meta">
+              <span class="buy-price">{{ item.budgetPrice }} LDC</span>
+              <span class="buy-meta-sep">·</span>
+              <span>{{ item.requesterPublicUsername }}</span>
+              <span class="buy-meta-sep">·</span>
+              <span>密码 {{ item.requesterPublicPassword }}</span>
+            </div>
+            <div class="buy-card-footer">
+              <span>会话 {{ item.sessionCount || 0 }}</span>
+              <span>{{ formatRelativeTime(item.updatedAt || item.createdAt) }}</span>
+            </div>
+          </article>
+        </div>
+
+        <EmptyState
+          v-else
+          icon="🌱"
+          text="暂无求购信息"
+          hint="你可以先发布你的需求，等待服务方联系"
+        >
+          <template #action>
+            <button class="btn btn-primary mt-4" @click="publishBuyRequest">
+              + 发布求购
+            </button>
+          </template>
+        </EmptyState>
+
+        <div v-if="buyPagination.totalPages > 1" class="buy-pagination">
+          <button
+            class="buy-page-btn"
+            :disabled="buyPagination.page <= 1 || buyLoading"
+            @click="goBuyPage(buyPagination.page - 1)"
+          >
+            上一页
+          </button>
+          <span class="buy-page-text">第 {{ buyPagination.page }} / {{ buyPagination.totalPages }} 页</span>
+          <button
+            class="buy-page-btn"
+            :disabled="buyPagination.page >= buyPagination.totalPages || buyLoading"
+            @click="goBuyPage(buyPagination.page + 1)"
+          >
+            下一页
+          </button>
+        </div>
+      </div>
+
+      <!-- 士多热榜 -->
+      <div v-show="activeSection === 'hotboard'" class="section-content hotboard-section-wrapper">
+        <div v-if="hotboardLoading" class="products-loading">
+          <Skeleton type="card" :count="4" :columns="2" />
+        </div>
+
+        <div v-else-if="hotboardError" class="hotboard-error">
+          <EmptyState icon="📊" :text="hotboardError" hint="请稍后重试" />
+        </div>
+
+        <div v-else-if="hotboardData" class="hotboard-container">
+          <!-- 总览 Hero -->
+          <div class="hotboard-hero">
+            <div class="hotboard-hero-head">
+              <div class="hotboard-hero-title">
+                <span class="hotboard-hero-icon">📊</span>
+                <span>士多热榜</span>
+              </div>
+              <span class="hotboard-hero-tl">TL{{ hotboardData.trustLevel }}</span>
+            </div>
+            <div class="hotboard-hero-stats">
+              <div class="hotboard-hero-stat">
+                <span class="hotboard-hero-stat-value">{{ hotboardData.totalStats?.totalViews || 0 }}</span>
+                <span class="hotboard-hero-stat-label">今日物品总浏览</span>
+              </div>
+              <div class="hotboard-hero-stat-divider"></div>
+              <div class="hotboard-hero-stat">
+                <span class="hotboard-hero-stat-value">{{ hotboardData.totalStats?.totalOrders || 0 }}</span>
+                <span class="hotboard-hero-stat-label">今日总单数</span>
+              </div>
+              <div class="hotboard-hero-stat-divider"></div>
+              <div class="hotboard-hero-stat">
+                <span class="hotboard-hero-stat-value">{{ hotboardData.totalStats?.totalSold || 0 }}</span>
+                <span class="hotboard-hero-stat-label">今日总售出</span>
+              </div>
+            </div>
+            <p class="hotboard-hero-hint">数据基于北京时间今日 · 约2分钟刷新</p>
+          </div>
+
+          <!-- 热卖卖家 Top3 -->
+          <div class="hotboard-section" v-if="hotboardData.sellerTop?.length">
+            <h3 class="hotboard-section-title">🔥 今日热卖卖家</h3>
+            <div class="hotboard-seller-list">
+              <router-link
+                v-for="seller in hotboardData.sellerTop"
+                :key="seller.username"
+                :to="`/merchant/${seller.username}`"
+                class="hotboard-seller-item"
+                :class="`seller-rank-${seller.rank}`"
+              >
+                <span class="hotboard-seller-medal">
+                  <template v-if="seller.rank === 1">🥇</template>
+                  <template v-else-if="seller.rank === 2">🥈</template>
+                  <template v-else-if="seller.rank === 3">🥉</template>
+                </span>
+                <AvatarImage
+                  :candidates="[seller.avatar]"
+                  :seed="seller.username"
+                  :size="44"
+                  :alt="seller.username"
+                  class="hotboard-seller-avatar"
+                  :style="{ width: '44px', height: '44px', borderRadius: '50%' }"
+                />
+                <span class="hotboard-seller-name">{{ seller.username }}</span>
+              </router-link>
+            </div>
+          </div>
+
+          <!-- 浏览 Top5 -->
+          <div class="hotboard-section" v-if="hotboardData.viewTop?.length">
+            <h3 class="hotboard-section-title">👀 今日浏览榜</h3>
+            <div class="hotboard-product-list">
+              <router-link
+                v-for="item in hotboardData.viewTop"
+                :key="item.id"
+                :to="`/product/${item.id}`"
+                class="hotboard-product-item"
+              >
+                <span class="hotboard-rank-badge" :class="`rank-${item.rank}`">{{ item.rank }}</span>
+                <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="hotboard-product-image" />
+                <div v-else class="hotboard-product-image-placeholder">📦</div>
+                <div class="hotboard-product-info">
+                  <span class="hotboard-product-name">{{ item.name }}</span>
+                  <span class="hotboard-product-meta">
+                    {{ item.categoryIcon }} {{ item.categoryName }}<template v-if="item.sellerUsername"> · {{ item.sellerUsername }}</template>
+                  </span>
+                </div>
+                <div class="hotboard-product-right">
+                  <span class="hotboard-product-count">{{ item.viewCount }}<span class="hotboard-count-unit">次</span></span>
+                  <span class="hotboard-product-price">{{ formatPrice(item.discount ? item.price * item.discount : item.price ?? 0) }}<span class="hotboard-price-unit">LDC</span></span>
+                </div>
+              </router-link>
+            </div>
+          </div>
+
+          <!-- 热卖 Top5 -->
+          <div class="hotboard-section" v-if="hotboardData.soldTop?.length">
+            <h3 class="hotboard-section-title">🛍️ 今日热卖榜</h3>
+            <div class="hotboard-product-list">
+              <router-link
+                v-for="item in hotboardData.soldTop"
+                :key="item.id"
+                :to="`/product/${item.id}`"
+                class="hotboard-product-item"
+              >
+                <span class="hotboard-rank-badge" :class="`rank-${item.rank}`">{{ item.rank }}</span>
+                <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" class="hotboard-product-image" />
+                <div v-else class="hotboard-product-image-placeholder">📦</div>
+                <div class="hotboard-product-info">
+                  <span class="hotboard-product-name">{{ item.name }}</span>
+                  <span class="hotboard-product-meta">
+                    {{ item.categoryIcon }} {{ item.categoryName }}<template v-if="item.sellerUsername"> · {{ item.sellerUsername }}</template>
+                  </span>
+                </div>
+                <div class="hotboard-product-right">
+                  <span class="hotboard-product-count">{{ item.soldQuantity }}<span class="hotboard-count-unit">已售</span></span>
+                  <span class="hotboard-product-price">{{ formatPrice(item.discount ? item.price * item.discount : item.price ?? 0) }}<span class="hotboard-price-unit">LDC</span></span>
+                </div>
+              </router-link>
+            </div>
+          </div>
+
+          <!-- 分类成交分布 -->
+          <div class="hotboard-section" v-if="hotboardData.categoryTrend?.length">
+            <h3 class="hotboard-section-title">📈 分类成交分布</h3>
+            <div class="hotboard-cat-bars">
+              <div
+                v-for="(cat, ci) in hotboardData.categoryTrend"
+                :key="cat.categoryId"
+                class="hotboard-cat-row"
+              >
+                <span class="hotboard-cat-label">{{ cat.categoryIcon }} {{ cat.categoryName }}</span>
+                <div class="hotboard-cat-bar-track">
+                  <div
+                    class="hotboard-cat-bar-fill"
+                    :style="{
+                      width: getCatBarWidth(cat) + '%',
+                      background: TREND_COLORS[ci % TREND_COLORS.length]
+                    }"
+                  ></div>
+                </div>
+              </div>
+            </div>
+            <div v-if="hotboardData.categoryTrend?.length" class="hotboard-hourly-section">
+              <p class="hotboard-hourly-title">逐时走势（北京时间 0:00 - 24:00）</p>
+              <div class="hotboard-trend-legend">
+                <span
+                  v-for="(cat, ci) in hotboardData.categoryTrend"
+                  :key="cat.categoryId"
+                  class="hotboard-trend-legend-item"
+                  :class="{ active: hoveredTrendIdx === ci, dimmed: hoveredTrendIdx >= 0 && hoveredTrendIdx !== ci }"
+                  @mouseenter="hoveredTrendIdx = ci"
+                  @mouseleave="hoveredTrendIdx = -1"
+                >
+                  <span class="hotboard-trend-dot" :style="{ background: TREND_COLORS[ci % TREND_COLORS.length] }"></span>
+                  {{ cat.categoryIcon }} {{ cat.categoryName }}
+                </span>
+              </div>
+              <div class="hotboard-trend-chart-wrap">
+                <svg
+                  class="hotboard-trend-chart"
+                  viewBox="0 0 480 200"
+                  preserveAspectRatio="none"
+                >
+                  <line v-for="y in [50, 100, 150]" :key="'g'+y" x1="0" :y1="y" x2="480" :y2="y" stroke="var(--border-light)" stroke-width="1" vector-effect="non-scaling-stroke" stroke-dasharray="4 3" />
+                  <line x1="0" y1="0" x2="480" y2="0" stroke="var(--border-light)" stroke-width="0.5" vector-effect="non-scaling-stroke" />
+                  <line x1="0" y1="200" x2="480" y2="200" stroke="var(--border-light)" stroke-width="0.5" vector-effect="non-scaling-stroke" />
+                  <template v-for="(cat, ci) in hotboardData.categoryTrend" :key="cat.categoryId">
+                    <path
+                      v-if="cat.trend.length > 0"
+                      :d="trendCurve(cat.trend)"
+                      fill="none"
+                      :stroke="TREND_COLORS[ci % TREND_COLORS.length]"
+                      :stroke-width="hoveredTrendIdx === ci ? 3.5 : 2"
+                      :opacity="hoveredTrendIdx >= 0 && hoveredTrendIdx !== ci ? 0.25 : 1"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      vector-effect="non-scaling-stroke"
+                      class="hotboard-trend-path"
+                      @mouseenter="hoveredTrendIdx = ci"
+                      @mouseleave="hoveredTrendIdx = -1"
+                    />
+                  </template>
+                </svg>
+              </div>
+              <div class="hotboard-trend-axis">
+                <span class="hotboard-trend-label">0:00</span>
+                <span class="hotboard-trend-label">6:00</span>
+                <span class="hotboard-trend-label">12:00</span>
+                <span class="hotboard-trend-label">18:00</span>
+                <span class="hotboard-trend-label">24:00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <EmptyState
+          v-else
+          icon="📊"
+          text="暂无热榜数据"
+          hint="今日还没有足够的浏览和成交数据"
+        />
+      </div>
+
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, computed, onMounted, onUnmounted, onActivated, onDeactivated, watch, nextTick } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useShopStore } from '@/stores/shop'
+import { useUserStore } from '@/stores/user'
+import { api } from '@/utils/api'
+import { useToast } from '@/composables/useToast'
+import { formatRelativeTime, formatPrice } from '@/utils/format'
+import ProductCard from '@/components/product/ProductCard.vue'
+import ShopCard from '@/components/shop/ShopCard.vue'
+import CategoryFilter from '@/components/product/CategoryFilter.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
+import Skeleton from '@/components/common/Skeleton.vue'
+import LiquidTabs from '@/components/common/LiquidTabs.vue'
+import AvatarImage from '@/components/common/AvatarImage.vue'
+import AppSelect from '@/components/common/AppSelect.vue'
+import { MAINTENANCE_STATE, isMaintenanceFeatureEnabled, isRestrictedMaintenanceMode } from '@/config/maintenance'
+
+defineOptions({ name: 'Home' })
+
+const router = useRouter()
+const route = useRoute()
+const shopStore = useShopStore()
+const userStore = useUserStore()
+const toast = useToast()
+
+const isProductListHiddenByMaintenance = computed(() => (
+  isRestrictedMaintenanceMode() && !isMaintenanceFeatureEnabled('productListRead')
+))
+const maintenanceTitle = computed(() => MAINTENANCE_STATE.title || 'LD士多受限维护中')
+const maintenanceCatalogHint = computed(() => (
+  MAINTENANCE_STATE.message || '因 LinuxDo 暂时下线 Credit 积分服务，物品列表已临时隐藏。'
+))
+
+const sentinel = ref(null)
+const sectionTabs = computed(() => {
+  const tabs = [
+    { value: 'products', label: '物品广场', icon: '🛒' },
+    { value: 'buy', label: '求购广场', icon: '🌱' },
+    { value: 'stores', label: '小店集市', icon: '🏪' }
+  ]
+  if (userStore.isLoggedIn && (userStore.trustLevel || 0) >= 1) {
+    tabs.push({ value: 'hotboard', label: '士多热榜', icon: '📊' })
+  }
+  return tabs
+})
+const normalizeSection = (value) => (
+  sectionTabs.value.some(tab => tab.value === value) ? value : 'products'
+)
+const activeSection = ref(normalizeSection(String(route.query.section || '').trim()))
+
+watch(sectionTabs, (tabs) => {
+  if (!tabs.some(t => t.value === activeSection.value)) {
+    activeSection.value = 'products'
+  }
+})
+
+const sortTabs = [
+  { value: 'default', label: '默认' },
+  { value: 'newest', label: '最新' },
+  { value: 'price_asc', label: '价格↑' },
+  { value: 'price_desc', label: '价格↓' },
+  { value: 'sales', label: '销量' }
+]
+const priceMinInput = ref('')
+const priceMaxInput = ref('')
+
+const shops = ref([])
+const shopsLoading = ref(false)
+const shopsLoaded = ref(false)
+const shopsInitialLoading = ref(true)
+const shopsTotal = ref(0)
+const shopsPage = ref(1)
+const shopsPageSize = 20
+const shopsHasMore = ref(false)
+const shopsSentinel = ref(null)
+let shopsObserver = null
+const shopsTagFilter = ref([])
+const shopsSearchKeyword = ref('')
+const SHOPS_TAGS = ['订阅', '服务', '小鸡', 'AI', '娱乐', '公益站']
+const tagClassMap = { '订阅': 'subscription', '服务': 'service', '小鸡': 'vps', 'AI': 'ai', '娱乐': 'entertainment', '公益站': 'charity' }
+
+const buyRequests = ref([])
+const buyLoading = ref(false)
+const buyInitialized = ref(false)
+const buyStatusFilter = ref('')
+const buySearchKeyword = ref('')
+const buyStatusOptions = [
+  { value: 'open', label: '开放中' },
+  { value: 'negotiating', label: '洽谈中' },
+  { value: 'matched', label: '已匹配' }
+]
+const buyPagination = reactive({
+  page: 1,
+  pageSize: 20,
+  total: 0,
+  totalPages: 0
+})
+
+const hotboardData = ref(null)
+const hotboardLoading = ref(false)
+const hotboardLoaded = ref(false)
+const hotboardError = ref('')
+const hotboardCacheTime = ref(0)
+const HOTBOARD_CACHE_TTL = 2 * 60 * 1000
+
+const TREND_COLORS = [
+  '#b5a898', '#7eb89a', '#e8a860', '#778d9c', '#c98b8b', '#8ba5c9', '#b8a0d0'
+]
+
+const stats = ref({
+  products: { total: 0, online: 0 },
+  orders: { total: 0, today: 0, week: 0 },
+  stores: 0
+})
+
+let observer = null
+const initialLoading = ref(true)
+const hasInitialized = ref(false)
+
+let savedScrollPosition = 0
+let latestCatalogActionId = 0
+
+const categoryCache = ref(new Map())
+const CATEGORY_CACHE_TTL = 5 * 60 * 1000
+
+function consumeStoreError(fallback = '') {
+  return shopStore.consumeLastError?.() || fallback
+}
+
+function toSafeArray(value) {
+  return Array.isArray(value) ? value : []
+}
+
+function formatPriceFilterInput(value) {
+  return value === null || value === undefined || value === '' ? '' : String(value)
+}
+
+function normalizePriceFilterInput(value) {
+  const text = String(value ?? '').trim()
+  if (!text) return null
+  const parsed = Number.parseFloat(text)
+  if (!Number.isFinite(parsed)) return null
+  return Math.max(0, Math.round(parsed * 100) / 100)
+}
+
+function normalizePriceFilterRange(priceMin, priceMax) {
+  let normalizedMin = normalizePriceFilterInput(priceMin)
+  let normalizedMax = normalizePriceFilterInput(priceMax)
+
+  if (normalizedMin !== null && normalizedMax !== null && normalizedMin > normalizedMax) {
+    ;[normalizedMin, normalizedMax] = [normalizedMax, normalizedMin]
+  }
+
+  return {
+    priceMin: normalizedMin,
+    priceMax: normalizedMax
+  }
+}
+
+function syncPriceFilterInputs(priceMin, priceMax) {
+  priceMinInput.value = formatPriceFilterInput(priceMin)
+  priceMaxInput.value = formatPriceFilterInput(priceMax)
+}
+
+function buildCatalogFilters(overrides = {}) {
+  const hasOwn = (key) => Object.prototype.hasOwnProperty.call(overrides, key)
+  const priceRange = normalizePriceFilterRange(
+    hasOwn('priceMin') ? overrides.priceMin : shopStore.currentPriceMin,
+    hasOwn('priceMax') ? overrides.priceMax : shopStore.currentPriceMax
+  )
+
+  return {
+    inStockOnly: hasOwn('inStockOnly') ? !!overrides.inStockOnly : !!shopStore.inStockOnly,
+    priceMin: priceRange.priceMin,
+    priceMax: priceRange.priceMax
+  }
+}
+
+const getCacheKey = (categoryId, sortKey, filters = buildCatalogFilters()) => [
+  categoryId || 'all',
+  sortKey || 'default',
+  filters.inStockOnly ? 'stock' : 'all-stock',
+  filters.priceMin ?? 'min-any',
+  filters.priceMax ?? 'max-any'
+].join('_')
+
+function isSameCatalogState(categoryId, sortKey, filters = buildCatalogFilters()) {
+  return String(shopStore.currentCategory) === String(categoryId || '')
+    && (shopStore.currentSort || 'default') === (sortKey || 'default')
+    && !!shopStore.inStockOnly === !!filters.inStockOnly
+    && shopStore.currentPriceMin === (filters.priceMin ?? null)
+    && shopStore.currentPriceMax === (filters.priceMax ?? null)
+}
+
+function tryRestoreFromCache(categoryId, sortKey, filters = buildCatalogFilters()) {
+  const cacheKey = getCacheKey(categoryId, sortKey, filters)
+  const cached = categoryCache.value.get(cacheKey)
+  const now = Date.now()
+  if (cached && Array.isArray(cached.products) && (now - cached.timestamp < CATEGORY_CACHE_TTL)) {
+    shopStore.restoreFromCache(cached)
+    syncPriceFilterInputs(cached.priceMin, cached.priceMax)
+    initialLoading.value = false
+    return true
+  }
+  return false
+}
+
+function saveCache(categoryId, sortKey, filters = buildCatalogFilters()) {
+  const cacheKey = getCacheKey(categoryId, sortKey, filters)
+  const productsToCache = toSafeArray(shopStore.products)
+  categoryCache.value.set(cacheKey, {
+    categoryId,
+    products: [...productsToCache],
+    total: Number.isFinite(Number(shopStore.total)) ? Number(shopStore.total) : productsToCache.length,
+    hasMore: !!shopStore.hasMore,
+    page: Number.isFinite(Number(shopStore.page)) ? Number(shopStore.page) : 1,
+    sort: sortKey || 'default',
+    inStockOnly: !!filters.inStockOnly,
+    priceMin: filters.priceMin ?? null,
+    priceMax: filters.priceMax ?? null,
+    timestamp: Date.now()
+  })
+}
+
+const categories = computed(() => toSafeArray(shopStore.categories))
+const products = computed(() => toSafeArray(shopStore.products))
+const currentCategory = computed(() => shopStore.currentCategory)
+const currentCategoryName = computed(() => shopStore.currentCategoryName)
+const currentSort = computed({
+  get: () => shopStore.currentSort,
+  set: (val) => { shopStore.currentSort = val }
+})
+const inStockOnly = computed(() => shopStore.inStockOnly)
+const loading = computed(() => shopStore.loading)
+const hasMore = computed(() => shopStore.hasMore)
+const total = computed(() => shopStore.total)
+const hasActivePriceFilter = computed(() => shopStore.currentPriceMin !== null || shopStore.currentPriceMax !== null)
+const hasDraftPriceFilter = computed(() => (
+  normalizePriceFilterInput(priceMinInput.value) !== null || normalizePriceFilterInput(priceMaxInput.value) !== null
+))
+const activePriceFilterLabel = computed(() => {
+  const { priceMin, priceMax } = buildCatalogFilters()
+  if (priceMin !== null && priceMax !== null) return `价格 ${priceMin} - ${priceMax} LDC`
+  if (priceMin !== null) return `价格 ≥ ${priceMin} LDC`
+  if (priceMax !== null) return `价格 ≤ ${priceMax} LDC`
+  return ''
+})
+
+watch(
+  () => [shopStore.currentPriceMin, shopStore.currentPriceMax],
+  ([priceMin, priceMax]) => {
+    syncPriceFilterInputs(priceMin, priceMax)
+  },
+  { immediate: true }
+)
+
+const marketCategories = computed(() => categories.value.filter((c) => {
+  const name = String(c?.name || '')
+  if (!name) return false
+  if (name === '小店' || name === '友情小店') return false
+  return true
+}))
+const marketProducts = computed(() =>
+  toSafeArray(products.value).filter(p => p?.product_type !== 'store')
+)
+
+const gridColumns = ref(2)
+function updateGridColumns() {
+  const width = window.innerWidth
+  if (width >= 1024) gridColumns.value = 4
+  else if (width >= 768) gridColumns.value = 3
+  else gridColumns.value = 2
+}
+
+async function switchSection(section) {
+  activeSection.value = section
+
+  const currentSection = String(route.query.section || '').trim()
+  if (currentSection !== section) {
+    try {
+      await router.replace({
+        query: {
+          ...route.query,
+          section
+        }
+      })
+    } catch {
+      // ignore duplicated navigation errors
+    }
+  }
+
+  if (section === 'stores') {
+    if (!shopsLoaded.value && !shopsLoading.value) {
+      await loadShops()
+    }
+    await nextTick()
+    setupShopsInfiniteScroll()
+  }
+
+  if (section === 'buy' && !buyInitialized.value) {
+    await loadBuyRequests(true)
+  }
+
+  if (section === 'hotboard' && !hotboardLoaded.value) {
+    await loadHotboard()
+  }
+
+  if (section === 'products') {
+    await nextTick()
+    setupInfiniteScroll()
+  }
+}
+
+function toggleShopsTag(tag) {
+  const idx = shopsTagFilter.value.indexOf(tag)
+  if (idx >= 0) {
+    shopsTagFilter.value.splice(idx, 1)
+  } else {
+    shopsTagFilter.value.push(tag)
+  }
+  loadShops(true)
+}
+
+function removeShopsTag(tag) {
+  const idx = shopsTagFilter.value.indexOf(tag)
+  if (idx >= 0) shopsTagFilter.value.splice(idx, 1)
+  loadShops(true)
+}
+
+function resetShopsFilter() {
+  shopsTagFilter.value = []
+  shopsSearchKeyword.value = ''
+  loadShops(true)
+}
+
+async function loadShops(resetPage = true) {
+  if (resetPage) {
+    shopsPage.value = 1
+    shops.value = []
+    shopsInitialLoading.value = true
+  }
+  shopsLoading.value = true
+  try {
+    const params = new URLSearchParams({
+      page: String(shopsPage.value),
+      pageSize: String(shopsPageSize)
+    })
+    if (shopsTagFilter.value.length) {
+      for (const tag of shopsTagFilter.value) {
+        params.append('tag', tag)
+      }
+    }
+    if (shopsSearchKeyword.value.trim()) params.set('search', shopsSearchKeyword.value.trim())
+    const result = await api.get(`/api/shops?${params.toString()}`)
+    if (result.success && result.data?.shops) {
+      const newShops = result.data.shops
+      if (resetPage) {
+        shops.value = newShops
+      } else {
+        shops.value = [...shops.value, ...newShops]
+      }
+      shopsTotal.value = result.data.pagination?.total || newShops.length
+      shopsHasMore.value = shopsPage.value < (result.data.pagination?.totalPages || 1)
+    } else {
+      if (resetPage) shops.value = []
+      shopsTotal.value = 0
+      shopsHasMore.value = false
+      toast.error(result.error || '加载小店列表失败，请稍后重试')
+    }
+  } catch (error) {
+    console.error('Load shops failed:', error)
+    toast.error(error.message || '加载小店列表失败，请稍后重试')
+  } finally {
+    shopsLoading.value = false
+    shopsInitialLoading.value = false
+    shopsLoaded.value = true
+  }
+}
+
+async function loadMoreShops() {
+  if (shopsLoading.value || !shopsHasMore.value) return
+  shopsPage.value++
+  await loadShops(false)
+}
+
+function setupShopsInfiniteScroll() {
+  if (shopsObserver) shopsObserver.disconnect()
+  if (!shopsSentinel.value || !shopsHasMore.value) return
+
+  shopsObserver = new IntersectionObserver(
+    async (entries) => {
+      if (entries[0].isIntersecting && !shopsLoading.value && shopsHasMore.value) {
+        await loadMoreShops()
+      }
+    },
+    { rootMargin: '100px' }
+  )
+  shopsObserver.observe(shopsSentinel.value)
+}
+
+function buyStatusText(status) {
+  const map = {
+    open: '开放中',
+    negotiating: '洽谈中',
+    matched: '已匹配',
+    closed: '已关闭',
+    blocked: '已处理'
+  }
+  return map[status] || status
+}
+
+function buyStatusClass(status) {
+  const value = String(status || '').toLowerCase()
+  if (['open', 'negotiating', 'matched', 'closed', 'blocked', 'pending_review'].includes(value)) {
+    return value
+  }
+  return 'default'
+}
+
+async function loadHotboard() {
+  const now = Date.now()
+  if (hotboardData.value && (now - hotboardCacheTime.value) < HOTBOARD_CACHE_TTL) {
+    return
+  }
+  hotboardLoading.value = true
+  hotboardError.value = ''
+  try {
+    const result = await api.get('/api/shop/hotboard')
+    if (result.success && result.data) {
+      hotboardData.value = result.data
+      hotboardCacheTime.value = now
+    } else {
+      hotboardError.value = result.error?.message || '加载热榜失败'
+    }
+  } catch (e) {
+    hotboardError.value = '加载热榜失败，请稍后重试'
+    console.error('Load hotboard failed:', e)
+  } finally {
+    hotboardLoading.value = false
+    hotboardLoaded.value = true
+  }
+}
+
+async function loadBuyRequests(resetPage = true) {
+  if (resetPage) {
+    buyPagination.page = 1
+  }
+
+  buyLoading.value = true
+  try {
+    const params = new URLSearchParams({
+      page: String(buyPagination.page),
+      pageSize: String(buyPagination.pageSize),
+      sort: 'random'
+    })
+    if (buyStatusFilter.value) params.set('status', buyStatusFilter.value)
+    if (buySearchKeyword.value.trim()) params.set('search', buySearchKeyword.value.trim())
+
+    const result = await api.get(`/api/shop/buy-requests?${params.toString()}`)
+    if (result.success && result.data) {
+      const data = result.data
+      buyRequests.value = data.requests || []
+      buyPagination.total = data.pagination?.total || 0
+      buyPagination.totalPages = data.pagination?.totalPages || 0
+      return
+    }
+
+    toast.error(result.error || '加载求购信息失败，请稍后重试')
+    buyRequests.value = []
+    buyPagination.total = 0
+    buyPagination.totalPages = 0
+  } catch (error) {
+    console.error('Load buy requests failed:', error)
+    toast.error(error.message || '加载求购信息失败，请稍后重试')
+    buyRequests.value = []
+    buyPagination.total = 0
+    buyPagination.totalPages = 0
+  } finally {
+    buyLoading.value = false
+    buyInitialized.value = true
+  }
+}
+
+function goBuyPage(page) {
+  if (page < 1 || page > buyPagination.totalPages) return
+  buyPagination.page = page
+  loadBuyRequests(false)
+}
+
+function publishBuyRequest() {
+  if (!userStore.isLoggedIn) {
+    router.push({ name: 'Login', query: { redirect: '/publish?type=buy' } })
+    return
+  }
+  router.push('/publish?type=buy')
+}
+
+function goBuyRequestDetail(id) {
+  router.push(`/buy-request/${id}`)
+}
+
+async function loadCatalogState({
+  categoryId = shopStore.currentCategory,
+  sortKey = shopStore.currentSort || 'default',
+  filters = buildCatalogFilters(),
+  actionId = null,
+  useCache = true
+} = {}) {
+  if (useCache && tryRestoreFromCache(categoryId, sortKey, filters)) {
+    if (actionId !== null && actionId !== latestCatalogActionId) {
+      return { success: false, cancelled: true, error: '' }
+    }
+
+    await nextTick()
+    if (actionId !== null && actionId !== latestCatalogActionId) {
+      return { success: false, cancelled: true, error: '' }
+    }
+
+    setupInfiniteScroll()
+    return { success: true, restored: true }
+  }
+
+  initialLoading.value = true
+  const result = await shopStore.fetchProducts({
+    categoryId,
+    forceRefresh: true,
+    sort: sortKey,
+    priceMin: filters.priceMin,
+    priceMax: filters.priceMax
+  })
+
+  if (actionId !== null && actionId !== latestCatalogActionId) {
+    return { success: false, cancelled: true, error: '' }
+  }
+
+  initialLoading.value = false
+  if (!result?.success) {
+    return result
+  }
+
+  if (isSameCatalogState(categoryId, sortKey, filters)) {
+    saveCache(categoryId, sortKey, filters)
+  }
+  syncPriceFilterInputs(filters.priceMin, filters.priceMax)
+
+  await nextTick()
+  if (actionId !== null && actionId !== latestCatalogActionId) {
+    return { success: false, cancelled: true, error: '' }
+  }
+
+  setupInfiniteScroll()
+  return result
+}
+
+async function handleCategorySelect(categoryId) {
+  const actionId = ++latestCatalogActionId
+  const sortKey = shopStore.currentSort || 'default'
+  const filters = buildCatalogFilters()
+  const result = await loadCatalogState({ categoryId, sortKey, filters, actionId })
+  if (!result?.success && !result?.cancelled) {
+    toast.error(result?.error || consumeStoreError('加载物品失败，请稍后重试'))
+  }
+}
+
+async function handleSortChange(sort) {
+  const actionId = ++latestCatalogActionId
+  const categoryId = shopStore.currentCategory
+  const filters = buildCatalogFilters()
+  const result = await loadCatalogState({ categoryId, sortKey: sort, filters, actionId })
+  if (!result?.success && !result?.cancelled) {
+    toast.error(result?.error || consumeStoreError('加载物品失败，请稍后重试'))
+  }
+}
+
+async function handleToggleInStock() {
+  categoryCache.value.clear()
+  initialLoading.value = true
+  const result = await shopStore.toggleInStockOnly()
+  initialLoading.value = false
+  if (!result?.success) {
+    toast.error(result?.error || consumeStoreError('加载物品失败，请稍后重试'))
+    return
+  }
+  saveCache(shopStore.currentCategory, shopStore.currentSort || 'default', buildCatalogFilters())
+  await nextTick()
+  setupInfiniteScroll()
+}
+
+async function applyPriceFilter() {
+  const actionId = ++latestCatalogActionId
+  const categoryId = shopStore.currentCategory
+  const sortKey = shopStore.currentSort || 'default'
+  const filters = buildCatalogFilters(normalizePriceFilterRange(priceMinInput.value, priceMaxInput.value))
+  syncPriceFilterInputs(filters.priceMin, filters.priceMax)
+
+  const result = await loadCatalogState({ categoryId, sortKey, filters, actionId })
+  if (!result?.success && !result?.cancelled) {
+    toast.error(result?.error || consumeStoreError('加载物品失败，请稍后重试'))
+  }
+}
+
+async function clearPriceFilter() {
+  if (!hasDraftPriceFilter.value && !hasActivePriceFilter.value) return
+  priceMinInput.value = ''
+  priceMaxInput.value = ''
+
+  const actionId = ++latestCatalogActionId
+  const categoryId = shopStore.currentCategory
+  const sortKey = shopStore.currentSort || 'default'
+  const filters = buildCatalogFilters({ priceMin: null, priceMax: null })
+  const result = await loadCatalogState({ categoryId, sortKey, filters, actionId })
+  if (!result?.success && !result?.cancelled) {
+    toast.error(result?.error || consumeStoreError('加载物品失败，请稍后重试'))
+  }
+}
+
+async function recoverProductsIfNeeded() {
+  if (loading.value || initialLoading.value) return
+  if (marketProducts.value.length > 0) return
+
+  const categoryId = shopStore.currentCategory
+  const sortKey = shopStore.currentSort || 'default'
+  const filters = buildCatalogFilters()
+  const restored = tryRestoreFromCache(categoryId, sortKey, filters)
+  if (restored) {
+    return
+  }
+
+  const result = await loadCatalogState({ categoryId, sortKey, filters, useCache: false })
+  if (!result?.success && !result?.cancelled) {
+    toast.error(result?.error || consumeStoreError('加载物品失败，请稍后重试'))
+  }
+}
+
+onMounted(async () => {
+  updateGridColumns()
+  window.addEventListener('resize', updateGridColumns)
+
+  if (hasInitialized.value) {
+    initialLoading.value = false
+    return
+  }
+
+  await shopStore.fetchCategories()
+  const categoryError = consumeStoreError('')
+  if (categoryError) {
+    toast.warning(categoryError)
+  }
+
+  const productResult = await loadCatalogState({
+    categoryId: '',
+    sortKey: shopStore.currentSort || 'default',
+    filters: buildCatalogFilters(),
+    useCache: false
+  })
+  if (!productResult?.success) {
+    toast.error(productResult?.error || consumeStoreError('加载物品失败，请稍后重试'))
+  }
+
+  initialLoading.value = false
+  hasInitialized.value = true
+
+  const statsData = await shopStore.fetchPublicStats()
+  if (statsData) {
+    stats.value = statsData
+  } else {
+    const statsError = consumeStoreError('')
+    if (statsError) {
+      toast.warning(statsError)
+    }
+  }
+
+  if (activeSection.value === 'stores') {
+    if (!shopsLoaded.value && !shopsLoading.value) {
+      await loadShops()
+    }
+    await nextTick()
+    setupShopsInfiniteScroll()
+  } else if (activeSection.value === 'buy') {
+    await loadBuyRequests(true)
+  } else if (activeSection.value === 'hotboard') {
+    await loadHotboard()
+  }
+
+  if (activeSection.value === 'products') {
+    setupInfiniteScroll()
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateGridColumns)
+  if (observer) observer.disconnect()
+  if (shopsObserver) shopsObserver.disconnect()
+})
+
+onActivated(async () => {
+  if (savedScrollPosition > 0) {
+    await nextTick()
+    window.scrollTo(0, savedScrollPosition)
+  }
+
+  if (activeSection.value === 'products') {
+    await recoverProductsIfNeeded()
+    await nextTick()
+    setupInfiniteScroll()
+  } else if (activeSection.value === 'stores') {
+    if (!shopsLoaded.value && !shopsLoading.value) {
+      await loadShops()
+    }
+    await nextTick()
+    setupShopsInfiniteScroll()
+  } else if (activeSection.value === 'buy' && !buyInitialized.value) {
+    await loadBuyRequests(true)
+  } else if (activeSection.value === 'hotboard' && !hotboardLoaded.value) {
+    await loadHotboard()
+  }
+})
+
+onDeactivated(() => {
+  savedScrollPosition = window.scrollY
+  if (observer) observer.disconnect()
+  if (shopsObserver) shopsObserver.disconnect()
+})
+
+watch(hasMore, (newVal) => {
+  if (newVal && activeSection.value === 'products') {
+    setupInfiniteScroll()
+  }
+})
+
+watch(shopsHasMore, (newVal) => {
+  if (newVal && activeSection.value === 'stores') {
+    setupShopsInfiniteScroll()
+  }
+})
+
+function setupInfiniteScroll() {
+  if (observer) observer.disconnect()
+  if (!sentinel.value || !hasMore.value) return
+
+  observer = new IntersectionObserver(
+    async (entries) => {
+      if (entries[0].isIntersecting && !loading.value && hasMore.value) {
+        const result = await shopStore.loadMore()
+        if (result && result.success === false && !result.cancelled) {
+          toast.error(result.error || consumeStoreError('加载更多失败，请稍后重试'))
+          return
+        }
+        saveCache(shopStore.currentCategory, shopStore.currentSort || 'default', buildCatalogFilters())
+      }
+    },
+    { rootMargin: '100px' }
+  )
+
+  observer.observe(sentinel.value)
+}
+
+function getCatBarWidth(cat) {
+  const maxOrders = Math.max(1, ...hotboardData.value.categoryTrend.map(c =>
+    c.trend.reduce((s, t) => s + (t.orderCount || 0), 0)
+  ))
+  const catTotal = cat.trend.reduce((s, t) => s + (t.orderCount || 0), 0)
+  return Math.max(3, (catTotal / maxOrders) * 100)
+}
+
+// Trend chart: viewBox 480×200, X maps 0-24h, Y maps data proportionally
+const TVB_W = 480
+const TVB_H = 200
+const TVB_PAD = 8
+const TVB_PLOT_H = TVB_H - TVB_PAD * 2
+
+const hoveredTrendIdx = ref(-1)
+
+function trendX(hour) {
+  return (hour / 24) * TVB_W
+}
+
+function trendCurve(catTrend) {
+  if (!catTrend.length) return ''
+  const maxVal = Math.max(1, ...hotboardData.value.categoryTrend.flatMap(c => c.trend.map(t => t.orderCount || 0)))
+  const pts = catTrend.map(t => ({
+    x: trendX(t.hour),
+    y: TVB_PAD + TVB_PLOT_H - ((t.orderCount || 0) / maxVal) * TVB_PLOT_H
+  }))
+  if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`
+  // Catmull-Rom → cubic bezier
+  let d = `M ${pts[0].x} ${pts[0].y}`
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)]
+    const p1 = pts[i]
+    const p2 = pts[i + 1]
+    const p3 = pts[Math.min(pts.length - 1, i + 2)]
+    const cp1x = p1.x + (p2.x - p0.x) / 6
+    const cp1y = p1.y + (p2.y - p0.y) / 6
+    const cp2x = p2.x - (p3.x - p1.x) / 6
+    const cp2y = p2.y - (p3.y - p1.y) / 6
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`
+  }
+  return d
+}
+</script>
+
+<style scoped>
+.home-page {
+  min-height: 100vh;
+  padding-bottom: 80px;
+}
+
+.home-banner {
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* Banner - 液态玻璃效果 */
+.home-banner {
+  position: relative;
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-radius: 24px;
+  padding: 28px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  border: 1px solid var(--glass-border-light);
+  box-shadow: 
+    0 8px 32px var(--glass-shadow),
+    0 2px 8px var(--glass-shadow-light),
+    inset 0 1px 0 var(--glass-shine-strong);
+  overflow: hidden;
+}
+
+/* Banner 内部光泽 */
+.home-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    180deg,
+    var(--glass-shine) 0%,
+    rgba(255, 255, 255, 0.05) 60%,
+    transparent 100%
+  );
+  border-radius: 24px 24px 50% 50%;
+  pointer-events: none;
+}
+
+.banner-content {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.banner-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.banner-subtitle {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.highlight-yellow {
+  color: var(--color-warning);
+  font-weight: 700;
+}
+
+.link-credit {
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.link-credit:hover {
+  opacity: 0.8;
+}
+
+.highlight-red {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.link-linuxdo {
+  color: var(--text-primary);
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.link-linuxdo:hover {
+  color: var(--color-primary);
+}
+
+.banner-stats {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  position: relative;
+  z-index: 1;
+}
+
+.stat-group {
+  display: flex;
+  gap: 16px;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 36px;
+  background: var(--border-light);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 50px;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* 板块切换 */
+.section-tabs-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.tab-text {
+  font-weight: 600;
+}
+
+.tab-count {
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.section-tab.active .tab-count {
+  background: #b5a898;
+  color: white;
+}
+
+/* 内容区域 */
+.section-content {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 分类筛选 */
+.filter-section {
+  margin-bottom: 12px;
+}
+
+/* 排序和筛选选项 */
+.sort-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.sort-options {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.catalog-filters {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex: 1 1 360px;
+  flex-wrap: wrap;
+}
+
+.sort-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.sort-btn:hover {
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+.sort-btn.active {
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  font-weight: 500;
+}
+
+.price-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.price-filter-input {
+  width: 112px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.price-filter-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
+}
+
+.price-filter-separator {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.price-filter-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.price-filter-btn:hover {
+  opacity: 0.92;
+}
+
+.price-filter-btn.secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+/* 库存筛选 */
+.stock-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.stock-filter .checkbox {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  transition: all 0.2s ease;
+}
+
+.stock-filter .checkbox.checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.stock-filter .checkmark {
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.stock-filter .filter-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.stock-filter:hover .checkbox {
+  border-color: var(--color-primary);
+}
+
+/* 物品头部 */
+.products-header {
+  margin-bottom: 16px;
+}
+
+.products-count {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.products-count strong {
+  color: var(--text-primary);
+}
+
+.products-count .filter-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--color-success);
+  background: var(--color-success-bg);
+  border-radius: 10px;
+}
+
+.products-count .filter-tag.price-tag {
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+/* 小店集市头部 */
+.stores-header {
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  background: var(--color-success-bg);
+  border-radius: 14px;
+}
+
+.stores-desc {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-success);
+}
+
+.stores-grid {
+  /* 小店网格使用默认样式 */
+  grid-gap: 16px;
+}
+
+/* 小店筛选 */
+.stores-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.stores-tag-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.stores-tag-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.stores-tag-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.stores-tag-btn.active {
+  font-weight: 600;
+  border-color: transparent;
+}
+
+/* 选中状态：各标签配色 */
+.stores-tag-btn.active.tag-subscription { background: #e2e8df; color: #6d7f6d; }
+.stores-tag-btn.active.tag-service { background: #dde2ea; color: #5f6f80; }
+.stores-tag-btn.active.tag-vps { background: #e8e2d8; color: #7d7060; }
+.stores-tag-btn.active.tag-ai { background: #e3dfe8; color: #706480; }
+.stores-tag-btn.active.tag-entertainment { background: #e8dee0; color: #806068; }
+.stores-tag-btn.active.tag-charity { background: #e5dde3; color: #706070; }
+
+/* 选中标签的 × 按钮 */
+.tag-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.2);
+  color: white;
+  font-size: 10px;
+  line-height: 1;
+  margin-left: 2px;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.stores-tag-btn:hover .tag-remove {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.stores-search {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+.stores-search-input {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 14px;
+  padding: 10px 12px;
+  padding-right: 40px;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.stores-search-input:focus {
+  outline: none;
+  background: var(--input-focus-bg);
+  border-color: var(--input-focus-border);
+  box-shadow: 0 2px 8px var(--glass-shadow-light);
+}
+
+.stores-search-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.stores-search-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  background: var(--glass-bg-heavy);
+  color: var(--text-secondary);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: none;
+  cursor: pointer;
+}
+
+.stores-reset-btn {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.stores-reset-btn:hover {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* 物品网格 */
+.buy-header {
+  margin-bottom: 14px;
+  padding: 16px 20px;
+  background: #eef7f0;
+  border: 1px solid #bde8cc;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.buy-desc {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.buy-publish-btn {
+  border: none;
+  border-radius: 10px;
+  background: var(--color-success);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.buy-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.buy-toolbar-select {
+  flex-shrink: 0;
+  min-width: 120px;
+}
+
+.buy-toolbar-select .select-trigger {
+  min-width: 120px;
+}
+
+.buy-toolbar-search {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+.buy-toolbar-input {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 14px;
+  padding: 10px 12px;
+  padding-right: 40px;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.buy-toolbar-input:focus {
+  outline: none;
+  background: var(--input-focus-bg);
+  border-color: var(--input-focus-border);
+  box-shadow: 0 2px 8px var(--glass-shadow-light);
+}
+
+.buy-toolbar-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.buy-toolbar-btn {
+  border: none;
+  border-radius: 10px;
+  background: var(--color-success);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 10px 16px;
+  white-space: nowrap;
+}
+
+.buy-toolbar-btn.secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.buy-toolbar-btn-search {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  background: var(--glass-bg-heavy);
+  color: var(--text-secondary);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.buy-toolbar-btn-refresh {
+  flex-shrink: 0;
+}
+
+.buy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.buy-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  isolation: isolate;
+}
+
+.buy-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.buy-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.buy-card-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.buy-status-pill {
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 3px 8px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  white-space: nowrap;
+  border: 1px solid var(--border-light);
+}
+
+.buy-status-open {
+  color: #0f6b3a;
+  background: #e9f9ef;
+  border-color: #bdebcf;
+}
+
+.buy-status-negotiating {
+  color: #8a4b08;
+  background: #fff4e6;
+  border-color: #ffd7ad;
+}
+
+.buy-status-matched {
+  color: #1249a3;
+  background: #ebf3ff;
+  border-color: #bfd8ff;
+}
+
+.buy-status-closed,
+.buy-status-blocked {
+  color: #6b7280;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.buy-status-pending_review {
+  color: #7a2e0e;
+  background: #fff1ec;
+  border-color: #ffc9b5;
+}
+
+.buy-card-detail {
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.buy-card-meta {
+  margin-top: auto;
+  padding-top: 10px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.buy-price {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.buy-meta-sep {
+  opacity: 0.5;
+}
+
+.buy-card-footer {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.buy-pagination {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.buy-page-btn {
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.buy-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.buy-page-text {
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .products-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .buy-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .products-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .buy-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* 加载更多 */
+.load-more,
+.loaded-all {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-medium);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.load-hint {
+  opacity: 0.6;
+}
+
+.products-loading {
+  padding: 20px 0;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .home-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  
+  .banner-stats {
+    justify-content: center;
+    border-top: 1px solid var(--border-light);
+    padding-top: 16px;
+    gap: 12px;
+  }
+  
+  .stat-group {
+    gap: 12px;
+  }
+  
+  .stat-divider {
+    height: 28px;
+  }
+  
+  .stat-value {
+    font-size: 18px;
+  }
+  
+  .stat-label {
+    font-size: 10px;
+  }
+  
+  .section-tabs {
+    gap: 10px;
+  }
+  
+  .section-tab {
+    padding: 14px 16px;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sort-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .sort-options {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex-wrap: nowrap;
+  }
+
+  .sort-options::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sort-btn {
+    flex-shrink: 0;
+  }
+
+  .catalog-filters {
+    flex: 0 0 auto;
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .price-filter {
+    width: auto;
+    gap: 4px;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .price-filter-input {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    padding: 6px 6px;
+  }
+
+  .price-filter-separator {
+    flex-shrink: 0;
+  }
+
+  .price-filter-btn {
+    padding: 6px 8px;
+    flex-shrink: 0;
+  }
+  
+  .tab-icon {
+    font-size: 24px;
+  }
+  
+  .tab-text {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-container {
+    padding: 12px;
+  }
+
+  .home-banner {
+    padding: 20px 16px;
+  }
+
+  .banner-title {
+    font-size: 24px;
+  }
+  
+  .banner-stats {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .stat-group {
+    gap: 8px;
+  }
+  
+  .stat-item {
+    min-width: 42px;
+  }
+
+  .catalog-filters {
+    gap: 10px;
+  }
+
+  .price-filter-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  
+  .stat-value {
+    font-size: 16px;
+  }
+  
+  .section-tab {
+    padding: 12px 10px;
+  }
+  
+  .tab-count {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+  
+  .stores-header {
+    padding: 12px 16px;
+  }
+
+  .stores-desc {
+    font-size: 13px;
+  }
+
+  .stores-filter {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .stores-search-input {
+    padding: 8px 8px;
+    padding-right: 34px;
+    font-size: 13px;
+  }
+
+  .stores-search-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .stores-tag-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  .stores-reset-btn {
+    padding: 7px 12px;
+    font-size: 11px;
+  }
+
+  .buy-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .buy-toolbar {
+    gap: 6px;
+  }
+
+  .buy-toolbar-select {
+    min-width: unset;
+    width: auto;
+  }
+
+  .buy-toolbar-select .select-trigger {
+    min-width: unset;
+    min-height: 36px;
+    padding: 7px 28px 7px 10px;
+    font-size: 13px;
+  }
+
+  .buy-toolbar-select .select-arrow {
+    right: 10px;
+    width: 14px;
+    height: 14px;
+  }
+
+  .buy-toolbar-input {
+    padding: 8px 8px;
+    padding-right: 34px;
+    font-size: 13px;
+  }
+
+  .buy-toolbar-btn-search {
+    width: 28px;
+    height: 28px;
+  }
+
+  .buy-toolbar-btn-refresh {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}
+
+/* ── Hotboard ── */
+.hotboard-section-wrapper {
+  animation: fadeIn 0.3s ease;
+}
+
+.hotboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Hero — liquid glass card */
+.hotboard-hero {
+  position: relative;
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-radius: 20px;
+  padding: 24px 28px 20px;
+  border: 1px solid var(--glass-border-light);
+  box-shadow:
+    0 8px 32px var(--glass-shadow),
+    0 2px 8px var(--glass-shadow-light),
+    inset 0 1px 0 var(--glass-shine-strong);
+  overflow: hidden;
+}
+
+.hotboard-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    180deg,
+    var(--glass-shine) 0%,
+    rgba(255, 255, 255, 0.05) 60%,
+    transparent 100%
+  );
+  border-radius: 20px 20px 50% 50%;
+  pointer-events: none;
+}
+
+.hotboard-hero-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.hotboard-hero-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.hotboard-hero-icon {
+  font-size: 26px;
+}
+
+.hotboard-hero-tl {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--color-primary-bg, rgba(181, 168, 152, 0.12));
+  color: var(--color-primary);
+  letter-spacing: 0.5px;
+}
+
+.hotboard-hero-stats {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-top: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.hotboard-hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 60px;
+}
+
+.hotboard-hero-stat-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--border-light);
+  flex-shrink: 0;
+}
+
+.hotboard-hero-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+.hotboard-hero-stat-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.hotboard-hero-hint {
+  margin: 14px 0 0;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  position: relative;
+  z-index: 1;
+}
+
+/* Section card — glass card */
+.hotboard-section {
+  position: relative;
+  background: var(--glass-bg, rgba(255,255,255,.06));
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid var(--glass-border, rgba(255,255,255,.1));
+  border-radius: 16px;
+  padding: 18px 22px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.hotboard-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(
+    180deg,
+    var(--glass-shine) 0%,
+    transparent 100%
+  );
+  border-radius: 16px 16px 50% 50%;
+  pointer-events: none;
+}
+
+.hotboard-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Seller list — clickable cards */
+.hotboard-seller-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+
+.hotboard-seller-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--glass-bg-medium, rgba(255,255,255,.05));
+  border: 1px solid var(--glass-border, rgba(255,255,255,.08));
+  border-radius: 14px;
+  padding: 14px 20px;
+  flex: 1;
+  min-width: 150px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.hotboard-seller-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px var(--glass-shadow);
+  border-color: var(--border-medium);
+}
+
+.hotboard-seller-item.seller-rank-1 {
+  border-color: rgba(255, 215, 0, 0.3);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.07) 0%, var(--glass-bg-medium) 100%);
+}
+
+.hotboard-seller-item.seller-rank-1:hover {
+  border-color: rgba(255, 215, 0, 0.5);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.15);
+}
+
+.hotboard-seller-item.seller-rank-2 {
+  border-color: rgba(192, 192, 192, 0.25);
+  background: linear-gradient(135deg, rgba(192, 192, 192, 0.06) 0%, var(--glass-bg-medium) 100%);
+}
+
+.hotboard-seller-item.seller-rank-2:hover {
+  border-color: rgba(192, 192, 192, 0.45);
+  box-shadow: 0 6px 20px rgba(192, 192, 192, 0.12);
+}
+
+.hotboard-seller-item.seller-rank-3 {
+  border-color: rgba(205, 127, 50, 0.25);
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.06) 0%, var(--glass-bg-medium) 100%);
+}
+
+.hotboard-seller-item.seller-rank-3:hover {
+  border-color: rgba(205, 127, 50, 0.45);
+  box-shadow: 0 6px 20px rgba(205, 127, 50, 0.12);
+}
+
+.hotboard-seller-medal {
+  font-size: 22px;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+
+.hotboard-seller-avatar {
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.hotboard-seller-name {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Product list */
+.hotboard-product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+.hotboard-product-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  background: var(--glass-bg-heavy, rgba(255,255,255,.03));
+  border: 1px solid var(--glass-border, rgba(255,255,255,.06));
+}
+
+.hotboard-product-item:hover {
+  background: var(--glass-bg-medium, rgba(255,255,255,.08));
+  border-color: var(--glass-border-light, rgba(255,255,255,.15));
+  transform: translateX(4px);
+  box-shadow: 0 2px 12px var(--glass-shadow-light);
+}
+
+.hotboard-product-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border-light);
+}
+
+.hotboard-product-image-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  flex-shrink: 0;
+  font-size: 20px;
+}
+
+.hotboard-product-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hotboard-product-name {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.hotboard-product-meta {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hotboard-product-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+  min-width: 56px;
+}
+
+.hotboard-product-count {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+.hotboard-count-unit {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin-left: 1px;
+}
+
+.hotboard-product-price {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.hotboard-price-unit {
+  font-size: 9px;
+  font-weight: 500;
+  margin-left: 1px;
+  opacity: 0.7;
+}
+
+/* Rank badge */
+.hotboard-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+
+.hotboard-rank-badge.rank-1 {
+  background: linear-gradient(135deg, #ffd700, #ffb800);
+  color: #5a4000;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+.hotboard-rank-badge.rank-2 {
+  background: linear-gradient(135deg, #d1d5db, #b0b5bc);
+  color: #3a3a3a;
+  box-shadow: 0 2px 8px rgba(192, 192, 192, 0.25);
+}
+
+.hotboard-rank-badge.rank-3 {
+  background: linear-gradient(135deg, #e8a860, #cd7f32);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(205, 127, 50, 0.25);
+}
+
+.hotboard-rank-badge.rank-4,
+.hotboard-rank-badge.rank-5 {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+/* Category distribution bars */
+.hotboard-cat-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.hotboard-cat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hotboard-cat-label {
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 70px;
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+.hotboard-cat-bar-track {
+  flex: 1;
+  height: 20px;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.hotboard-cat-bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  min-width: 4px;
+  transition: width 0.4s ease;
+  opacity: 0.75;
+}
+
+.hotboard-cat-bar-fill:hover {
+  opacity: 1;
+}
+
+/* Hourly trend section */
+.hotboard-hourly-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-light);
+}
+
+.hotboard-hourly-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin: 0 0 10px;
+}
+
+.hotboard-trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.hotboard-trend-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.hotboard-trend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.hotboard-trend-chart-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+.hotboard-trend-chart {
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+
+.hotboard-trend-path {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.hotboard-trend-legend-item {
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease, font-weight 0.15s ease;
+}
+
+.hotboard-trend-legend-item.active {
+  transform: scale(1.08);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.hotboard-trend-legend-item.dimmed {
+  opacity: 0.35;
+}
+
+.hotboard-trend-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.hotboard-trend-label {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.hotboard-error {
+  padding: 20px;
+}
+
+@media (max-width: 640px) {
+  .hotboard-hero {
+    padding: 18px 16px 16px;
+    border-radius: 16px;
+  }
+
+  .hotboard-hero-title {
+    font-size: 17px;
+  }
+
+  .hotboard-hero-icon {
+    font-size: 22px;
+  }
+
+  .hotboard-hero-stat-value {
+    font-size: 20px;
+  }
+
+  .hotboard-hero-stats {
+    margin-top: 16px;
+  }
+
+  .hotboard-section {
+    padding: 14px 16px;
+    border-radius: 14px;
+  }
+
+  .hotboard-seller-list {
+    flex-direction: column;
+  }
+
+  .hotboard-seller-item {
+    min-width: unset;
+  }
+
+  .hotboard-product-item:hover {
+    transform: none;
+  }
+
+  .hotboard-product-right {
+    min-width: 48px;
+  }
+}
+
+/* Dark mode overrides */
+:global(html.dark) .buy-header {
+  background: #1e2a20;
+  border-color: #2a3f2e;
+}
+</style>

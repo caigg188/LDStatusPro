@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>生成 OG Image</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #333;
+    }
+    #preview {
+      width: 1200px;
+      height: 630px;
+      background: linear-gradient(135deg, #f5f0e8 0%, #e8dfd3 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .circle1 {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: #b5a898;
+      opacity: 0.1;
+      top: -100px;
+      left: -100px;
+    }
+    .circle2 {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: #b5a898;
+      opacity: 0.1;
+      bottom: -150px;
+      right: -100px;
+    }
+    .content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .icon {
+      font-size: 120px;
+      margin-bottom: 20px;
+    }
+    .title {
+      font-size: 72px;
+      font-weight: bold;
+      color: #5a4d3f;
+      margin: 0 0 20px 0;
+    }
+    .subtitle {
+      font-size: 36px;
+      color: #8b7d6b;
+      margin: 0 0 30px 0;
+    }
+    .desc {
+      font-size: 24px;
+      color: #a09080;
+    }
+    .bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 20px;
+      background: linear-gradient(90deg, #b5a898 0%, #8b7d6b 100%);
+    }
+    #canvas {
+      display: block;
+      margin-top: 20px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .instructions {
+      color: #fff;
+      margin-top: 20px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div id="preview">
+    <div class="circle1"></div>
+    <div class="circle2"></div>
+    <div class="content">
+      <div class="icon">🏪</div>
+      <h1 class="title">LD士多</h1>
+      <p class="subtitle">LDC积分商城</p>
+      <p class="desc">在这里兑换各种有趣的商品和服务</p>
+    </div>
+    <div class="bar"></div>
+  </div>
+  
+  <button onclick="downloadImage()">下载图片 (PNG)</button>
+  
+  <div class="instructions">
+    <p><strong>使用说明：</strong></p>
+    <ol>
+      <li>点击「下载图片」按钮下载 PNG 格式的 OG 图片</li>
+      <li>将下载的 og-image.png 转换为 JPG 格式（可使用任意图片工具）</li>
+      <li>将 og-image.jpg 放到 public 目录下</li>
+      <li>部署后即可在社交媒体分享时显示预览图</li>
+    </ol>
+    <p>或者直接使用浏览器截图工具截取上方预览区域（1200x630）</p>
+  </div>
+  
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script>
+    async function downloadImage() {
+      const preview = document.getElementById('preview');
+      try {
+        const canvas = await html2canvas(preview, {
+          width: 1200,
+          height: 630,
+          scale: 1,
+          useCORS: true
+        });
+        
+        const link = document.createElement('a');
+        link.download = 'og-image.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (e) {
+        alert('生成失败，请使用截图工具截取预览区域');
+        console.error(e);
+      }
+    }
+  </script>
+</body>
+</html>
