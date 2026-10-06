@@ -29,7 +29,7 @@
 | Userscript | `LDStatusPro.user.js`、根目录 `eslint.config.js`、`package.json`、`package-lock.json`、`src/core/**`、`tests/**`、`scripts/embed-core.mjs`、`scripts/release-notes.mjs` | `npm ci`、`npm run check` |
 | Release userscript | 仅 `main` 推送，且 Userscript 检查成功 | 读取 `@version`，若 `v{version}` Release 不存在则创建并附带 `LDStatusPro.user.js` |
 | Website | `website/**` | `npm ci`、`npm run lint`、`npm run build` |
-| Storefront quality | `ld-store/**` | 与 `ld-store` 的 `npm run check` 相同，分步执行 |
+| Storefront quality | `ld-store/**` | 与 `ld-store` 的 `npm run check` 相同，分步执行；其中 audit 为 `npm run audit` |
 | Storefront browser | `ld-store/**` | 安装 Chromium 后 `npm run test:e2e`。失败时保留报告 7 天 |
 
 浏览器任务通过 `scripts/run-browser-tests.mjs` 丢掉应用密钥和 `VITE_*`，只保留系统环境。不要把生产地址或真实 token 写进这个任务。

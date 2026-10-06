@@ -155,7 +155,7 @@ jobs:
       - run: npm run check:styles
       - run: npm run check:csp
       - run: npm run validate:noindex
-      - run: npm audit --audit-level=low
+      - run: npm run audit
       - run: npm run test
       - run: npm run build
       - run: npm run check:csp:build
