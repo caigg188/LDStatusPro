@@ -8353,9 +8353,26 @@ a:hover{text-decoration:underline;}
                 return 'neutral';
             }
 
+            _parseCommunityScoreDelta(remark) {
+                const match = String(remark || '').match(/变化\s*(-?\d+(?:\.\d+)?)/);
+                if (!match) return null;
+                const delta = parseFloat(match[1]);
+                return Number.isFinite(delta) ? delta : null;
+            }
+
+            _resolveCommunityTransactionDirection(order) {
+                const remarkDelta = this._parseCommunityScoreDelta(order?.remark);
+                const signed = remarkDelta !== null ? remarkDelta : (parseFloat(order?.amount) || 0);
+                if (signed > 0) return 'income';
+                if (signed < 0) return 'expense';
+                return 'neutral';
+            }
+
             _resolveTransactionDirection(order) {
                 const type = String(order?.type || '').trim().toLowerCase();
-                if (type === 'online' || type === 'community' || type === 'distribute') {
+                // 社区划转付款方恒为空、当前用户恒为收款方，正负以金额符号和备注「变化」为准
+                if (type === 'community') return this._resolveCommunityTransactionDirection(order);
+                if (type === 'online' || type === 'distribute') {
                     return this._resolvePeerTransactionDirection(order);
                 }
                 return this._getTransactionDirection(type);
