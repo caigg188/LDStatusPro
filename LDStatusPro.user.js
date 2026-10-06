@@ -1368,7 +1368,7 @@
             }
             
             get isTimeout() { return this.code === 'TIMEOUT'; }
-            get isAuth() { return this.code === 'UNAUTHORIZED' || this.status === 401; }
+            get isAuth() { return this.code === 'UNAUTHORIZED' || this.status === 401 || this.status === 403; }
             get isNotFound() { return this.status === 404; }
             get isServerError() { return this.status >= 500; }
         }
@@ -1393,7 +1393,26 @@
                 'NOT_FOUND': '请求的资源不存在',
                 'SERVER_ERROR': '服务器暂时不可用，请稍后重试',
                 'VALIDATION_FAILED': '数据验证失败',
-                'SYNC_FAILED': '同步失败，请稍后重试'
+                'SYNC_FAILED': '同步失败，请稍后重试',
+                'HTTP_ERROR': '请求失败'
+            },
+
+            extractStatus(error) {
+                const status = Number(error?.status) || 0;
+                if (status) return status;
+                const msg = typeof error === 'string' ? error : (error?.message || '');
+                const match = String(msg).match(/HTTP\s+(\d{3})/i);
+                return match ? parseInt(match[1], 10) : 0;
+            },
+
+            fromStatus(status) {
+                if (!status) return '';
+                if (status === 401 || status === 403) return `没有访问权限，请确认已登录论坛（HTTP ${status}）`;
+                if (status === 404) return '请求的页面不存在（HTTP 404）';
+                if (status === 429) return '请求过于频繁，请稍后重试（HTTP 429）';
+                if (status >= 500) return `服务器暂时不可用（HTTP ${status}）`;
+                if (status >= 400) return `请求失败（HTTP ${status}）`;
+                return '';
             },
             
             // 将错误对象转换为用户友好的消息
@@ -1401,15 +1420,21 @@
                 if (!error) return '未知错误';
                 
                 // 字符串直接返回
-                if (typeof error === 'string') return this._simplify(error);
+                if (typeof error === 'string') {
+                    return this.fromStatus(this.extractStatus(error)) || this._simplify(error);
+                }
                 
                 // 提取错误信息
                 const msg = error.message || '';
                 const code = error.code || '';
-                const status = error.status || 0;
+                const status = this.extractStatus(error);
                 
-                // 1. 优先匹配错误码
-                if (code && this._codeMap[code]) {
+                // 1. 优先匹配错误码（保留 HTTP 状态，避免 401/403 被收成过于笼统的文案）
+                if (status) {
+                    const statusMsg = this.fromStatus(status);
+                    if (statusMsg) return statusMsg;
+                }
+                if (code && this._codeMap[code] && code !== 'HTTP_ERROR') {
                     return this._codeMap[code];
                 }
                 
@@ -1450,7 +1475,7 @@
                 
                 // 服务器错误
                 if (status >= 500 || lowerMsg.includes('server') || lowerMsg.includes('服务器')) {
-                    return '服务器暂时不可用，请稍后重试';
+                    return status >= 500 ? `服务器暂时不可用（HTTP ${status}）` : '服务器暂时不可用，请稍后重试';
                 }
                 
                 // 3. 简化并返回原始消息
@@ -1460,15 +1485,15 @@
             // 简化错误消息（移除技术细节）
             _simplify(msg) {
                 if (!msg) return '';
+                const statusMsg = this.fromStatus(this.extractStatus(msg));
+                if (statusMsg) return statusMsg;
                 
-                // 移除 HTTP 状态码细节
-                msg = msg.replace(/\s*\(HTTP \d+\)|\s*HTTP \d+:?/gi, '');
                 // 移除错误码前缀
                 msg = msg.replace(/^[A-Z_]+:\s*/i, '');
                 // 移除 "Error:" 前缀
                 msg = msg.replace(/^Error:\s*/i, '');
                 // 限制长度
-                if (msg.length > 50) msg = msg.substring(0, 47) + '...';
+                if (msg.length > 80) msg = msg.substring(0, 77) + '...';
                 
                 return msg.trim();
             },
@@ -1568,6 +1593,23 @@
             // 创建统一的错误对象
             static createError(message, code = 'UNKNOWN', status = 0) {
                 return new NetworkError(message, code, status);
+            }
+
+            static httpError(status) {
+                const code = (status === 401 || status === 403) ? 'UNAUTHORIZED'
+                    : status === 404 ? 'NOT_FOUND'
+                    : status === 429 ? 'RATE_LIMITED'
+                    : status >= 500 ? 'SERVER_ERROR'
+                    : 'HTTP_ERROR';
+                return new NetworkError(`HTTP ${status}`, code, status);
+            }
+
+            static timeoutError(message = 'Timeout') {
+                return new NetworkError(message, 'TIMEOUT', 0);
+            }
+
+            static networkFail(message = 'Network error') {
+                return new NetworkError(message, 'NETWORK_ERROR', 0);
             }
 
             // 静态方法：加载阅读等级配置（从服务端获取，本地缓存24小时）
@@ -1755,6 +1797,8 @@
                     try {
                         return await this._doFetch(url, { timeout, headers: finalHeaders, method, body });
                     } catch (e) {
+                        const status = e?.status || ErrorFormatter.extractStatus(e);
+                        if (status && status < 500 && status !== 429) throw e;
                         if (i === maxRetries - 1) throw e;
                         await new Promise(r => setTimeout(r, CONFIG.NETWORK.RETRY_DELAY * Math.pow(2, i)));
                     }
@@ -1779,10 +1823,11 @@
                             signal: controller.signal
                         });
                         clearTimeout(timeoutId);
-                        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                        if (!resp.ok) throw Network.httpError(resp.status);
                         return await resp.text();
                     } catch (e) {
-                        if (e.name === 'AbortError') throw new Error('Timeout');
+                        if (e.name === 'AbortError') throw Network.timeoutError();
+                        if (e instanceof NetworkError && e.status) throw e;
                         // 原生 fetch 失败，fallback 到 GM（可能是扩展环境问题）
                     }
                 }
@@ -1797,7 +1842,7 @@
                         const timeoutId = setTimeout(() => {
                             if (!settled) {
                                 settled = true;
-                                reject(new Error('Timeout'));
+                                reject(Network.timeoutError());
                             }
                         }, timeout);
                         
@@ -1817,20 +1862,20 @@
                                     if (res.status >= 200 && res.status < 300) {
                                         resolve(res.responseText);
                                     } else {
-                                        reject(new Error(`HTTP ${res.status}`));
+                                        reject(Network.httpError(res.status));
                                     }
                                 },
                                 onerror: () => {
                                     if (settled) return;
                                     settled = true;
                                     clearTimeout(timeoutId);
-                                    reject(new Error('Network error'));
+                                    reject(Network.networkFail());
                                 },
                                 ontimeout: () => {
                                     if (settled) return;
                                     settled = true;
                                     clearTimeout(timeoutId);
-                                    reject(new Error('GM Timeout'));
+                                    reject(Network.timeoutError('GM Timeout'));
                                 }
                             });
                         } catch (gmCallError) {
@@ -1854,7 +1899,7 @@
                     signal: controller.signal
                 });
                 clearTimeout(timeoutId);
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                if (!resp.ok) throw Network.httpError(resp.status);
                 return await resp.text();
             }
 
@@ -2017,15 +2062,12 @@
                     
                     if (resp.status >= 200 && resp.status < 300) {
                         return await resp.json();
-                    } else if (resp.status === 403 || resp.status === 401) {
-                        throw new Error('需要登录后访问');
-                    } else {
-                        throw new Error(`HTTP ${resp.status}`);
                     }
+                    throw Network.httpError(resp.status);
                 } catch (e) {
                     clearTimeout(timeoutId);
                     if (e.name === 'AbortError') {
-                        throw new Error('请求超时');
+                        throw Network.timeoutError('请求超时');
                     }
                     throw e;
                 }
@@ -2034,7 +2076,7 @@
             // 使用 GM_xmlhttpRequest 获取 JSON（跨域请求）
             _fetchJsonGM(url, timeout, headers = {}) {
                 return new Promise((resolve, reject) => {
-                    const timeoutId = setTimeout(() => reject(new Error('Timeout')), timeout);
+                    const timeoutId = setTimeout(() => reject(Network.timeoutError()), timeout);
                     
                     GM_xmlhttpRequest({
                         method: 'GET',
@@ -2047,10 +2089,8 @@
                             try {
                                 if (res.status >= 200 && res.status < 300) {
                                     resolve(JSON.parse(res.responseText));
-                                } else if (res.status === 403 || res.status === 401) {
-                                    reject(new Error('需要登录后访问'));
                                 } else {
-                                    reject(new Error(`HTTP ${res.status}`));
+                                    reject(Network.httpError(res.status));
                                 }
                             } catch (e) {
                                 reject(new Error('解析响应失败'));
@@ -2058,11 +2098,11 @@
                         },
                         onerror: () => {
                             clearTimeout(timeoutId);
-                            reject(new Error('网络错误'));
+                            reject(Network.networkFail('网络错误'));
                         },
                         ontimeout: () => {
                             clearTimeout(timeoutId);
-                            reject(new Error('请求超时'));
+                            reject(Network.timeoutError('请求超时'));
                         }
                     });
                 });
@@ -4463,7 +4503,12 @@
     .ldsp-empty,.ldsp-loading{text-align:center;padding:30px 16px;color:var(--trend-muted)}
     .ldsp-empty-icon{font-size:36px;margin-bottom:12px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.1))}
     .ldsp-empty-txt{font-size:12px;line-height:1.7;font-weight:600}
+    .ldsp-empty-hint{font-size:10px;color:var(--txt-mut);margin-top:6px;opacity:.7;font-weight:500;line-height:1.6;word-break:break-word;padding:0 8px}
+    .ldsp-state-fill{display:flex;align-items:center;justify-content:center;flex:1;min-height:120px}
     .ldsp-spinner{width:28px;height:28px;border:3px solid var(--trend-border-soft);border-top-color:var(--trend-blue);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 10px;will-change:transform}
+    .ldsp-loading-more{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;font-size:11px;color:var(--txt-mut)}
+    .ldsp-loading-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(var(--bg-rgb,255,255,255),.8);border-radius:var(--r-md);z-index:10}
+    .ldsp-loading-overlay-text{margin-top:8px;font-size:11px;color:var(--txt-mut)}
     @keyframes spin{to{transform:rotate(360deg)}}
     .ldsp-mini-loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;color:var(--trend-muted)}
     .ldsp-mini-spin{width:32px;height:32px;border:3px solid var(--trend-border-soft);border-top-color:var(--trend-blue);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:14px;will-change:transform}
@@ -5573,9 +5618,9 @@
     .ldsp-activity-toolbar.loading{position:relative;pointer-events:none}
     .ldsp-activity-toolbar.loading::after{content:'';position:absolute;inset:0;background:rgba(var(--bg-rgb,255,255,255),.6);border-radius:var(--r-md)}
     .ldsp-topic-list.loading{opacity:.4;pointer-events:none;position:relative}
-    .ldsp-activity-loading-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(var(--bg-rgb,255,255,255),.8);border-radius:var(--r-md);z-index:10}
+    .ldsp-activity-loading-overlay,.ldsp-loading-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(var(--bg-rgb,255,255,255),.8);border-radius:var(--r-md);z-index:10}
     .ldsp-activity-loading-spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:ldsp-spin 0.8s linear infinite}
-    .ldsp-activity-loading-text{margin-top:8px;font-size:11px;color:var(--txt-mut)}
+    .ldsp-activity-loading-text,.ldsp-loading-overlay-text{margin-top:8px;font-size:11px;color:var(--txt-mut)}
     .ldsp-activity-stats{display:flex;align-items:center;font-size:9px;color:var(--txt-mut);margin-bottom:6px;padding:0 2px}
     .ldsp-activity-stats strong{color:var(--accent);font-weight:600}
     .ldsp-topic-list{display:flex;flex-direction:column;gap:6px}
@@ -6084,7 +6129,7 @@
                 const body = this.overlay.querySelector('.ldsp-ticket-body');
                 if (!body) return;
                 body.classList.remove('detail-mode');
-                body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;flex:1;min-height:120px"><div class="ldsp-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div></div>';
+                body.innerHTML = UI.loading({ wrap: true });
             }
 
             hide() {
@@ -6112,12 +6157,14 @@
                 body.classList.remove('detail-mode');
                 
                 if (this.tickets.length === 0) {
-                    body.innerHTML = `
-                        <div class="ldsp-ticket-empty">
-                            <div class="ldsp-ticket-empty-icon">📭</div>
-                            <div>暂无工单记录</div>
-                            <div style="margin-top:6px;font-size:10px">点击"提交工单"反馈建议或问题</div>
-                        </div>`;
+                    body.innerHTML = UI.empty({
+                        icon: '📭',
+                        text: '暂无工单记录',
+                        extra: '<div style="margin-top:6px;font-size:10px">点击"提交工单"反馈建议或问题</div>',
+                        className: 'ldsp-ticket-empty',
+                        iconClass: 'ldsp-ticket-empty-icon',
+                        textClass: ''
+                    });
                     return;
                 }
 
@@ -6247,7 +6294,7 @@
                 this.currentView = 'detail';
                 const body = this.overlay.querySelector('.ldsp-ticket-body');
                 body.classList.add('detail-mode');
-                body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;flex:1"><div class="ldsp-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div></div>';
+                body.innerHTML = UI.loading({ wrap: true, minHeight: 0 });
 
                 try {
                     const result = await this.oauth.api(`/api/tickets/${ticketId}`);
@@ -6327,7 +6374,14 @@
                         this._updateTabBadge();
                     }
                 } catch (e) {
-                    body.innerHTML = '<div class="ldsp-ticket-empty"><div class="ldsp-ticket-empty-icon">❌</div><div>加载失败</div></div>';
+                    body.innerHTML = UI.empty({
+                        icon: '❌',
+                        text: '工单加载失败',
+                        hint: ErrorFormatter.format(e) || e.message || '未知错误',
+                        className: 'ldsp-ticket-empty',
+                        iconClass: 'ldsp-ticket-empty-icon',
+                        textClass: ''
+                    });
                 }
             }
 
@@ -7317,6 +7371,113 @@ a:hover{text-decoration:underline;}
             }
         };
 
+        // ==================== 通用 UI 组件（加载态 / 空态 / 瀑布流） ====================
+        const UI = {
+            spinner(size = 28) {
+                if (size === 32) return '<div class="ldsp-mini-spin"></div>';
+                if (size === 28) return '<div class="ldsp-spinner"></div>';
+                const mini = size <= 16;
+                const cls = mini ? 'ldsp-mini-spin' : 'ldsp-spinner';
+                return `<div class="${cls}" style="width:${size}px;height:${size}px;border-width:${mini ? 2 : 3}px;margin:0"></div>`;
+            },
+            loading({ text = '加载中...', className = 'ldsp-loading', wrap = false, minHeight } = {}) {
+                const inner = `<div class="${className}">${this.spinner()}<div>${Utils.escapeHtml(text)}</div></div>`;
+                if (!wrap) return inner;
+                const mh = minHeight === 0 ? 'min-height:0;' : '';
+                return `<div class="ldsp-state-fill"${mh ? ` style="${mh}"` : ''}>${inner}</div>`;
+            },
+            miniLoading(text = '加载中...') {
+                return `<div class="ldsp-mini-loader">${this.spinner(32)}<div class="ldsp-mini-txt">${Utils.escapeHtml(text)}</div></div>`;
+            },
+            loadingMore(text = '加载中...', className = 'ldsp-loading-more') {
+                return `<div class="${className}">${this.spinner(14)}<span>${Utils.escapeHtml(text)}</span></div>`;
+            },
+            empty({ icon = '📭', text = '暂无数据', hint = '', extra = '', className = 'ldsp-empty', iconClass = 'ldsp-empty-icon', textClass = 'ldsp-empty-txt', hintClass = 'ldsp-empty-hint', raw = false } = {}) {
+                const body = raw ? text : Utils.escapeHtml(text);
+                const box = (cls, html) => cls ? `<div class="${cls}">${html}</div>` : `<div>${html}</div>`;
+                const iconHtml = icon ? box(iconClass, icon) : '';
+                const hintHtml = hint ? box(hintClass, raw ? hint : Utils.escapeHtml(hint)) : '';
+                return `<div class="${className}">${iconHtml}${box(textClass, body)}${hintHtml}${extra}</div>`;
+            },
+            error({ icon = '❌', text = '加载失败', className = 'ldsp-empty', iconClass = 'ldsp-empty-icon', textClass = 'ldsp-empty-txt', retry = false, retryText = '🔄 重试', retryClass = 'ldsp-lb-btn secondary', retryId = '', retryStyle = 'margin-top:12px', loginHref = '', loginText = '去登录 →', loginClass = '' } = {}) {
+                const idAttr = retryId ? ` id="${Utils.escapeHtml(retryId)}"` : '';
+                const styleAttr = retryStyle ? ` style="${retryStyle}"` : '';
+                const retryBtn = retry ? `<button class="${retryClass}"${idAttr}${styleAttr}>${retryText}</button>` : '';
+                const loginBtn = loginHref ? `<a href="${Utils.escapeHtml(loginHref)}" target="_blank" class="${loginClass}">${loginText}</a>` : '';
+                return `<div class="${className}"><div class="${iconClass}">${icon}</div><div class="${textClass}">${Utils.escapeHtml(text)}</div>${loginBtn}${retryBtn}</div>`;
+            },
+            loadMore({ hasMore = false, loading = false, text = '加载更多...' } = {}) {
+                if (!hasMore) return '';
+                return `<div class="ldsp-load-more${loading ? ' loading' : ''}"><div class="ldsp-load-more-spinner"></div><span>${Utils.escapeHtml(text)}</span></div>`;
+            },
+            overlay(text = '加载中...') {
+                return `<div class="ldsp-loading-overlay">${this.spinner(24)}<div class="ldsp-loading-overlay-text">${Utils.escapeHtml(text)}</div></div>`;
+            },
+            showOverlay(target, text = '加载中...') {
+                if (!target) return () => {};
+                const wrap = document.createElement('div');
+                wrap.innerHTML = this.overlay(text);
+                const el = wrap.firstElementChild;
+                const prevPos = target.style.position;
+                if (!prevPos || prevPos === 'static') target.style.position = 'relative';
+                target.classList.add('loading');
+                target.appendChild(el);
+                return () => {
+                    el.remove();
+                    target.classList.remove('loading');
+                    if (!prevPos) target.style.position = '';
+                };
+            },
+            bindInfiniteScroll(opts) {
+                return new InfiniteScroll(opts);
+            }
+        };
+
+        class InfiniteScroll {
+            constructor({ root, threshold = 100, onLoad, canLoad, onTrigger, getIgnore, requireLeave = true } = {}) {
+                this.root = root;
+                this.threshold = threshold;
+                this.onLoad = onLoad;
+                this.canLoad = canLoad || (() => true);
+                this.onTrigger = onTrigger || null;
+                this.getIgnore = getIgnore || null;
+                this.requireLeave = requireLeave;
+                this._armed = true;
+                this._busy = false;
+                this._handler = () => { this._onScroll(); };
+                this.root?.addEventListener('scroll', this._handler, { passive: true });
+            }
+            async _onScroll() {
+                if (!this.root || this._busy) return;
+                if (this.getIgnore?.()) return;
+                if (!this.canLoad()) return;
+                const { scrollTop, scrollHeight, clientHeight } = this.root;
+                const dist = scrollHeight - clientHeight - scrollTop;
+                if (dist > this.threshold) {
+                    this._armed = true;
+                    return;
+                }
+                if (!this._armed) return;
+                this._armed = false;
+                this._busy = true;
+                try {
+                    this.onTrigger?.();
+                    await this.onLoad();
+                } finally {
+                    this._busy = false;
+                    if (!this.requireLeave) this._armed = true;
+                }
+            }
+            destroy() {
+                this.root?.removeEventListener('scroll', this._handler);
+                this.root = null;
+                this.onLoad = null;
+                this.canLoad = null;
+                this.onTrigger = null;
+                this.getIgnore = null;
+            }
+        }
+
         // ==================== LDC 积分管理器 ====================
         class LDCManager {
             static CACHE_KEY = 'ldsp_ldc_cache';
@@ -7345,7 +7506,6 @@ a:hover{text-decoration:underline;}
                 this._tab = 'overview';
                 this._trans = { orders: [], page: 1, total: 0, hasMore: false };
                 this._transScrollState = null;
-                this._transLoadMoreArmed = true;
                 this._ignoreNextTransScroll = false;
                 this._order = null;
                 this._userId = null;
@@ -7391,7 +7551,7 @@ a:hover{text-decoration:underline;}
                         <div class="ldsp-ldc-tab" data-tab="support">❤️ 支持</div>
                     </div>
                     <div class="ldsp-ldc-body">
-                        <div class="ldsp-ldc-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>
+                        ${UI.loading({ className: 'ldsp-ldc-loading' })}
                     </div>`;
                 this.panelBody?.appendChild(this.overlay);
                 this._bindEvents();
@@ -7465,7 +7625,7 @@ a:hover{text-decoration:underline;}
                 this._syncRefreshBtn();
                 const body = this.overlay.querySelector('.ldsp-ldc-body');
                 if (this._tab === 'overview') {
-                    body.innerHTML = `<div class="ldsp-ldc-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>`;
+                    body.innerHTML = UI.loading({ className: 'ldsp-ldc-loading' });
                 }
 
                 try {
@@ -7673,7 +7833,7 @@ a:hover{text-decoration:underline;}
             _showConnecting() {
                 if (this._tab !== 'transactions') return;
                 const body = this.overlay.querySelector('.ldsp-ldc-body');
-                body.innerHTML = `<div class="ldsp-ldc-loading"><div class="ldsp-spinner"></div><div>正在连接 LDC…</div></div>`;
+                body.innerHTML = UI.loading({ text: '正在连接 LDC…', className: 'ldsp-ldc-loading' });
             }
 
             _showBridgeHint() {
@@ -7958,7 +8118,6 @@ a:hover{text-decoration:underline;}
                 } : null;
                 if (!more) {
                     this._trans = { orders: [], page: 1, total: 0, hasMore: false };
-                    this._transLoadMoreArmed = true;
                     this._showConnecting();
                 }
                 const page = more ? this._trans.page + 1 : 1;
@@ -8080,12 +8239,19 @@ a:hover{text-decoration:underline;}
                 const visibleOrders = this._getVisibleTransOrders();
                 let content;
                 if (loading) {
-                    content = `<div class="ldsp-ldc-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>`;
+                    content = UI.loading({ className: 'ldsp-ldc-loading' });
                 } else if (!visibleOrders.length) {
                     const tl = LDCManager.TIME_RANGES.find(t => t.id === this._filter.timeRange)?.label || '';
                     const tp = this._filter.type ? (LDCManager.TRANS_TYPES.find(t => t.id === this._filter.type)?.label || '') : '';
-                    content = `<div class="ldsp-ldc-empty-state"><div class="ldsp-ldc-empty-icon">📭</div><div class="ldsp-ldc-empty-text">暂无交易记录</div>
-                        ${tl || tp ? `<div class="ldsp-ldc-empty-hint">筛选条件：${tl}${tp ? ` · ${tp}` : ''}${hasMore ? ' · 继续下滑加载更多' : ''}</div>` : ''}</div>`;
+                    content = UI.empty({
+                        icon: '📭',
+                        text: '暂无交易记录',
+                        hint: (tl || tp) ? `筛选条件：${tl}${tp ? ` · ${tp}` : ''}${hasMore ? ' · 继续下滑加载更多' : ''}` : '',
+                        className: 'ldsp-ldc-empty-state',
+                        iconClass: 'ldsp-ldc-empty-icon',
+                        textClass: 'ldsp-ldc-empty-text',
+                        hintClass: 'ldsp-ldc-empty-hint'
+                    });
                 } else {
                     const list = visibleOrders.map(o => {
                         const ti = LDCManager.TRANS_TYPES.find(t => t.id === o.type) || { icon: '📋', label: o.type };
@@ -8132,37 +8298,28 @@ a:hover{text-decoration:underline;}
             }
 
             _setupInfiniteScroll(body) {
-                if (this._scrollTarget && this._scrollHandler) {
-                    this._scrollTarget.removeEventListener('scroll', this._scrollHandler);
-                    this._scrollTarget = null;
-                }
-                if (this._scrollObserver) {
-                    this._scrollObserver.disconnect();
-                    this._scrollObserver = null;
-                }
+                this._transScroller?.destroy();
+                this._transScroller = null;
 
                 const loadSentinel = body.querySelector('.ldsp-ldc-load-sentinel');
                 const list = body.querySelector('.ldsp-ldc-trans-list');
                 if (!loadSentinel || !list || !this._trans.hasMore) return;
 
-                this._scrollTarget = list;
-                this._scrollHandler = async () => {
-                    if (this._ignoreNextTransScroll) {
-                        this._ignoreNextTransScroll = false;
-                        return;
-                    }
-                    if (this._loadingState.trans || !this._trans.hasMore) return;
-                    const distanceToBottom = list.scrollHeight - list.clientHeight - list.scrollTop;
-                    if (distanceToBottom > 120) {
-                        this._transLoadMoreArmed = true;
-                        return;
-                    }
-                    if (!this._transLoadMoreArmed) return;
-                    this._transLoadMoreArmed = false;
-                    loadSentinel.innerHTML = '<div class="ldsp-ldc-loading-more"><div class="ldsp-mini-spin" style="width:14px;height:14px"></div><span>加载中...</span></div>';
-                    await this._fetchTrans(false, true);
-                };
-                list.addEventListener('scroll', this._scrollHandler, { passive: true });
+                this._transScroller = UI.bindInfiniteScroll({
+                    root: list,
+                    threshold: 120,
+                    requireLeave: true,
+                    getIgnore: () => {
+                        if (this._ignoreNextTransScroll) {
+                            this._ignoreNextTransScroll = false;
+                            return true;
+                        }
+                        return false;
+                    },
+                    canLoad: () => this._trans.hasMore && !this._loadingState.trans,
+                    onTrigger: () => { loadSentinel.innerHTML = UI.loadingMore('加载中...', 'ldsp-ldc-loading-more'); },
+                    onLoad: () => this._fetchTrans(false, true)
+                });
             }
             
             static SUPPORT_TIERS = [
@@ -8245,10 +8402,18 @@ a:hover{text-decoration:underline;}
                 const icon = msg.includes('超时') ? '⏱️' : msg.includes('网络') ? '🌐' : msg.includes('登录') ? '🔐' : '😕';
                 const isTrans = this._tab === 'transactions';
                 const filter = isTrans ? this._getFilterHtml() : '';
-                body.innerHTML = `${filter}<div class="ldsp-ldc-error"><div class="ldsp-ldc-error-icon">${icon}</div>
-                    <div class="ldsp-ldc-error-msg">${Utils.escapeHtml(msg)}</div>
-                    ${login ? '<a href="https://credit.linux.do" target="_blank" class="ldsp-ldc-login-btn">去登录 →</a>' : ''}
-                    <button class="ldsp-ldc-retry-btn">🔄 重试</button></div>`;
+                body.innerHTML = `${filter}${UI.error({
+                    icon,
+                    text: msg,
+                    className: 'ldsp-ldc-error',
+                    iconClass: 'ldsp-ldc-error-icon',
+                    textClass: 'ldsp-ldc-error-msg',
+                    retry: true,
+                    retryClass: 'ldsp-ldc-retry-btn',
+                    retryStyle: '',
+                    loginHref: login ? 'https://credit.linux.do' : '',
+                    loginClass: 'ldsp-ldc-login-btn'
+                })}`;
                 if (isTrans) this._bindFilterEvents(body);
                 body.querySelector('.ldsp-ldc-retry-btn')?.addEventListener('click', () => {
                     if (this._tab === 'overview') this._fetchData();
@@ -8285,9 +8450,8 @@ a:hover{text-decoration:underline;}
 
             destroy() {
                 if (this._escHandler) { document.removeEventListener('keydown', this._escHandler); this._escHandler = null; }
-                if (this._scrollObserver) { this._scrollObserver.disconnect(); this._scrollObserver = null; }
-                if (this._scrollTarget && this._scrollHandler) { this._scrollTarget.removeEventListener('scroll', this._scrollHandler); this._scrollTarget = null; }
-                this._scrollHandler = null;
+                this._transScroller?.destroy();
+                this._transScroller = null;
                 if (this.overlay) { this.overlay.remove(); this.overlay = null; }
             }
         }
@@ -8359,10 +8523,7 @@ a:hover{text-decoration:underline;}
                         <div class="ldsp-cdk-tab" data-tab="received">📋 领取记录</div>
                     </div>
                     <div class="ldsp-cdk-body">
-                        <div class="ldsp-cdk-loading">
-                            <div class="ldsp-spinner"></div>
-                            <div>加载中...</div>
-                        </div>
+                        ${UI.loading({ className: 'ldsp-cdk-loading' })}
                     </div>`;
                 if (this.panelBody) {
                     this.panelBody.appendChild(this.overlay);
@@ -8420,7 +8581,7 @@ a:hover{text-decoration:underline;}
                 const body = this.overlay.querySelector('.ldsp-cdk-body');
                 const btn = this.overlay.querySelector('.ldsp-cdk-refresh');
                 btn?.classList.add('spinning');
-                body.innerHTML = `<div class="ldsp-cdk-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>`;
+                body.innerHTML = UI.loading({ className: 'ldsp-cdk-loading' });
 
                 try {
                     const data = await this._request('https://cdk.linux.do/api/v1/oauth/user-info');
@@ -8437,7 +8598,7 @@ a:hover{text-decoration:underline;}
                     this._userInfo = data.data;
                     this._renderHome(this._userInfo);
                 } catch (e) {
-                    this._showError('网络错误，请稍后重试');
+                    this._showError(ErrorFormatter.format(e) || e.message || '网络错误，请稍后重试');
                 } finally {
                     this._loading = false;
                     btn?.classList.remove('spinning');
@@ -8488,9 +8649,9 @@ a:hover{text-decoration:underline;}
                 if (!loadMore) {
                     btn?.classList.add('spinning');
                     this._received = { results: [], total: 0, page: 1 };
-                    body.innerHTML = `<div class="ldsp-cdk-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>`;
+                    body.innerHTML = UI.loading({ className: 'ldsp-cdk-loading' });
                 } else if (trigger) {
-                    trigger.innerHTML = '<div class="ldsp-mini-spin"></div>加载中...';
+                    trigger.innerHTML = `${UI.spinner(14)}加载中...`;
                     trigger.classList.add('loading');
                 }
                 const page = loadMore ? this._received.page + 1 : 1;
@@ -8528,8 +8689,13 @@ a:hover{text-decoration:underline;}
                     </div>`;
 
                     if (!results.length) {
-                        html += `<div class="ldsp-cdk-empty"><div class="ldsp-cdk-empty-icon">📭</div>
-                            <div class="ldsp-cdk-empty-text">${this._search ? '未找到匹配的记录' : '暂无领取记录'}</div></div>`;
+                        html += UI.empty({
+                            icon: '📭',
+                            text: this._search ? '未找到匹配的记录' : '暂无领取记录',
+                            className: 'ldsp-cdk-empty',
+                            iconClass: 'ldsp-cdk-empty-icon',
+                            textClass: 'ldsp-cdk-empty-text'
+                        });
                     } else {
                         html += '<div class="ldsp-cdk-list ldsp-cdk-scroll-list">' + this._renderReceivedItems(results) + '</div>';
                         html += hasMore ? '<div class="ldsp-cdk-load-trigger">⬇️ 滚动加载更多</div>' : `<div class="ldsp-cdk-loaded-all">✅ 已全部加载</div>`;
@@ -8577,18 +8743,15 @@ a:hover{text-decoration:underline;}
                 });
                 clear?.addEventListener('click', () => { input.value = ''; clear.classList.remove('show'); this._search = ''; this._fetchReceived(); });
                 this._bindItemEvents(el);
-                // 瀑布流滚动加载
                 const body = this.overlay.querySelector('.ldsp-cdk-body');
-                body?.removeEventListener('scroll', this._scrollHandler);
-                this._scrollHandler = () => {
-                    if (this._loading) return;
-                    const { scrollTop, scrollHeight, clientHeight } = body;
-                    if (scrollHeight - scrollTop - clientHeight < 80) {
-                        const { results, total } = this._received;
-                        if (results.length < total) this._fetchReceived(true);
-                    }
-                };
-                body?.addEventListener('scroll', this._scrollHandler, { passive: true });
+                this._receivedScroller?.destroy();
+                this._receivedScroller = body ? UI.bindInfiniteScroll({
+                    root: body,
+                    threshold: 80,
+                    requireLeave: false,
+                    canLoad: () => !this._loading && this._received.results.length < this._received.total,
+                    onLoad: () => this._fetchReceived(true)
+                }) : null;
             }
 
             _bindItemEvents(el) {
@@ -8613,8 +8776,10 @@ a:hover{text-decoration:underline;}
             }
 
             async _fetchDetail(id) {
+                this._receivedScroller?.destroy();
+                this._receivedScroller = null;
                 const body = this.overlay.querySelector('.ldsp-cdk-body');
-                body.innerHTML = `<div class="ldsp-cdk-loading"><div class="ldsp-spinner"></div><div>加载详情...</div></div>`;
+                body.innerHTML = UI.loading({ text: '加载详情...', className: 'ldsp-cdk-loading' });
                 try {
                     const data = await this._request(`https://cdk.linux.do/api/v1/projects/${id}`);
                     if (data._error) { this._showError(data._error); return; }
@@ -8743,11 +8908,21 @@ a:hover{text-decoration:underline;}
                 const body = this.overlay.querySelector('.ldsp-cdk-body');
                 this.overlay.querySelector('.ldsp-cdk-refresh')?.classList.remove('spinning');
                 this._loading = false;
+                this._receivedScroller?.destroy();
+                this._receivedScroller = null;
                 const icon = msg.includes('超时') ? '⏱️' : msg.includes('网络') ? '🌐' : msg.includes('登录') ? '🔐' : '😕';
-                body.innerHTML = `<div class="ldsp-cdk-error"><div class="ldsp-cdk-error-icon">${icon}</div>
-                    <div class="ldsp-cdk-error-msg">${Utils.escapeHtml(msg)}</div>
-                    ${showLogin ? '<a href="https://cdk.linux.do" target="_blank" class="ldsp-cdk-login-btn">去登录 →</a>' : ''}
-                    <button class="ldsp-cdk-retry-btn">🔄 重试</button></div>`;
+                body.innerHTML = UI.error({
+                    icon,
+                    text: msg,
+                    className: 'ldsp-cdk-error',
+                    iconClass: 'ldsp-cdk-error-icon',
+                    textClass: 'ldsp-cdk-error-msg',
+                    retry: true,
+                    retryClass: 'ldsp-cdk-retry-btn',
+                    retryStyle: '',
+                    loginHref: showLogin ? 'https://cdk.linux.do' : '',
+                    loginClass: 'ldsp-cdk-login-btn'
+                });
                 body.querySelector('.ldsp-cdk-retry-btn')?.addEventListener('click', () => {
                     this._tab === 'home' ? this._fetchUserInfo() : this._fetchReceived();
                 });
@@ -8758,6 +8933,8 @@ a:hover{text-decoration:underline;}
                 if (this._searchTimer) clearTimeout(this._searchTimer);
                 if (this._msgHandler) { window.removeEventListener('message', this._msgHandler); this._msgHandler = null; }
                 if (this._bridge) { this._bridge.remove(); this._bridge = null; }
+                this._receivedScroller?.destroy();
+                this._receivedScroller = null;
                 this._requests.clear();
                 if (this.overlay) { this.overlay.remove(); this.overlay = null; }
             }
@@ -9764,13 +9941,16 @@ a:hover{text-decoration:underline;}
                 const body = this.overlay.querySelector('.ldsp-melon-body');
                 
                 if (this.history.length === 0) {
-                    body.innerHTML = `
-                        <div class="ldsp-melon-history-empty">
-                            <div class="ldsp-melon-history-empty-icon">📭</div>
-                            <div class="ldsp-melon-history-empty-text">暂无历史记录</div>
-                            <div class="ldsp-melon-history-empty-hint">使用吃瓜助手总结话题后会自动保存到这里</div>
-                            <div class="ldsp-melon-history-storage-hint">💾 数据仅存储在浏览器本地</div>
-                        </div>`;
+                    body.innerHTML = UI.empty({
+                        icon: '📭',
+                        text: '暂无历史记录',
+                        hint: '使用吃瓜助手总结话题后会自动保存到这里',
+                        extra: '<div class="ldsp-melon-history-storage-hint">💾 数据仅存储在浏览器本地</div>',
+                        className: 'ldsp-melon-history-empty',
+                        iconClass: 'ldsp-melon-history-empty-icon',
+                        textClass: 'ldsp-melon-history-empty-text',
+                        hintClass: 'ldsp-melon-history-empty-hint'
+                    });
                     return;
                 }
                 
@@ -10624,7 +10804,7 @@ a:hover{text-decoration:underline;}
             async show() {
                 this.overlay.classList.add('show');
                 const body = this.overlay.querySelector('.ldsp-follow-body');
-                body.innerHTML = '<div class="ldsp-follow-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>';
+                body.innerHTML = UI.loading({ className: 'ldsp-follow-loading' });
                 
                 // 加载数据（如果还没加载）
                 if (!this._loaded) {
@@ -10647,11 +10827,13 @@ a:hover{text-decoration:underline;}
                 const emptyIcon = type === 'following' ? FollowManager.ICONS.user : FollowManager.ICONS.followers;
                 
                 if (list.length === 0) {
-                    body.innerHTML = `
-                        <div class="ldsp-follow-empty">
-                            <div class="ldsp-follow-empty-icon">${emptyIcon}</div>
-                            <div>${emptyText}</div>
-                        </div>`;
+                    body.innerHTML = UI.empty({
+                        icon: emptyIcon,
+                        text: emptyText,
+                        className: 'ldsp-follow-empty',
+                        iconClass: 'ldsp-follow-empty-icon',
+                        textClass: ''
+                    });
                     return;
                 }
 
@@ -10766,7 +10948,7 @@ a:hover{text-decoration:underline;}
                     `<div class="ldsp-ring-tip ${tipClass}">${tipText}</div>`);
 
                 if (displayReqs.length === 0 && rdm === 'incomplete') {
-                    h.push(`<div class="ldsp-empty"><div class="ldsp-empty-icon">🎉</div><div class="ldsp-empty-txt">所有升级要求都已完成</div></div>`);
+                    h.push(UI.empty({ icon: '🎉', text: '所有升级要求都已完成' }));
                 } else {
                     for (const req of displayReqs) {
                         const name = Utils.simplifyName(req.name), prev = this.prevValues.get(req.name);
@@ -10861,7 +11043,7 @@ a:hover{text-decoration:underline;}
             }
 
             renderTodayTrend(reqs, rt, td, goalHours = 3, yesterdayBase = null) {
-                if (!td) return `<div class="ldsp-empty"><div class="ldsp-empty-icon">☀️</div><div class="ldsp-empty-txt">今日首次访问<br>数据将从现在开始统计</div></div>`;
+                if (!td) return UI.empty({ icon: '☀️', text: '今日首次访问<br>数据将从现在开始统计', raw: true });
                 const normalizedGoal = Math.min(20, Math.max(0.5, Math.round(Utils.toSafeNumber(goalHours, 3) * 2) / 2));
                 const targetMinutes = Math.max(1, normalizedGoal * 60);
                 const now = new Date(), start = new Date(td.startTs), lv = Utils.getReadingLevel(rt), pct = Math.min(rt / targetMinutes * 100, 100);
@@ -11212,7 +11394,14 @@ a:hover{text-decoration:underline;}
             renderLeaderboardData(data, uid, joined, type = 'daily') {
                 const fmtInt = ms => { const m = Math.round(ms/60000); return m < 60 ? `每 ${m} 分钟更新` : `每 ${Math.round(m/60)} 小时更新`; };
                 const rules = { daily: fmtInt(CONFIG.CACHE.LEADERBOARD_DAILY_TTL), weekly: fmtInt(CONFIG.CACHE.LEADERBOARD_WEEKLY_TTL), monthly: fmtInt(CONFIG.CACHE.LEADERBOARD_MONTHLY_TTL) };
-                if (!data?.rankings?.length) return `<div class="ldsp-lb-empty"><div class="ldsp-lb-empty-icon">📭</div><div class="ldsp-lb-empty-txt">暂无排行数据<br>成为第一个上榜的人吧！</div></div>`;
+                if (!data?.rankings?.length) return UI.empty({
+                    icon: '📭',
+                    text: '暂无排行数据<br>成为第一个上榜的人吧！',
+                    className: 'ldsp-lb-empty',
+                    iconClass: 'ldsp-lb-empty-icon',
+                    textClass: 'ldsp-lb-empty-txt',
+                    raw: true
+                });
                 let h = `<div class="ldsp-lb-period"><button class="ldsp-lb-refresh" data-type="${type}" title="手动刷新">🔄</button>${data.period?`📅 统计周期: <span>${data.period}</span>`:''}<span class="ldsp-update-rule">🔄 ${rules[type]}</span></div>`;
                 if (data.myRank && joined) h += `<div class="ldsp-my-rank${data.myRank.in_top?'':' not-in-top'}"><div><div class="ldsp-my-rank-lbl">我的排名${data.myRank.in_top?'':'<span class="ldsp-not-in-top-hint">（未入榜）</span>'}</div><div class="ldsp-my-rank-val">${data.myRank.rank?`#${data.myRank.rank}`:(data.myRank.rank_display||'--')}</div></div><div class="ldsp-my-rank-time">${Utils.formatReadingTime(data.myRank.minutes)}</div></div>`;
                 h += '<div class="ldsp-rank-list">';
@@ -11232,16 +11421,42 @@ a:hover{text-decoration:underline;}
                 if (joined) h += `<div style="margin-top:12px;text-align:center"><button class="ldsp-lb-btn danger" id="ldsp-lb-quit" style="font-size:9px;padding:4px 8px">退出排行榜</button></div>`;
                 return h;
             }
-            renderLeaderboardLoading() { return `<div class="ldsp-mini-loader"><div class="ldsp-mini-spin"></div><div class="ldsp-mini-txt">加载排行榜...</div></div>`; }
-            renderLeaderboardError(msg) { return `<div class="ldsp-lb-empty"><div class="ldsp-lb-empty-icon">❌</div><div class="ldsp-lb-empty-txt">${msg}</div><button class="ldsp-lb-btn secondary" id="ldsp-lb-retry" style="margin-top:12px">🔄 重试</button></div>`; }
+            renderLeaderboardLoading() { return UI.miniLoading('加载排行榜...'); }
+            renderLeaderboardError(msg) {
+                return UI.error({
+                    text: msg,
+                    retry: true,
+                    retryId: 'ldsp-lb-retry',
+                    className: 'ldsp-lb-empty',
+                    iconClass: 'ldsp-lb-empty-icon',
+                    textClass: 'ldsp-lb-empty-txt'
+                });
+            }
 
             renderActivity(tab) {
                 const tabs = [['read','📖','已读'],['bookmarks','⭐','收藏'],['replies','💬','回复'],['reactions','🤝','互动'],['likes','❤️','赞过'],['topics','📝','我的话题']];
                 this.panel.$.activity.innerHTML = `<div class="ldsp-subtabs ldsp-trend-subtabs ldsp-subtabs-scroll"><div class="ldsp-subtab-indicator"><div class="ldsp-subtab-indicator-glass"></div><div class="ldsp-subtab-indicator-shine"></div></div>${tabs.map(([id,i,l])=>`<div class="ldsp-subtab${tab===id?' active':''}" data-activity="${id}"><span class="ldsp-trend-tab-icon">${i}</span><span class="ldsp-trend-tab-text">${l}</span></div>`).join('')}</div><div class="ldsp-activity-content"></div>`;
             }
-            renderActivityLoading() { return `<div class="ldsp-mini-loader"><div class="ldsp-mini-spin"></div><div class="ldsp-mini-txt">加载中...</div></div>`; }
-            renderActivityEmpty(icon, msg) { return `<div class="ldsp-lb-empty"><div class="ldsp-lb-empty-icon">${icon}</div><div class="ldsp-lb-empty-txt">${msg}</div></div>`; }
-            renderActivityError(msg) { return `<div class="ldsp-lb-empty"><div class="ldsp-lb-empty-icon">❌</div><div class="ldsp-lb-empty-txt">${msg}</div><button class="ldsp-lb-btn secondary ldsp-activity-retry" style="margin-top:12px">🔄 重试</button></div>`; }
+            renderActivityLoading() { return UI.miniLoading(); }
+            renderActivityEmpty(icon, msg) {
+                return UI.empty({
+                    icon,
+                    text: msg,
+                    className: 'ldsp-lb-empty',
+                    iconClass: 'ldsp-lb-empty-icon',
+                    textClass: 'ldsp-lb-empty-txt'
+                });
+            }
+            renderActivityError(msg) {
+                return UI.error({
+                    text: msg,
+                    retry: true,
+                    retryClass: 'ldsp-lb-btn secondary ldsp-activity-retry',
+                    className: 'ldsp-lb-empty',
+                    iconClass: 'ldsp-lb-empty-icon',
+                    textClass: 'ldsp-lb-empty-txt'
+                });
+            }
 
             renderTopicListWithSearch(topics, hasMore, search = '', batchSize = 20, totalLoaded = 0) {
                 const toolbar = `<div class="ldsp-activity-toolbar"><div class="ldsp-activity-search"><span class="ldsp-activity-search-icon">🔍</span><input type="text" placeholder="搜索标题或标签..." value="${Utils.escapeHtml(search)}"><button class="ldsp-activity-search-clear ${search ? 'show' : ''}">×</button></div><div class="ldsp-activity-toolbar-divider"></div><div class="ldsp-activity-batch"><span class="ldsp-activity-batch-label">加载</span><select class="ldsp-activity-batch-select"><option value="20"${batchSize===20?' selected':''}>20</option><option value="50"${batchSize===50?' selected':''}>50</option><option value="100"${batchSize===100?' selected':''}>100</option><option value="200"${batchSize===200?' selected':''}>200</option><option value="300"${batchSize===300?' selected':''}>300</option></select></div></div>`;
@@ -11276,7 +11491,7 @@ a:hover{text-decoration:underline;}
                     let psH = ps.length?'<div class="ldsp-topic-posters">'+ps.slice(0,3).map((p,j)=>`<img src="${getAv(p)}" class="ldsp-topic-avatar ${p.description?.includes('原始发帖人')?'ldsp-poster-op':p.extras?.includes('latest')?'ldsp-poster-latest':''}" title="${Utils.escapeHtml(p.name||p.username)}" style="z-index:${5-j}" loading="lazy">`).join('')+(ps.length>3?`<span class="ldsp-topic-posters-more">+${ps.length-3}</span>`:'')+'</div>':'';
                     h += `<a href="${url}" target="_blank" class="ldsp-topic-item" data-scroll-key="topic-${t.id}" style="animation-delay:${i*20}ms"><div class="ldsp-topic-main"><div class="ldsp-topic-header"><div class="ldsp-topic-title-row">${badge?`<div class="ldsp-topic-badges">${badge}</div>`:''}<div class="ldsp-topic-title" title="${title}">${title}</div></div><div class="ldsp-topic-info">${tagsH}</div></div><div class="ldsp-topic-footer">${psH}<div class="ldsp-topic-stats"><span class="ldsp-topic-stat" title="回复">${ic.reply}<em>${pc}</em></span><span class="ldsp-topic-stat" title="阅读">${ic.view}<em>${v>=1000?(v/1000).toFixed(1)+'k':v}</em></span>${lc>0?`<span class="ldsp-topic-stat ldsp-stat-like" title="点赞">${ic.like}<em>${lc}</em></span>`:''}<span class="ldsp-topic-time">${rt}</span></div></div></div>${thumb?`<div class="ldsp-topic-thumbnail"><img src="${thumb}" loading="lazy"></div>`:''}</a>`;
                 });
-                return h+'</div>'+(hasMore?'<div class="ldsp-load-more"><div class="ldsp-load-more-spinner"></div><span>加载更多...</span></div>':'');
+                return h+'</div>'+UI.loadMore({ hasMore });
             }
 
             renderTopicList(topics, hasMore) {
@@ -11339,7 +11554,7 @@ a:hover{text-decoration:underline;}
                     const checkH = selectMode ? `<label class="ldsp-bookmark-check" title="选择收藏"><input type="checkbox" class="ldsp-bookmark-checkbox" data-bookmark-id="${Utils.escapeHtml(bookmarkId)}"${selected ? ' checked' : ''}></label>` : '';
                     h += `<div class="ldsp-bookmark-item${selectMode ? ' select-mode' : ''}${selected ? ' selected' : ''}" data-bookmark-id="${Utils.escapeHtml(bookmarkId)}" data-url="${url}" data-scroll-key="bookmark-${Utils.escapeHtml(bookmarkId)}" style="animation-delay:${i*30}ms">${checkH}<div class="ldsp-bookmark-main"><div class="ldsp-bookmark-title">${title}</div><div class="ldsp-bookmark-meta"><span class="ldsp-bookmark-time" title="收藏时间">${ic.calendar}${ct||'--'}</span><span class="ldsp-bookmark-time" title="最后活动">${ic.clock}${rt||'--'}</span>${groupH}</div>${tagsH}${ex?`<div class="ldsp-bookmark-excerpt">${ex}</div>`:''}</div></div>`;
                 });
-                return h+'</div>'+(hasMore?'<div class="ldsp-load-more"><div class="ldsp-load-more-spinner"></div><span>加载更多...</span></div>':'');
+                return h+'</div>'+UI.loadMore({ hasMore });
             }
 
             renderReplyList(rp, hasMore) {
@@ -11350,7 +11565,7 @@ a:hover{text-decoration:underline;}
                     const title = Utils.escapeHtml(r.title||'无标题'), ex = r.excerpt||'', rt = Utils.formatRelativeTime(r.created_at), url = `https://${CURRENT_SITE.domain}/t/topic/${r.topic_id}/${r.post_number}`;
                     h += `<div class="ldsp-reply-item" data-url="${url}" data-scroll-key="reply-${r.post_id}" style="animation-delay:${i*30}ms"><div class="ldsp-reply-title">${title}</div><div class="ldsp-reply-meta"><span class="ldsp-reply-time" title="回复时间">${ic.clock}${rt||'--'}</span>${r.reply_to_post_number?`<span class="ldsp-reply-to" title="回复楼层">${ic.reply}#${r.reply_to_post_number}</span>`:''}</div>${ex?`<div class="ldsp-reply-excerpt">${ex}</div>`:''}</div>`;
                 });
-                return h+'</div>'+(hasMore?'<div class="ldsp-load-more"><div class="ldsp-load-more-spinner"></div><span>加载更多...</span></div>':'');
+                return h+'</div>'+UI.loadMore({ hasMore });
             }
 
             renderLikeList(lk, hasMore) {
@@ -11362,7 +11577,7 @@ a:hover{text-decoration:underline;}
                     const name = Utils.escapeHtml(l.name||l.username||'匿名');
                     h += `<div class="ldsp-like-item" data-url="${url}" data-scroll-key="like-${l.post_id}" style="animation-delay:${i*30}ms"><div class="ldsp-like-title">${title}</div><div class="ldsp-like-meta"><span class="ldsp-like-time" title="点赞时间">${ic.clock}${rt||'--'}</span><span class="ldsp-like-author" title="作者：@${l.username}">${ic.user}${name}</span></div>${ex?`<div class="ldsp-like-excerpt">${ex}</div>`:''}</div>`;
                 });
-                return h+'</div>'+(hasMore?'<div class="ldsp-load-more"><div class="ldsp-load-more-spinner"></div><span>加载更多...</span></div>':'');
+                return h+'</div>'+UI.loadMore({ hasMore });
             }
 
             renderMyTopicList(tp, hasMore) {
@@ -11388,7 +11603,7 @@ a:hover{text-decoration:underline;}
                     const st = (t.pinned?`<span class="ldsp-mytopic-status" title="已置顶">${ic.pin}</span>`:'')+(t.closed?`<span class="ldsp-mytopic-status ldsp-mytopic-closed" title="已关闭">${ic.lock}</span>`:'');
                     h += `<a href="${url}" target="_blank" class="ldsp-mytopic-item${t.closed?' closed':''}" data-scroll-key="mytopic-${t.id}" style="animation-delay:${i*30}ms" title="${title}"><div class="ldsp-mytopic-header"><div class="ldsp-mytopic-title">${title}</div>${st?`<div class="ldsp-mytopic-icons">${st}</div>`:''}</div><div class="ldsp-mytopic-row">${tagsH}<span class="ldsp-mytopic-time" title="创建时间">${ic.calendar}${ct||'--'}</span></div><div class="ldsp-mytopic-meta"><span class="ldsp-mytopic-stat" title="回复数">${ic.reply}${pc}</span><span class="ldsp-mytopic-stat" title="浏览量">${ic.view}${v}</span><span class="ldsp-mytopic-stat ldsp-mytopic-likes" title="点赞数">${ic.heart}${lc}</span><div class="ldsp-mytopic-meta-right"><span class="ldsp-mytopic-time" title="最后活动">${ic.clock}${rt||'--'}</span></div></div></a>`;
                 });
-                return h+'</div>'+(hasMore?'<div class="ldsp-load-more"><div class="ldsp-load-more-spinner"></div><span>加载更多...</span></div>':'');
+                return h+'</div>'+UI.loadMore({ hasMore });
             }
 
             renderReactionList(rc, hasMore) {
@@ -11406,7 +11621,7 @@ a:hover{text-decoration:underline;}
                     const rv = rd.reaction_value||'+1', ri = getEmoji(rv), cnt = rd.reaction_users_count||1;
                     h += `<div class="ldsp-reaction-item" data-url="${url}" data-scroll-key="reaction-${r.id}" style="animation-delay:${i*30}ms"><div class="ldsp-reaction-header"><div class="ldsp-reaction-icon" title="${rv}">${ri}</div><div class="ldsp-reaction-title">${title}</div></div><div class="ldsp-reaction-meta">${av?`<img src="${av}" class="ldsp-reaction-avatar" loading="lazy">`:''}<span class="ldsp-reaction-author" title="作者：@${un}">${name}</span><span class="ldsp-reaction-time" title="互动时间">${icClk}${rt||'--'}</span>${cnt>1?`<span class="ldsp-reaction-count" title="共${cnt}人">+${cnt-1}</span>`:''}</div>${ex?`<div class="ldsp-reaction-excerpt">${ex}</div>`:''}</div>`;
                 });
-                return h+'</div>'+(hasMore?'<div class="ldsp-load-more"><div class="ldsp-load-more-spinner"></div><span>加载更多...</span></div>':'');
+                return h+'</div>'+UI.loadMore({ hasMore });
             }
         }
 
@@ -12132,7 +12347,7 @@ a:hover{text-decoration:underline;}
                 
                 // 我的活动相关状态
                 this.activitySubTab = 'read';  // 默认子tab
-                this._activityScrollHandler = null;  // 滚动事件处理器
+                this._activityScroller = null;
             }
             
             // 初始化 UI
@@ -12603,10 +12818,10 @@ a:hover{text-decoration:underline;}
                             <button class="ldsp-tab" data-tab="activity"><span class="ldsp-tab-icon">👤</span><span class="ldsp-tab-text">我的</span></button>
                         </div>
                         <div class="ldsp-content">
-                            <div id="ldsp-reqs" class="ldsp-section active"><div class="ldsp-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div></div>
-                            <div id="ldsp-trends" class="ldsp-section"><div class="ldsp-empty"><div class="ldsp-empty-icon">📊</div><div class="ldsp-empty-txt">暂无历史数据</div></div></div>
-                            ${this.hasLeaderboard ? '<div id="ldsp-leaderboard" class="ldsp-section"><div class="ldsp-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div></div>' : ''}
-                            <div id="ldsp-activity" class="ldsp-section"><div class="ldsp-empty"><div class="ldsp-empty-icon">👤</div><div class="ldsp-empty-txt">选择一个分类查看</div></div></div>
+                            <div id="ldsp-reqs" class="ldsp-section active">${UI.loading()}</div>
+                            <div id="ldsp-trends" class="ldsp-section">${UI.empty({ icon: '📊', text: '暂无历史数据' })}</div>
+                            ${this.hasLeaderboard ? `<div id="ldsp-leaderboard" class="ldsp-section">${UI.loading()}</div>` : ''}
+                            <div id="ldsp-activity" class="ldsp-section">${UI.empty({ icon: '👤', text: '选择一个分类查看' })}</div>
                         </div>
                         <div class="ldsp-confirm-overlay">
                             <div class="ldsp-confirm-box">
@@ -14517,7 +14732,7 @@ a:hover{text-decoration:underline;}
                 if (this.loading) return;
                 console.log('[LDSP] fetch() 开始, url:', CURRENT_SITE.apiUrl);
                 this._setLoading(true);
-                this.$.reqs.innerHTML = `<div class="ldsp-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>`;
+                this.$.reqs.innerHTML = UI.loading();
 
                 try {
                     const url = CURRENT_SITE.apiUrl;
@@ -14541,15 +14756,14 @@ a:hover{text-decoration:underline;}
                         } catch (_) { /* 非 JSON，正常 HTML */ }
                     }
 
-                    if (!html) {
-                        throw new Error('无法获取数据');
+                    if (!html || !String(html).trim()) {
+                        throw new Error('信任等级页返回空内容');
                     }
 
                     await this._parse(html);
                 } catch (e) {
                     console.log('[LDSP] fetch() 异常:', e.message || e);
-                    // v3.5.2.9: 使用统一的错误格式化
-                    this._showError(ErrorFormatter.format(e));
+                    this._showError(this._formatHomeError(e));
                     // 即使获取升级要求失败，也要确保阅读追踪器正常初始化
                     this._ensureTrackerInitialized();
                 } finally {
@@ -14589,8 +14803,32 @@ a:hover{text-decoration:underline;}
                 Logger.log(`阅读追踪器已降级初始化: ${username || 'anonymous'}`);
             }
 
+            _formatHomeError(error) {
+                const status = ErrorFormatter.extractStatus(error);
+                const raw = error?.message || '';
+                if (status === 401 || status === 403) {
+                    return `当前未登录论坛，或没有权限访问信任等级页（HTTP ${status}）`;
+                }
+                if (status === 404) return '信任等级页不存在（HTTP 404）';
+                if (status === 429) return '请求过于频繁，请稍后重试（HTTP 429）';
+                if (status >= 500) return `信任等级页暂时不可用（HTTP ${status}）`;
+                if (status >= 400) return `信任等级页请求失败（HTTP ${status}）`;
+                if (error?.isTimeout || /timeout|超时/i.test(raw)) {
+                    return '请求超时，无法连接信任等级页，请检查网络后重试';
+                }
+                if (error?.code === 'NETWORK_ERROR' || /network|网络/i.test(raw)) {
+                    return '网络连接失败，无法获取升级数据，请检查网络后重试';
+                }
+                if (/空内容/.test(raw)) return '信任等级页返回空内容';
+                return ErrorFormatter.format(error);
+            }
+
             _showError(msg) {
-                this.$.reqs.innerHTML = `<div class="ldsp-empty"><div class="ldsp-empty-icon">❌</div><div class="ldsp-empty-txt">${Utils.escapeHtml(msg)}</div></div>`;
+                this.$.reqs.innerHTML = UI.empty({
+                    icon: '❌',
+                    text: '升级数据加载失败',
+                    hint: msg || '未知错误'
+                });
             }
 
             // 更新信任等级到服务端和本地缓存
@@ -14622,7 +14860,7 @@ a:hover{text-decoration:underline;}
 
             // 当没有升级要求表格时显示备选内容
             // 优先级：1. 服务端同步的数据 2. summary API 数据
-            async _showFallbackStats(username, level) {
+            async _showFallbackStats(username, level, connectReason = '') {
                 console.log('[LDSP] _showFallbackStats 触发, username:', username, 'level:', level);
                 const $ = this.$;
                 
@@ -14673,39 +14911,46 @@ a:hover{text-decoration:underline;}
                     $.userHandle.style.display = 'none';
                 }
                 
+                const failHints = [];
+                if (connectReason) failHints.push(connectReason);
+
                 // === 方案1：优先从 summary API 获取实时统计数据 ===
                 // 访问天数等字段优先以 LinuxDo 实时数据为准，避免云端缓存导致显示滞后
                 if (effectiveUsername && effectiveUsername !== '未知') {
-                    this.$.reqs.innerHTML = `<div class="ldsp-loading"><div class="ldsp-spinner"></div><div>正在获取统计数据...</div></div>`;
-                    const summaryData = await this._fetchSummaryData(effectiveUsername);
-                    if (summaryData && Object.keys(summaryData).length > 0) {
-                        return this._renderSummaryData(summaryData, effectiveUsername, numLevel);
+                    this.$.reqs.innerHTML = UI.loading({ text: '正在获取统计数据...' });
+                    try {
+                        const summaryData = await this._fetchSummaryData(effectiveUsername);
+                        if (summaryData && Object.keys(summaryData).length > 0) {
+                            return this._renderSummaryData(summaryData, effectiveUsername, numLevel);
+                        }
+                        failHints.push('用户统计接口未返回有效数据');
+                    } catch (e) {
+                        failHints.push(`用户统计：${ErrorFormatter.format(e)}`);
                     }
+                } else {
+                    failHints.push('未能识别当前用户');
                 }
 
                 // === 方案2：回退到云端已同步数据（兜底） ===
                 if (this.oauth?.isLoggedIn() && this.cloudSync) {
-                    this.$.reqs.innerHTML = `<div class="ldsp-loading"><div class="ldsp-spinner"></div><div>正在获取云端数据...</div></div>`;
+                    this.$.reqs.innerHTML = UI.loading({ text: '正在获取云端数据...' });
                     try {
                         const cloudData = await this._fetchCloudRequirements();
                         if (cloudData && cloudData.length > 0) {
                             return this._renderCloudRequirements(cloudData, effectiveUsername, numLevel);
                         }
-                    } catch (e) { /* 云端获取失败，继续走简要显示 */ }
+                        failHints.push('云端没有已同步的升级数据');
+                    } catch (e) {
+                        failHints.push(`云端：${ErrorFormatter.format(e)}`);
+                    }
                 }
                 
-                // 如果无法获取 summary 数据，显示简要信息
-                this.$.reqs.innerHTML = `
-                    <div class="ldsp-empty">
-                        <div class="ldsp-empty-icon">📊</div>
-                        <div class="ldsp-empty-txt">
-                            <div style="margin-bottom:8px;">当前信任等级：<b style="color:#5a7de0;">${numLevel}</b></div>
-                            <div style="font-size:12px;color:#6b7280;">暂无升级进度数据</div>
-                            <div style="margin-top:10px;font-size:11px;color:#9ca3af;">
-                                <a href="https://linux.do/t/topic/2460" target="_blank" style="color:#5a7de0;text-decoration:none;">📖 查看完整信任等级说明</a>
-                            </div>
-                        </div>
-                    </div>`;
+                this.$.reqs.innerHTML = UI.empty({
+                    icon: '📊',
+                    text: `当前信任等级：${numLevel}`,
+                    hint: failHints.length ? failHints.join('；') : '暂无升级进度数据',
+                    extra: '<div style="margin-top:10px;font-size:11px;color:#9ca3af;"><a href="https://linux.do/t/topic/2460" target="_blank" style="color:#5a7de0;text-decoration:none;">📖 查看完整信任等级说明</a></div>'
+                });
                 
                 // 初始化 todayData（用于今日趋势显示）
                 const todayData = this._getTodayData();
@@ -14893,13 +15138,18 @@ a:hover{text-decoration:underline;}
              * @returns {Object|null} - 统计数据对象或null
              */
             async _fetchSummaryData(username) {
+                let lastError = null;
+                const remember = (e) => { if (e && !lastError) lastError = e; };
                 try {
                     const baseUrl = `https://${CURRENT_SITE.domain}`;
                     const data = {};
                     const applySummaryStats = stats => {
                         if (!stats || typeof stats !== 'object') return false;
                         // 显式无权限时直接返回 false（避免误用空数据）
-                        if (stats.can_see_summary_stats === false) return false;
+                        if (stats.can_see_summary_stats === false) {
+                            remember(new Error('没有权限查看用户统计数据'));
+                            return false;
+                        }
 
                         // 映射 Discourse API 字段到显示名称
                         if (stats.days_visited !== undefined) data['访问天数'] = stats.days_visited;
@@ -14936,7 +15186,7 @@ a:hover{text-decoration:underline;}
                         if (applySummaryStats(stats)) {
                             return data;
                         }
-                    } catch (e) { /* fetchJson 失败，继续后备方案 */ }
+                    } catch (e) { remember(e); }
                     
                     // 尝试多种方式获取数据，兼容不同的用户脚本管理器
                     let jsonText = null;
@@ -14948,7 +15198,7 @@ a:hover{text-decoration:underline;}
                             timeout: 10000,
                             headers: buildAuthHeaders(jsonUrl, { 'Accept': 'application/json' })
                         });
-                    } catch (e) { /* GM fetch 失败 */ }
+                    } catch (e) { remember(e); }
                     
                     // 方法2: 如果 GM 方式失败，尝试原生 fetch（同源请求更可靠）
                     if (!jsonText) {
@@ -14961,18 +15211,18 @@ a:hover{text-decoration:underline;}
                             if (response.ok) {
                                 jsonText = await response.text();
                             }
-                        } catch (e) { /* native fetch 失败 */ }
+                        } catch (e) { remember(e); }
                     }
                     
                     if (jsonText) {
                         try {
                             if (/<!doctype|<html[\s>]/i.test(jsonText)) {
-                                throw new Error('summary.json returned html');
+                                throw new Error('用户统计接口返回了网页而不是数据');
                             }
                             const json = JSON.parse(jsonText);
                             const stats = extractSummaryStats(json);
                             if (applySummaryStats(stats)) return data;
-                        } catch (e) { /* JSON 解析失败 */ }
+                        } catch (e) { remember(e); }
                     }
                     
                     // 方法B：回退到 HTML 解析
@@ -14982,7 +15232,7 @@ a:hover{text-decoration:underline;}
                     // 先尝试 GM_xmlhttpRequest
                     try {
                         html = await this.network.fetch(url, { maxRetries: 2, headers: buildAuthHeaders(url) });
-                    } catch (e) { /* GM fetch 失败 */ }
+                    } catch (e) { remember(e); }
                     
                     // 备用：原生 fetch
                     if (!html) {
@@ -14991,12 +15241,15 @@ a:hover{text-decoration:underline;}
                             const resp = await fetch(url, { credentials: 'include', headers });
                             if (resp.ok) {
                                 html = await resp.text();
+                            } else {
+                                remember(Network.httpError(resp.status));
                             }
-                        } catch (e) { /* native fetch 失败 */ }
+                        } catch (e) { remember(e); }
                     }
                     
                     if (!html) {
-                        return null;
+                        if (lastError) throw lastError;
+                        throw new Error('用户统计页返回空内容');
                     }
                     
                     const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -15097,9 +15350,11 @@ a:hover{text-decoration:underline;}
                         });
                     }
                     
-                    return Object.keys(data).length > 0 ? data : null;
-                } catch (e) {
+                    if (Object.keys(data).length > 0) return data;
+                    if (lastError) throw lastError;
                     return null;
+                } catch (e) {
+                    throw e;
                 }
             }
             
@@ -15602,10 +15857,10 @@ a:hover{text-decoration:underline;}
                         
                         // 直接使用 fallback 显示，不弹窗打扰用户
                         console.warn('[LDStatus Pro] Connect 页面认证失败，使用 summary 数据');
-                        return await this._showFallbackStats(oauthUsername, oauthLevel);
+                        return await this._showFallbackStats(oauthUsername, oauthLevel, '信任等级页认证失败，返回了论坛首页');
                     }
                     
-                    return await this._showFallbackStats(username, level);
+                    return await this._showFallbackStats(username, level, '信任等级页未找到升级要求表格');
                 }
                 
                 if (section) {
@@ -15659,7 +15914,7 @@ a:hover{text-decoration:underline;}
                 
                 const reqs = this._ensureRequirementTargets(this._extractConnectRequirements(section), level);
                 if (!reqs.length) {
-                    return await this._showFallbackStats(username, level);
+                    return await this._showFallbackStats(username, level, '信任等级页没有可解析的升级要求');
                 }
                 console.log('[LDSP] 升级数据:', JSON.stringify(reqs.map(r => ({
                     name: r.name,
@@ -15827,7 +16082,7 @@ a:hover{text-decoration:underline;}
                 const scrollState = this._captureTrendScrollState();
 
                 if (this.trendTab === 'year') {
-                    container.innerHTML = `<div class="ldsp-mini-loader"><div class="ldsp-mini-spin"></div><div class="ldsp-mini-txt">加载数据中...</div></div>`;
+                    container.innerHTML = UI.miniLoading('加载数据中...');
                     requestAnimationFrame(() => {
                         setTimeout(() => {
                             container.innerHTML = this.renderer.renderYearTrend(history, reqs, this.historyMgr, this.tracker);
@@ -16605,13 +16860,7 @@ a:hover{text-decoration:underline;}
                         batchSelect.classList.add('loading');
                         
                         if (topicList) {
-                            topicList.classList.add('loading');
-                            // 添加加载提示覆盖层
-                            const loadingOverlay = document.createElement('div');
-                            loadingOverlay.className = 'ldsp-activity-loading-overlay';
-                            loadingOverlay.innerHTML = `<div class="ldsp-activity-loading-spinner"></div><div class="ldsp-activity-loading-text">正在加载 ${newBatchSize} 条数据...</div>`;
-                            topicList.style.position = 'relative';
-                            topicList.appendChild(loadingOverlay);
+                            UI.showOverlay(topicList, `正在加载 ${newBatchSize} 条数据...`);
                         }
                         
                         await this._loadReadTopics(container, false, newBatchSize);
@@ -17128,12 +17377,7 @@ a:hover{text-decoration:underline;}
                         batchSelect.classList.add('loading');
                         
                         if (list) {
-                            list.classList.add('loading');
-                            const loadingOverlay = document.createElement('div');
-                            loadingOverlay.className = 'ldsp-activity-loading-overlay';
-                            loadingOverlay.innerHTML = `<div class="ldsp-activity-loading-spinner"></div><div class="ldsp-activity-loading-text">正在加载 ${newBatchSize} 条数据...</div>`;
-                            list.style.position = 'relative';
-                            list.appendChild(loadingOverlay);
+                            UI.showOverlay(list, `正在加载 ${newBatchSize} 条数据...`);
                         }
                         
                         await this._loadBookmarks(container, false, newBatchSize);
@@ -17416,35 +17660,21 @@ a:hover{text-decoration:underline;}
                 const content = this.el.querySelector('.ldsp-content');
                 if (!content) return;
 
-                if (this._activityScrollHandler) {
-                    content.removeEventListener('scroll', this._activityScrollHandler);
-                    this._activityScrollHandler = null;
-                }
-
-                let isLoading = false;
-                const threshold = 100; // 距离底部100px时触发加载
-
-                this._activityScrollHandler = async () => {
-                    if (isLoading || this._activityRestoringScroll) return;
-
-                    const scrollTop = content.scrollTop;
-                    const scrollHeight = content.scrollHeight;
-                    const clientHeight = content.clientHeight;
-
-                    if (scrollHeight - scrollTop - clientHeight < threshold) {
+                this._activityScroller?.destroy();
+                this._activityScroller = UI.bindInfiniteScroll({
+                    root: content,
+                    threshold: 100,
+                    requireLeave: true,
+                    getIgnore: () => this._activityRestoringScroll,
+                    canLoad: () => this.activityMgr.getPageState(type)?.hasMore,
+                    onTrigger: () => container.querySelector('.ldsp-load-more')?.classList.add('loading'),
+                    onLoad: async () => {
                         const state = this.activityMgr.getPageState(type);
-                        if (!state.hasMore) return;
-
-                        isLoading = true;
+                        if (!state?.hasMore) return;
                         const loadMoreEl = container.querySelector('.ldsp-load-more');
-                        if (loadMoreEl) {
-                            loadMoreEl.classList.add('loading');
-                        }
-
                         const anchor = this._captureActivityScrollAnchor(content, container);
 
                         try {
-                            // 加载下一页
                             let result, newItems;
                             const username = this.storage.getUser();
 
@@ -17521,12 +17751,7 @@ a:hover{text-decoration:underline;}
                             }
 
                             requestAnimationFrame(() => this._restoreActivityScrollAnchor(content, container, anchor));
-
-                            if (state.hasMore) {
-                                isLoading = false;
-                            } else {
-                                this._cleanupActivityScroll(false);
-                            }
+                            if (!state.hasMore) this._cleanupActivityScroll(false);
                         } catch (e) {
                             this.renderer.showToast(`⚠️ 加载更多失败: ${e.message}`);
                             if (type === 'replies' || type === 'likes') {
@@ -17535,17 +17760,13 @@ a:hover{text-decoration:underline;}
                                 state.page--;
                             }
                             this.activityMgr.setPageState(type, state);
-                            isLoading = false;
-
                             if (loadMoreEl) {
                                 loadMoreEl.classList.remove('loading');
                                 loadMoreEl.innerHTML = '<span>加载失败，向下滚动重试</span>';
                             }
                         }
                     }
-                };
-
-                content.addEventListener('scroll', this._activityScrollHandler, { passive: true });
+                });
             }
 
             _bindBookmarkClicks(container, state = null) {
@@ -17577,13 +17798,8 @@ a:hover{text-decoration:underline;}
             }
 
             _cleanupActivityScroll(resetState = true) {
-                if (this._activityScrollHandler) {
-                    const content = this.el.querySelector('.ldsp-content');
-                    if (content) {
-                        content.removeEventListener('scroll', this._activityScrollHandler);
-                    }
-                    this._activityScrollHandler = null;
-                }
+                this._activityScroller?.destroy();
+                this._activityScroller = null;
                 if (!resetState) return;
                 // 重置分页状态
                 this.activityMgr.setPageState('read', { page: 0, allTopics: [], hasMore: true, search: '', batchSize: 20 });
