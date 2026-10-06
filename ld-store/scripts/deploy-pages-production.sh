@@ -29,7 +29,7 @@ remote_head=$(git rev-parse origin/main)
 }
 
 npm run lint
-npm audit --audit-level=low
+npm run audit
 npm run validate:og
 
 # This file is intentionally ignored by Git. It contains a public Faro

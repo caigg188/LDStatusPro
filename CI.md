@@ -12,7 +12,7 @@
 | [#55](https://github.com/caigg188/LDStatusPro/actions/runs/35571995916) 质量 | `media-scheduling.test.js` 要求 `height: 140px` | 封面高度已改成 `--card-cover-h`，140px 只留在标准密度 token |
 | [#55](https://github.com/caigg188/LDStatusPro/actions/runs/35571995916) 浏览器 | 手机筛选按钮高度 `43.999… < 44` | Pixel 5 的 2.625 倍像素比把 44px 测成了亚像素 |
 
-更早的 40 次运行里有 36 次成功。`npm audit --audit-level=low` 仍是质量门禁，新的低危公告也会让这一步变红。
+更早的 40 次运行里有 36 次成功。士多质量门禁用 `npm run audit`：会跑 `npm audit --audit-level=low`，但允许目前没有非破坏性补丁的 `braces` 公告（GHSA-vfj7-8cjw-p6xm）。新的可修漏洞仍会让这一步变红。
 
 ## CI
 

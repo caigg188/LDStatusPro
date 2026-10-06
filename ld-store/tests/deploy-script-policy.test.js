@@ -18,7 +18,7 @@ describe('Pages production deployment policy', () => {
 
   it('runs deploy-safe gates without invoking the test suite', () => {
     expect(script).toContain('npm run lint')
-    expect(script).toContain('npm audit --audit-level=low')
+    expect(script).toContain('npm run audit')
     expect(script).toContain('npm run validate:og')
     expect(script).toContain('npm run check:bundle')
     expect(script).not.toMatch(/npm run (?:test|check)(?:\s|$)/)

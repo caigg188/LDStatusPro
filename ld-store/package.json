@@ -9,8 +9,9 @@
     "lint": "eslint . --ext .js,.ts,.vue --ignore-pattern dist --ignore-pattern node_modules --ignore-pattern .wrangler --max-warnings=0",
     "lint:fix": "npm run lint -- --fix",
     "typecheck": "vue-tsc --noEmit",
-    "check": "npm run lint && npm run typecheck && npm run check:architecture && npm run check:styles && npm run check:csp && npm run validate:noindex && npm audit --audit-level=low && npm run test && npm run build && npm run check:csp:build && npm run validate:noindex:build && npm run validate:og && npm run check:bundle",
-    "check:deploy": "npm run lint && npm run typecheck && npm run check:architecture && npm run check:styles && npm run check:csp && npm run validate:noindex && npm audit --audit-level=low && npm run build && npm run check:csp:build && npm run validate:noindex:build && npm run validate:og && npm run check:bundle",
+    "check": "npm run lint && npm run typecheck && npm run check:architecture && npm run check:styles && npm run check:csp && npm run validate:noindex && npm run audit && npm run test && npm run build && npm run check:csp:build && npm run validate:noindex:build && npm run validate:og && npm run check:bundle",
+    "check:deploy": "npm run lint && npm run typecheck && npm run check:architecture && npm run check:styles && npm run check:csp && npm run validate:noindex && npm run audit && npm run build && npm run check:csp:build && npm run validate:noindex:build && npm run validate:og && npm run check:bundle",
+    "audit": "node scripts/check-audit.mjs",
     "check:architecture": "node scripts/check-architecture.mjs",
     "check:styles": "node scripts/check-style-tokens.mjs",
     "check:csp": "node scripts/check-strict-csp.mjs",
@@ -37,7 +38,7 @@
     "@grafana/faro-web-sdk": "2.11.0",
     "@grafana/faro-web-tracing": "2.11.0",
     "@lucide/vue": "^1.38.0",
-    "dompurify": "^3.4.14",
+    "dompurify": "^3.4.16",
     "echarts": "^6.1.0",
     "marked": "^18.0.11",
     "pinia": "^2.1.0",
@@ -67,6 +68,10 @@
     "vue-tsc": "^3.3.11"
   },
   "overrides": {
-    "nanoid": "3.3.18"
+    "nanoid": "3.3.18",
+    "source-map-js": "1.2.2",
+    "postcss-selector-parser": "7.1.6",
+    "brace-expansion@1": "1.1.21",
+    "brace-expansion@5": "5.0.12"
   }
 }
