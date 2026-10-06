@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         LDStatus Pro
 // @namespace    http://tampermonkey.net/
-// @version      3.9.0.5
+// @version      3.9.0.6
 // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
 // @author       JackLiii
 // @license      MIT
@@ -51,6 +51,154 @@
             if (DEBUG.bridgeLogs) console.debug('[LDSP][bridge]', ...args);
         };
 
+        // @@CORE_SANITIZE_BEGIN
+        // prettier-ignore
+        const SafeDom = (() => {
+            /**
+             * Pure sanitizers shared by the userscript (embedded as SafeDom) and unit tests.
+             * Edit this file, then run `npm run embed:core`.
+             */
+
+            const HTML_ENTITIES = Object.freeze({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#x27;'
+            });
+
+            function escapeHtml(str) {
+                if (str === undefined || str === null) return '';
+                return String(str).replace(/[&<>"']/g, (c) => HTML_ENTITIES[c] || c);
+            }
+
+            /**
+             * Allow only https URLs on an exact origin, with no credentials.
+             * By default the path must be under /api/.
+             */
+            function isAllowedBridgeUrl(url, expectedOrigin, options = {}) {
+                if (typeof url !== 'string' || !url || typeof expectedOrigin !== 'string') return false;
+
+                let expected;
+                try {
+                    expected = new URL(expectedOrigin);
+                } catch {
+                    return false;
+                }
+                if (expected.protocol !== 'https:') return false;
+                if (expected.username || expected.password) return false;
+
+                let parsed;
+                try {
+                    parsed = new URL(url);
+                } catch {
+                    return false;
+                }
+                if (parsed.protocol !== 'https:') return false;
+                if (parsed.username || parsed.password) return false;
+                if (parsed.origin !== expected.origin) return false;
+                if (options.apiPathOnly !== false) {
+                    const path = parsed.pathname || '';
+                    if (!path.startsWith('/api/')) return false;
+                }
+                return true;
+            }
+
+            function sanitizeHref(url) {
+                if (typeof url !== 'string') return '';
+                const decoded = url.trim().replace(/&amp;/gi, '&');
+                if (!decoded) return '';
+                let parsed;
+                try {
+                    parsed = new URL(decoded);
+                } catch {
+                    return '';
+                }
+                if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
+                if (parsed.username || parsed.password) return '';
+                return parsed.href;
+            }
+
+            function renderMarkdown(md) {
+                if (md === undefined || md === null || md === '') return '';
+
+                const codeBlocks = [];
+                const inlineCodes = [];
+                const cbPh = (i) => `\uE000CB${i}\uE001`;
+                const icPh = (i) => `\uE000IC${i}\uE001`;
+
+                let html = String(md).replace(/```(\w*)\n([\s\S]*?)```/g, (_match, _lang, code) => {
+                    const placeholder = cbPh(codeBlocks.length);
+                    codeBlocks.push(`<pre class="ldsp-melon-codeblock"><code>${escapeHtml(String(code).trim())}</code></pre>`);
+                    return placeholder;
+                });
+
+                html = html.replace(/`([^`\n]+)`/g, (_match, code) => {
+                    const placeholder = icPh(inlineCodes.length);
+                    inlineCodes.push(`<code class="ldsp-melon-inline-code">${escapeHtml(code)}</code>`);
+                    return placeholder;
+                });
+
+                html = escapeHtml(html);
+
+                html = html.replace(/^#### (.+)$/gm, '<h5 class="ldsp-melon-h5">$1</h5>');
+                html = html.replace(/^### (.+)$/gm, '<h4 class="ldsp-melon-h4">$1</h4>');
+                html = html.replace(/^## (.+)$/gm, '<h3 class="ldsp-melon-h3">$1</h3>');
+                html = html.replace(/^# (.+)$/gm, '<h2 class="ldsp-melon-h2">$1</h2>');
+
+                html = html.replace(/^&gt; (.+)$/gm, '<blockquote class="ldsp-melon-quote">$1</blockquote>');
+                html = html.replace(/<\/blockquote>\n<blockquote class="ldsp-melon-quote">/g, '<br>');
+
+                html = html.replace(/^[-*] (.+)$/gm, '<li class="ldsp-melon-li">$1</li>');
+                html = html.replace(/((?:<li class="ldsp-melon-li">[^<]*<\/li>\n?)+)/g, '<ul class="ldsp-melon-ul">$1</ul>');
+
+                html = html.replace(/^\d+\. (.+)$/gm, '<li class="ldsp-melon-oli">$1</li>');
+                html = html.replace(/((?:<li class="ldsp-melon-oli">[^<]*<\/li>\n?)+)/g, '<ol class="ldsp-melon-ol">$1</ol>');
+
+                html = html.replace(/^---+$/gm, '<hr class="ldsp-melon-hr">');
+                html = html.replace(/^\*\*\*+$/gm, '<hr class="ldsp-melon-hr">');
+
+                html = html.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+                html = html.replace(/__([^_]+?)__/g, '<strong>$1</strong>');
+                html = html.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
+                html = html.replace(/(?<!_)_([^_\n]+?)_(?!_)/g, '<em>$1</em>');
+
+                html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, url) => {
+                    const safe = sanitizeHref(url);
+                    if (!safe) return text;
+                    return `<a href="${escapeHtml(safe)}" target="_blank" rel="noopener noreferrer" class="ldsp-melon-link">${text}</a>`;
+                });
+
+                html = html.replace(/\n\n+/g, '</p><p class="ldsp-melon-p">');
+                html = html.replace(/\n/g, '<br>');
+
+                html = html.replace(/<p class="ldsp-melon-p"><\/p>/g, '');
+                html = html.replace(/<p class="ldsp-melon-p">(<h[2-5])/g, '$1');
+                html = html.replace(/(<\/h[2-5]>)<\/p>/g, '$1');
+                html = html.replace(/<p class="ldsp-melon-p">(<ul)/g, '$1');
+                html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+                html = html.replace(/<p class="ldsp-melon-p">(<ol)/g, '$1');
+                html = html.replace(/(<\/ol>)<\/p>/g, '$1');
+                html = html.replace(/<p class="ldsp-melon-p">(<blockquote)/g, '$1');
+                html = html.replace(/(<\/blockquote>)<\/p>/g, '$1');
+                html = html.replace(/<p class="ldsp-melon-p">(<pre)/g, '$1');
+                html = html.replace(/(<\/pre>)<\/p>/g, '$1');
+                html = html.replace(/<br><(h[2-5]|ul|ol|blockquote|pre)/g, '<$1');
+                html = html.replace(/<\/(h[2-5]|ul|ol|blockquote|pre)><br>/g, '</$1>');
+
+                codeBlocks.forEach((block, i) => {
+                    html = html.replace(cbPh(i), block);
+                });
+                inlineCodes.forEach((code, i) => {
+                    html = html.replace(icPh(i), code);
+                });
+
+                return `<div class="ldsp-melon-markdown"><p class="ldsp-melon-p">${html}</p></div>`;
+            }
+            return { escapeHtml, isAllowedBridgeUrl, sanitizeHref, renderMarkdown };
+        })();
+        // @@CORE_SANITIZE_END
+
         // ==================== CDK/LDC 桥接页面 ====================
         // 在 cdk.linux.do 或 credit.linux.do 运行时作为数据桥接，用原生 fetch 请求 API（同域自动带 cookie）
         if (location.hostname === 'cdk.linux.do') {
@@ -60,6 +208,11 @@
                     return;
                 }
                 const { requestId, url } = e.data;
+                if (!SafeDom.isAllowedBridgeUrl(url, 'https://cdk.linux.do')) {
+                    debugBridgeLog('CDK bridge reject url', url);
+                    window.parent?.postMessage({ type: 'ldsp-cdk-response', requestId, status: 0, data: { _error: '非法请求' } }, e.origin);
+                    return;
+                }
                 try {
                     const res = await fetch(url, { credentials: 'include' });
                     let data;
@@ -82,7 +235,7 @@
             const LDC_BRIDGE_RES = 'ldsp_ldc_bridge_res';
             const LDC_BRIDGE_HB = 'ldsp_ldc_bridge_hb';
             const ldcFetch = async ({ url, method = 'GET', data } = {}) => {
-                if (typeof url !== 'string' || !url.startsWith('https://credit.linux.do/')) {
+                if (!SafeDom.isAllowedBridgeUrl(url, 'https://credit.linux.do')) {
                     return { status: 0, data: { _error: '非法请求' } };
                 }
                 const methodUpper = String(method || 'GET').toUpperCase();
@@ -128,19 +281,22 @@
             if (isTop && typeof GM_setValue === 'function') {
                 const tick = () => { try { GM_setValue(LDC_BRIDGE_HB, Date.now()); } catch {} };
                 tick();
-                setInterval(tick, 1000);
+                setInterval(tick, 5000);
                 window.addEventListener('pagehide', () => {
                     try { GM_setValue(LDC_BRIDGE_HB, 0); } catch {}
                 });
-                if (typeof GM_addValueChangeListener === 'function') {
+                const hasReqListener = typeof GM_addValueChangeListener === 'function';
+                if (hasReqListener) {
                     GM_addValueChangeListener(LDC_BRIDGE_REQ, (_n, _o, req) => { handleBridgeReq(req); });
                 }
                 const pending = GM_getValue(LDC_BRIDGE_REQ, null);
                 if (pending?.requestId) handleBridgeReq(pending);
-                setInterval(() => {
-                    const req = GM_getValue(LDC_BRIDGE_REQ, null);
-                    if (req?.requestId) handleBridgeReq(req);
-                }, 500);
+                if (!hasReqListener) {
+                    setInterval(() => {
+                        const req = GM_getValue(LDC_BRIDGE_REQ, null);
+                        if (req?.requestId) handleBridgeReq(req);
+                    }, 2000);
+                }
                 if (new URLSearchParams(location.search).get('ldsp_bridge') === '1') {
                     const showBar = () => {
                         if (document.getElementById('ldsp-ldc-bridge-bar')) return;
@@ -162,15 +318,12 @@
         let _pendingOAuthData = null;
         try {
             const hash = window.location.hash;
-            console.log('[OAuth] Initial hash check:', hash ? hash.substring(0, 100) + '...' : '(empty)');
             if (hash) {
                 const match = hash.match(/ldsp_oauth=([^&]+)/);
                 if (match) {
-                    console.log('[OAuth] Found ldsp_oauth in hash, decoding...');
                     const encoded = match[1];
                     const base64 = decodeURIComponent(encoded);
                     const decoded = JSON.parse(decodeURIComponent(atob(base64)));
-                    console.log('[OAuth] Decoded data:', { hasToken: !!decoded.t, hasUser: !!decoded.u, ts: decoded.ts });
                     // 检查时效性（5分钟内有效）
                     if (decoded.ts && Date.now() - decoded.ts < 5 * 60 * 1000) {
                         _pendingOAuthData = {
@@ -179,9 +332,6 @@
                             user: decoded.u,
                             isJoined: decoded.j === 1
                         };
-                        console.log('[OAuth] ✅ Captured login data from URL hash, user:', decoded.u?.username);
-                    } else {
-                        console.log('[OAuth] ⚠️ Login data expired, age:', Date.now() - decoded.ts, 'ms');
                     }
                     // 立即清除 URL 中的登录参数
                     let newHash = hash.replace(/[#&]?ldsp_oauth=[^&]*/, '').replace(/^[#&]+/, '').replace(/[#&]+$/, '');
@@ -613,7 +763,6 @@
         // ==================== 工具函数 ====================
         const Utils = {
             _nameCache: new Map(),
-            _htmlEntities: { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;' },
             _metricCanonicalMap: new Map([
                 ['访问天数', '访问次数'],
                 ['访问次数', '访问次数'],
@@ -634,7 +783,7 @@
             // HTML 转义（防止 XSS）
             escapeHtml(str) {
                 if (!str || typeof str !== 'string') return '';
-                return str.replace(/[&<>\"']/g, c => this._htmlEntities[c]);
+                return SafeDom.escapeHtml(str);
             },
 
             escapeXml(str) {
@@ -1289,7 +1438,7 @@
             // 刷新所有待写入数据
             flush() {
                 this._pending.forEach((value, key) => {
-                    try { GM_setValue(key, value); } catch (e) { console.error('[Storage]', key, e); }
+                    try { GM_setValue(key, value); } catch (e) { Logger.error('Storage write failed:', key, e); }
                 });
                 this._pending.clear();
             }
@@ -2918,7 +3067,7 @@
                     // 提前 10 分钟判断为过期，增加容错时间避免边界情况
                     return decoded.exp < (now + 600);
                 } catch (e) {
-                    console.error('[LDStatus Pro] Token parse error:', e);
+                    Logger.error('Token parse error:', e);
                     return true; // 解析失败视为过期
                 }
             }
@@ -2946,7 +3095,7 @@
                     
                     // 检查时效性（5分钟内有效）
                     if (decoded.ts && Date.now() - decoded.ts > 5 * 60 * 1000) {
-                        console.log('[OAuth] URL login result expired');
+                        Logger.log('URL login result expired');
                         this._clearUrlHash();
                         return null;
                     }
@@ -2964,7 +3113,7 @@
                     
                     return result;
                 } catch (e) {
-                    console.error('[OAuth] Failed to parse URL hash login:', e);
+                    Logger.error('Failed to parse URL hash login:', e);
                     this._clearUrlHash();
                     return null;
                 }
@@ -2987,7 +3136,7 @@
                     const newUrl = window.location.pathname + window.location.search + (newHash ? '#' + newHash : '');
                     history.replaceState(null, '', newUrl);
                 } catch (e) {
-                    console.warn('[OAuth] Failed to clear URL hash:', e);
+                    Logger.warn('Failed to clear URL hash:', e);
                 }
             }
 
@@ -3268,7 +3417,7 @@
                         this.storage?.setGlobal(lastSyncedKey, currentMinutes);
                     }
                 } catch (e) {
-                    console.warn('[Leaderboard] Sync failed:', e.message || e);
+                    Logger.warn('Leaderboard sync failed:', e.message || e);
                 }
             }
 
@@ -3473,7 +3622,7 @@
                     }
                     return { merged, source: 'merge' };
                 } catch (e) {
-                    console.error('[CloudSync] Download failed:', e);
+                    Logger.error('CloudSync download failed:', e);
                     this._recordFailure('reading');
                     return null;
                 }
@@ -3534,7 +3683,7 @@
                     this._recordFailure('reading');
                     throw new Error(result.error || '上传失败');
                 } catch (e) {
-                    console.error('[CloudSync] Upload failed:', e);
+                    Logger.error('CloudSync upload failed:', e);
                     this._recordFailure('reading');
                     return null;
                 } finally {
@@ -3793,7 +3942,7 @@
 
                     return { merged, source: 'merge' };
                 } catch (e) {
-                    console.error('[CloudSync] Requirements download failed:', e);
+                    Logger.error('CloudSync requirements download failed:', e);
                     this._recordFailure('requirements');
                     return null;
                 }
@@ -3860,7 +4009,7 @@
                     this._recordFailure('requirements');
                     return null;
                 } catch (e) {
-                    console.error('[CloudSync] Requirements incremental sync failed:', e);
+                    Logger.error('CloudSync requirements incremental sync failed:', e);
                     this._recordFailure('requirements');
                     return null;
                 }
@@ -3902,7 +4051,7 @@
                     this._recordFailure('requirements');
                     throw new Error(result.error?.message || '上传失败');
                 } catch (e) {
-                    console.error('[CloudSync] Requirements full upload failed:', e);
+                    Logger.error('CloudSync requirements full upload failed:', e);
                     this._recordFailure('requirements');
                     return null;
                 }
@@ -3997,7 +4146,7 @@
                     }
                     return null;
                 } catch (e) {
-                    console.error('[CloudSync] Get announcement failed:', e);
+                    Logger.error('CloudSync get announcement failed:', e);
                     return null;
                 }
             }
@@ -4037,7 +4186,7 @@
                     
                     return cachedUrl || DEFAULT_URL;
                 } catch (e) {
-                    console.error('[CloudSync] Get website URL failed:', e);
+                    Logger.error('CloudSync get website URL failed:', e);
                     // 出错时返回缓存或默认值
                     const cachedUrl = GM_getValue('ldsp_website_url', null);
                     return cachedUrl || DEFAULT_URL;
@@ -4067,7 +4216,8 @@
             _css(c) {
                 const css = `
     #ldsp-panel{--dur-fast:120ms;--dur:200ms;--dur-slow:350ms;--ease:cubic-bezier(.22,1,.36,1);--ease-circ:cubic-bezier(.85,0,.15,1);--ease-spring:cubic-bezier(.175,.885,.32,1.275);--ease-out:cubic-bezier(0,.55,.45,1);--bg:#12131a;--bg-card:rgba(24,26,36,.92);--bg-hover:rgba(38,42,56,.95);--bg-el:rgba(32,35,48,.88);--bg-glass:rgba(255,255,255,.02);--txt:#e4e6ed;--txt-sec:#9499ad;--txt-mut:#5d6275;--accent:#6b8cef;--accent-light:#8aa4f4;--accent2:#5bb5a6;--accent2-light:#7cc9bc;--accent3:#e07a8d;--grad:linear-gradient(135deg,#5a7de0 0%,#4a6bc9 100%);--grad-accent:linear-gradient(135deg,#4a6bc9,#3d5aaa);--grad-warm:linear-gradient(135deg,#e07a8d,#c9606e);--grad-gold:linear-gradient(135deg,#d4a853 0%,#c49339 100%);--ok:#5bb5a6;--ok-light:#7cc9bc;--ok-bg:rgba(91,181,166,.12);--err:#e07a8d;--err-light:#ea9aa8;--err-bg:rgba(224,122,141,.12);--warn:#d4a853;--warn-bg:rgba(212,168,83,.12);--border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.1);--border-accent:rgba(107,140,239,.3);--border-panel:rgba(0,0,0,.25);--shadow:0 1.25rem 3rem rgba(0,0,0,.4);--shadow-lg:0 1.5rem 4rem rgba(0,0,0,.5),0 0 2rem rgba(107,140,239,.06);--shadow-glow:0 0 1.25rem rgba(107,140,239,.15);--glow-accent:0 0 1rem rgba(107,140,239,.2);--scrollbar:rgba(140,150,175,.5);--scrollbar-hover:rgba(140,150,175,.7);--r-xs:0.25em;--r-sm:0.5em;--r-md:0.75em;--r-lg:1em;--r-xl:1.25em;--w:${c.width}px;--h:${c.maxHeight}px;--fs:${c.fontSize}px;--pd:${c.padding}px;--av:${c.avatarSize}px;--ring:${c.ringSize}px;--min-w:${c.bounds?.minW ?? 220}px;--max-w:${c.bounds?.maxW ?? 420}px;--min-h:${c.bounds?.minH ?? 260}px;display:flex;flex-direction:column;position:fixed;left:0.5vw;top:${c.top}px;right:auto;width:var(--w);max-height:var(--h);min-width:var(--min-w);max-width:var(--max-w);min-height:var(--min-h);background:var(--bg);border-radius:var(--r-lg);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Noto Sans SC',sans-serif;font-size:var(--fs);color:var(--txt);box-shadow:var(--shadow);z-index:99999;overflow:hidden;border:none;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-    #ldsp-panel,#ldsp-panel *{transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease);user-select:none;-webkit-font-smoothing:antialiased}
+    #ldsp-panel,#ldsp-panel *{user-select:none;-webkit-font-smoothing:antialiased}
+    #ldsp-panel.collapsed{transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
     #ldsp-panel{transform:translateZ(0);backface-visibility:hidden}
     #ldsp-panel input,#ldsp-panel textarea{cursor:text;user-select:text}
     #ldsp-panel [data-clickable],#ldsp-panel [data-clickable] *,#ldsp-panel button,#ldsp-panel a,#ldsp-panel .ldsp-tab,#ldsp-panel .ldsp-subtab,#ldsp-panel .ldsp-ring-lvl-hitbox,#ldsp-panel .ldsp-rd-day-bar,#ldsp-panel .ldsp-year-cell:not(.empty),#ldsp-panel .ldsp-rank-item,#ldsp-panel .ldsp-ticket-item,#ldsp-panel .ldsp-ticket-type,#ldsp-panel .ldsp-ticket-tab,#ldsp-panel .ldsp-ticket-close,#ldsp-panel .ldsp-ticket-back,#ldsp-panel .ldsp-lb-refresh,#ldsp-panel .ldsp-modal-btn,#ldsp-panel .ldsp-lb-btn,#ldsp-panel .ldsp-update-bubble-close{cursor:pointer}
@@ -7780,7 +7930,7 @@ a:hover{text-decoration:underline;}
 
             _isBridgeTabAlive() {
                 const hb = GM_getValue(LDCManager.BRIDGE_HB_KEY, 0);
-                return Date.now() - hb < 4000;
+                return Date.now() - hb < 15000;
             }
 
             _primeBridgeWindow({ foreground = false } = {}) {
@@ -7900,6 +8050,10 @@ a:hover{text-decoration:underline;}
             }
 
             async _request(url, method = 'GET', data = null) {
+                if (!SafeDom.isAllowedBridgeUrl(url, LDCManager.LDC_ORIGIN)) {
+                    debugBridgeLog('LDC reject url', url);
+                    return { _error: '非法请求' };
+                }
                 const methodUpper = String(method || 'GET').toUpperCase();
                 const isUnsafe = methodUpper !== 'GET' && methodUpper !== 'HEAD';
 
@@ -8845,6 +8999,10 @@ a:hover{text-decoration:underline;}
             }
 
             async _request(url) {
+                if (!SafeDom.isAllowedBridgeUrl(url, CDKManager.CDK_ORIGIN)) {
+                    debugBridgeLog('CDK reject url', url);
+                    return { _error: '非法请求' };
+                }
                 if (this._bridgeReady) await this._bridgeReady;
                 if (!this._bridge) return { _error: '桥接未就绪' };
                 
@@ -9689,87 +9847,7 @@ a:hover{text-decoration:underline;}
             }
 
             _renderMarkdown(md) {
-                if (!md) return '';
-                
-                let html = md;
-                
-                // 1. 保护代码块，先提取出来
-                const codeBlocks = [];
-                html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
-                    const placeholder = `%%CODEBLOCK_${codeBlocks.length}%%`;
-                    codeBlocks.push(`<pre class="ldsp-melon-codeblock"><code>${Utils.escapeHtml(code.trim())}</code></pre>`);
-                    return placeholder;
-                });
-                
-                // 2. 行内代码
-                const inlineCodes = [];
-                html = html.replace(/`([^`\n]+)`/g, (match, code) => {
-                    const placeholder = `%%INLINECODE_${inlineCodes.length}%%`;
-                    inlineCodes.push(`<code class="ldsp-melon-inline-code">${Utils.escapeHtml(code)}</code>`);
-                    return placeholder;
-                });
-                
-                // 3. 标题 - 支持 emoji 开头的标题
-                html = html.replace(/^#### (.+)$/gm, '<h5 class="ldsp-melon-h5">$1</h5>');
-                html = html.replace(/^### (.+)$/gm, '<h4 class="ldsp-melon-h4">$1</h4>');
-                html = html.replace(/^## (.+)$/gm, '<h3 class="ldsp-melon-h3">$1</h3>');
-                html = html.replace(/^# (.+)$/gm, '<h2 class="ldsp-melon-h2">$1</h2>');
-                
-                // 4. 粗体 - 修复跨行和 emoji 后的情况
-                html = html.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
-                html = html.replace(/__([^_]+?)__/g, '<strong>$1</strong>');
-                
-                // 5. 斜体
-                html = html.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
-                html = html.replace(/(?<!_)_([^_\n]+?)_(?!_)/g, '<em>$1</em>');
-                
-                // 6. 引用块
-                html = html.replace(/^> (.+)$/gm, '<blockquote class="ldsp-melon-quote">$1</blockquote>');
-                html = html.replace(/<\/blockquote>\n<blockquote class="ldsp-melon-quote">/g, '<br>');
-                
-                // 7. 无序列表
-                html = html.replace(/^[-*] (.+)$/gm, '<li class="ldsp-melon-li">$1</li>');
-                html = html.replace(/((?:<li class="ldsp-melon-li">[^<]*<\/li>\n?)+)/g, '<ul class="ldsp-melon-ul">$1</ul>');
-                
-                // 8. 有序列表
-                html = html.replace(/^\d+\. (.+)$/gm, '<li class="ldsp-melon-oli">$1</li>');
-                html = html.replace(/((?:<li class="ldsp-melon-oli">[^<]*<\/li>\n?)+)/g, '<ol class="ldsp-melon-ol">$1</ol>');
-                
-                // 9. 链接
-                html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="ldsp-melon-link">$1</a>');
-                
-                // 10. 分隔线
-                html = html.replace(/^---+$/gm, '<hr class="ldsp-melon-hr">');
-                html = html.replace(/^\*\*\*+$/gm, '<hr class="ldsp-melon-hr">');
-                
-                // 11. 段落处理
-                html = html.replace(/\n\n+/g, '</p><p class="ldsp-melon-p">');
-                html = html.replace(/\n/g, '<br>');
-                
-                // 12. 清理
-                html = html.replace(/<p class="ldsp-melon-p"><\/p>/g, '');
-                html = html.replace(/<p class="ldsp-melon-p">(<h[2-5])/g, '$1');
-                html = html.replace(/(<\/h[2-5]>)<\/p>/g, '$1');
-                html = html.replace(/<p class="ldsp-melon-p">(<ul)/g, '$1');
-                html = html.replace(/(<\/ul>)<\/p>/g, '$1');
-                html = html.replace(/<p class="ldsp-melon-p">(<ol)/g, '$1');
-                html = html.replace(/(<\/ol>)<\/p>/g, '$1');
-                html = html.replace(/<p class="ldsp-melon-p">(<blockquote)/g, '$1');
-                html = html.replace(/(<\/blockquote>)<\/p>/g, '$1');
-                html = html.replace(/<p class="ldsp-melon-p">(<pre)/g, '$1');
-                html = html.replace(/(<\/pre>)<\/p>/g, '$1');
-                html = html.replace(/<br><(h[2-5]|ul|ol|blockquote|pre)/g, '<$1');
-                html = html.replace(/<\/(h[2-5]|ul|ol|blockquote|pre)><br>/g, '</$1>');
-                
-                // 13. 恢复代码块
-                codeBlocks.forEach((block, i) => {
-                    html = html.replace(`%%CODEBLOCK_${i}%%`, block);
-                });
-                inlineCodes.forEach((code, i) => {
-                    html = html.replace(`%%INLINECODE_${i}%%`, code);
-                });
-                
-                return `<div class="ldsp-melon-markdown"><p class="ldsp-melon-p">${html}</p></div>`;
+                return SafeDom.renderMarkdown(md);
             }
 
             _renderSettings() {
@@ -13275,7 +13353,7 @@ a:hover{text-decoration:underline;}
                             return;
                         }
                     } catch (err) {
-                        console.warn('[LDSP] Failed to open LD Store via GM_openInTab:', err);
+                        Logger.warn('Failed to open LD Store via GM_openInTab:', err);
                     }
                     const popup = window.open(STORE_WEB_URL, '_blank');
                     if (popup) {
@@ -14730,7 +14808,7 @@ a:hover{text-decoration:underline;}
 
             async fetch() {
                 if (this.loading) return;
-                console.log('[LDSP] fetch() 开始, url:', CURRENT_SITE.apiUrl);
+                Logger.log('fetch() start, url:', CURRENT_SITE.apiUrl);
                 this._setLoading(true);
                 this.$.reqs.innerHTML = UI.loading();
 
@@ -14739,7 +14817,7 @@ a:hover{text-decoration:underline;}
 
                     // 使用 network.fetch（包含 GM_xmlhttpRequest 绕过跨域，以及 fallback）
                     let html = await this.network.fetch(url);
-                    console.log('[LDSP] fetch() HTML 长度:', html ? html.length : 0);
+                    Logger.log('fetch() html length:', html ? html.length : 0);
 
                     // 检测 Connect 页面 SSO 重定向响应
                     // 首次打开浏览器时 connect 子域名无 session，返回 JSON 重定向而非 HTML
@@ -14747,11 +14825,11 @@ a:hover{text-decoration:underline;}
                         try {
                             const json = JSON.parse(html);
                             if (json.redirect_url) {
-                                console.log('[LDSP] fetch() 检测到 SSO 重定向，跟随 redirect_url');
+                                Logger.log('fetch() following SSO redirect_url');
                                 this._ssoHandled = true;
                                 await this.network.fetch(json.redirect_url);
                                 html = await this.network.fetch(url);
-                                console.log('[LDSP] fetch() SSO 后 HTML 长度:', html ? html.length : 0);
+                                Logger.log('fetch() html length after SSO:', html ? html.length : 0);
                             }
                         } catch (_) { /* 非 JSON，正常 HTML */ }
                     }
@@ -14762,7 +14840,7 @@ a:hover{text-decoration:underline;}
 
                     await this._parse(html);
                 } catch (e) {
-                    console.log('[LDSP] fetch() 异常:', e.message || e);
+                    Logger.log('fetch() error:', e.message || e);
                     this._showError(this._formatHomeError(e));
                     // 即使获取升级要求失败，也要确保阅读追踪器正常初始化
                     this._ensureTrackerInitialized();
@@ -14861,7 +14939,7 @@ a:hover{text-decoration:underline;}
             // 当没有升级要求表格时显示备选内容
             // 优先级：1. 服务端同步的数据 2. summary API 数据
             async _showFallbackStats(username, level, connectReason = '') {
-                console.log('[LDSP] _showFallbackStats 触发, username:', username, 'level:', level);
+                Logger.log('_showFallbackStats', username, level);
                 const $ = this.$;
                 
                 // 优先从 OAuth 获取用户信息（更可靠，尤其在移动端）
@@ -15043,7 +15121,7 @@ a:hover{text-decoration:underline;}
              * @param {number} level - 信任等级
              */
             _renderCloudRequirements(cloudReqs, username, level) {
-                console.log('[LDSP] 云端升级数据:', JSON.stringify(cloudReqs));
+                Logger.log('cloud requirements count:', Array.isArray(cloudReqs) ? cloudReqs.length : 0);
                 const normalizedLevel = Number.parseInt(level, 10);
                 // 0-1级用户使用固定升级目标，避免复用 2+ 规则导致目标值错误
                 if (normalizedLevel === 0 || normalizedLevel === 1) {
@@ -15363,8 +15441,7 @@ a:hover{text-decoration:underline;}
              * 使用与 2 级用户相同的 renderReqs 方法显示进度
              */
             _renderSummaryData(data, username, level) {
-                console.log('[LDSP] Summary 数据:', JSON.stringify(data));
-                console.log('[LDSP] username:', username, 'level:', level);
+                Logger.log('summary fallback', username, level);
                 // 构建要求数据结构（用于显示和趋势）
                 const reqs = [];
                 
@@ -15856,7 +15933,7 @@ a:hover{text-decoration:underline;}
                         }
                         
                         // 直接使用 fallback 显示，不弹窗打扰用户
-                        console.warn('[LDStatus Pro] Connect 页面认证失败，使用 summary 数据');
+                        Logger.warn('Connect page auth failed, using summary data');
                         return await this._showFallbackStats(oauthUsername, oauthLevel, '信任等级页认证失败，返回了论坛首页');
                     }
                     
@@ -15916,13 +15993,7 @@ a:hover{text-decoration:underline;}
                 if (!reqs.length) {
                     return await this._showFallbackStats(username, level, '信任等级页没有可解析的升级要求');
                 }
-                console.log('[LDSP] 升级数据:', JSON.stringify(reqs.map(r => ({
-                    name: r.name,
-                    cur: r.currentValue,
-                    req: r.requiredValue,
-                    ok: r.isSuccess,
-                    rev: r.isReverse
-                }))));
+                Logger.log('parsed requirements count:', reqs.length);
                 const orderedReqs = Utils.reorderRequirements(reqs);
                 let isOK = orderedReqs.every(r => r.isSuccess);
                 const statusEl = section.querySelector('.badge, .status-met, .status-unmet, p[class*="status"]');
@@ -16158,7 +16229,7 @@ a:hover{text-decoration:underline;}
                     GM_setValue(cacheDataKey, result.data);
                     this._showCachedAnnouncementPayload(result.data);
                 } catch (e) {
-                    console.warn('[Announcement] Load failed:', e.message);
+                    Logger.warn('Announcement load failed:', e.message);
                     const cachedPayload = GM_getValue(cacheDataKey, null);
                     if (cachedPayload) {
                         this._showCachedAnnouncementPayload(cachedPayload);
@@ -16501,21 +16572,17 @@ a:hover{text-decoration:underline;}
              * 数据在脚本最开始就被捕获到 _pendingOAuthData 全局变量
              */
             _checkPendingOAuthLogin() {
-                console.log('[OAuth] _checkPendingOAuthLogin called, _pendingOAuthData:', _pendingOAuthData ? 'present' : 'null');
                 // 优先使用脚本启动时捕获的数据（避免 Discourse 路由处理掉 hash）
                 let pendingResult = _pendingOAuthData;
                 _pendingOAuthData = null; // 清除已使用的数据
                 
                 // 备用：再次尝试从 URL hash 读取
                 if (!pendingResult) {
-                    console.log('[OAuth] No early captured data, trying URL hash fallback...');
                     pendingResult = this.oauth._checkUrlHashLogin();
                 }
                 
-                console.log('[OAuth] pendingResult:', pendingResult ? { success: pendingResult.success, hasToken: !!pendingResult.token, hasUser: !!pendingResult.user } : 'null');
-                
                 if (pendingResult?.success && pendingResult.token && pendingResult.user) {
-                    console.log('[OAuth] ✅ Processing login result for user:', pendingResult.user?.username);
+                    Logger.log('processing OAuth login result');
                     // 【关键】先同步保存登录信息，确保后续的 isLoggedIn() 检查能返回 true
                     this.oauth.setToken(pendingResult.token);
                     this.oauth.setUserInfo(pendingResult.user);
@@ -16523,10 +16590,8 @@ a:hover{text-decoration:underline;}
                     // 处理登录结果（异步操作如同步、UI更新等）
                     this._handlePendingLoginResult(pendingResult);
                     return true; // 返回 true 表示有登录结果被处理
-                } else {
-                    console.log('[OAuth] No valid pending login result');
-                    return false;
                 }
+                return false;
             }
 
             // 处理待处理的登录结果（登录信息已在 _checkPendingOAuthLogin 中同步保存）
@@ -16557,9 +16622,9 @@ a:hover{text-decoration:underline;}
                         this._cloudReqsCache = null;
                         this._cloudReqsCacheTime = 0;
                         this._cloudReqsFailUntil = 0;
-                    }).catch(e => console.warn('[CloudSync]', e));
+                    }).catch(e => Logger.warn('CloudSync after login failed:', e));
                 } catch (e) {
-                    console.error('[OAuth] Handle pending login error:', e);
+                    Logger.error('Handle pending login error:', e);
                 }
             }
 
@@ -16660,7 +16725,7 @@ a:hover{text-decoration:underline;}
                         }
                     }
                 } catch (e) {
-                    console.warn('[Prefs]', e);
+                    Logger.warn('Prefs sync failed:', e);
                 }
             }
 
@@ -17165,7 +17230,7 @@ a:hover{text-decoration:underline;}
                         okIds.push(id);
                     } catch (e) {
                         failedIds.push(id);
-                        console.warn('[LDStatus Pro] 删除收藏失败:', id, e);
+                        Logger.warn('Failed to delete bookmark:', id, e);
                     }
                 }
 

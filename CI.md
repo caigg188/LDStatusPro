@@ -1,8 +1,8 @@
 # CI / CD
 
-核对日期：2026-09-22。工作流在 `.github/workflows/`。
+核对日期：2026-10-06。工作流在 `.github/workflows/`。
 
-推送到 `main` 或打开 Pull Request 时只跑 CI。生产 Cloudflare Pages **不会**随推送自动发布。最近两次红灯来自门禁和页面合同不一致，不是 Actions 没有启动。
+推送到 `main` 或打开 Pull Request 时跑 CI。用户脚本 `@version` 在 `main` 上通过检查后会自动创建 GitHub Release。生产 Cloudflare Pages **不会**随推送自动发布。最近两次红灯来自门禁和页面合同不一致，不是 Actions 没有启动。
 
 ## 为什么最近的推送失败
 
@@ -26,7 +26,8 @@
 
 | Job | 触发路径 | 命令 |
 |---|---|---|
-| Userscript | `LDStatusPro.user.js`、根目录 `eslint.config.js`、`package.json`、`package-lock.json` | `npm ci`、`npm run lint:userscript` |
+| Userscript | `LDStatusPro.user.js`、根目录 `eslint.config.js`、`package.json`、`package-lock.json`、`src/core/**`、`tests/**`、`scripts/embed-core.mjs`、`scripts/release-notes.mjs` | `npm ci`、`npm run check` |
+| Release userscript | 仅 `main` 推送，且 Userscript 检查成功 | 读取 `@version`，若 `v{version}` Release 不存在则创建并附带 `LDStatusPro.user.js` |
 | Website | `website/**` | `npm ci`、`npm run lint`、`npm run build` |
 | Storefront quality | `ld-store/**` | 与 `ld-store` 的 `npm run check` 相同，分步执行 |
 | Storefront browser | `ld-store/**` | 安装 Chromium 后 `npm run test:e2e`。失败时保留报告 7 天 |
@@ -36,6 +37,14 @@
 根目录 `package.json` 里的 `check:agent-samples` 指向不存在的脚本，CI 不执行它。
 
 ## CD
+
+### 用户脚本 Release
+
+`ci.yml` 里的 `Release userscript` 只在 `main` 推送、且 Userscript 检查成功后运行。它读取 `LDStatusPro.user.js` 的 `@version`，用 `README.md` 对应章节生成说明。`v{version}` 已存在时跳过，避免重复发版。士多或官网检查失败不会挡住脚本发版。
+
+发版前把 `@version` 和 `README.md` 的 `### vX.Y.Z` 写好。安装链接仍指向 `main` 上的 `LDStatusPro.user.js`。
+
+### Pages
 
 文件：`.github/workflows/deploy-pages.yml`。在 Actions 页面手动运行 **Deploy Pages**，并且必须选 `main`。
 

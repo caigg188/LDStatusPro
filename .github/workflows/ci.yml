@@ -60,7 +60,7 @@ jobs:
               echo "$1=false" >> "$GITHUB_OUTPUT"
             fi
           }
-          set_flag userscript '^(LDStatusPro\.user\.js|eslint\.config\.js|package\.json|package-lock\.json)$'
+          set_flag userscript '^(LDStatusPro\.user\.js|eslint\.config\.js|package\.json|package-lock\.json)$|^src/core/|^tests/|^scripts/(embed-core|release-notes)\.mjs$'
           set_flag website '^website/'
           set_flag storefront '^ld-store/'
 
@@ -78,7 +78,39 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run lint:userscript
+      - run: npm run check
+
+  release-userscript:
+    name: Release userscript
+    needs: userscript
+    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.userscript.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Create GitHub Release from @version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^\/\/ @version[[:space:]]*//p' LDStatusPro.user.js | head -1 | tr -d '\r')"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "Invalid @version: ${version:-'(empty)'}"
+            exit 1
+          fi
+          tag="v${version}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists"
+            exit 0
+          fi
+          node scripts/release-notes.mjs "$version" > /tmp/release-notes.md
+          gh release create "$tag" LDStatusPro.user.js \
+            --title "LDStatus Pro ${tag}" \
+            --notes-file /tmp/release-notes.md \
+            --target "${{ github.sha }}" \
+            --latest
 
   website:
     name: Website

@@ -10,6 +10,10 @@
   "scripts": {
     "lint:userscript": "eslint LDStatusPro.user.js",
     "fmt": "prettier --write LDStatusPro.user.js",
+    "embed:core": "node scripts/embed-core.mjs",
+    "embed:core:check": "node scripts/embed-core.mjs --check",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run lint:userscript && npm test && npm run embed:core:check",
     "check:agent-samples": "node scripts/validate-agent-samples.mjs"
   }
 }

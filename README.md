@@ -5,7 +5,7 @@
 
 > **Linux.do & IDCFlare 社区增强工具** - 信任级别追踪 · 阅读统计 · 云同步 · 排行榜 · LD 士多入口
 
-![Version](https://img.shields.io/badge/version-v3.9.0.3-blue)
+![Version](https://img.shields.io/badge/version-v3.9.0.6-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-✓-brightgreen)
 ![Multi-Site](https://img.shields.io/badge/Multi--Site-✓-brightgreen)
@@ -15,7 +15,7 @@
 
 🌐 **[官网](https://ldspro.qzz.io/)** | 🏪 **[LD 士多](https://ldcstore.com/)** | 📖 **[脚本说明](./DOCS.md)**
 
-脚本版本以 `LDStatusPro.user.js` 头部 `@version` 为准（当前 **3.9.0.3**）。`update_log.md` 停在 v3.5.4.10，后续变更看 git 与下方近期条目。
+脚本版本以 `LDStatusPro.user.js` 头部 `@version` 为准（当前 **3.9.0.6**）。`update_log.md` 停在 v3.5.4.10，后续变更看 git 与下方近期条目。
 
 **简体中文** | [English](./README_EN.md) | [繁體中文](./README_TW.md)
 
@@ -290,6 +290,14 @@ LDStatusPro/
 ---
 
 ## 📋 更新日志
+
+### v3.9.0.6
+
+- 加固 CDK/LDC 桥接：URL 必须是 https、精确 origin、路径在 `/api/` 下，父页和桥接页双侧校验
+- 吃瓜 Markdown 先转义再排版，链接只允许 http(s)，避免模型输出 XSS
+- 热路径调试日志改走 `Logger`，不再把 OAuth 与升级数据打到控制台
+- 去掉面板全选择器 `transition`；LDC 心跳改为 5 秒，有 GM 监听时不再 500ms 轮询
+- 安全纯函数抽到 `src/core/sanitize.mjs`，嵌入 `SafeDom`，可用 `npm test` 回归
 
 ### v3.9.0.3
 
