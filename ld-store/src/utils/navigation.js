@@ -55,3 +55,24 @@ export function sanitizePostLoginRedirect(target, fallback = '/') {
   }
   return safeTarget
 }
+
+function firstQueryValue(value) {
+  return Array.isArray(value) ? value[0] : value
+}
+
+/**
+ * Logged-in users should leave guest-only routes such as /login.
+ * Honors a sanitized post-login redirect when present, otherwise home.
+ *
+ * @param {{ name?: string, meta?: { guestOnly?: boolean }, query?: Record<string, unknown> }} to
+ * @param {boolean} isAuthenticated
+ * @returns {{ path: string, replace: true } | null}
+ */
+export function resolveGuestOnlyRedirect(to, isAuthenticated) {
+  if (!to?.meta?.guestOnly || !isAuthenticated) return null
+
+  return {
+    path: sanitizePostLoginRedirect(firstQueryValue(to.query?.redirect), '/'),
+    replace: true
+  }
+}

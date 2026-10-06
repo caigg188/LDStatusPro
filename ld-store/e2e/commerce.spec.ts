@@ -2,6 +2,20 @@ import { test, expect, signIn } from './fixtures'
 
 const confirm = (page: import('@playwright/test').Page) => page.locator('.confirm-button:visible').last()
 
+test('logged-in users visiting /login are sent home', async ({ page }) => {
+  await signIn(page)
+  await page.goto('/login')
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.getByRole('button', { name: '使用 Linux.do 账号登录' })).toHaveCount(0)
+})
+
+test('logged-in users visiting /login honor a safe redirect', async ({ page }) => {
+  await signIn(page)
+  await page.goto('/login?redirect=/product/7')
+  await expect(page).toHaveURL(/\/product\/7$/)
+  await expect(page.getByRole('button', { name: '使用 Linux.do 账号登录' })).toHaveCount(0)
+})
+
 test('login guard, OAuth callback and logout use the real route flow', async ({ page }) => {
   await page.goto('/checkout/7')
   await expect(page).toHaveURL(/\/login\?redirect=/)

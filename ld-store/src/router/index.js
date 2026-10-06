@@ -6,6 +6,7 @@ import {
   ensureMaintenanceStatusLoaded,
 } from '@/config/maintenance'
 import { storage } from '@/utils/storage'
+import { resolveGuestOnlyRedirect } from '@/utils/navigation'
 import HomeView from '@/views/Home.vue'
 import { resolveLegacyPublishTarget } from '@/utils/sellerNavigation'
 import { getHelpArticle, resolveLegacyHelpLocation } from '@/config/helpCenter'
@@ -187,7 +188,7 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: () => import('@/views/Login.vue'),
-    meta: { title: '登录 - LD士多' }
+    meta: { title: '登录 - LD士多', guestOnly: true }
   },
   {
     path: '/auth/callback',
@@ -400,6 +401,13 @@ router.beforeEach(async (to) => {
     document.title = MAINTENANCE_STATE.title
   } else if (to.meta.title) {
     document.title = to.meta.title
+  }
+
+  if (to.meta.guestOnly) {
+    const userStore = useUserStore()
+    userStore.restoreSession()
+    const guestOnlyRedirect = resolveGuestOnlyRedirect(to, userStore.ensureValidSession())
+    if (guestOnlyRedirect) return guestOnlyRedirect
   }
 
   // 检查是否需要登录
