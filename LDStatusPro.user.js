@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         LDStatus Pro
 // @namespace    http://tampermonkey.net/
-// @version      3.9.0.3
+// @version      3.9.0.4
 // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
 // @author       JackLiii
 // @license      MIT
@@ -13,6 +13,8 @@
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
+// @grant        GM_addValueChangeListener
+// @grant        GM_removeValueChangeListener
 // @grant        GM_info
 // @grant        GM_openInTab
 // @grant        GM_notification
@@ -72,28 +74,86 @@
         }
         
         // LDC (credit.linux.do) 桥接
+        // credit.linux.do 设置了 X-Frame-Options: SAMEORIGIN，linux.do 里的 iframe 无法加载。
+        // POST 必须在 credit.linux.do 顶层页面用原生 fetch（同源 Origin / sec-fetch-site），
+        // 通过 GM_setValue 与 linux.do 侧通信。
         if (location.hostname === 'credit.linux.do') {
-            window.addEventListener('message', async (e) => {
-                if (!ALLOWED_ORIGINS.includes(e.origin) || e.data?.type !== 'ldsp-ldc-request') {
-                    debugBridgeLog('LDC bridge reject', { origin: e.origin, type: e.data?.type });
-                    return;
+            const LDC_BRIDGE_REQ = 'ldsp_ldc_bridge_req';
+            const LDC_BRIDGE_RES = 'ldsp_ldc_bridge_res';
+            const LDC_BRIDGE_HB = 'ldsp_ldc_bridge_hb';
+            const ldcFetch = async ({ url, method = 'GET', data } = {}) => {
+                if (typeof url !== 'string' || !url.startsWith('https://credit.linux.do/')) {
+                    return { status: 0, data: { _error: '非法请求' } };
                 }
-                const { requestId, url, method = 'GET', data } = e.data;
+                const methodUpper = String(method || 'GET').toUpperCase();
+                let fetchUrl = url;
                 try {
-                    const res = await fetch(url, {
-                        method,
-                        credentials: 'include',
-                        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-                        body: data ? JSON.stringify(data) : undefined
-                    });
-                    let resData;
-                    try { resData = await res.json(); } catch { resData = { _error: '解析失败' }; }
-                    window.parent?.postMessage({ type: 'ldsp-ldc-response', requestId, status: res.status, data: resData }, e.origin);
-                } catch (err) {
-                    debugBridgeLog('LDC bridge error', err?.message || err);
-                    window.parent?.postMessage({ type: 'ldsp-ldc-response', requestId, status: 0, data: { _error: '网络错误' } }, e.origin);
+                    const parsed = new URL(url);
+                    if (parsed.origin === location.origin) fetchUrl = parsed.pathname + parsed.search;
+                } catch {}
+                const headers = {
+                    'Accept': 'application/json, text/plain, */*',
+                    'X-Requested-With': 'XMLHttpRequest'
+                };
+                const init = { method: methodUpper, credentials: 'include', headers };
+                if (methodUpper !== 'GET' && methodUpper !== 'HEAD') {
+                    headers['Content-Type'] = 'application/json';
+                    if (data !== undefined && data !== null) init.body = JSON.stringify(data);
                 }
-            });
+                const res = await fetch(fetchUrl, init);
+                let resData;
+                try {
+                    const text = await res.text();
+                    resData = text ? JSON.parse(text) : {};
+                } catch {
+                    resData = { _error: '解析失败' };
+                }
+                return { status: res.status, data: resData };
+            };
+
+            let lastHandledReq = '';
+            const handleBridgeReq = async (req) => {
+                if (!req?.requestId || req.requestId === lastHandledReq) return;
+                lastHandledReq = req.requestId;
+                try {
+                    const result = await ldcFetch(req);
+                    GM_setValue(LDC_BRIDGE_RES, { requestId: req.requestId, ...result, ts: Date.now() });
+                } catch (err) {
+                    debugBridgeLog('LDC tab bridge error', err?.message || err);
+                    GM_setValue(LDC_BRIDGE_RES, { requestId: req.requestId, status: 0, data: { _error: '网络错误' }, ts: Date.now() });
+                }
+            };
+
+            const isTop = (() => { try { return window.top === window; } catch { return true; } })();
+            if (isTop && typeof GM_setValue === 'function') {
+                const tick = () => { try { GM_setValue(LDC_BRIDGE_HB, Date.now()); } catch {} };
+                tick();
+                setInterval(tick, 1000);
+                window.addEventListener('pagehide', () => {
+                    try { GM_setValue(LDC_BRIDGE_HB, 0); } catch {}
+                });
+                if (typeof GM_addValueChangeListener === 'function') {
+                    GM_addValueChangeListener(LDC_BRIDGE_REQ, (_n, _o, req) => { handleBridgeReq(req); });
+                }
+                const pending = GM_getValue(LDC_BRIDGE_REQ, null);
+                if (pending?.requestId) handleBridgeReq(pending);
+                setInterval(() => {
+                    const req = GM_getValue(LDC_BRIDGE_REQ, null);
+                    if (req?.requestId) handleBridgeReq(req);
+                }, 500);
+                if (new URLSearchParams(location.search).get('ldsp_bridge') === '1') {
+                    const showBar = () => {
+                        if (document.getElementById('ldsp-ldc-bridge-bar')) return;
+                        const bar = document.createElement('div');
+                        bar.id = 'ldsp-ldc-bridge-bar';
+                        bar.textContent = 'LDStatus Pro 正在通过此标签读取 LDC 数据，请保持打开（可最小化）';
+                        bar.style.cssText = 'position:fixed;z-index:2147483647;left:0;right:0;top:0;padding:10px 16px;background:#111827;color:#fff;font:13px/1.4 sans-serif;text-align:center';
+                        (document.body || document.documentElement).appendChild(bar);
+                    };
+                    if (document.body) showBar();
+                    else document.addEventListener('DOMContentLoaded', showBar);
+                }
+            }
             return; // 桥接页面不执行主程序
         }
 
@@ -7262,6 +7322,10 @@ a:hover{text-decoration:underline;}
             static CACHE_KEY = 'ldsp_ldc_cache';
             static CACHE_TTL = 600000; // 10分钟
             static LDC_ORIGIN = 'https://credit.linux.do';
+            static BRIDGE_REQ_KEY = 'ldsp_ldc_bridge_req';
+            static BRIDGE_RES_KEY = 'ldsp_ldc_bridge_res';
+            static BRIDGE_HB_KEY = 'ldsp_ldc_bridge_hb';
+            static BRIDGE_WIN_NAME = 'ldsp_ldc_bridge';
             static TRANS_TYPES = [
                 { id: '', label: '全部', icon: '📋' }, { id: 'receive', label: '收益', icon: '📥' },
                 { id: 'payment', label: '支出', icon: '📤' }, { id: 'transfer', label: '转移', icon: '🔄' },
@@ -7276,8 +7340,6 @@ a:hover{text-decoration:underline;}
             constructor(panelBody) {
                 this.panelBody = panelBody;
                 this.overlay = null;
-                this._loading = false;
-                // 独立的加载状态与请求令牌，避免跨 tab 互相阻塞
                 this._loadingState = { overview: false, trans: false };
                 this._reqToken = { overview: 0, trans: 0 };
                 this._tab = 'overview';
@@ -7290,12 +7352,7 @@ a:hover{text-decoration:underline;}
                 this._ldcUsername = '';
                 this._filter = { timeRange: '7days', type: '' };
                 this._isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && /WebKit/.test(navigator.userAgent) && !/CriOS|FxiOS|OPiOS|EdgiOS/.test(navigator.userAgent);
-                // iframe 桥接相关
-                this._bridge = null;
-                this._bridgeReady = null;
-                this._requests = new Map();
                 this._reqId = 0;
-                this._msgHandler = null;
                 // v2.0: API 配置
                 this._apiUrl = CONFIG.SHOP_API;
                 this._tokenKey = `ldsp_${CURRENT_SITE.prefix}_leaderboard_token`;
@@ -7305,35 +7362,13 @@ a:hover{text-decoration:underline;}
                 this._userCacheTime = 0;
                 this._userCacheTTL = 60000; // 60s
                 this._userPromise = null;
+                this._bridgeTabPromise = null;
+                this._bridgeWin = null;
+                this._bridgeOpeningAt = 0;
             }
 
             init() { 
                 this._createOverlay();
-                this._initBridge();
-            }
-
-            _initBridge() {
-                // 创建消息监听
-                const handler = (e) => {
-                    if (e.origin !== LDCManager.LDC_ORIGIN || e.data?.type !== 'ldsp-ldc-response') return;
-                    const p = this._requests.get(e.data.requestId);
-                    if (p) { this._requests.delete(e.data.requestId); p(e.data); }
-                };
-                window.addEventListener('message', handler);
-                this._msgHandler = handler;
-                
-                // 创建隐藏的 iframe
-                const frame = document.createElement('iframe');
-                frame.src = LDCManager.LDC_ORIGIN + '/home';
-                frame.style.cssText = 'width:0;height:0;opacity:0;position:absolute;border:0;pointer-events:none';
-                document.body.appendChild(frame);
-                this._bridge = frame;
-                
-                // 等待 iframe 加载完成
-                this._bridgeReady = new Promise(r => {
-                    const t = setTimeout(() => r(), 2000);
-                    frame.onload = () => { clearTimeout(t); setTimeout(r, 150); };
-                });
             }
 
             _createOverlay() {
@@ -7366,7 +7401,10 @@ a:hover{text-decoration:underline;}
                 this.overlay.querySelector('.ldsp-ldc-close').addEventListener('click', () => this.hide());
                 this.overlay.querySelector('.ldsp-ldc-refresh').addEventListener('click', () => {
                     if (this._tab === 'overview') this._fetchData();
-                    else if (this._tab === 'transactions') this._fetchTrans(true);
+                    else if (this._tab === 'transactions') {
+                        this._primeBridgeWindow();
+                        this._fetchTrans(true);
+                    }
                 });
                 this.overlay.querySelectorAll('.ldsp-ldc-tab').forEach(tab => {
                     tab.addEventListener('click', () => {
@@ -7385,8 +7423,12 @@ a:hover{text-decoration:underline;}
                 this._tab = tabId;
                 this._order = null;
                 this.overlay.querySelectorAll('.ldsp-ldc-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
+                this._syncRefreshBtn();
                 if (tabId === 'overview') this._loadCache() || this._fetchData();
-                else if (tabId === 'transactions') this._fetchTrans(true);
+                else if (tabId === 'transactions') {
+                    this._primeBridgeWindow();
+                    this._fetchTrans(true);
+                }
                 else if (tabId === 'support') this._renderSupport();
             }
 
@@ -7418,15 +7460,17 @@ a:hover{text-decoration:underline;}
             }
 
             async _fetchData() {
-                if (this._loading) return;
-                this._loading = true;
+                const token = ++this._reqToken.overview;
+                this._loadingState.overview = true;
+                this._syncRefreshBtn();
                 const body = this.overlay.querySelector('.ldsp-ldc-body');
-                const btn = this.overlay.querySelector('.ldsp-ldc-refresh');
-                btn?.classList.add('spinning');
-                body.innerHTML = `<div class="ldsp-ldc-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>`;
+                if (this._tab === 'overview') {
+                    body.innerHTML = `<div class="ldsp-ldc-loading"><div class="ldsp-spinner"></div><div>加载中...</div></div>`;
+                }
 
                 try {
                     const user = await this._request('https://credit.linux.do/api/v1/oauth/user-info');
+                    if (token !== this._reqToken.overview || this._tab !== 'overview') return;
                     if (!user || user._authError) {
                         this._showLoginGuide('auth');
                         return;
@@ -7434,6 +7478,10 @@ a:hover{text-decoration:underline;}
                     if (user._timeoutError) { this._showLoginGuide('timeout'); return; }
                     if (user._networkError) { this._showLoginGuide('network'); return; }
                     if (user._bridgeError) { this._showLoginGuide('timeout'); return; }
+                    if (user._forbidden || user._error) {
+                        this._showError(user._error || '获取用户信息失败');
+                        return;
+                    }
 
                     this._userId = user.id || user.user_id || null;
                     this._ldcUsername = user.username || '';
@@ -7485,13 +7533,14 @@ a:hover{text-decoration:underline;}
                             expense: parseFloat(i.expense) || 0
                         }));
                     }
+                    if (token !== this._reqToken.overview || this._tab !== 'overview') return;
                     this._renderOverview(data);
                     this._saveCache(data);
                 } catch {
-                    this._showError('网络错误，请稍后重试');
+                    if (token === this._reqToken.overview && this._tab === 'overview') this._showError('网络错误，请稍后重试');
                 } finally {
-                    this._loading = false;
-                    btn?.classList.remove('spinning');
+                    if (token === this._reqToken.overview) this._loadingState.overview = false;
+                    this._syncRefreshBtn();
                 }
             }
 
@@ -7522,8 +7571,8 @@ a:hover{text-decoration:underline;}
 
             _showLoginGuide(reason = 'auth') {
                 const body = this.overlay.querySelector('.ldsp-ldc-body');
-                this.overlay.querySelector('.ldsp-ldc-refresh')?.classList.remove('spinning');
-                this._loading = false;
+                this._loadingState.overview = false;
+                this._syncRefreshBtn();
 
                 const isTimeout = reason === 'timeout';
                 const isNetwork = reason === 'network';
@@ -7552,90 +7601,234 @@ a:hover{text-decoration:underline;}
                     </div>`;
                 body.querySelector('.ldsp-ldc-retry-btn')?.addEventListener('click', () => {
                     if (this._tab === 'overview') this._fetchData();
-                    else if (this._tab === 'transactions') this._fetchTrans(true);
-                });
-            }
-
-            async _request(url, method = 'GET', data = null) {
-                const bridgeResult = await this._requestViaBridge(url, method, data);
-                if (bridgeResult && !bridgeResult._bridgeError) {
-                    return bridgeResult;
-                }
-                if (!this._isIOS) {
-                    return this._requestViaGM(url, method, data);
-                }
-                return bridgeResult;
-            }
-
-            async _requestViaBridge(url, method = 'GET', data = null) {
-                if (this._bridgeReady) await this._bridgeReady;
-                if (!this._bridge) return { _bridgeError: true, _error: '桥接未就绪' };
-
-                return new Promise((resolve) => {
-                    const id = ++this._reqId;
-                    const timeout = setTimeout(() => {
-                        this._requests.delete(id);
-                        resolve({ _bridgeError: true, _timeoutError: true, _error: '请求超时' });
-                    }, 15000);
-
-                    this._requests.set(id, ({ status, data: respData }) => {
-                        clearTimeout(timeout);
-                        if (status === 200) {
-                            if (respData?.data !== undefined) {
-                                resolve(respData.data);
-                            } else if (respData?._error || respData?.error_msg) {
-                                resolve({ _error: respData._error || respData.error_msg });
-                            } else {
-                                resolve(respData);
-                            }
-                        } else if (status === 401 || status === 403) {
-                            resolve({ _authError: true });
-                        } else {
-                            resolve({ _bridgeError: true, _error: respData?._error || `请求失败 (${status})` });
-                        }
-                    });
-
-                    try {
-                        this._bridge.contentWindow.postMessage({
-                            type: 'ldsp-ldc-request',
-                            requestId: id,
-                            url,
-                            method,
-                            data
-                        }, LDCManager.LDC_ORIGIN);
-                    } catch {
-                        clearTimeout(timeout);
-                        this._requests.delete(id);
-                        resolve({ _bridgeError: true, _error: '发送请求失败' });
+                    else if (this._tab === 'transactions') {
+                        this._primeBridgeWindow();
+                        this._fetchTrans(true);
                     }
                 });
             }
 
+            _sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            _syncRefreshBtn() {
+                const btn = this.overlay?.querySelector('.ldsp-ldc-refresh');
+                const spinning = this._tab === 'overview' ? this._loadingState.overview : this._tab === 'transactions' ? this._loadingState.trans : false;
+                btn?.classList.toggle('spinning', !!spinning);
+            }
+
+            _isBridgeTabAlive() {
+                const hb = GM_getValue(LDCManager.BRIDGE_HB_KEY, 0);
+                return Date.now() - hb < 4000;
+            }
+
+            _primeBridgeWindow({ foreground = false } = {}) {
+                if (this._isBridgeTabAlive()) return 'alive';
+                if (this._bridgeWin && !this._bridgeWin.closed) return 'pending';
+                if (!foreground && this._bridgeOpeningAt && Date.now() - this._bridgeOpeningAt < 8000) return 'pending';
+                const url = `${LDCManager.LDC_ORIGIN}/home?ldsp_bridge=1`;
+                this._bridgeOpeningAt = Date.now();
+
+                if (!foreground && typeof GM_openInTab === 'function') {
+                    try {
+                        GM_openInTab(url, { active: false, insert: true });
+                        try { window.focus(); } catch {}
+                        return 'opened';
+                    } catch {
+                        try { GM_openInTab(url, false); return 'opened'; } catch {}
+                    }
+                }
+
+                try {
+                    this._bridgeWin = window.open(url, LDCManager.BRIDGE_WIN_NAME);
+                } catch {
+                    this._bridgeWin = null;
+                }
+                try { this._bridgeWin?.blur(); } catch {}
+                try { window.focus(); } catch {}
+                if (this._bridgeWin) return 'opened';
+                return 'blocked';
+            }
+
+            async _ensureBridgeTab() {
+                if (this._isBridgeTabAlive()) return true;
+                if (this._bridgeTabPromise) return this._bridgeTabPromise;
+                this._bridgeTabPromise = (async () => {
+                    this._primeBridgeWindow();
+                    for (let i = 0; i < 16; i++) {
+                        await this._sleep(250);
+                        if (this._isBridgeTabAlive()) return true;
+                        if (this._bridgeWin && this._bridgeWin.closed) break;
+                    }
+                    return this._isBridgeTabAlive();
+                })();
+                try {
+                    return await this._bridgeTabPromise;
+                } finally {
+                    this._bridgeTabPromise = null;
+                }
+            }
+
+            _showConnecting() {
+                if (this._tab !== 'transactions') return;
+                const body = this.overlay.querySelector('.ldsp-ldc-body');
+                body.innerHTML = `<div class="ldsp-ldc-loading"><div class="ldsp-spinner"></div><div>正在连接 LDC…</div></div>`;
+            }
+
+            _showBridgeHint() {
+                if (this._tab !== 'transactions') return;
+                const body = this.overlay.querySelector('.ldsp-ldc-body');
+                this._loadingState.trans = false;
+                this._syncRefreshBtn();
+                body.innerHTML = `
+                    <div class="ldsp-ldc-ios-guide">
+                        <div class="ldsp-ldc-ios-icon">🔗</div>
+                        <div class="ldsp-ldc-ios-title">需要打开 LDC 页面</div>
+                        <div class="ldsp-ldc-ios-desc">查看交易记录需要 LINUX DO CREDIT 页面保持打开。若刚才的标签被关闭或被浏览器拦截，请再打开一次。</div>
+                        <button type="button" class="ldsp-ldc-ios-btn primary ldsp-ldc-open-bridge">打开 LDC 通道</button>
+                        <button type="button" class="ldsp-ldc-retry-btn" style="margin-top:12px">🔄 我已打开，重试</button>
+                    </div>`;
+                const retry = () => {
+                    this._primeBridgeWindow({ foreground: false });
+                    this._fetchTrans(true);
+                };
+                body.querySelector('.ldsp-ldc-open-bridge')?.addEventListener('click', () => {
+                    this._primeBridgeWindow({ foreground: true });
+                    this._fetchTrans(true);
+                });
+                body.querySelector('.ldsp-ldc-retry-btn')?.addEventListener('click', retry);
+            }
+
+            _isLdcRequestSuccess(result) {
+                if (result == null || typeof result !== 'object') return false;
+                return !result._authError && !result._bridgeError && !result._networkError
+                    && !result._timeoutError && !result._forbidden && !result._error && !result._csrfError;
+            }
+
+            _isCsrfError(result, errMsg = '') {
+                const msg = String(errMsg || result?._error || '');
+                return !!(result?._csrfError || /csrf/i.test(msg));
+            }
+
+            _parseLdcResponse(status, respData) {
+                const errMsg = respData?.error_msg || respData?._error || '';
+                if (status === 200) {
+                    if (respData?.data !== undefined) return respData.data;
+                    if (errMsg) return { _error: errMsg, _httpStatus: 200 };
+                    return respData;
+                }
+                if (this._isCsrfError(null, errMsg) || /csrf/i.test(errMsg)) {
+                    return { _csrfError: true, _httpStatus: status, _error: errMsg || 'CSRF 验证失败' };
+                }
+                if (status === 401) {
+                    return { _authError: true, _httpStatus: 401, _error: errMsg || '未登录' };
+                }
+                if (status === 403) {
+                    const looksLikeAuth = /未登录|unauthorized|login required|请先登录/i.test(errMsg);
+                    return {
+                        _httpStatus: 403,
+                        _error: errMsg || '请求被拒绝',
+                        _authError: looksLikeAuth,
+                        _forbidden: !looksLikeAuth
+                    };
+                }
+                if (status === 400) {
+                    return { _error: errMsg || '请求参数错误', _httpStatus: 400 };
+                }
+                return { _bridgeError: true, _httpStatus: status, _error: errMsg || `请求失败 (${status || 0})` };
+            }
+
+            async _request(url, method = 'GET', data = null) {
+                const methodUpper = String(method || 'GET').toUpperCase();
+                const isUnsafe = methodUpper !== 'GET' && methodUpper !== 'HEAD';
+
+                // POST 必须走 credit.linux.do 顶层页同源 fetch，跨域 GM 会被 CSRF 拦截
+                if (isUnsafe) {
+                    return this._requestViaTabBridge(url, methodUpper, data);
+                }
+
+                if (!this._isIOS) {
+                    const gmResult = await this._requestViaGM(url, methodUpper, data);
+                    if (this._isLdcRequestSuccess(gmResult)) return gmResult;
+                    if (gmResult) return gmResult;
+                }
+                return { _bridgeError: true, _error: '获取数据失败' };
+            }
+
+            async _requestViaTabBridge(url, method = 'GET', data = null) {
+                const ready = await this._ensureBridgeTab();
+                if (!ready) {
+                    return { _bridgeError: true, _error: '请打开并登录 credit.linux.do 后重试' };
+                }
+                const requestId = ++this._reqId;
+                return new Promise((resolve) => {
+                    let done = false;
+                    let listenerId = null;
+                    const finish = (result) => {
+                        if (done) return;
+                        done = true;
+                        if (listenerId != null && typeof GM_removeValueChangeListener === 'function') {
+                            try { GM_removeValueChangeListener(listenerId); } catch {}
+                        }
+                        resolve(result);
+                    };
+                    const timeout = setTimeout(() => {
+                        finish({ _bridgeError: true, _timeoutError: true, _error: '请求超时' });
+                    }, 8000);
+                    const onRes = (res) => {
+                        if (!res || res.requestId !== requestId) return;
+                        clearTimeout(timeout);
+                        finish(this._parseLdcResponse(res.status, res.data));
+                    };
+                    if (typeof GM_addValueChangeListener === 'function') {
+                        listenerId = GM_addValueChangeListener(LDCManager.BRIDGE_RES_KEY, (_n, _o, val) => onRes(val));
+                    }
+                    GM_setValue(LDCManager.BRIDGE_REQ_KEY, { requestId, url, method, data, ts: Date.now() });
+                    (async () => {
+                        for (let i = 0; i < 32 && !done; i++) {
+                            await this._sleep(250);
+                            if (!this._isBridgeTabAlive()) {
+                                clearTimeout(timeout);
+                                finish({ _bridgeError: true, _error: 'LDC 数据通道已关闭' });
+                                return;
+                            }
+                            onRes(GM_getValue(LDCManager.BRIDGE_RES_KEY, null));
+                        }
+                    })();
+                });
+            }
+
             _requestViaGM(url, method = 'GET', data = null) {
+                const methodUpper = String(method || 'GET').toUpperCase();
+                const headers = {
+                    'Accept': 'application/json, text/plain, */*',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Referer': `${LDCManager.LDC_ORIGIN}/home`
+                };
+                if (methodUpper !== 'GET' && methodUpper !== 'HEAD') {
+                    headers['Content-Type'] = 'application/json';
+                    headers['Origin'] = LDCManager.LDC_ORIGIN;
+                }
                 return new Promise(resolve => {
                     GM_xmlhttpRequest({
-                        method,
+                        method: methodUpper,
                         url,
                         withCredentials: true,
                         timeout: 15000,
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            'Referer': 'https://credit.linux.do/home'
-                        },
-                        data: data ? JSON.stringify(data) : undefined,
+                        headers,
+                        data: data != null && methodUpper !== 'GET' && methodUpper !== 'HEAD' ? JSON.stringify(data) : undefined,
                         onload: r => {
+                            let parsed = null;
+                            try { parsed = r.responseText ? JSON.parse(r.responseText) : {}; } catch {}
                             if (r.status === 200) {
-                                try {
-                                    const j = JSON.parse(r.responseText);
-                                    resolve(j?.data ?? null);
-                                    return;
-                                } catch {}
+                                resolve(this._parseLdcResponse(200, parsed || { _error: '解析失败' }));
+                                return;
                             }
-                            resolve(r.status === 401 || r.status === 403 ? { _authError: true } : null);
+                            resolve(this._parseLdcResponse(r.status, parsed || {}));
                         },
-                        onerror: () => resolve({ _networkError: true }),
-                        ontimeout: () => resolve({ _timeoutError: true })
+                        onerror: () => resolve({ _networkError: true, _error: '网络错误' }),
+                        ontimeout: () => resolve({ _timeoutError: true, _error: '请求超时' })
                     });
                 });
             }
@@ -7755,41 +7948,64 @@ a:hover{text-decoration:underline;}
             }
 
             async _fetchTrans(refresh = false, more = false) {
-                if (this._loading) return;
-                this._loading = true;
-                const currentTab = this._tab;
-                const btn = this.overlay.querySelector('.ldsp-ldc-refresh');
+                if (more && this._loadingState.trans) return;
+                const token = ++this._reqToken.trans;
+                this._loadingState.trans = true;
+                this._syncRefreshBtn();
                 const currentList = this.overlay.querySelector('.ldsp-ldc-trans-list');
                 this._transScrollState = more && currentList ? {
                     top: currentList.scrollTop
                 } : null;
                 if (!more) {
-                    btn?.classList.add('spinning');
                     this._trans = { orders: [], page: 1, total: 0, hasMore: false };
                     this._transLoadMoreArmed = true;
-                    this._renderTransUI(true);
+                    this._showConnecting();
                 }
                 const page = more ? this._trans.page + 1 : 1;
 
                 try {
+                    const ready = await this._ensureBridgeTab();
+                    if (token !== this._reqToken.trans) return;
+                    if (this._tab !== 'transactions') return;
+                    if (!ready) {
+                        this._showBridgeHint();
+                        return;
+                    }
                     if (!this._userId || !this._ldcUsername) {
                         const user = await this._request('https://credit.linux.do/api/v1/oauth/user-info');
-                        if (user && !user._authError) {
+                        if (token !== this._reqToken.trans) return;
+                        if (user && !user._authError && !user._error) {
                             this._userId = user.id || user.user_id || null;
                             this._ldcUsername = user.username || '';
                         }
                     }
-                    if (this._tab !== currentTab) return;
+                    if (this._tab !== 'transactions') return;
                     const { startTime, endTime } = this._getTimeRange();
                     const payload = { page, page_size: 20, startTime, endTime };
                     if (this._filter.type) payload.types = [this._filter.type];
                     const result = await this._request('https://credit.linux.do/api/v1/order/transactions', 'POST', payload);
-                    if (this._tab !== currentTab) return;
+                    if (token !== this._reqToken.trans || this._tab !== 'transactions') return;
+                    if (result?._csrfError) {
+                        this._showError('获取交易记录失败，请刷新 credit.linux.do 标签页后重试');
+                        return;
+                    }
                     if (result?._authError) {
                         this._showError('请先登录 credit.linux.do', true);
                         return;
                     }
-                    if (!result) {
+                    if (result?._forbidden) {
+                        this._showError(result._error || '请求被拒绝，请稍后重试');
+                        return;
+                    }
+                    if (result?._bridgeError || result?._timeoutError) {
+                        this._showBridgeHint();
+                        return;
+                    }
+                    if (result?._error || result?._networkError) {
+                        this._showError(result._error || '获取数据失败');
+                        return;
+                    }
+                    if (!result || typeof result !== 'object') {
                         this._showError('获取数据失败');
                         return;
                     }
@@ -7801,16 +8017,16 @@ a:hover{text-decoration:underline;}
                     this._trans.hasMore = this._trans.orders.length < total;
                     this._renderTransUI();
                 } catch {
-                    if (!more && this._tab === currentTab) this._showError('网络错误，请稍后重试');
+                    if (!more && token === this._reqToken.trans && this._tab === 'transactions') this._showError('网络错误，请稍后重试');
                 } finally {
-                    this._loading = false;
-                    btn?.classList.remove('spinning');
+                    if (token === this._reqToken.trans) this._loadingState.trans = false;
+                    this._syncRefreshBtn();
                 }
             }
 
             _getTransactionDirection(type) {
-                if (type === 'receive') return 'income';
-                if (type === 'payment') return 'expense';
+                if (type === 'receive' || type === 'red_envelope_receive' || type === 'red_envelope_refund') return 'income';
+                if (type === 'payment' || type === 'red_envelope_send') return 'expense';
                 return 'neutral';
             }
 
@@ -7935,7 +8151,7 @@ a:hover{text-decoration:underline;}
                         this._ignoreNextTransScroll = false;
                         return;
                     }
-                    if (this._loading || !this._trans.hasMore) return;
+                    if (this._loadingState.trans || !this._trans.hasMore) return;
                     const distanceToBottom = list.scrollHeight - list.clientHeight - list.scrollTop;
                     if (distanceToBottom > 120) {
                         this._transLoadMoreArmed = true;
@@ -8023,8 +8239,9 @@ a:hover{text-decoration:underline;}
 
             _showError(msg, login = false) {
                 const body = this.overlay.querySelector('.ldsp-ldc-body');
-                this.overlay.querySelector('.ldsp-ldc-refresh')?.classList.remove('spinning');
-                this._loading = false;
+                this._loadingState.overview = false;
+                this._loadingState.trans = false;
+                this._syncRefreshBtn();
                 const icon = msg.includes('超时') ? '⏱️' : msg.includes('网络') ? '🌐' : msg.includes('登录') ? '🔐' : '😕';
                 const isTrans = this._tab === 'transactions';
                 const filter = isTrans ? this._getFilterHtml() : '';
@@ -8034,7 +8251,11 @@ a:hover{text-decoration:underline;}
                     <button class="ldsp-ldc-retry-btn">🔄 重试</button></div>`;
                 if (isTrans) this._bindFilterEvents(body);
                 body.querySelector('.ldsp-ldc-retry-btn')?.addEventListener('click', () => {
-                    this._tab === 'overview' ? this._fetchData() : this._fetchTrans(true);
+                    if (this._tab === 'overview') this._fetchData();
+                    else {
+                        this._primeBridgeWindow();
+                        this._fetchTrans(true);
+                    }
                 });
             }
 
@@ -8047,10 +8268,18 @@ a:hover{text-decoration:underline;}
 
             _bindFilterEvents(el) {
                 el.querySelectorAll('[data-time]').forEach(c => c.addEventListener('click', () => {
-                    if (c.dataset.time !== this._filter.timeRange) { this._filter.timeRange = c.dataset.time; this._fetchTrans(true); }
+                    if (c.dataset.time !== this._filter.timeRange) {
+                        this._filter.timeRange = c.dataset.time;
+                        this._primeBridgeWindow();
+                        this._fetchTrans(true);
+                    }
                 }));
                 el.querySelectorAll('[data-type]').forEach(c => c.addEventListener('click', () => {
-                    if (c.dataset.type !== this._filter.type) { this._filter.type = c.dataset.type; this._fetchTrans(true); }
+                    if (c.dataset.type !== this._filter.type) {
+                        this._filter.type = c.dataset.type;
+                        this._primeBridgeWindow();
+                        this._fetchTrans(true);
+                    }
                 }));
             }
 
@@ -8059,10 +8288,6 @@ a:hover{text-decoration:underline;}
                 if (this._scrollObserver) { this._scrollObserver.disconnect(); this._scrollObserver = null; }
                 if (this._scrollTarget && this._scrollHandler) { this._scrollTarget.removeEventListener('scroll', this._scrollHandler); this._scrollTarget = null; }
                 this._scrollHandler = null;
-                // 清理 iframe 桥接
-                if (this._msgHandler) { window.removeEventListener('message', this._msgHandler); this._msgHandler = null; }
-                if (this._bridge) { this._bridge.remove(); this._bridge = null; }
-                this._requests.clear();
                 if (this.overlay) { this.overlay.remove(); this.overlay = null; }
             }
         }
