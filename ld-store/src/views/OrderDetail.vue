@@ -95,19 +95,31 @@
             </span>
           </div>
 
-          <div class="info-row" v-if="isPlatformOrder(order)">
-            <span class="info-label">购买数量</span>
-            <span class="info-value">x{{ getOrderQuantity(order) }}</span>
-          </div>
-          
-          <div class="info-row" v-if="order.originalPrice">
-            <span class="info-label">商品标价小计</span>
-            <span class="info-value" :class="{ 'original-price': Number(order.originalPrice) !== productSubtotal }">{{ Number(order.originalPrice).toFixed(2) }} LDC</span>
+          <div class="info-row">
+            <span class="info-label">数量</span>
+            <span class="info-value">{{ itemPricing.quantity }} 件</span>
           </div>
 
-          <div class="info-row" v-if="productSubtotal > 0">
-            <span class="info-label">商品折后小计</span>
-            <span class="info-value">{{ productSubtotal.toFixed(2) }} LDC</span>
+          <div class="info-row" v-if="itemPricing.originalUnitPrice > 0">
+            <span class="info-label">单价</span>
+            <span class="info-value unit-price-value">
+              <template v-if="itemPricing.hasProductDiscount">
+                <small class="unit-price-original">
+                  原价 <del>{{ formatMoney(itemPricing.originalUnitPrice) }} LDC / 件</del>
+                </small>
+                <strong class="unit-price-discounted">
+                  折后 {{ formatMoney(itemPricing.discountedUnitPrice) }} LDC / 件
+                </strong>
+              </template>
+              <strong v-else class="unit-price-current">
+                {{ formatMoney(itemPricing.originalUnitPrice) }} LDC / 件
+              </strong>
+            </span>
+          </div>
+
+          <div class="info-row" v-if="itemPricing.productSubtotal > 0">
+            <span class="info-label">金额小计</span>
+            <span class="info-value">{{ formatMoney(itemPricing.productSubtotal) }} LDC</span>
           </div>
 
           <template v-if="hasCoupon">
@@ -410,6 +422,8 @@ import {
 } from '@/utils/shopProduct'
 import { ORDER_LIST_SCROLL_SOURCE, readOrderScrollSnapshot } from '@/utils/orderListScroll'
 import { resolveOrderPartyIdentity } from '@/utils/orderPartyIdentity'
+import { resolveOrderItemPricing } from '@/utils/orderItemPricing'
+import { formatPrice } from '@/utils/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -429,11 +443,7 @@ const couponSnapshot = computed(() => {
   if (typeof value === 'object') return value
   try { return JSON.parse(value) } catch { return {} }
 })
-const productSubtotal = computed(() => Number(
-  order.value?.productSubtotal
-  ?? order.value?.amount
-  ?? 0
-))
+const itemPricing = computed(() => resolveOrderItemPricing(order.value))
 const couponDiscountAmount = computed(() => Number(
   order.value?.couponDiscountAmount
   ?? couponSnapshot.value?.couponDiscountAmount
@@ -603,9 +613,8 @@ function getDeliveryList(orderData) {
     .filter((item) => item.trim().length > 0)
 }
 
-function getOrderQuantity(orderData) {
-  const quantity = Number(orderData?.quantity ?? orderData?.productQuantity ?? 1)
-  return Number.isInteger(quantity) && quantity > 0 ? quantity : 1
+function formatMoney(value) {
+  return formatPrice(Number(value) || 0)
 }
 
 // 获取物品描述（使用说明）
@@ -1317,6 +1326,46 @@ onUnmounted(() => {
   text-overflow: ellipsis;
 }
 
+.info-value.unit-price-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.unit-price-original {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.unit-price-original del {
+  text-decoration-line: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: currentColor;
+}
+
+.unit-price-current,
+.unit-price-discounted {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.unit-price-discounted {
+  color: var(--color-danger);
+}
+
 .delivery-value {
   display: inline-flex;
   align-items: center;
@@ -1677,12 +1726,6 @@ onUnmounted(() => {
 .cancel-btn.full-width {
   flex: 1;
   width: 100%;
-}
-
-/* 原价样式 */
-.original-price {
-  text-decoration: line-through;
-  color: var(--text-tertiary) !important;
 }
 
 /* 用户链接 */
