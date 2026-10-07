@@ -23,7 +23,7 @@ const rule = {
 }
 const announcements = [
   rule,
-  { ...rule, id: 12, title: '记住士多的新地址，下次见', mode: 'banner', content: '收藏士多官网，随时回来看看。', summary: '把熟悉的小店加入书签，发现物品，也发现新的可能。', requiresAcknowledgement: false },
+  { ...rule, id: 12, title: '记住士多的新地址，下次见', mode: 'banner', content: '收藏士多官网，随时回来看看。', summary: '把熟悉的小店加入书签，发现物品，也发现新的可能。请收藏士多官网，随时回来看看最新物品、公告与活动。', requiresAcknowledgement: false },
   { ...rule, id: 13, title: '本次服务维护已完成', mode: 'center', status: 'expired', summary: '服务已恢复，可以正常浏览物品、查看订单。', content: '本次服务维护现已完成。\n\n感谢你的耐心等待。', expiresAt: Date.now() - 86400000, createdAt: Date.now() - 86400000 * 8, requiresAcknowledgement: false, actionUrl: '', actionLabel: '' }
 ]
 // All requests are handled here: previews never contact APIs, payments or telemetry.
