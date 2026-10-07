@@ -210,3 +210,19 @@ describe('订单详情物品计价', () => {
     expect(text).toContain('16.00 LDC')
   })
 })
+
+describe('订单详情 CDK 操作区', () => {
+  it('显示、复制、导出按钮与 CDK 密钥标题同一行', async () => {
+    const page = await renderOrder({
+      ...discountedOrder,
+      deliveryContent: 'AAAA-1111\nBBBB-2222\nCCCC-3333'
+    })
+    const header = page.get('.cdk-card-header')
+    expect(header.find('.card-title').text()).toContain('CDK 密钥')
+    expect(header.findAll('.cdk-actions .icon-btn')).toHaveLength(3)
+    expect(header.get('[aria-label="显示密钥"]')).toBeTruthy()
+    expect(header.get('[aria-label="复制密钥"]')).toBeTruthy()
+    expect(header.get('[aria-label="导出为 TXT"]')).toBeTruthy()
+    expect(page.get('.cdk-box').find('.cdk-actions').exists()).toBe(false)
+  })
+})

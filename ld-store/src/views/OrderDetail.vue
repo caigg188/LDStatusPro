@@ -208,27 +208,11 @@
 
         <!-- CDK 信息 -->
         <div class="info-card" v-if="isCdkOrder(order) && getDeliveryContent(order)">
-          <h3 class="card-title">
-            <KeyRound :size="17" aria-hidden="true" />
-            CDK 密钥
-          </h3>
-          
-          <div class="cdk-box">
-            <div class="cdk-head">
-              <span class="cdk-total">共 {{ getDeliveryList(order).length }} 个</span>
-            </div>
-            <code class="cdk-code">
-              <template v-if="showCdk">
-                <span
-                  v-for="(code, index) in getDeliveryList(order)"
-                  :key="`cdk-${index}`"
-                  class="cdk-line"
-                >
-                  {{ getDeliveryList(order).length > 1 ? `${index + 1}. ` : '' }}{{ code }}
-                </span>
-              </template>
-              <template v-else>••••••••••••</template>
-            </code>
+          <div class="cdk-card-header">
+            <h3 class="card-title">
+              <KeyRound :size="17" aria-hidden="true" />
+              CDK 密钥
+            </h3>
             <div class="cdk-actions">
               <button
                 type="button"
@@ -247,6 +231,24 @@
                 <Download :size="17" aria-hidden="true" />
               </button>
             </div>
+          </div>
+          
+          <div class="cdk-box">
+            <div class="cdk-head">
+              <span class="cdk-total">共 {{ getDeliveryList(order).length }} 个</span>
+            </div>
+            <code class="cdk-code">
+              <template v-if="showCdk">
+                <span
+                  v-for="(code, index) in getDeliveryList(order)"
+                  :key="`cdk-${index}`"
+                  class="cdk-line"
+                >
+                  {{ getDeliveryList(order).length > 1 ? `${index + 1}. ` : '' }}{{ code }}
+                </span>
+              </template>
+              <template v-else>••••••••••••</template>
+            </code>
           </div>
         </div>
         
@@ -1456,6 +1458,21 @@ onUnmounted(() => {
 }
 
 /* CDK 展示框 */
+.cdk-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+}
+
+.cdk-card-header .card-title {
+  margin: 0;
+  flex: 1 0 auto;
+  white-space: nowrap;
+}
+
 .cdk-box {
   display: flex;
   flex-direction: column;
@@ -1482,6 +1499,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
   font-family: 'Monaco', 'Consolas', monospace;
   font-size: 14px;
   color: var(--text-primary);
@@ -1495,8 +1513,10 @@ onUnmounted(() => {
 
 .cdk-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
-  justify-content: flex-end;
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .icon-btn {
@@ -1505,6 +1525,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: 10px;
@@ -1517,6 +1538,11 @@ onUnmounted(() => {
 .icon-btn:hover {
   background: var(--bg-secondary);
   border-color: var(--border-hover);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 40%, var(--palette-hex-ffffff));
+  outline-offset: 2px;
 }
 
 /* 链接展示框 */
@@ -1827,6 +1853,16 @@ onUnmounted(() => {
   color: var(--text-tertiary);
 }
 
+@media (max-width: 359px) {
+  .cdk-card-header {
+    gap: 8px;
+  }
+
+  .cdk-actions {
+    gap: 6px;
+  }
+}
+
 @media (max-width: 639px) {
   .status-card {
     padding: 20px;
@@ -1867,6 +1903,17 @@ onUnmounted(() => {
   .cancel-btn,
   .refresh-btn {
     width: 100%;
+  }
+
+  .cdk-box {
+    padding: 12px;
+  }
+}
+
+@media (min-width: 768px) {
+  .cdk-card-header .icon-btn {
+    width: 36px;
+    height: 36px;
   }
 }
 </style>
