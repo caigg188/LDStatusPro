@@ -7,6 +7,7 @@ import {
   buildTrustHint,
   remainingDeadlineLabel,
   recentOrderAction,
+  recentOrderStatusTone,
   sellerChannelCopy,
   shouldShowSellerChannel,
   spendingSummaryText
@@ -56,6 +57,9 @@ describe('personal hub presentation', () => {
       to: { path: '/order/A1', query: { role: 'buyer' } }
     })
     expect(recentOrderAction({ orderNo: 'A2', status: 'refund_pending' }).label).toBe('查看退款')
+    expect(recentOrderStatusTone({ status: 'pending' })).toBe('warn')
+    expect(recentOrderStatusTone({ status: 'paid' })).toBe('info')
+    expect(recentOrderStatusTone({ status: 'completed' })).toBe('ok')
     expect(spendingSummaryText({ totalPurchaseOrders: 36, totalSpent: 1280.5 })).toBe('累计 36 单 · 1,280.5 LDC')
     expect(remainingDeadlineLabel(new Date(Date.now() - 1000).toISOString())).toBe('已到期')
   })

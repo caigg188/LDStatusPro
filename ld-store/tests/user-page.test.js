@@ -20,7 +20,7 @@ describe('personal hub page', () => {
     expect(source).toContain('我的记录')
     expect(source).toContain('卖家后台')
     expect(source).toContain('帮助中心')
-    expect(source).toContain('查看我的公开主页')
+    expect(source).toContain('公开主页')
     expect(source).not.toContain('可用余额')
     expect(source).not.toContain('今日额度')
     expect(source).not.toContain('fetchLdcInfo')

@@ -189,6 +189,15 @@ export function recentOrderStatusLabel(order = {}) {
   return ORDER_STATUS_LABELS[order.status] || order.status || '未知'
 }
 
+export function recentOrderStatusTone(order = {}) {
+  const status = String(order.status || '')
+  if (status === 'pending' || status === 'paying') return 'warn'
+  if (status === 'paid') return 'info'
+  if (status === 'refund_pending' || status === 'refund_failed') return 'danger'
+  if (status === 'delivered' || status === 'completed' || status === 'refunded') return 'ok'
+  return 'mute'
+}
+
 export function sortDistributionCategories(categories = [], mode = 'amount') {
   return [...categories].sort((left, right) => {
     const primary = mode === 'orders'

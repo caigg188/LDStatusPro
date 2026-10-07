@@ -1,43 +1,44 @@
 <template>
   <div class="user-page">
     <div class="page-container">
-      <section class="identity-card" aria-labelledby="user-display-name">
-        <div class="identity-main">
-          <AvatarImage
-            :src="avatar"
-            :candidates="userStore.avatarCandidates"
-            :seed="avatarSeed"
-            :size="128"
-            alt=""
-            class="user-avatar"
-            loading-mode="eager"
-          />
-          <div class="user-detail">
-            <div class="name-row">
-              <h1 id="user-display-name" class="user-name">{{ username }}</h1>
-              <router-link
-                class="trust-chip"
-                :class="trustHint.tone"
-                to="/docs/concepts"
-                :aria-label="`信任等级 ${trustHint.label}，${trustHint.detail}`"
-              >
-                {{ trustHint.label }}
-              </router-link>
-            </div>
-            <p class="user-id">{{ handle }}</p>
-            <p class="trust-detail">{{ trustHint.detail }}<template v-if="daysOnStoreText"> · {{ daysOnStoreText }}</template></p>
-            <router-link v-if="publicProfilePath" :to="publicProfilePath" class="profile-link">
-              查看我的公开主页
-              <ArrowUpRight :size="14" aria-hidden="true" />
+      <header class="identity" aria-labelledby="user-display-name">
+        <AvatarImage
+          :src="avatar"
+          :candidates="userStore.avatarCandidates"
+          :seed="avatarSeed"
+          :size="128"
+          alt=""
+          class="user-avatar"
+          loading-mode="eager"
+        />
+        <div class="identity-copy">
+          <div class="name-row">
+            <h1 id="user-display-name" class="user-name">{{ username }}</h1>
+            <router-link
+              class="trust-chip"
+              :class="trustHint.tone"
+              to="/docs/concepts"
+              :aria-label="`信任等级 ${trustHint.label}，${trustHint.detail}`"
+            >
+              {{ trustHint.label }}
             </router-link>
           </div>
+          <p class="identity-meta">
+            <span>{{ handle }}</span>
+            <span v-if="daysOnStoreText">{{ daysOnStoreText }}</span>
+            <span>{{ trustHint.detail }}</span>
+            <router-link v-if="publicProfilePath" :to="publicProfilePath" class="profile-link">
+              公开主页
+              <ArrowUpRight :size="14" aria-hidden="true" />
+            </router-link>
+          </p>
         </div>
-      </section>
+      </header>
 
-      <section class="panel attention-panel" aria-labelledby="attention-title">
+      <section class="panel" aria-labelledby="attention-title">
         <div class="panel-head">
           <h2 id="attention-title">需要处理</h2>
-          <p>先处理未完成的支付、收货、退款和消息。</p>
+          <p>{{ attentionSubtitle }}</p>
         </div>
         <div v-if="attentionLoading" class="attention-grid" aria-live="polite">
           <span v-for="item in 4" :key="item" class="skeleton attention-skeleton" />
@@ -50,18 +51,18 @@
             :to="item.to"
             class="attention-card"
           >
-            <span class="attention-icon" aria-hidden="true">
+            <span class="icon-well" aria-hidden="true">
               <component :is="attentionIcons[item.key]" :size="18" :stroke-width="1.8" />
             </span>
             <strong>{{ formatHubNumber(item.count) }}</strong>
-            <span>{{ item.label }}</span>
+            <span class="attention-label">{{ item.label }}</span>
             <small v-if="item.hint">{{ item.hint }}</small>
           </router-link>
         </div>
-        <div v-else class="empty-box">
-          <p>目前没有待办。</p>
-          <router-link to="/" class="empty-link">去物品广场看看</router-link>
-        </div>
+        <p v-else class="quiet-empty">
+          目前没有待办。
+          <router-link to="/" class="text-link">去物品广场看看</router-link>
+        </p>
       </section>
 
       <div class="hub-split">
@@ -69,31 +70,39 @@
           <div class="panel-head row-head">
             <div>
               <h2 id="recent-title">最近订单</h2>
-              <p>继续支付、查看交付或跟进退款。</p>
+              <p>继续未完成的支付、交付或退款。</p>
             </div>
             <router-link to="/user/orders" class="text-link">查看全部</router-link>
           </div>
           <div v-if="attentionLoading" class="recent-list" aria-live="polite">
-            <div v-for="item in 3" :key="item" class="recent-card">
+            <div v-for="item in 3" :key="item" class="recent-card is-skeleton">
               <span class="skeleton pill mid" />
               <span class="skeleton line" />
             </div>
           </div>
-          <div v-else-if="recentOrders.length" class="recent-list">
-            <article v-for="order in recentOrders" :key="order.orderNo || order.id" class="recent-card">
+          <nav v-else-if="recentOrders.length" class="recent-list" aria-label="最近购买订单">
+            <router-link
+              v-for="order in recentOrders"
+              :key="order.orderNo || order.id"
+              :to="orderAction(order).to"
+              class="recent-card"
+              :aria-label="`${order.productName}，${recentOrderStatusLabel(order)}，${orderAction(order).label}`"
+            >
               <div class="recent-copy">
                 <strong>{{ order.productName }}</strong>
-                <span>{{ formatHubAmount(order.amount) }} LDC · {{ recentOrderStatusLabel(order) }}</span>
+                <span>{{ formatHubAmount(order.amount) }} LDC</span>
               </div>
-              <router-link :to="orderAction(order).to" class="recent-action">
+              <span :class="['status-pill', `is-${recentOrderStatusTone(order)}`]">{{ recentOrderStatusLabel(order) }}</span>
+              <span class="recent-go">
                 {{ orderAction(order).label }}
-              </router-link>
-            </article>
-          </div>
-          <div v-else class="empty-box">
-            <p>还没有购买记录。</p>
-            <router-link to="/" class="empty-link">去逛逛物品</router-link>
-          </div>
+                <ChevronRight :size="16" aria-hidden="true" />
+              </span>
+            </router-link>
+          </nav>
+          <p v-else class="quiet-empty">
+            还没有购买记录。
+            <router-link to="/" class="text-link">去逛逛物品</router-link>
+          </p>
         </section>
 
         <section class="panel" aria-labelledby="records-title">
@@ -101,56 +110,59 @@
             <h2 id="records-title">我的记录</h2>
             <p>订单、优惠券、求购和收藏都在这里。</p>
           </div>
-          <div class="record-grid">
+          <nav class="record-grid" aria-label="个人记录入口">
             <router-link
               v-for="item in recordLinks"
               :key="item.key"
               :to="item.to"
               class="record-card"
             >
-              <span class="record-icon" aria-hidden="true">
+              <span class="icon-well" aria-hidden="true">
                 <component :is="recordIcons[item.key]" :size="18" :stroke-width="1.8" />
               </span>
               <span class="record-label">{{ item.label }}</span>
               <span v-if="item.badge" class="record-badge">{{ item.badge }}</span>
             </router-link>
-          </div>
+          </nav>
         </section>
       </div>
 
       <router-link
         v-if="showSellerChannel"
         to="/seller"
-        class="seller-channel"
+        class="seller-strip"
         :aria-label="sellerChannelAriaLabel"
       >
-        <span class="seller-icon" aria-hidden="true">
+        <span class="icon-well" aria-hidden="true">
           <Store :size="18" :stroke-width="1.8" />
         </span>
-        <span>
+        <span class="seller-copy">
           <strong>卖家后台</strong>
           <small>{{ sellerChannelHint }}</small>
         </span>
-        <span class="seller-go">进入卖家后台</span>
+        <span class="seller-go">
+          进入
+          <ChevronRight :size="16" aria-hidden="true" />
+        </span>
       </router-link>
 
       <details class="panel spending-panel">
         <summary>
-          <span>
+          <span class="spending-summary">
             <strong>消费画像</strong>
             <small>{{ spendingSummary }}</small>
           </span>
-          <span class="summary-arrow" aria-hidden="true">▾</span>
+          <ChevronRight class="summary-arrow" :size="18" aria-hidden="true" />
         </summary>
         <div v-if="dashboardLoading" class="distribution-list" aria-live="polite">
-          <div v-for="item in 3" :key="item" class="distribution-item">
+          <div v-for="item in 3" :key="item" class="distribution-item is-skeleton">
             <span class="skeleton pill mid" />
             <span class="skeleton bar-skeleton" />
           </div>
         </div>
         <p v-else-if="dashboardError" class="error-box" role="alert">{{ dashboardError }}</p>
         <div v-else-if="distributionCategories.length" class="distribution-toolbar">
-          <div class="switch-group">
+          <div class="switch-group" role="group" aria-label="消费画像统计方式">
             <button type="button" :class="['switch-btn', { active: distributionMode === 'orders' }]" @click="distributionMode = 'orders'">按订单数</button>
             <button type="button" :class="['switch-btn', { active: distributionMode === 'amount' }]" @click="distributionMode = 'amount'">按积分</button>
           </div>
@@ -164,56 +176,62 @@
             @click="jumpToDistributionOrders(item)"
           >
             <div class="row between">
-              <span class="distribution-name">{{ item.categoryIcon || '📦' }} {{ item.categoryName }}</span>
+              <span class="distribution-name">{{ item.categoryName }}</span>
               <strong>{{ distributionMode === 'orders' ? `${formatHubNumber(item.orderCount)} 单` : `${formatHubAmount(item.amount)} LDC` }}</strong>
             </div>
             <div class="row between meta-row">
               <span>{{ formatHubNumber(item.orderCount) }} 单 / {{ formatHubNumber(item.quantity) }} 件</span>
               <span>{{ formatHubAmount(item.amount) }} LDC</span>
             </div>
-            <div class="bar"><span class="fill" :style="{ width: `${distributionWidth(item, distributionMaxValue, distributionMode)}%` }" /></div>
-            <span class="hint-row">查看该分类已成交订单 →</span>
+            <div class="bar" aria-hidden="true">
+              <span class="fill" :style="{ width: `${distributionWidth(item, distributionMaxValue, distributionMode)}%` }" />
+            </div>
           </button>
         </div>
-        <div v-else-if="!dashboardLoading && !dashboardError" class="empty-box">还没有已成交的购买记录，后续消费会自动出现在这里。</div>
+        <p v-else-if="!dashboardLoading && !dashboardError" class="quiet-empty">还没有已成交的购买记录，后续消费会自动出现在这里。</p>
       </details>
 
-      <section class="menu-section" aria-labelledby="tools-title">
-        <h2 id="tools-title" class="section-title">工具</h2>
-        <div class="menu-list">
-          <router-link v-for="item in toolLinks" :key="item.label" :to="item.to" class="menu-item">
-            <span class="menu-icon" aria-hidden="true">
-              <component :is="item.icon" :size="18" :stroke-width="1.8" />
-            </span>
-            <span class="menu-label">{{ item.label }}</span>
-            <span class="menu-arrow" aria-hidden="true">→</span>
-          </router-link>
+      <section class="more-panel" aria-label="工具与账号">
+        <div class="more-grid">
+          <div>
+            <h2 class="section-title">工具</h2>
+            <nav class="menu-list" aria-label="工具">
+              <router-link v-for="item in toolLinks" :key="item.label" :to="item.to" class="menu-item">
+                <span class="icon-well" aria-hidden="true">
+                  <component :is="item.icon" :size="17" :stroke-width="1.8" />
+                </span>
+                <span class="menu-label">{{ item.label }}</span>
+                <ChevronRight :size="16" class="menu-arrow" aria-hidden="true" />
+              </router-link>
+            </nav>
+          </div>
+          <div>
+            <h2 class="section-title">账号与社区</h2>
+            <nav class="menu-list" aria-label="账号与社区">
+              <component
+                :is="item.to ? 'router-link' : 'a'"
+                v-for="item in accountLinks"
+                :key="item.label"
+                :to="item.to"
+                :href="item.href"
+                :target="item.target"
+                :rel="item.rel"
+                class="menu-item"
+              >
+                <span class="icon-well" aria-hidden="true">
+                  <component :is="item.icon" :size="17" :stroke-width="1.8" />
+                </span>
+                <span class="menu-label">{{ item.label }}</span>
+                <ChevronRight :size="16" class="menu-arrow" aria-hidden="true" />
+              </component>
+            </nav>
+          </div>
         </div>
+        <button class="logout-btn" type="button" @click="handleLogout">
+          <LogOut :size="17" aria-hidden="true" />
+          退出登录
+        </button>
       </section>
-
-      <section class="menu-section" aria-labelledby="account-title">
-        <h2 id="account-title" class="section-title">账号与社区</h2>
-        <div class="menu-list">
-          <component
-            :is="item.to ? 'router-link' : 'a'"
-            v-for="item in accountLinks"
-            :key="item.label"
-            :to="item.to"
-            :href="item.href"
-            :target="item.target"
-            :rel="item.rel"
-            class="menu-item"
-          >
-            <span class="menu-icon" aria-hidden="true">
-              <component :is="item.icon" :size="18" :stroke-width="1.8" />
-            </span>
-            <span class="menu-label">{{ item.label }}</span>
-            <span class="menu-arrow" aria-hidden="true">→</span>
-          </component>
-        </div>
-      </section>
-
-      <button class="logout-btn" type="button" @click="handleLogout">退出登录</button>
     </div>
   </div>
 </template>
@@ -221,14 +239,16 @@
 <script setup>
 import {
   ArrowUpRight,
+  ChevronRight,
   CircleHelp,
   ClipboardList,
   ClipboardPenLine,
   Clock3,
+  ExternalLink,
   Flag,
   Heart,
-  ExternalLink,
   Image as ImageIcon,
+  LogOut,
   Megaphone,
   MessageCircle,
   RotateCcw,
@@ -236,7 +256,7 @@ import {
   TicketPercent,
   Truck
 } from '@lucide/vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useCatalogStore } from '@/stores/catalog'
@@ -260,6 +280,7 @@ import {
   formatHubNumber,
   recentOrderAction,
   recentOrderStatusLabel,
+  recentOrderStatusTone,
   sellerChannelCopy,
   shouldShowSellerChannel,
   sortDistributionCategories,
@@ -282,6 +303,21 @@ const recordIcons = {
   messages: MessageCircle,
   reports: Flag
 }
+const GithubMark = (props) => h('svg', {
+  width: props.size ?? 17,
+  height: props.size ?? 17,
+  viewBox: '0 0 98 96',
+  fill: 'currentColor',
+  'aria-hidden': 'true'
+}, [
+  h('path', {
+    'fill-rule': 'evenodd',
+    'clip-rule': 'evenodd',
+    d: 'M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z'
+  })
+])
+GithubMark.props = ['size']
+
 const toolLinks = [
   { icon: ImageIcon, label: '士多图床', to: '/ld-image' },
   { icon: CircleHelp, label: '帮助中心', to: '/docs' },
@@ -290,7 +326,7 @@ const toolLinks = [
 const accountLinks = [
   { icon: Heart, label: '支持士多', to: '/support' },
   { icon: ExternalLink, label: 'Linux.do 社区', href: 'https://linux.do', target: '_blank', rel: 'noopener' },
-  { icon: ExternalLink, label: 'GitHub', href: 'https://github.com/caigg188/LDStatusPro', target: '_blank', rel: 'noopener' }
+  { icon: GithubMark, label: 'GitHub', href: 'https://github.com/caigg188/LDStatusPro', target: '_blank', rel: 'noopener' }
 ]
 
 const router = useRouter()
@@ -337,6 +373,13 @@ const attentionItems = computed(() => buildAttentionItems({
   messageUnread: messageUnread.value
 }))
 const visibleAttentionItems = computed(() => activeAttentionItems(attentionItems.value))
+const attentionSubtitle = computed(() => {
+  if (attentionLoading.value) return '正在查看未完成的事项'
+  if (attentionError.value) return '待办暂时无法刷新'
+  const count = visibleAttentionItems.value.length
+  if (count === 0) return '没有需要马上处理的事项'
+  return `有 ${formatHubNumber(count)} 件未完成事项`
+})
 const recordLinks = computed(() => buildRecordLinks({
   unusedCouponCount: attention.value.unusedCouponCount,
   messageUnread: messageUnread.value,
@@ -439,55 +482,53 @@ async function handleLogout() {
 <style scoped>
 .user-page {
   min-height: 100vh;
-  padding-bottom: 80px;
+  padding-bottom: 88px;
   background: var(--bg-primary);
   color-scheme: light;
   --user-card-border: var(--palette-hex-dfd6ca);
   --user-card-bg: var(--palette-hex-fcfaf6);
-  --user-card-shadow: 0 14px 32px var(--palette-rgba-61-61-61-0p06);
+  --user-card-shadow: 0 10px 24px var(--palette-rgba-61-61-61-0p05);
   --user-subtle-bg: var(--palette-hex-f5f3ef);
-  --user-subtle-strong-bg: var(--palette-hex-f0ede8);
   --user-subtle-border: var(--palette-hex-e4dbcf);
   --user-hover-border: var(--palette-hex-cad6cb);
-  --user-hover-shadow: 0 10px 22px var(--palette-rgba-61-61-61-0p06);
   --user-empty-bg: var(--palette-hex-f8f5ef);
   --user-track-bg: var(--palette-hex-e7dfd3);
   --user-accent: var(--palette-hex-7f9681);
+  --user-accent-text: var(--palette-hex-5f7565);
   --user-avatar-border: var(--palette-rgba-255-255-255-0p92);
-  --user-avatar-shadow: 0 10px 24px var(--palette-rgba-61-61-61-0p12);
   --user-switch-shell-bg: var(--palette-hex-f4f0e9);
   --user-skeleton-bg: var(--palette-hex-e2e8f0);
   --user-skeleton-shine: var(--palette-rgba-255-255-255-0p68);
-  --user-menu-bg: var(--palette-hex-fcfaf6);
   --user-menu-hover-bg: var(--palette-hex-f4f0e9);
-  --user-menu-border: var(--palette-hex-e4dbcf);
-  --user-logout-bg: var(--palette-hex-fcfaf6);
   --user-attention-bg: var(--palette-hex-edf2ea);
   --user-badge-bg: var(--palette-hex-738a76);
+  --user-status-ok-bg: var(--status-success-surface);
+  --user-status-ok-text: var(--status-success);
+  --user-status-warn-bg: var(--status-warning-surface);
+  --user-status-warn-text: var(--status-warning);
+  --user-status-info-bg: var(--status-info-surface);
+  --user-status-info-text: var(--status-info);
+  --user-status-danger-bg: var(--status-danger-surface);
+  --user-status-danger-text: var(--status-danger);
 }
 
 :global(html.dark .user-page) {
   color-scheme: dark;
   --user-card-border: var(--palette-hex-302a24);
   --user-card-bg: var(--palette-hex-1f1b18);
-  --user-card-shadow: 0 18px 42px var(--palette-rgba-0-0-0-0p26);
+  --user-card-shadow: 0 14px 32px var(--palette-rgba-0-0-0-0p24);
   --user-subtle-bg: var(--palette-hex-2b2520);
-  --user-subtle-strong-bg: var(--palette-hex-302923);
   --user-subtle-border: var(--palette-hex-302a24);
   --user-hover-border: var(--palette-hex-424443);
-  --user-hover-shadow: 0 12px 28px var(--palette-rgba-0-0-0-0p24);
   --user-empty-bg: var(--palette-hex-261c1c);
   --user-track-bg: var(--palette-hex-41372f);
   --user-accent: var(--palette-hex-8fb090);
+  --user-accent-text: var(--palette-hex-d7ead3);
   --user-avatar-border: var(--palette-hex-352e24);
-  --user-avatar-shadow: 0 12px 28px var(--palette-rgba-0-0-0-0p28);
   --user-switch-shell-bg: var(--palette-hex-3c342c);
   --user-skeleton-bg: var(--palette-hex-413931);
   --user-skeleton-shine: var(--palette-rgba-255-255-255-0p08);
-  --user-menu-bg: var(--palette-hex-221d19);
   --user-menu-hover-bg: var(--palette-hex-312a24);
-  --user-menu-border: var(--palette-hex-302a24);
-  --user-logout-bg: var(--palette-hex-1f1b18);
   --user-attention-bg: var(--palette-hex-2f322a);
   --user-badge-bg: var(--palette-hex-8fb090);
 }
@@ -496,99 +537,119 @@ async function handleLogout() {
   max-width: 1080px;
 }
 
-.identity-card,
+.identity,
 .panel,
-.seller-channel,
+.seller-strip,
 .menu-list,
 .logout-btn {
   border: 1px solid var(--user-card-border);
   background: var(--user-card-bg);
-  box-shadow: var(--user-card-shadow);
   isolation: isolate;
 }
 
-.identity-card,
+.identity,
 .panel,
-.seller-channel {
+.seller-strip {
   margin-bottom: var(--section-gap);
-  padding: var(--detail-pad);
+  padding: var(--card-pad) var(--detail-pad);
   border-radius: var(--card-radius);
+  box-shadow: var(--user-card-shadow);
 }
 
-.identity-main,
-.user-detail,
+.identity,
+.identity-copy,
+.name-row,
+.identity-meta,
 .recent-card,
-.seller-channel,
+.seller-strip,
+.seller-copy,
 .menu-item,
-.row {
+.row,
+.logout-btn,
+.recent-go,
+.spending-panel summary,
+.spending-summary {
   display: flex;
 }
 
-.identity-main,
-.user-detail {
-  min-width: 0;
-}
-
-.identity-main {
+.identity,
+.recent-card,
+.seller-strip,
+.menu-item {
   align-items: center;
-  gap: 16px;
+  gap: var(--space-3);
 }
 
-.user-avatar {
-  width: 72px;
-  height: 72px;
-  border: 3px solid var(--user-avatar-border);
-  border-radius: 50%;
-  object-fit: cover;
-  box-shadow: var(--user-avatar-shadow);
-}
-
-.user-detail {
+.identity-copy,
+.seller-copy,
+.recent-copy,
+.spending-summary {
+  min-width: 0;
   flex: 1;
   flex-direction: column;
   gap: 4px;
 }
 
+.user-avatar {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border: 2px solid var(--user-avatar-border);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .name-row {
-  display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
-.user-name {
+.user-name,
+.panel-head h2,
+.spending-panel strong,
+.seller-copy strong,
+.recent-copy strong,
+.distribution-name {
   margin: 0;
-  font-size: var(--text-display);
-  font-weight: 700;
   color: var(--text-primary);
 }
 
-.user-id,
-.trust-detail {
+.user-name {
+  font-size: var(--text-subtitle);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.identity-meta {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
   margin: 0;
   color: var(--text-tertiary);
-  font-size: 13px;
+  font-size: var(--text-size-xs);
+}
+
+.identity-meta > * + *::before {
+  content: '·';
+  margin-right: 10px;
+  color: var(--user-subtle-border);
 }
 
 .profile-link,
 .text-link,
-.empty-link,
-.recent-action,
-.seller-go,
-.linkish,
-.hint-row {
-  color: var(--user-accent);
+.recent-go,
+.seller-go {
+  color: var(--user-accent-text);
   font-weight: 600;
 }
 
 .profile-link,
-.text-link,
-.empty-link {
+.text-link {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  width: fit-content;
-  min-height: 32px;
+  gap: 2px;
+  min-height: 28px;
   font-size: 13px;
 }
 
@@ -599,18 +660,18 @@ async function handleLogout() {
 .distribution-item,
 .attention-card,
 .record-card,
-.seller-channel,
-.recent-action {
-  transition: color var(--motion-duration-fast) var(--motion-ease-standard), background-color var(--motion-duration-fast) var(--motion-ease-standard), border-color var(--motion-duration-fast) var(--motion-ease-standard), box-shadow var(--motion-duration-fast) var(--motion-ease-standard), transform var(--motion-duration-fast) var(--motion-ease-standard);
+.seller-strip,
+.recent-card {
+  transition: color var(--motion-duration-fast) var(--motion-ease-standard), background-color var(--motion-duration-fast) var(--motion-ease-standard), border-color var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
 .trust-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 30px;
-  padding: 0 12px;
+  min-height: 28px;
+  padding: 0 10px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
@@ -631,24 +692,24 @@ async function handleLogout() {
 :global(html.dark .user-page .trust-chip.trust-elite) { color: var(--palette-hex-d6f0e6); background: var(--palette-hex-313833); border-color: var(--palette-hex-333631); }
 
 .panel-head {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .panel-head h2,
 .spending-panel strong {
-  margin: 0;
-  font-size: 18px;
+  font-size: var(--text-size-md);
   font-weight: 700;
-  color: var(--text-primary);
 }
 
 .panel-head p,
 .spending-panel small,
 .meta-row,
-.empty-box,
+.quiet-empty,
 .error-box,
-.seller-channel small {
-  margin: 6px 0 0;
+.seller-copy small,
+.recent-copy span,
+.attention-label {
+  margin: 4px 0 0;
   color: var(--text-tertiary);
   font-size: 13px;
   line-height: 1.5;
@@ -658,14 +719,26 @@ async function handleLogout() {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
+}
+
+.icon-well {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--user-attention-bg);
+  color: var(--user-accent-text);
 }
 
 .attention-grid,
 .record-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--grid-gap);
 }
 
 .attention-card,
@@ -673,53 +746,30 @@ async function handleLogout() {
 .recent-card,
 .distribution-item {
   border: 1px solid var(--user-subtle-border);
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   background: var(--user-subtle-bg);
   text-decoration: none;
+  color: var(--text-primary);
 }
 
 .attention-card,
 .record-card {
+  position: relative;
   display: grid;
-  gap: 4px;
-  min-height: 92px;
-  padding: 14px;
-  color: var(--text-primary);
+  align-content: start;
+  gap: 6px;
+  min-height: 96px;
+  padding: 12px;
 }
 
-.attention-card {
-  background: var(--user-attention-bg);
-}
-
-.attention-card strong,
-.recent-copy strong {
-  font-size: 22px;
+.attention-card strong {
+  font-size: var(--text-stat);
   line-height: 1.1;
 }
 
-.attention-card span,
-.record-label,
-.recent-copy span {
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
 .attention-card small {
-  color: var(--user-accent);
+  color: var(--user-accent-text);
   font-size: 12px;
-}
-
-.attention-icon,
-.record-icon,
-.seller-icon,
-.menu-icon {
-  display: inline-flex;
-  color: var(--user-accent);
-}
-
-.record-card {
-  position: relative;
-  align-content: start;
 }
 
 .record-badge {
@@ -727,10 +777,11 @@ async function handleLogout() {
   top: 10px;
   right: 10px;
   min-width: 20px;
+  min-height: 18px;
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--user-badge-bg);
-  color: var(--palette-hex-ffffff);
+  color: var(--text-inverse);
   font-size: 11px;
   font-weight: 700;
   line-height: 18px;
@@ -739,22 +790,21 @@ async function handleLogout() {
 
 .hub-split,
 .recent-list,
-.distribution-list {
+.distribution-list,
+.more-grid {
   display: grid;
-  gap: 12px;
+  gap: var(--grid-gap);
 }
 
 .recent-card {
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px;
+  min-height: 64px;
+  padding: 12px 14px;
 }
 
-.recent-copy {
+.recent-card.is-skeleton,
+.distribution-item.is-skeleton {
   display: grid;
-  gap: 4px;
-  min-width: 0;
+  gap: 8px;
 }
 
 .recent-copy strong {
@@ -764,39 +814,47 @@ async function handleLogout() {
   white-space: nowrap;
 }
 
-.recent-action {
+.status-pill {
   flex-shrink: 0;
-  min-height: 36px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: var(--user-attention-bg);
-  font-size: 13px;
-  line-height: 36px;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  background: var(--user-subtle-bg);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 24px;
 }
 
-.seller-channel {
+.status-pill.is-ok { background: var(--user-status-ok-bg); color: var(--user-status-ok-text); }
+.status-pill.is-warn { background: var(--user-status-warn-bg); color: var(--user-status-warn-text); }
+.status-pill.is-info { background: var(--user-status-info-bg); color: var(--user-status-info-text); }
+.status-pill.is-danger { background: var(--user-status-danger-bg); color: var(--user-status-danger-text); }
+
+.recent-go,
+.seller-go {
+  display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 12px;
-  color: var(--text-primary);
-  text-decoration: none;
+  gap: 2px;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
-.seller-channel span:nth-child(2) {
-  display: grid;
-  flex: 1;
-  min-width: 0;
+.seller-strip {
+  min-height: 64px;
+  padding-inline: var(--space-4);
 }
 
 .seller-go {
   margin-left: auto;
-  font-size: 13px;
 }
 
 .spending-panel summary {
-  display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
+  min-height: 44px;
   cursor: pointer;
   list-style: none;
 }
@@ -805,34 +863,36 @@ async function handleLogout() {
   display: none;
 }
 
-.spending-panel summary span:first-child,
-.seller-channel span:nth-child(2) {
-  min-width: 0;
+.summary-arrow {
+  flex-shrink: 0;
+  color: var(--user-accent);
+  transform: rotate(90deg);
 }
 
-.summary-arrow {
-  color: var(--user-accent);
+.spending-panel[open] .summary-arrow {
+  transform: rotate(-90deg);
 }
 
 .distribution-toolbar {
   display: flex;
   justify-content: flex-end;
-  margin: 14px 0 12px;
+  margin: 12px 0;
 }
 
 .switch-group {
   display: inline-flex;
-  gap: 6px;
+  gap: 4px;
   padding: 4px;
   border: 1px solid var(--user-subtle-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--user-switch-shell-bg);
 }
 
 .switch-btn {
-  padding: 8px 12px;
+  min-height: 36px;
+  padding: 0 12px;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--text-secondary);
   font-size: 13px;
@@ -840,31 +900,25 @@ async function handleLogout() {
 }
 
 .switch-btn.active {
-  color: var(--palette-hex-ffffff);
+  color: var(--text-inverse);
   background: var(--user-accent);
 }
 
 .distribution-item {
   width: 100%;
-  padding: 14px 16px;
+  padding: 12px 14px;
   text-align: left;
   cursor: pointer;
 }
 
-.distribution-item:hover,
 .attention-card:hover,
 .record-card:hover,
 .recent-card:hover,
-.seller-channel:hover,
-.menu-item:hover {
-  transform: translateY(-1px);
+.seller-strip:hover,
+.menu-item:hover,
+.distribution-item:hover {
   border-color: var(--user-hover-border);
-  box-shadow: var(--user-hover-shadow);
-}
-
-.distribution-name {
-  font-weight: 600;
-  color: var(--text-primary);
+  background: var(--user-menu-hover-bg);
 }
 
 .row.between {
@@ -873,13 +927,7 @@ async function handleLogout() {
 }
 
 .meta-row {
-  margin: 8px 0;
-  font-size: 12px;
-}
-
-.hint-row {
-  display: block;
-  margin-top: 8px;
+  margin: 6px 0 8px;
   font-size: 12px;
 }
 
@@ -887,31 +935,31 @@ async function handleLogout() {
 .bar-skeleton {
   height: 8px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--user-track-bg);
 }
 
 .fill {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--user-accent);
 }
 
 .error-box,
-.empty-box {
-  padding: 16px;
-  border-radius: 16px;
+.quiet-empty {
+  padding: 12px 0 4px;
 }
 
 .error-box {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
   background: var(--color-danger-light);
   color: var(--color-danger);
 }
 
-.empty-box {
-  text-align: center;
-  background: var(--user-empty-bg);
+.quiet-empty {
+  color: var(--text-tertiary);
 }
 
 .skeleton {
@@ -934,59 +982,47 @@ async function handleLogout() {
 .line,
 .bar-skeleton {
   display: block;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
 }
 
 .attention-skeleton {
-  height: 92px;
-  border-radius: 16px;
+  min-height: 96px;
 }
 
 .pill {
   height: 14px;
+  border-radius: var(--radius-pill);
 }
 
-.pill.mid {
-  width: 112px;
-}
+.pill.mid { width: 112px; }
+.line { width: 64%; height: 16px; }
 
-.line {
-  width: 72%;
-  height: 18px;
-  margin-top: 10px;
-  border-radius: 10px;
-}
-
-.menu-section {
-  margin-bottom: 20px;
+.more-panel {
+  margin-top: 8px;
 }
 
 .section-title {
-  margin: 0 0 12px 4px;
-  font-size: 14px;
-  font-weight: 600;
+  margin: 0 0 10px 2px;
+  font-size: 13px;
+  font-weight: 650;
   color: var(--text-tertiary);
 }
 
 .menu-list {
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 .menu-item {
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--user-menu-border);
+  min-height: 48px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--user-card-border);
   color: var(--text-primary);
   text-decoration: none;
 }
 
 .menu-item:last-child {
   border-bottom: none;
-}
-
-.menu-icon {
-  margin-right: 14px;
 }
 
 .menu-label {
@@ -999,10 +1035,13 @@ async function handleLogout() {
 }
 
 .logout-btn {
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
-  margin-top: 8px;
-  padding: 16px;
-  border-radius: 16px;
+  min-height: 48px;
+  margin-top: var(--space-4);
+  border-radius: var(--radius-lg);
   color: var(--color-danger);
   font-size: 15px;
   cursor: pointer;
@@ -1013,138 +1052,103 @@ async function handleLogout() {
   background: var(--color-danger-light);
 }
 
+.user-page :is(a, button, summary):focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 @keyframes skeleton-shimmer {
   100% { transform: translateX(100%); }
 }
 
 @media (min-width: 768px) {
+  .identity { padding: 16px 20px; }
+  .user-avatar { width: 64px; height: 64px; }
+  .attention-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .record-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .more-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
   .hub-split {
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-    gap: 16px;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+    align-items: start;
     margin-bottom: var(--section-gap);
   }
 
   .hub-split > .panel {
     margin-bottom: 0;
   }
+
+  .attention-grid {
+    grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  }
 }
 
 @media (max-width: 767px) {
-  .identity-card,
+  .identity,
   .panel,
-  .seller-channel {
-    padding: 18px;
-    border-radius: 20px;
+  .seller-strip {
+    padding: 14px;
   }
 
-  .attention-grid,
-  .record-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .attention-card,
+  .record-card,
+  .attention-skeleton {
+    min-height: 88px;
+  }
+
+  .recent-card,
+  .seller-strip,
+  .menu-item,
+  .logout-btn,
+  .switch-btn {
+    min-height: 44px;
+  }
+
+  .seller-strip {
+    min-height: 56px;
   }
 }
 
 @media (max-width: 639px) {
-  .identity-card,
-  .panel,
-  .seller-channel {
-    padding: 12px;
-    border-radius: 18px;
+  .recent-card {
+    flex-wrap: wrap;
   }
 
-  .identity-main {
-    display: grid;
-    grid-template-columns: 56px minmax(0, 1fr);
-    gap: 10px;
+  .status-pill {
+    order: 2;
   }
 
-  .user-avatar {
-    width: 56px;
-    height: 56px;
-    border-width: 2px;
-  }
-
-  .user-name {
-    font-size: 18px;
-  }
-
-  .attention-grid {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-  }
-
-  .attention-card,
-  .attention-skeleton {
-    flex: 0 0 132px;
-    min-height: 86px;
-  }
-
-  .record-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .record-card {
-    min-height: 86px;
-  }
-
-  .menu-list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-  }
-
-  .menu-item {
-    min-height: 86px;
-    padding: 12px;
-    border: 1px solid var(--user-menu-border);
-    border-radius: 14px;
-    background: var(--user-menu-bg);
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-  }
-
-  .menu-item:last-child {
-    border-bottom: 1px solid var(--user-menu-border);
-  }
-
-  .menu-list > .menu-item:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-    min-height: 0;
-    flex-direction: row;
-    align-items: center;
-  }
-
-  .menu-icon {
-    margin-right: 0;
-  }
-
-  .menu-arrow {
-    margin-top: auto;
-    align-self: flex-end;
-  }
-
-  .menu-list > .menu-item:last-child:nth-child(odd) .menu-arrow {
-    margin-top: 0;
+  .recent-go {
+    order: 3;
     margin-left: auto;
-    align-self: center;
-  }
-
-  .logout-btn {
-    margin-top: 12px;
-    padding: 14px;
   }
 }
 
 @media (max-width: 359px) {
+  .attention-grid,
   .record-grid,
-  .menu-list {
+  .more-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trust-chip,
+  .switch-btn,
+  .menu-item,
+  .logout-btn,
+  .distribution-item,
+  .attention-card,
+  .record-card,
+  .seller-strip,
+  .recent-card,
+  .summary-arrow,
+  .skeleton::after {
+    transition: none;
+    animation: none;
+    transform: none;
   }
 }
 </style>
