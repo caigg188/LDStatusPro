@@ -1,7 +1,7 @@
 <template>
   <div class="doc-content">
     <h2 id="purpose">集中管理账号内的交易线索</h2>
-    <p class="lead">个人中心保存订单、优惠券、求购、消息、收藏与拉黑、举报等入口。发生问题时，先回到对应记录，而不是只依赖站外聊天。</p>
+    <p class="lead">个人中心先展示需要处理的支付、收货、退款和消息，再提供订单、优惠券、求购、收藏与拉黑、举报等记录入口。发生问题时，先回到对应记录，而不是只依赖站外聊天。</p>
 
     <HelpPath :items="[{ label: '右上角头像' }, { label: '个人中心', to: '/user' }]" />
 
@@ -56,6 +56,7 @@ const toolColumns = [
   { key: 'use', label: '用途' }
 ]
 const toolRows = [
+  { tool: '待办', entry: '个人中心', to: '/user', use: '查看待支付、待收货、退款、未读消息和即将过期的优惠券' },
   { tool: '购买订单', entry: '我的订单', to: '/user/orders', use: '查看支付、发货和交付信息' },
   { tool: '优惠券', entry: '我的优惠券', to: '/user/coupons', use: '查看未使用、占用、已使用和已过期状态' },
   { tool: '收藏与拉黑', entry: '收藏与拉黑', to: '/user/favorites', use: '保存感兴趣的物品，或隐藏不感兴趣的物品' },

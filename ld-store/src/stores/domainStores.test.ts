@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   fetchCategories: vi.fn(),
   fetchPublicStats: vi.fn(),
   fetchUserDashboard: vi.fn(),
+  fetchUserAttention: vi.fn(),
   fetchOrders: vi.fn(),
   fetchBuyOrders: vi.fn()
 }))
@@ -19,6 +20,7 @@ vi.mock('@/services/shop/catalogService', async (importOriginal) => ({
   fetchCategoriesRequest: mocks.fetchCategories,
   fetchPublicStatsRequest: mocks.fetchPublicStats,
   fetchUserDashboardRequest: mocks.fetchUserDashboard,
+  fetchUserAttentionRequest: mocks.fetchUserAttention,
   normalizeFavoritesOptions: (options: unknown) => options
 }))
 

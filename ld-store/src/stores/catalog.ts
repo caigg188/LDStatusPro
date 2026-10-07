@@ -9,7 +9,8 @@ import {
   fetchCategoriesRequest,
   fetchProductsRequest,
   fetchPublicStatsRequest,
-  fetchUserDashboardRequest
+  fetchUserDashboardRequest,
+  fetchUserAttentionRequest
 } from '@/services/shop/catalogService'
 import { serviceFailure } from '@/services/serviceContract'
 
@@ -108,6 +109,7 @@ export const useCatalogStore = defineStore('catalog', () => {
   const searchError = ref('')
   const statsError = ref('')
   const dashboardError = ref('')
+  const attentionError = ref('')
 
   const categoryCache = ref<{ key: string; data: Category[] | null; time: number }>({ key: '', data: null, time: 0 })
   let latestProductsRequestId = 0
@@ -119,7 +121,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     invalidateCache(); clearSearch()
     currentCategory.value = ''; total.value = 0
     loading.value = false; searchLoading.value = false
-    categoriesError.value = ''; productsError.value = ''; statsError.value = ''; dashboardError.value = ''
+    categoriesError.value = ''; productsError.value = ''; statsError.value = ''; dashboardError.value = ''; attentionError.value = ''
   })
 
   const currentCategoryName = computed(() => {
@@ -413,8 +415,15 @@ export const useCatalogStore = defineStore('catalog', () => {
     return result
   }
 
-  function consumeError(domain: 'categories' | 'products' | 'search' | 'stats' | 'dashboard' = 'products') {
-    const target = { categories: categoriesError, products: productsError, search: searchError, stats: statsError, dashboard: dashboardError }[domain]
+  async function fetchUserAttention() {
+    const result = await session.run(() => fetchUserAttentionRequest())
+    if (session.isStale(result)) return result
+    attentionError.value = result.success ? '' : (result.error || '待办事项加载失败，请稍后重试')
+    return result
+  }
+
+  function consumeError(domain: 'categories' | 'products' | 'search' | 'stats' | 'dashboard' | 'attention' = 'products') {
+    const target = { categories: categoriesError, products: productsError, search: searchError, stats: statsError, dashboard: dashboardError, attention: attentionError }[domain]
     const message = target.value
     target.value = ''
     return message
@@ -444,6 +453,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     searchError,
     statsError,
     dashboardError,
+    attentionError,
     currentCategoryName,
     fetchCategories,
     fetchProducts,
@@ -458,6 +468,7 @@ export const useCatalogStore = defineStore('catalog', () => {
     setProductFlag,
     fetchPublicStats,
     fetchUserDashboard,
+    fetchUserAttention,
     consumeError
   }
 })

@@ -298,6 +298,29 @@ export const UserDashboardResponseSchema = looseObject({
   incomeDistribution: looseObject({})
 })
 
+export const UserAttentionOrderSchema = looseObject({
+  id: optional(unknown()),
+  orderNo: optional(nullable(string())),
+  productId: optional(unknown()),
+  productName: optional(nullable(string())),
+  amount: optional(unknown()),
+  status: optional(nullable(string())),
+  createdAt: optional(nullable(unknown())),
+  fulfillmentDeadlineAt: optional(nullable(unknown()))
+})
+
+export const UserAttentionResponseSchema = looseObject({
+  pendingPaymentCount: optional(unknown()),
+  awaitingDeliveryCount: optional(unknown()),
+  refundAttentionCount: optional(unknown()),
+  unusedCouponCount: optional(unknown()),
+  expiringCouponCount: optional(unknown()),
+  pendingReportCount: optional(unknown()),
+  nextFulfillmentDeadlineAt: optional(nullable(unknown())),
+  recentOrders: optional(array(UserAttentionOrderSchema)),
+  generatedAt: optional(unknown())
+})
+
 export type Pagination = InferOutput<typeof PaginationSchema>
 export type Category = InferOutput<typeof CategorySchema>
 export type Product = InferOutput<typeof ProductSchema>

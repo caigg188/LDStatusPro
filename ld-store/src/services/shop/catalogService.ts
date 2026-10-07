@@ -18,6 +18,7 @@ import {
   RestockSubscriptionResponseSchema,
   RankingContextSchema,
   UserDashboardResponseSchema,
+  UserAttentionResponseSchema,
   MerchantProfileResponseSchema,
   type ProductListResponse
 } from '@/contracts/catalog'
@@ -490,5 +491,13 @@ export async function fetchUserDashboardRequest() {
     await api.get('/api/shop/user/dashboard', { auth: 'required' }),
     UserDashboardResponseSchema,
     { endpoint: '/api/shop/user/dashboard', schemaName: 'UserDashboardResponse' }
+  )
+}
+
+export async function fetchUserAttentionRequest() {
+  return validateApiResult(
+    await api.get('/api/shop/user/attention', { auth: 'required' }),
+    UserAttentionResponseSchema,
+    { endpoint: '/api/shop/user/attention', schemaName: 'UserAttentionResponse' }
   )
 }

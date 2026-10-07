@@ -1,174 +1,202 @@
 <template>
   <div class="user-page">
     <div class="page-container">
-      <div class="user-card">
-        <div class="hero">
-          <div class="hero-top">
-            <div class="user-info">
-              <AvatarImage
-                :src="avatar"
-                :candidates="userStore.avatarCandidates"
-                :seed="avatarSeed"
-                :size="128"
-                alt=""
-                class="user-avatar"
-                loading-mode="eager"
-              />
-              <div class="user-detail">
-                <div class="name-row">
-                  <h2 class="user-name">{{ username }}</h2>
-                  <span :class="['trust-chip', trustLevelToneClass]">信任等级 {{ trustLevelLabel }}</span>
-                </div>
-                <p class="user-id">@{{ user?.username }}</p>
-                <div class="badges">
-                  <template v-if="dashboardLoading">
-                    <span class="skeleton pill wide" />
-                    <span class="skeleton pill" />
-                    <span class="skeleton pill" />
-                  </template>
-                  <template v-else>
-                    <span class="badge badge-primary">来士多已 {{ overview.daysOnStore > 0 ? `${formatNumber(overview.daysOnStore)} 天` : '刚来逛逛' }}</span>
-                    <span v-if="overview.firstActivityAt" class="badge">首次记录 {{ formatDateTime(overview.firstActivityAt, true) }}</span>
-                    <span v-if="overview.latestActivityAt" class="badge">最近活跃 {{ formatDateTime(overview.latestActivityAt, true) }}</span>
-                  </template>
-                </div>
-              </div>
+      <section class="identity-card" aria-labelledby="user-display-name">
+        <div class="identity-main">
+          <AvatarImage
+            :src="avatar"
+            :candidates="userStore.avatarCandidates"
+            :seed="avatarSeed"
+            :size="128"
+            alt=""
+            class="user-avatar"
+            loading-mode="eager"
+          />
+          <div class="user-detail">
+            <div class="name-row">
+              <h1 id="user-display-name" class="user-name">{{ username }}</h1>
+              <router-link
+                class="trust-chip"
+                :class="trustHint.tone"
+                to="/docs/concepts"
+                :aria-label="`信任等级 ${trustHint.label}，${trustHint.detail}`"
+              >
+                {{ trustHint.label }}
+              </router-link>
             </div>
-
-            <div v-if="ldcInfo" class="balance-grid">
-              <div class="balance-card">
-                <span class="muted">可用余额</span>
-                <strong>{{ ldcInfo.available_balance || '0.00' }}</strong>
-                <span class="muted">LDC</span>
-              </div>
-              <div class="balance-card">
-                <span class="muted">今日额度</span>
-                <strong class="accent">{{ ldcInfo.remain_quota || '0.00' }}</strong>
-                <span class="muted">LDC</span>
-              </div>
-            </div>
+            <p class="user-id">{{ handle }}</p>
+            <p class="trust-detail">{{ trustHint.detail }}<template v-if="daysOnStoreText"> · {{ daysOnStoreText }}</template></p>
+            <router-link v-if="publicProfilePath" :to="publicProfilePath" class="profile-link">
+              查看我的公开主页
+              <ArrowUpRight :size="14" aria-hidden="true" />
+            </router-link>
           </div>
         </div>
+      </section>
 
-        <div v-if="dashboardLoading" class="loading-wrap">
-          <div class="stats-grid">
-            <div v-for="item in 4" :key="item" class="stat-card loading-card">
-              <span class="skeleton pill short" />
-              <span class="skeleton line tall" />
+      <section class="panel attention-panel" aria-labelledby="attention-title">
+        <div class="panel-head">
+          <h2 id="attention-title">需要处理</h2>
+          <p>先处理未完成的支付、收货、退款和消息。</p>
+        </div>
+        <div v-if="attentionLoading" class="attention-grid" aria-live="polite">
+          <span v-for="item in 4" :key="item" class="skeleton attention-skeleton" />
+        </div>
+        <p v-else-if="attentionError" class="error-box" role="alert">{{ attentionError }}</p>
+        <div v-else-if="visibleAttentionItems.length" class="attention-grid">
+          <router-link
+            v-for="item in visibleAttentionItems"
+            :key="item.key"
+            :to="item.to"
+            class="attention-card"
+          >
+            <span class="attention-icon" aria-hidden="true">
+              <component :is="attentionIcons[item.key]" :size="18" :stroke-width="1.8" />
+            </span>
+            <strong>{{ formatHubNumber(item.count) }}</strong>
+            <span>{{ item.label }}</span>
+            <small v-if="item.hint">{{ item.hint }}</small>
+          </router-link>
+        </div>
+        <div v-else class="empty-box">
+          <p>目前没有待办。</p>
+          <router-link to="/" class="empty-link">去物品广场看看</router-link>
+        </div>
+      </section>
+
+      <div class="hub-split">
+        <section class="panel" aria-labelledby="recent-title">
+          <div class="panel-head row-head">
+            <div>
+              <h2 id="recent-title">最近订单</h2>
+              <p>继续支付、查看交付或跟进退款。</p>
+            </div>
+            <router-link to="/user/orders" class="text-link">查看全部</router-link>
+          </div>
+          <div v-if="attentionLoading" class="recent-list" aria-live="polite">
+            <div v-for="item in 3" :key="item" class="recent-card">
               <span class="skeleton pill mid" />
+              <span class="skeleton line" />
             </div>
           </div>
-          <div class="distribution-panel loading-card">
-            <div class="panel-head">
-              <div>
-                <span class="skeleton pill mid" />
-                <span class="skeleton pill wide mt8" />
+          <div v-else-if="recentOrders.length" class="recent-list">
+            <article v-for="order in recentOrders" :key="order.orderNo || order.id" class="recent-card">
+              <div class="recent-copy">
+                <strong>{{ order.productName }}</strong>
+                <span>{{ formatHubAmount(order.amount) }} LDC · {{ recentOrderStatusLabel(order) }}</span>
               </div>
-              <span class="skeleton pill switcher" />
-            </div>
-            <div v-for="item in 3" :key="`loading-${item}`" class="distribution-item loading-item">
-              <div class="row between">
-                <span class="skeleton pill mid" />
-                <span class="skeleton pill short" />
-              </div>
-              <div class="row between mt8">
-                <span class="skeleton pill wide" />
-                <span class="skeleton pill short" />
-              </div>
-              <div class="bar mt8"><span class="fill loading-fill" :style="{ width: `${56 + item * 10}%` }" /></div>
-            </div>
-          </div>
-        </div>
-
-        <div v-else-if="dashboardError" class="error-box">{{ dashboardError }}</div>
-
-        <template v-else>
-          <div class="stats-grid">
-            <article v-for="card in statCards" :key="card.label" :class="['stat-card', card.tone]">
-              <span class="muted">{{ card.label }}</span>
-              <strong class="stat-value">
-                {{ card.value }}
-                <span v-if="card.unit" class="unit">{{ card.unit }}</span>
-              </strong>
-              <span class="meta">{{ card.meta }}</span>
+              <router-link :to="orderAction(order).to" class="recent-action">
+                {{ orderAction(order).label }}
+              </router-link>
             </article>
           </div>
+          <div v-else class="empty-box">
+            <p>还没有购买记录。</p>
+            <router-link to="/" class="empty-link">去逛逛物品</router-link>
+          </div>
+        </section>
 
-          <section class="distribution-panel">
-            <div class="panel-head">
-              <div class="panel-intro">
-                <details v-if="canShowIncomeDistribution" ref="distributionMenuRef" class="panel-title-menu">
-                  <summary class="panel-title-trigger">
-                    <span class="panel-title">{{ activeDistributionTitle }}</span>
-                    <span class="panel-title-arrow">▾</span>
-                  </summary>
-                  <div class="panel-title-options">
-                    <button
-                      type="button"
-                      :class="['panel-title-option', { active: activeDistributionScope === 'expense' }]"
-                      @click.prevent="selectDistributionScope('expense')"
-                    >
-                      支出分布
-                    </button>
-                    <button
-                      type="button"
-                      :class="['panel-title-option', { active: activeDistributionScope === 'income' }]"
-                      @click.prevent="selectDistributionScope('income')"
-                    >
-                      收入分布
-                    </button>
-                  </div>
-                </details>
-                <h3 v-else class="panel-title standalone">{{ activeDistributionTitle }}</h3>
-                <p class="panel-subtitle">{{ activeDistributionSubtitle }}</p>
-              </div>
-              <div class="toolbar">
-                <div class="switch-group metric-switch">
-                  <button type="button" :class="['switch-btn', { active: distributionMode === 'orders' }]" @click="distributionMode = 'orders'">按订单数</button>
-                  <button type="button" :class="['switch-btn', { active: distributionMode === 'amount' }]" @click="distributionMode = 'amount'">按积分</button>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="distributionCategories.length > 0" class="distribution-list">
-              <button
-                v-for="item in distributionCategories"
-                :key="`${activeDistributionScope}-${item.categoryId}-${item.categoryName}`"
-                type="button"
-                class="distribution-item"
-                @click="jumpToDistributionOrders(item)"
-              >
-                <div class="row between">
-                  <div class="row gap8">
-                    <span class="distribution-icon">{{ item.categoryIcon || '📦' }}</span>
-                    <span class="distribution-name">{{ item.categoryName }}</span>
-                  </div>
-                  <strong>{{ getDistributionValueLabel(item) }}</strong>
-                </div>
-                <div class="row between meta-row">
-                  <span>{{ formatNumber(item.orderCount) }} 单 / {{ formatNumber(item.quantity) }} 件</span>
-                  <span>{{ formatAmount(item.amount) }} LDC</span>
-                </div>
-                <div class="bar">
-                  <span :class="['fill', activeDistributionScope]" :style="{ width: `${getDistributionWidth(item)}%` }" />
-                </div>
-                <div class="row between hint-row">
-                  <span>{{ distributionJumpHint }}</span>
-                  <span class="linkish">查看订单 →</span>
-                </div>
-              </button>
-            </div>
-            <div v-else class="empty-box">{{ activeDistributionEmptyText }}</div>
-          </section>
-        </template>
+        <section class="panel" aria-labelledby="records-title">
+          <div class="panel-head">
+            <h2 id="records-title">我的记录</h2>
+            <p>订单、优惠券、求购和收藏都在这里。</p>
+          </div>
+          <div class="record-grid">
+            <router-link
+              v-for="item in recordLinks"
+              :key="item.key"
+              :to="item.to"
+              class="record-card"
+            >
+              <span class="record-icon" aria-hidden="true">
+                <component :is="recordIcons[item.key]" :size="18" :stroke-width="1.8" />
+              </span>
+              <span class="record-label">{{ item.label }}</span>
+              <span v-if="item.badge" class="record-badge">{{ item.badge }}</span>
+            </router-link>
+          </div>
+        </section>
       </div>
 
-      <div class="menu-section">
-        <h3 class="section-title">我的服务</h3>
+      <router-link
+        v-if="showSellerChannel"
+        to="/seller"
+        class="seller-channel"
+        :aria-label="sellerChannelAriaLabel"
+      >
+        <span class="seller-icon" aria-hidden="true">
+          <Store :size="18" :stroke-width="1.8" />
+        </span>
+        <span>
+          <strong>卖家后台</strong>
+          <small>{{ sellerChannelHint }}</small>
+        </span>
+        <span class="seller-go">进入卖家后台</span>
+      </router-link>
+
+      <details class="panel spending-panel">
+        <summary>
+          <span>
+            <strong>消费画像</strong>
+            <small>{{ spendingSummary }}</small>
+          </span>
+          <span class="summary-arrow" aria-hidden="true">▾</span>
+        </summary>
+        <div v-if="dashboardLoading" class="distribution-list" aria-live="polite">
+          <div v-for="item in 3" :key="item" class="distribution-item">
+            <span class="skeleton pill mid" />
+            <span class="skeleton bar-skeleton" />
+          </div>
+        </div>
+        <p v-else-if="dashboardError" class="error-box" role="alert">{{ dashboardError }}</p>
+        <div v-else-if="distributionCategories.length" class="distribution-toolbar">
+          <div class="switch-group">
+            <button type="button" :class="['switch-btn', { active: distributionMode === 'orders' }]" @click="distributionMode = 'orders'">按订单数</button>
+            <button type="button" :class="['switch-btn', { active: distributionMode === 'amount' }]" @click="distributionMode = 'amount'">按积分</button>
+          </div>
+        </div>
+        <div v-if="!dashboardLoading && !dashboardError && distributionCategories.length" class="distribution-list">
+          <button
+            v-for="item in distributionCategories"
+            :key="`${item.categoryId}-${item.categoryName}`"
+            type="button"
+            class="distribution-item"
+            @click="jumpToDistributionOrders(item)"
+          >
+            <div class="row between">
+              <span class="distribution-name">{{ item.categoryIcon || '📦' }} {{ item.categoryName }}</span>
+              <strong>{{ distributionMode === 'orders' ? `${formatHubNumber(item.orderCount)} 单` : `${formatHubAmount(item.amount)} LDC` }}</strong>
+            </div>
+            <div class="row between meta-row">
+              <span>{{ formatHubNumber(item.orderCount) }} 单 / {{ formatHubNumber(item.quantity) }} 件</span>
+              <span>{{ formatHubAmount(item.amount) }} LDC</span>
+            </div>
+            <div class="bar"><span class="fill" :style="{ width: `${distributionWidth(item, distributionMaxValue, distributionMode)}%` }" /></div>
+            <span class="hint-row">查看该分类已成交订单 →</span>
+          </button>
+        </div>
+        <div v-else-if="!dashboardLoading && !dashboardError" class="empty-box">还没有已成交的购买记录，后续消费会自动出现在这里。</div>
+      </details>
+
+      <section class="menu-section" aria-labelledby="tools-title">
+        <h2 id="tools-title" class="section-title">工具</h2>
+        <div class="menu-list">
+          <router-link v-for="item in toolLinks" :key="item.label" :to="item.to" class="menu-item">
+            <span class="menu-icon" aria-hidden="true">
+              <component :is="item.icon" :size="18" :stroke-width="1.8" />
+            </span>
+            <span class="menu-label">{{ item.label }}</span>
+            <span class="menu-arrow" aria-hidden="true">→</span>
+          </router-link>
+        </div>
+      </section>
+
+      <section class="menu-section" aria-labelledby="account-title">
+        <h2 id="account-title" class="section-title">账号与社区</h2>
         <div class="menu-list">
           <component
             :is="item.to ? 'router-link' : 'a'"
-            v-for="item in serviceLinks"
+            v-for="item in accountLinks"
             :key="item.label"
             :to="item.to"
             :href="item.href"
@@ -176,163 +204,171 @@
             :rel="item.rel"
             class="menu-item"
           >
-            <span class="menu-icon">{{ item.icon }}</span>
+            <span class="menu-icon" aria-hidden="true">
+              <component :is="item.icon" :size="18" :stroke-width="1.8" />
+            </span>
             <span class="menu-label">{{ item.label }}</span>
-            <span class="menu-arrow">→</span>
+            <span class="menu-arrow" aria-hidden="true">→</span>
           </component>
         </div>
-      </div>
+      </section>
 
-      <div class="menu-section">
-        <h3 class="section-title">其他</h3>
-        <div class="menu-list">
-          <component
-            :is="item.to ? 'router-link' : 'a'"
-            v-for="item in otherLinks"
-            :key="item.label"
-            :to="item.to"
-            :href="item.href"
-            :target="item.target"
-            :rel="item.rel"
-            class="menu-item"
-          >
-            <span class="menu-icon">{{ item.icon }}</span>
-            <span class="menu-label">{{ item.label }}</span>
-            <span class="menu-arrow">→</span>
-          </component>
-        </div>
-      </div>
-
-      <button class="logout-btn" @click="handleLogout">退出登录</button>
+      <button class="logout-btn" type="button" @click="handleLogout">退出登录</button>
     </div>
   </div>
 </template>
 
 <script setup>
+import {
+  ArrowUpRight,
+  CircleHelp,
+  ClipboardList,
+  ClipboardPenLine,
+  Clock3,
+  Flag,
+  Heart,
+  ExternalLink,
+  Image as ImageIcon,
+  Megaphone,
+  MessageCircle,
+  RotateCcw,
+  Store,
+  TicketPercent,
+  Truck
+} from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import { useCatalogStore } from '@/stores/catalog'
+import { useNotificationSummaryStore } from '@/stores/notificationSummary'
 import { useUserStore } from '@/stores/user'
 import AvatarImage from '@/components/common/AvatarImage.vue'
 import { useDialog } from '@/composables/useDialog'
 import { useToast } from '@/composables/useToast'
+import { buildUserIdentity } from '@/utils/userIdentity'
+import {
+  EMPTY_ATTENTION,
+  EMPTY_DISTRIBUTION,
+  EMPTY_MERCHANT,
+  EMPTY_OVERVIEW,
+  activeAttentionItems,
+  buildAttentionItems,
+  buildRecordLinks,
+  buildTrustHint,
+  distributionWidth,
+  formatHubAmount,
+  formatHubNumber,
+  recentOrderAction,
+  recentOrderStatusLabel,
+  sellerChannelCopy,
+  shouldShowSellerChannel,
+  sortDistributionCategories,
+  spendingSummaryText
+} from '@/utils/userHub'
 
-const EMPTY_OVERVIEW = Object.freeze({ daysOnStore: 0, firstActivityAt: '', latestActivityAt: '', totalPurchaseOrders: 0, totalPurchaseQuantity: 0, totalSpent: 0, totalSellOrders: 0, totalSellQuantity: 0, totalRevenue: 0, publishedProductCount: 0, approvedProductCount: 0, activeProductCount: 0, favoriteCount: 0, distinctPurchasedProducts: 0, distinctBuyers: 0, purchasedCategoryCount: 0 })
-const EMPTY_DISTRIBUTION = Object.freeze({ categories: [], totals: { orderCount: 0, quantity: 0, amount: 0 } })
-
-const serviceLinks = [
-  { icon: '📦', label: '我的订单', to: '/user/orders' },
-  { icon: '⭐', label: '收藏与拉黑', to: '/user/favorites' },
-  { icon: '券', label: '我的优惠券', to: '/user/coupons' },
-  { icon: '🧾', label: '我的求购', to: '/user/buy-requests' },
-  { icon: '💬', label: '我的消息', to: '/user/messages' },
-  { icon: '🚩', label: '我的举报', to: '/user/reports' },
-  { icon: '🏪', label: '卖家后台', to: '/seller' }
+const attentionIcons = {
+  pay: Clock3,
+  delivery: Truck,
+  refund: RotateCcw,
+  messages: MessageCircle,
+  coupons: TicketPercent,
+  reports: Flag
+}
+const recordIcons = {
+  orders: ClipboardList,
+  coupons: TicketPercent,
+  favorites: Heart,
+  buyRequests: ClipboardPenLine,
+  messages: MessageCircle,
+  reports: Flag
+}
+const toolLinks = [
+  { icon: ImageIcon, label: '士多图床', to: '/ld-image' },
+  { icon: CircleHelp, label: '帮助中心', to: '/docs' },
+  { icon: Megaphone, label: '公告中心', to: '/announcements' }
 ]
-
-const otherLinks = [
-  { icon: '🖼️', label: '士多图床', to: '/ld-image' },
-  { icon: '💳', label: 'LDC 官网', href: 'https://credit.linux.do/home', target: '_blank', rel: 'noopener' },
-  { icon: '🌐', label: 'Linux.do 社区', href: 'https://linux.do', target: '_blank', rel: 'noopener' },
-  { icon: '📊', label: 'LDStatus Pro', href: 'https://ldspro.qzz.io/', target: '_blank', rel: 'noopener' },
-  { icon: '🐙', label: 'GitHub', href: 'https://github.com/caigg188/LDStatusPro', target: '_blank', rel: 'noopener' }
+const accountLinks = [
+  { icon: Heart, label: '支持士多', to: '/support' },
+  { icon: ExternalLink, label: 'Linux.do 社区', href: 'https://linux.do', target: '_blank', rel: 'noopener' },
+  { icon: ExternalLink, label: 'GitHub', href: 'https://github.com/caigg188/LDStatusPro', target: '_blank', rel: 'noopener' }
 ]
 
 const router = useRouter()
 const userStore = useUserStore()
 const catalogStore = useCatalogStore()
+const notificationSummaryStore = useNotificationSummaryStore()
+const { totalUnread: messageUnread, sellerPendingDeliveryCount, sellerRefundPendingCount } = storeToRefs(notificationSummaryStore)
 const dialog = useDialog()
 const toast = useToast()
 
 const dashboardLoading = ref(true)
 const dashboardError = ref('')
 const dashboard = ref(null)
-const distributionScope = ref('expense')
+const attentionLoading = ref(true)
+const attentionError = ref('')
+const attention = ref(EMPTY_ATTENTION)
 const distributionMode = ref('amount')
-const distributionMenuRef = ref(null)
 
 const user = computed(() => userStore.user)
-const username = computed(() => user.value?.name || user.value?.username || '用户')
-const trustLevelNumber = computed(() => {
-  const level = Number(userStore.trustLevel)
-  return Number.isFinite(level) ? Math.max(0, Math.floor(level)) : null
-})
-const trustLevelLabel = computed(() => trustLevelNumber.value === null ? 'TL?' : `TL${trustLevelNumber.value}`)
-const trustLevelToneClass = computed(() => {
-  const level = trustLevelNumber.value
-  if (level === null) return 'trust-unknown'
-  if (level >= 4) return 'trust-elite'
-  if (level === 3) return 'trust-high'
-  if (level === 2) return 'trust-mid'
-  if (level === 1) return 'trust-basic'
-  return 'trust-new'
-})
+const identity = computed(() => buildUserIdentity({
+  name: user.value?.name,
+  username: user.value?.username,
+  trustLevel: userStore.trustLevel
+}))
+const username = computed(() => identity.value.displayName)
+const handle = computed(() => identity.value.handle || `@${user.value?.username || 'user'}`)
+const trustHint = computed(() => buildTrustHint(userStore.trustLevel))
 const avatarSeed = computed(() => user.value?.name || user.value?.username || user.value?.id || 'user')
 const avatar = computed(() => userStore.avatar)
-const ldcInfo = computed(() => userStore.ldcInfo)
-const overview = computed(() => dashboard.value?.overview || EMPTY_OVERVIEW)
-const spendingDistribution = computed(() => dashboard.value?.spendingDistribution || EMPTY_DISTRIBUTION)
-const canShowIncomeDistribution = computed(() => false)
-const activeDistributionScope = computed(() => 'expense')
-const activeDistribution = computed(() => spendingDistribution.value)
-const activeDistributionTitle = computed(() => '支出分布')
-const activeDistributionSubtitle = computed(() => '按分类查看你买入的已成交订单数、购买数量与积分花费')
-const distributionJumpHint = computed(() => '点击查看该分类我买的已成交订单')
-const activeDistributionEmptyText = computed(() => '还没有已成交的购买记录，后续消费会自动出现在这里。')
-
-const statCards = computed(() => ([
-  { label: '累计购买订单', value: formatNumber(overview.value.totalPurchaseOrders), meta: `共买入 ${formatNumber(overview.value.totalPurchaseQuantity)} 件`, tone: 'tone-sage' },
-  { label: '累计花费积分', value: formatAmount(overview.value.totalSpent), unit: 'LDC', meta: `覆盖 ${formatNumber(overview.value.purchasedCategoryCount)} 个分类`, tone: 'tone-gold' },
-  { label: '买过的物品', value: formatNumber(overview.value.distinctPurchasedProducts), meta: `来自 ${formatNumber(overview.value.purchasedCategoryCount)} 个分类`, tone: 'tone-stone' },
-  { label: '收藏夹', value: formatNumber(overview.value.favoriteCount), meta: `买过 ${formatNumber(overview.value.distinctPurchasedProducts)} 个物品`, tone: 'tone-plain' }
-]))
-
-const distributionCategories = computed(() => {
-  const items = Array.isArray(activeDistribution.value.categories) ? [...activeDistribution.value.categories] : []
-  return items.sort((left, right) => {
-    const primary = distributionMode.value === 'orders'
-      ? Number(right.orderCount || 0) - Number(left.orderCount || 0)
-      : Number(right.amount || 0) - Number(left.amount || 0)
-    if (primary !== 0) return primary
-    return Number(right.quantity || 0) - Number(left.quantity || 0)
-  })
+const publicProfilePath = computed(() => {
+  const account = String(user.value?.username || '').trim()
+  return account ? `/merchant/${encodeURIComponent(account)}` : ''
 })
-
+const overview = computed(() => dashboard.value?.overview || EMPTY_OVERVIEW)
+const merchant = computed(() => dashboard.value?.merchant || EMPTY_MERCHANT)
+const spendingDistribution = computed(() => dashboard.value?.spendingDistribution || EMPTY_DISTRIBUTION)
+const daysOnStoreText = computed(() => {
+  const days = Number(overview.value.daysOnStore || 0)
+  if (dashboardLoading.value) return ''
+  return days > 0 ? `来士多已 ${formatHubNumber(days)} 天` : '刚来逛逛'
+})
+const attentionItems = computed(() => buildAttentionItems({
+  attention: attention.value,
+  messageUnread: messageUnread.value
+}))
+const visibleAttentionItems = computed(() => activeAttentionItems(attentionItems.value))
+const recordLinks = computed(() => buildRecordLinks({
+  unusedCouponCount: attention.value.unusedCouponCount,
+  messageUnread: messageUnread.value,
+  pendingReportCount: attention.value.pendingReportCount
+}))
+const recentOrders = computed(() => Array.isArray(attention.value.recentOrders) ? attention.value.recentOrders : [])
+const showSellerChannel = computed(() => shouldShowSellerChannel({
+  overview: overview.value,
+  merchant: merchant.value,
+  sellerPendingDeliveryCount: sellerPendingDeliveryCount.value,
+  sellerRefundPendingCount: sellerRefundPendingCount.value
+}))
+const sellerChannelHint = computed(() => sellerChannelCopy({
+  sellerPendingDeliveryCount: sellerPendingDeliveryCount.value,
+  sellerRefundPendingCount: sellerRefundPendingCount.value
+}))
+const sellerChannelAriaLabel = computed(() => {
+  const hint = sellerChannelHint.value
+  return hint ? `进入卖家后台，${hint}` : '进入卖家后台'
+})
+const spendingSummary = computed(() => spendingSummaryText(overview.value))
+const distributionCategories = computed(() => sortDistributionCategories(
+  spendingDistribution.value.categories,
+  distributionMode.value
+))
 const distributionMaxValue = computed(() => distributionCategories.value.reduce((maxValue, item) => {
   const nextValue = distributionMode.value === 'orders' ? Number(item.orderCount || 0) : Number(item.amount || 0)
   return Math.max(maxValue, nextValue)
 }, 0))
 
-function formatNumber(value) {
-  return new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 }).format(Math.max(Number(value) || 0, 0))
-}
-
-function formatAmount(value) {
-  return new Intl.NumberFormat('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Math.max(Number(value) || 0, 0))
-}
-
-function formatDateTime(value, short = false) {
-  const text = String(value || '').trim()
-  return text ? (short ? text.slice(0, 10) : text.slice(0, 16)) : ''
-}
-
-function getDistributionWidth(item) {
-  const currentValue = distributionMode.value === 'orders' ? Number(item.orderCount || 0) : Number(item.amount || 0)
-  const maxValue = distributionMaxValue.value
-  if (maxValue <= 0 || currentValue <= 0) return 0
-  return Math.max(10, Math.min((currentValue / maxValue) * 100, 100))
-}
-
-function getDistributionValueLabel(item) {
-  return distributionMode.value === 'orders' ? `${formatNumber(item.orderCount)} 单` : `${formatAmount(item.amount)} LDC`
-}
-
-function selectDistributionScope(scope) {
-  if (!['expense', 'income'].includes(scope)) return
-  distributionScope.value = scope
-  if (distributionMenuRef.value) {
-    distributionMenuRef.value.open = false
-  }
+function orderAction(order) {
+  return recentOrderAction(order)
 }
 
 function jumpToDistributionOrders(item) {
@@ -368,13 +404,27 @@ async function loadDashboard() {
   }
 }
 
-onMounted(async () => {
-  const tasks = [loadDashboard()]
-  if (typeof userStore.fetchLdcInfo === 'function') tasks.push(userStore.fetchLdcInfo())
-  const results = await Promise.allSettled(tasks)
-  if (results[0]?.status === 'rejected') {
-    toast.error(results[0].reason?.message || '个人统计加载失败，请稍后重试')
+async function loadAttention() {
+  attentionLoading.value = true
+  attentionError.value = ''
+  try {
+    const result = await catalogStore.fetchUserAttention()
+    if (result.success) {
+      attention.value = { ...EMPTY_ATTENTION, ...result.data, recentOrders: result.data?.recentOrders || [] }
+      return
+    }
+    attention.value = EMPTY_ATTENTION
+    attentionError.value = result.error || '待办事项加载失败，请稍后重试'
+  } catch (error) {
+    attention.value = EMPTY_ATTENTION
+    attentionError.value = error.message || '待办事项加载失败，请稍后重试'
+  } finally {
+    attentionLoading.value = false
   }
+}
+
+onMounted(() => {
+  void Promise.allSettled([loadDashboard(), loadAttention()])
 })
 
 async function handleLogout() {
@@ -400,38 +450,20 @@ async function handleLogout() {
   --user-subtle-border: var(--palette-hex-e4dbcf);
   --user-hover-border: var(--palette-hex-cad6cb);
   --user-hover-shadow: 0 10px 22px var(--palette-rgba-61-61-61-0p06);
-  --user-balance-border: var(--palette-hex-e5ddd1);
-  --user-balance-bg: var(--palette-hex-faf8f5);
   --user-empty-bg: var(--palette-hex-f8f5ef);
   --user-track-bg: var(--palette-hex-e7dfd3);
-  --user-accent-expense: var(--palette-hex-b7aa9b);
-  --user-accent-income: var(--palette-hex-7f9681);
-  --user-badge-bg: var(--palette-hex-f0ece6);
-  --user-badge-border: var(--palette-hex-e1d8cc);
-  --user-badge-primary-bg: var(--palette-hex-edf2ea);
-  --user-badge-primary-border: var(--palette-hex-d4ded0);
-  --user-badge-primary-text: var(--palette-hex-617862);
-  --user-balance-amount: var(--palette-hex-a57950);
-  --user-balance-accent: var(--palette-hex-738a76);
+  --user-accent: var(--palette-hex-7f9681);
   --user-avatar-border: var(--palette-rgba-255-255-255-0p92);
   --user-avatar-shadow: 0 10px 24px var(--palette-rgba-61-61-61-0p12);
-  --user-tone-sage: var(--palette-hex-eef3ed);
-  --user-tone-stone: var(--palette-hex-f2ede7);
-  --user-tone-gold: var(--palette-hex-f5eee3);
-  --user-tone-moss: var(--palette-hex-eaf1ea);
-  --user-option-active-text: var(--palette-hex-5f7565);
-  --user-option-active-bg: var(--palette-hex-edf2ea);
-  --user-switch-shell-bg: var(--palette-hex-f7f3ec);
-  --user-switch-shell-accent-bg: var(--palette-hex-f4f0e9);
+  --user-switch-shell-bg: var(--palette-hex-f4f0e9);
   --user-skeleton-bg: var(--palette-hex-e2e8f0);
   --user-skeleton-shine: var(--palette-rgba-255-255-255-0p68);
   --user-menu-bg: var(--palette-hex-fcfaf6);
   --user-menu-hover-bg: var(--palette-hex-f4f0e9);
   --user-menu-border: var(--palette-hex-e4dbcf);
   --user-logout-bg: var(--palette-hex-fcfaf6);
-  --avatar-surface-bg: var(--palette-hex-dfe3e8);
-  --avatar-placeholder-bg: var(--palette-hex-f2f0ed);
-  --avatar-shimmer-bg: linear-gradient(100deg, transparent 18%, var(--palette-rgba-255-255-255-0p52) 50%, transparent 82%);
+  --user-attention-bg: var(--palette-hex-edf2ea);
+  --user-badge-bg: var(--palette-hex-738a76);
 }
 
 :global(html.dark .user-page) {
@@ -444,85 +476,62 @@ async function handleLogout() {
   --user-subtle-border: var(--palette-hex-302a24);
   --user-hover-border: var(--palette-hex-424443);
   --user-hover-shadow: 0 12px 28px var(--palette-rgba-0-0-0-0p24);
-  --user-balance-border: var(--palette-hex-302a24);
-  --user-balance-bg: var(--palette-hex-29231e);
   --user-empty-bg: var(--palette-hex-261c1c);
   --user-track-bg: var(--palette-hex-41372f);
-  --user-accent-expense: var(--palette-hex-c5b8a8);
-  --user-accent-income: var(--palette-hex-8fb090);
-  --user-badge-bg: var(--palette-hex-38312a);
-  --user-badge-border: var(--palette-hex-302a24);
-  --user-badge-primary-bg: var(--palette-hex-2f322a);
-  --user-badge-primary-border: var(--palette-hex-33362e);
-  --user-badge-primary-text: var(--palette-hex-cfe0cf);
-  --user-balance-amount: var(--palette-hex-dfb27a);
-  --user-balance-accent: var(--palette-hex-a7c4aa);
+  --user-accent: var(--palette-hex-8fb090);
   --user-avatar-border: var(--palette-hex-352e24);
   --user-avatar-shadow: 0 12px 28px var(--palette-rgba-0-0-0-0p28);
-  --user-tone-sage: var(--palette-hex-2e342a);
-  --user-tone-stone: var(--palette-hex-393029);
-  --user-tone-gold: var(--palette-hex-423523);
-  --user-tone-moss: var(--palette-hex-2e362b);
-  --user-option-active-text: var(--palette-hex-d7ead3);
-  --user-option-active-bg: var(--palette-hex-2f322a);
-  --user-switch-shell-bg: var(--palette-hex-372f28);
-  --user-switch-shell-accent-bg: var(--palette-hex-3c342c);
+  --user-switch-shell-bg: var(--palette-hex-3c342c);
   --user-skeleton-bg: var(--palette-hex-413931);
   --user-skeleton-shine: var(--palette-rgba-255-255-255-0p08);
   --user-menu-bg: var(--palette-hex-221d19);
   --user-menu-hover-bg: var(--palette-hex-312a24);
   --user-menu-border: var(--palette-hex-302a24);
   --user-logout-bg: var(--palette-hex-1f1b18);
-  --avatar-surface-bg: var(--palette-hex-2c2a26);
-  --avatar-placeholder-bg: var(--palette-hex-2a2521);
-  --avatar-shimmer-bg: linear-gradient(100deg, transparent 18%, var(--palette-rgba-255-255-255-0p14) 50%, transparent 82%);
+  --user-attention-bg: var(--palette-hex-2f322a);
+  --user-badge-bg: var(--palette-hex-8fb090);
 }
 
 .page-container {
-  max-width: 760px;
+  max-width: 1080px;
 }
 
-.user-card {
-  margin-bottom: var(--section-gap);
-  padding: var(--detail-pad);
+.identity-card,
+.panel,
+.seller-channel,
+.menu-list,
+.logout-btn {
   border: 1px solid var(--user-card-border);
-  border-radius: var(--card-radius);
   background: var(--user-card-bg);
   box-shadow: var(--user-card-shadow);
   isolation: isolate;
 }
 
-.hero {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  margin-bottom: 20px;
+.identity-card,
+.panel,
+.seller-channel {
+  margin-bottom: var(--section-gap);
+  padding: var(--detail-pad);
+  border-radius: var(--card-radius);
 }
 
-.hero-top {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(208px, 240px);
-  gap: 16px;
-  align-items: start;
-}
-
-.user-info,
+.identity-main,
+.user-detail,
+.recent-card,
+.seller-channel,
+.menu-item,
 .row {
   display: flex;
-  align-items: center;
 }
 
-.user-info {
-  gap: 16px;
+.identity-main,
+.user-detail {
   min-width: 0;
 }
 
-.row.gap8 {
-  gap: 8px;
-}
-
-.row.between {
-  justify-content: space-between;
+.identity-main {
+  align-items: center;
+  gap: 16px;
 }
 
 .user-avatar {
@@ -536,7 +545,8 @@ async function handleLogout() {
 
 .user-detail {
   flex: 1;
-  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .name-row {
@@ -553,25 +563,48 @@ async function handleLogout() {
   color: var(--text-primary);
 }
 
-.user-id {
-  margin: 6px 0 10px;
-  font-size: 14px;
+.user-id,
+.trust-detail {
+  margin: 0;
   color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.profile-link,
+.text-link,
+.empty-link,
+.recent-action,
+.seller-go,
+.linkish,
+.hint-row {
+  color: var(--user-accent);
+  font-weight: 600;
+}
+
+.profile-link,
+.text-link,
+.empty-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  min-height: 32px;
+  font-size: 13px;
 }
 
 .trust-chip,
-.badge,
 .switch-btn,
 .menu-item,
 .logout-btn,
 .distribution-item,
-.panel-title-trigger,
-.panel-title-option {
-  transition: color var(--motion-duration-fast) var(--motion-ease-standard), background-color var(--motion-duration-fast) var(--motion-ease-standard), border-color var(--motion-duration-fast) var(--motion-ease-standard), box-shadow var(--motion-duration-fast) var(--motion-ease-standard), opacity var(--motion-duration-fast) var(--motion-ease-standard), transform var(--motion-duration-fast) var(--motion-ease-standard);
+.attention-card,
+.record-card,
+.seller-channel,
+.recent-action {
+  transition: color var(--motion-duration-fast) var(--motion-ease-standard), background-color var(--motion-duration-fast) var(--motion-ease-standard), border-color var(--motion-duration-fast) var(--motion-ease-standard), box-shadow var(--motion-duration-fast) var(--motion-ease-standard), transform var(--motion-duration-fast) var(--motion-ease-standard);
 }
 
-.trust-chip,
-.badge {
+.trust-chip {
   display: inline-flex;
   align-items: center;
   min-height: 30px;
@@ -579,150 +612,290 @@ async function handleLogout() {
   border: 1px solid transparent;
   border-radius: 999px;
   font-size: 12px;
-}
-
-.trust-chip {
   font-weight: 600;
+  text-decoration: none;
 }
 
-.trust-chip.trust-unknown {
-  color: var(--palette-hex-667085);
-  background: var(--palette-hex-eef1f5);
-  border-color: var(--palette-hex-d8dee7);
+.trust-chip.trust-unknown { color: var(--palette-hex-667085); background: var(--palette-hex-eef1f5); border-color: var(--palette-hex-d8dee7); }
+.trust-chip.trust-new { color: var(--palette-hex-7b6c5f); background: var(--palette-hex-f2ebe2); border-color: var(--palette-hex-dfd3c5); }
+.trust-chip.trust-basic { color: var(--palette-hex-6d7b66); background: var(--palette-hex-edf2ea); border-color: var(--palette-hex-d4ded0); }
+.trust-chip.trust-mid { color: var(--palette-hex-617a71); background: var(--palette-hex-e7efeb); border-color: var(--palette-hex-d0ddd7); }
+.trust-chip.trust-high { color: var(--palette-hex-587168); background: var(--palette-hex-e2ebe7); border-color: var(--palette-hex-c4d4ce); }
+.trust-chip.trust-elite { color: var(--palette-hex-4e685f); background: var(--palette-hex-dce7e3); border-color: var(--palette-hex-bfcec8); }
+
+:global(html.dark .user-page .trust-chip.trust-unknown) { color: var(--palette-hex-d7dce4); background: var(--palette-hex-2f3134); border-color: var(--palette-hex-343026); }
+:global(html.dark .user-page .trust-chip.trust-new) { color: var(--palette-hex-ecd4b8); background: var(--palette-hex-413427); border-color: var(--palette-hex-3a3022); }
+:global(html.dark .user-page .trust-chip.trust-basic) { color: var(--palette-hex-d7ead3); background: var(--palette-hex-343b2e); border-color: var(--palette-hex-33362e); }
+:global(html.dark .user-page .trust-chip.trust-mid) { color: var(--palette-hex-d3ebe3); background: var(--palette-hex-323b36); border-color: var(--palette-hex-323530); }
+:global(html.dark .user-page .trust-chip.trust-high) { color: var(--palette-hex-d6ede3); background: var(--palette-hex-323b34); border-color: var(--palette-hex-333530); }
+:global(html.dark .user-page .trust-chip.trust-elite) { color: var(--palette-hex-d6f0e6); background: var(--palette-hex-313833); border-color: var(--palette-hex-333631); }
+
+.panel-head {
+  margin-bottom: 16px;
 }
 
-.trust-chip.trust-new {
-  color: var(--palette-hex-7b6c5f);
-  background: var(--palette-hex-f2ebe2);
-  border-color: var(--palette-hex-dfd3c5);
+.panel-head h2,
+.spending-panel strong {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
-.trust-chip.trust-basic {
-  color: var(--palette-hex-6d7b66);
-  background: var(--palette-hex-edf2ea);
-  border-color: var(--palette-hex-d4ded0);
+.panel-head p,
+.spending-panel small,
+.meta-row,
+.empty-box,
+.error-box,
+.seller-channel small {
+  margin: 6px 0 0;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-.trust-chip.trust-mid {
-  color: var(--palette-hex-617a71);
-  background: var(--palette-hex-e7efeb);
-  border-color: var(--palette-hex-d0ddd7);
-}
-
-.trust-chip.trust-high {
-  color: var(--palette-hex-587168);
-  background: var(--palette-hex-e2ebe7);
-  border-color: var(--palette-hex-c4d4ce);
-}
-
-.trust-chip.trust-elite {
-  color: var(--palette-hex-4e685f);
-  background: var(--palette-hex-dce7e3);
-  border-color: var(--palette-hex-bfcec8);
-}
-
-:global(html.dark .user-page .trust-chip.trust-unknown) {
-  color: var(--palette-hex-d7dce4);
-  background: var(--palette-hex-2f3134);
-  border-color: var(--palette-hex-343026);
-}
-
-:global(html.dark .user-page .trust-chip.trust-new) {
-  color: var(--palette-hex-ecd4b8);
-  background: var(--palette-hex-413427);
-  border-color: var(--palette-hex-3a3022);
-}
-
-:global(html.dark .user-page .trust-chip.trust-basic) {
-  color: var(--palette-hex-d7ead3);
-  background: var(--palette-hex-343b2e);
-  border-color: var(--palette-hex-33362e);
-}
-
-:global(html.dark .user-page .trust-chip.trust-mid) {
-  color: var(--palette-hex-d3ebe3);
-  background: var(--palette-hex-323b36);
-  border-color: var(--palette-hex-323530);
-}
-
-:global(html.dark .user-page .trust-chip.trust-high) {
-  color: var(--palette-hex-d6ede3);
-  background: var(--palette-hex-323b34);
-  border-color: var(--palette-hex-333530);
-}
-
-:global(html.dark .user-page .trust-chip.trust-elite) {
-  color: var(--palette-hex-d6f0e6);
-  background: var(--palette-hex-313833);
-  border-color: var(--palette-hex-333631);
-}
-
-.badges {
+.row-head {
   display: flex;
-  flex-wrap: nowrap;
-  gap: 8px;
-  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.badge {
+.attention-grid,
+.record-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.attention-card,
+.record-card,
+.recent-card,
+.distribution-item {
+  border: 1px solid var(--user-subtle-border);
+  border-radius: 16px;
+  background: var(--user-subtle-bg);
+  text-decoration: none;
+}
+
+.attention-card,
+.record-card {
+  display: grid;
+  gap: 4px;
+  min-height: 92px;
+  padding: 14px;
+  color: var(--text-primary);
+}
+
+.attention-card {
+  background: var(--user-attention-bg);
+}
+
+.attention-card strong,
+.recent-copy strong {
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.attention-card span,
+.record-label,
+.recent-copy span {
   color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.attention-card small {
+  color: var(--user-accent);
+  font-size: 12px;
+}
+
+.attention-icon,
+.record-icon,
+.seller-icon,
+.menu-icon {
+  display: inline-flex;
+  color: var(--user-accent);
+}
+
+.record-card {
+  position: relative;
+  align-content: start;
+}
+
+.record-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
   background: var(--user-badge-bg);
-  border-color: var(--user-badge-border);
-  white-space: nowrap;
+  color: var(--palette-hex-ffffff);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
 }
 
-.badge-primary {
-  color: var(--user-badge-primary-text);
-  background: var(--user-badge-primary-bg);
-  border-color: var(--user-badge-primary-border);
-}
-
-.balance-grid,
-.stats-grid {
+.hub-split,
+.recent-list,
+.distribution-list {
   display: grid;
   gap: 12px;
 }
 
-.balance-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.recent-card {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
 }
 
-.balance-card {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-height: 104px;
-  padding: 16px 18px;
-  border: 1px solid var(--user-balance-border);
-  border-radius: 18px;
-  background: var(--user-balance-bg);
+.recent-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
 
-.balance-card strong {
-  font-size: var(--text-display);
-  line-height: 1;
-  color: var(--user-balance-amount);
+.recent-copy strong {
+  overflow: hidden;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.balance-card strong.accent {
-  color: var(--user-balance-accent);
+.recent-action {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--user-attention-bg);
+  font-size: 13px;
+  line-height: 36px;
 }
 
-.muted,
-.meta,
-.hint-row,
-.panel-subtitle,
-.empty-box,
-.error-box {
+.seller-channel {
+  align-items: center;
+  gap: 12px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.seller-channel span:nth-child(2) {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.seller-go {
+  margin-left: auto;
   font-size: 13px;
 }
 
-.muted {
-  color: var(--text-tertiary);
+.spending-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
 }
 
-.meta {
+.spending-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.spending-panel summary span:first-child,
+.seller-channel span:nth-child(2) {
+  min-width: 0;
+}
+
+.summary-arrow {
+  color: var(--user-accent);
+}
+
+.distribution-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 14px 0 12px;
+}
+
+.switch-group {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--user-subtle-border);
+  border-radius: 999px;
+  background: var(--user-switch-shell-bg);
+}
+
+.switch-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
   color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.switch-btn.active {
+  color: var(--palette-hex-ffffff);
+  background: var(--user-accent);
+}
+
+.distribution-item {
+  width: 100%;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.distribution-item:hover,
+.attention-card:hover,
+.record-card:hover,
+.recent-card:hover,
+.seller-channel:hover,
+.menu-item:hover {
+  transform: translateY(-1px);
+  border-color: var(--user-hover-border);
+  box-shadow: var(--user-hover-shadow);
+}
+
+.distribution-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.row.between {
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.meta-row {
+  margin: 8px 0;
+  font-size: 12px;
+}
+
+.hint-row {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.bar,
+.bar-skeleton {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--user-track-bg);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--user-accent);
 }
 
 .error-box,
@@ -738,270 +911,7 @@ async function handleLogout() {
 
 .empty-box {
   text-align: center;
-  color: var(--text-tertiary);
   background: var(--user-empty-bg);
-}
-
-.stats-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-bottom: 20px;
-}
-
-.stat-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 118px;
-  padding: 18px;
-  border: 1px solid var(--user-subtle-border);
-  border-radius: 20px;
-  background: var(--user-subtle-bg);
-  isolation: isolate;
-}
-
-.stat-value {
-  font-size: var(--text-display);
-  line-height: 1.1;
-  color: var(--text-primary);
-}
-
-.unit {
-  margin-left: 6px;
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
-.tone-sage { background: var(--user-tone-sage); }
-.tone-stone { background: var(--user-tone-stone); }
-.tone-gold { background: var(--user-tone-gold); }
-.tone-moss { background: var(--user-tone-moss); }
-.tone-plain { background: var(--user-subtle-bg); }
-
-.distribution-panel {
-  padding: 18px;
-  border: 1px solid var(--user-subtle-border);
-  border-radius: 22px;
-  background: var(--user-subtle-bg);
-  isolation: isolate;
-}
-
-.panel-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 18px;
-}
-
-.panel-intro {
-  min-width: 0;
-}
-
-.panel-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.panel-title.standalone {
-  display: inline-block;
-}
-
-.panel-title-menu {
-  position: relative;
-}
-
-.panel-title-menu[open] .panel-title-trigger {
-  border-color: var(--user-hover-border);
-  background: var(--user-option-active-bg);
-}
-
-.panel-title-menu summary::-webkit-details-marker {
-  display: none;
-}
-
-.panel-title-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: transparent;
-  list-style: none;
-  cursor: pointer;
-}
-
-.panel-title-arrow {
-  color: var(--user-accent-income);
-  font-size: 14px;
-}
-
-.panel-title-options {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  z-index: 5;
-  display: grid;
-  gap: 6px;
-  min-width: 132px;
-  padding: 8px;
-  border: 1px solid var(--user-subtle-border);
-  border-radius: 14px;
-  background: var(--user-card-bg);
-  box-shadow: var(--user-card-shadow);
-}
-
-.panel-title-option {
-  padding: 9px 12px;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--text-secondary);
-  text-align: left;
-  cursor: pointer;
-}
-
-.panel-title-option:hover,
-.panel-title-option.active {
-  color: var(--user-option-active-text);
-  background: var(--user-option-active-bg);
-}
-
-.panel-subtitle {
-  margin: 6px 0 0;
-  color: var(--text-tertiary);
-  line-height: 1.5;
-}
-
-.toolbar {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.switch-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px;
-  border: 1px solid var(--user-subtle-border);
-  border-radius: 999px;
-  background: var(--user-switch-shell-bg);
-}
-
-.metric-switch {
-  background: var(--user-switch-shell-accent-bg);
-}
-
-.switch-btn {
-  padding: 8px 12px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.switch-btn.active {
-  color: var(--palette-hex-ffffff);
-  background: var(--user-accent-income);
-  box-shadow: none;
-}
-
-.distribution-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.distribution-item {
-  width: 100%;
-  padding: 14px 16px;
-  border: 1px solid var(--user-subtle-border);
-  border-radius: 18px;
-  background: var(--user-subtle-strong-bg);
-  text-align: left;
-  cursor: pointer;
-}
-
-.distribution-item:hover {
-  transform: translateY(-1px);
-  border-color: var(--user-hover-border);
-  box-shadow: var(--user-hover-shadow);
-}
-
-.distribution-icon {
-  font-size: 18px;
-}
-
-.distribution-name {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.meta-row {
-  margin: 10px 0;
-  color: var(--text-tertiary);
-  font-size: 12px;
-}
-
-.hint-row {
-  margin-top: 10px;
-  color: var(--text-tertiary);
-}
-
-.linkish {
-  color: var(--user-accent-income);
-  font-weight: 600;
-}
-
-.bar {
-  height: 8px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--user-track-bg);
-}
-
-.fill {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-}
-
-.fill.expense {
-  background: var(--user-accent-expense);
-}
-
-.fill.income {
-  background: var(--user-accent-income);
-}
-
-.loading-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.loading-card {
-  background: var(--user-subtle-bg);
-}
-
-.loading-item {
-  cursor: default;
-}
-
-.loading-item:hover {
-  transform: none;
-  box-shadow: none;
-  border-color: var(--user-subtle-border);
-}
-
-.loading-fill {
-  background: var(--user-accent-expense);
 }
 
 .skeleton {
@@ -1019,41 +929,32 @@ async function handleLogout() {
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }
 
-.pill {
+.attention-skeleton,
+.pill,
+.line,
+.bar-skeleton {
   display: block;
-  height: 14px;
   border-radius: 999px;
 }
 
-.pill.wide {
-  width: 132px;
+.attention-skeleton {
+  height: 92px;
+  border-radius: 16px;
+}
+
+.pill {
+  height: 14px;
 }
 
 .pill.mid {
   width: 112px;
 }
 
-.pill.short {
-  width: 72px;
-}
-
 .line {
-  display: block;
+  width: 72%;
   height: 18px;
+  margin-top: 10px;
   border-radius: 10px;
-}
-
-.line.tall {
-  height: 28px;
-}
-
-.mt8 {
-  margin-top: 8px;
-}
-
-.switcher {
-  width: 92px;
-  height: 32px;
 }
 
 .menu-section {
@@ -1070,14 +971,9 @@ async function handleLogout() {
 .menu-list {
   overflow: hidden;
   border-radius: 16px;
-  border: 1px solid var(--user-menu-border);
-  background: var(--user-menu-bg);
-  box-shadow: var(--shadow-sm);
-  isolation: isolate;
 }
 
 .menu-item {
-  display: flex;
   align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid var(--user-menu-border);
@@ -1089,13 +985,8 @@ async function handleLogout() {
   border-bottom: none;
 }
 
-.menu-item:hover {
-  background: var(--user-menu-hover-bg);
-}
-
 .menu-icon {
   margin-right: 14px;
-  font-size: 20px;
 }
 
 .menu-label {
@@ -1104,17 +995,14 @@ async function handleLogout() {
 }
 
 .menu-arrow {
-  font-size: 16px;
   color: var(--text-tertiary);
 }
 
 .logout-btn {
   width: 100%;
-  margin-top: 20px;
+  margin-top: 8px;
   padding: 16px;
-  border: 1px solid var(--user-menu-border);
   border-radius: 16px;
-  background: var(--user-logout-bg);
   color: var(--color-danger);
   font-size: 15px;
   cursor: pointer;
@@ -1126,58 +1014,47 @@ async function handleLogout() {
 }
 
 @keyframes skeleton-shimmer {
-  100% {
-    transform: translateX(100%);
+  100% { transform: translateX(100%); }
+}
+
+@media (min-width: 768px) {
+  .hub-split {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 16px;
+    margin-bottom: var(--section-gap);
+  }
+
+  .hub-split > .panel {
+    margin-bottom: 0;
   }
 }
 
 @media (max-width: 767px) {
-
-  .user-card {
+  .identity-card,
+  .panel,
+  .seller-channel {
     padding: 18px;
     border-radius: 20px;
   }
 
-  .hero-top {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-  }
-
-  .badges {
-    flex-wrap: wrap;
-  }
-
-  .stats-grid {
+  .attention-grid,
+  .record-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .panel-head {
-    flex-direction: column;
-  }
-
-  .toolbar {
-    width: 100%;
-    align-items: flex-start;
   }
 }
 
 @media (max-width: 639px) {
-
-  .user-card {
+  .identity-card,
+  .panel,
+  .seller-channel {
     padding: 12px;
     border-radius: 18px;
   }
 
-  .hero {
-    gap: 12px;
-    margin-bottom: 14px;
-  }
-
-  .user-info {
+  .identity-main {
     display: grid;
     grid-template-columns: 56px minmax(0, 1fr);
     gap: 10px;
-    align-items: center;
   }
 
   .user-avatar {
@@ -1186,101 +1063,30 @@ async function handleLogout() {
     border-width: 2px;
   }
 
-  .user-detail {
-    display: grid;
-    gap: 4px;
-  }
-
-  .name-row {
-    gap: 6px;
-  }
-
   .user-name {
     font-size: 18px;
   }
 
-  .user-id {
-    margin-bottom: 4px;
-    font-size: 13px;
+  .attention-grid {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
   }
 
-  .badges {
-    gap: 6px;
+  .attention-card,
+  .attention-skeleton {
+    flex: 0 0 132px;
+    min-height: 86px;
   }
 
-  .trust-chip,
-  .badge {
-    min-height: 28px;
-    padding: 0 9px;
-    font-size: 11px;
-  }
-
-  .balance-grid,
-  .stats-grid {
+  .record-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
-  .balance-card {
-    min-height: 80px;
-    padding: 10px;
-    border-radius: 14px;
-    gap: 4px;
-  }
-
-  .balance-card strong {
-    font-size: 20px;
-  }
-
-  .stat-card {
-    min-height: 88px;
-    padding: 12px;
-    gap: 4px;
-    border-radius: 16px;
-  }
-
-  .stat-value {
-    font-size: 22px;
-  }
-
-  .meta,
-  .muted,
-  .hint-row,
-  .panel-subtitle,
-  .empty-box,
-  .error-box,
-  .meta-row {
-    font-size: 12px;
-  }
-
-  .row.between,
-  .hint-row {
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .distribution-panel {
-    padding: 12px;
-    border-radius: 18px;
-  }
-
-  .distribution-item {
-    padding: 10px;
-    border-radius: 16px;
-  }
-
-  .switch-group {
-    width: auto;
-  }
-
-  .switch-btn {
-    padding: 8px 10px;
-    font-size: 12px;
-  }
-
-  .menu-section {
-    margin-bottom: 16px;
+  .record-card {
+    min-height: 86px;
   }
 
   .menu-list {
@@ -1316,18 +1122,11 @@ async function handleLogout() {
 
   .menu-icon {
     margin-right: 0;
-    font-size: 18px;
-  }
-
-  .menu-label {
-    font-size: 14px;
-    line-height: 1.35;
   }
 
   .menu-arrow {
     margin-top: auto;
     align-self: flex-end;
-    font-size: 14px;
   }
 
   .menu-list > .menu-item:last-child:nth-child(odd) .menu-arrow {
@@ -1339,18 +1138,13 @@ async function handleLogout() {
   .logout-btn {
     margin-top: 12px;
     padding: 14px;
-    font-size: 14px;
   }
 }
 
 @media (max-width: 359px) {
-  .balance-grid,
-  .stats-grid {
+  .record-grid,
+  .menu-list {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .panel-title-options {
-    min-width: 100%;
   }
 }
 </style>
