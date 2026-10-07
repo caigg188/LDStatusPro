@@ -29,6 +29,11 @@ describe('消息时间格式', () => {
     expect(normalizeTimestampMs('1786583396000')).toBe(1_786_583_396_000)
   })
 
+  it('把无时区墙钟时间按 UTC 解析', () => {
+    expect(normalizeTimestampMs('2026-10-07 07:58:17.092')).toBe(Date.parse('2026-10-07T07:58:17.092Z'))
+    expect(formatStandardDateTime('2026-10-07 07:58:17.092')).toBe('2026-10-07 15:58:17')
+  })
+
   it('固定显示北京时间标准格式并保留秒数', () => {
     expect(formatStandardDateTime('2026-08-13T01:09:56.000Z')).toBe('2026-08-13 09:09:56')
     expect(formatStandardDateTime(1_786_583_396)).toBe('2026-08-13 09:09:56')

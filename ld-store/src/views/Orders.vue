@@ -369,6 +369,7 @@ import {
   normalizeSellerPage,
   resolveSellerStatusTone
 } from '@/utils/sellerTables'
+import { normalizeTimestampMs } from '@/utils/format'
 
 const router = useRouter()
 const route = useRoute()
@@ -812,28 +813,7 @@ function getOrderCouponRule(order) {
 }
 
 function parseDateTimeToTimestamp(value) {
-  if (value == null || value === '') return NaN
-
-  if (typeof value === 'number') {
-    return value > 1e12 ? value : value * 1000
-  }
-
-  const raw = String(value).trim()
-  if (!raw) return NaN
-
-  if (/^\d+$/.test(raw)) {
-    const num = Number(raw)
-    return num > 1e12 ? num : num * 1000
-  }
-
-  // Backend stores Beijing time like: YYYY-MM-DD HH:mm:ss
-  const beijingMatch = raw.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})(?::(\d{2}))?$/)
-  if (beijingMatch) {
-    const seconds = beijingMatch[3] || '00'
-    return new Date(`${beijingMatch[1]}T${beijingMatch[2]}:${seconds}+08:00`).getTime()
-  }
-
-  return new Date(raw).getTime()
+  return normalizeTimestampMs(value)
 }
 
 function getOrderExpireTimestamp(order) {
@@ -880,7 +860,7 @@ function getOrderPaidAt(order) {
 function isPaidOvertime(order) {
   if (order.status !== 'paid') return false
   const paidAt = getOrderPaidAt(order)
-  const paidTs = new Date(paidAt || 0).getTime()
+  const paidTs = parseDateTimeToTimestamp(paidAt)
   if (!paidTs || Number.isNaN(paidTs)) return false
   return Date.now() - paidTs >= 30 * 60 * 1000
 }
@@ -1021,13 +1001,16 @@ function getOrderDisplayName(order) {
 
 // 格式化日期
 function formatDate(date) {
-  if (!date) return ''
-  const d = new Date(date)
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const hour = String(d.getHours()).padStart(2, '0')
-  const minute = String(d.getMinutes()).padStart(2, '0')
-  return `${month}-${day} ${hour}:${minute}`
+  const ms = normalizeTimestampMs(date)
+  if (!Number.isFinite(ms)) return ''
+  return new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(new Date(ms))
 }
 
 // 是否是CDK类型订单

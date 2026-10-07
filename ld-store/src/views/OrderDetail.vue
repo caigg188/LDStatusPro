@@ -425,7 +425,7 @@ import {
 import { ORDER_LIST_SCROLL_SOURCE, readOrderScrollSnapshot } from '@/utils/orderListScroll'
 import { resolveOrderPartyIdentity } from '@/utils/orderPartyIdentity'
 import { resolveOrderItemPricing } from '@/utils/orderItemPricing'
-import { formatPrice } from '@/utils/format'
+import { formatPrice, formatStandardDateTime, normalizeTimestampMs } from '@/utils/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -678,9 +678,7 @@ function getLogText(log) {
 }
 
 function toTimestamp(value) {
-  if (!value) return 0
-  if (typeof value === 'number') return value
-  const parsed = new Date(value).getTime()
+  const parsed = normalizeTimestampMs(value)
   return Number.isFinite(parsed) ? parsed : 0
 }
 
@@ -784,15 +782,7 @@ function getStatusClass(status) {
 
 // 格式化日期时间
 function formatDateTime(date) {
-  if (!date) return ''
-  const d = new Date(date)
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const hour = String(d.getHours()).padStart(2, '0')
-  const minute = String(d.getMinutes()).padStart(2, '0')
-  const second = String(d.getSeconds()).padStart(2, '0')
-  return `${year}-${month}-${day} ${hour}:${minute}:${second}`
+  return formatStandardDateTime(date)
 }
 
 // 复制发货内容

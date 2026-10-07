@@ -279,6 +279,7 @@ import {
   sortMerchantTasks,
   sortTrendRowsNewestFirst
 } from '@/utils/merchantDashboard'
+import { normalizeTimestampMs } from '@/utils/format'
 
 const SellerTrendChart = defineAsyncComponent(() => import('@/components/seller/SellerTrendChart.vue'))
 const fulfillmentStore = useSellerFulfillmentStore()
@@ -395,19 +396,22 @@ function formatNumber(value, digits = 2) {
   return formatDashboardNumber(value, digits)
 }
 
+function formatBeijing(value, options) {
+  const ms = normalizeTimestampMs(value)
+  if (!Number.isFinite(ms)) return '—'
+  return new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false, ...options }).format(new Date(ms))
+}
+
 function formatShortDate(value) {
-  if (!value) return '—'
-  return new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit' }).format(new Date(value))
+  return formatBeijing(value, { month: '2-digit', day: '2-digit' })
 }
 
 function formatTime(value) {
-  if (!value) return '—'
-  return new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(value))
+  return formatBeijing(value, { hour: '2-digit', minute: '2-digit' })
 }
 
 function formatDateTime(value) {
-  if (!value) return '—'
-  return new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(value))
+  return formatBeijing(value, { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 function getOrderStatus(status) {

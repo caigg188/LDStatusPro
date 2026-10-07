@@ -67,16 +67,16 @@ export function formatDate(timestamp, format = 'YYYY-MM-DD') {
   const timestampMs = normalizeTimestampMs(timestamp)
   if (!Number.isFinite(timestampMs)) return ''
 
-  const date = new Date(timestampMs)
-  
+  const date = new Date(timestampMs + 8 * 60 * 60 * 1000)
+
   if (isNaN(date.getTime())) return ''
-  
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-  const seconds = String(date.getSeconds()).padStart(2, '0')
+
+  const year = date.getUTCFullYear()
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(date.getUTCDate()).padStart(2, '0')
+  const hours = String(date.getUTCHours()).padStart(2, '0')
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0')
+  const seconds = String(date.getUTCSeconds()).padStart(2, '0')
   
   return format
     .replace('YYYY', year)
@@ -101,6 +101,9 @@ export function formatDateTime(timestamp) {
  * @param {number|string|Date} timestamp - 时间戳或日期
  * @returns {number}
  */
+const NAIVE_DATE_TIME = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)$/
+const HAS_EXPLICIT_ZONE = /(?:[zZ]|[+-]\d{2}(?::?\d{2})?)$/
+
 export function normalizeTimestampMs(timestamp) {
   if (timestamp instanceof Date) return timestamp.getTime()
 
@@ -114,6 +117,23 @@ export function normalizeTimestampMs(timestamp) {
   if (/^\d{10}(?:\d{3})?$/.test(text)) {
     const numeric = Number(text)
     return text.length === 10 ? numeric * 1000 : numeric
+  }
+
+  if (HAS_EXPLICIT_ZONE.test(text)) {
+    const withT = text.includes('T') ? text : text.replace(' ', 'T')
+    const zoned = withT.replace(/([+-])(\d{2})$/, '$1$2:00').replace(/([+-])(\d{2})(\d{2})$/, '$1$2:$3')
+    const ms = Date.parse(zoned)
+    return Number.isFinite(ms) ? ms : Number.NaN
+  }
+
+  const naive = text.match(NAIVE_DATE_TIME)
+  if (naive) {
+    const time = naive[2].length === 5 ? `${naive[2]}:00` : naive[2]
+    return Date.parse(`${naive[1]}T${time}Z`)
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(text)) {
+    return Date.parse(`${text}Z`)
   }
 
   return new Date(text).getTime()

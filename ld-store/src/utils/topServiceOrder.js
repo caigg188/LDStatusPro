@@ -3,16 +3,22 @@ const PAYMENT_WINDOW_MS = 5 * 60 * 1000
 export function parseTopServiceBeijingDateTimeMs(value = '') {
   const text = String(value || '').trim()
   const match = text.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/)
-  if (!match) return 0
-  const [, year, month, day, hour, minute, second] = match
-  return Date.UTC(
-    Number(year),
-    Number(month) - 1,
-    Number(day),
-    Number(hour) - 8,
-    Number(minute),
-    Number(second)
-  )
+  if (match) {
+    const [, year, month, day, hour, minute, second] = match
+    return Date.UTC(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour) - 8,
+      Number(minute),
+      Number(second)
+    )
+  }
+  if (/^\d{4}-\d{2}-\d{2}T/.test(text) || /[zZ]|[+-]\d{2}(?::?\d{2})?$/.test(text)) {
+    const ms = Date.parse(text)
+    return Number.isFinite(ms) ? ms : 0
+  }
+  return 0
 }
 
 export function getTopServicePaymentDeadlineMs(order = {}) {
