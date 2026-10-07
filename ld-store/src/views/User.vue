@@ -118,7 +118,7 @@
               class="record-card"
             >
               <span class="icon-well" aria-hidden="true">
-                <component :is="recordIcons[item.key]" :size="18" :stroke-width="1.8" />
+                <component :is="recordIcons[item.key]" :size="16" :stroke-width="1.9" />
               </span>
               <span class="record-label">{{ item.label }}</span>
               <span v-if="item.badge" class="record-badge">{{ item.badge }}</span>
@@ -161,34 +161,26 @@
           </div>
         </div>
         <p v-else-if="dashboardError" class="error-box" role="alert">{{ dashboardError }}</p>
-        <div v-else-if="distributionCategories.length" class="distribution-toolbar">
-          <div class="switch-group" role="group" aria-label="消费画像统计方式">
-            <button type="button" :class="['switch-btn', { active: distributionMode === 'orders' }]" @click="distributionMode = 'orders'">按订单数</button>
-            <button type="button" :class="['switch-btn', { active: distributionMode === 'amount' }]" @click="distributionMode = 'amount'">按积分</button>
-          </div>
-        </div>
-        <div v-if="!dashboardLoading && !dashboardError && distributionCategories.length" class="distribution-list">
+        <div v-else-if="spendingShares.length" class="distribution-list">
+          <p v-if="spendingInsight" class="spending-insight">{{ spendingInsight }}</p>
           <button
-            v-for="item in distributionCategories"
+            v-for="item in spendingShares"
             :key="`${item.categoryId}-${item.categoryName}`"
             type="button"
             class="distribution-item"
+            :aria-label="`查看${item.categoryName}已成交订单，占 ${item.share}%`"
             @click="jumpToDistributionOrders(item)"
           >
             <div class="row between">
               <span class="distribution-name">{{ item.categoryName }}</span>
-              <strong>{{ distributionMode === 'orders' ? `${formatHubNumber(item.orderCount)} 单` : `${formatHubAmount(item.amount)} LDC` }}</strong>
-            </div>
-            <div class="row between meta-row">
-              <span>{{ formatHubNumber(item.orderCount) }} 单 / {{ formatHubNumber(item.quantity) }} 件</span>
-              <span>{{ formatHubAmount(item.amount) }} LDC</span>
+              <strong>{{ item.share }}% · {{ formatHubAmount(item.amount) }} LDC</strong>
             </div>
             <div class="bar" aria-hidden="true">
-              <span class="fill" :style="{ width: `${distributionWidth(item, distributionMaxValue, distributionMode)}%` }" />
+              <span class="fill" :class="{ 'has-value': item.share > 0 }" :style="{ width: `${item.share}%` }" />
             </div>
           </button>
         </div>
-        <p v-else-if="!dashboardLoading && !dashboardError" class="quiet-empty">还没有已成交的购买记录，后续消费会自动出现在这里。</p>
+        <p v-else class="quiet-empty">还没有已成交的购买记录，后续消费会自动出现在这里。</p>
       </details>
 
       <section class="more-panel" aria-label="工具与账号">
@@ -274,8 +266,8 @@ import {
   activeAttentionItems,
   buildAttentionItems,
   buildRecordLinks,
+  buildSpendingShares,
   buildTrustHint,
-  distributionWidth,
   formatHubAmount,
   formatHubNumber,
   recentOrderAction,
@@ -283,7 +275,7 @@ import {
   recentOrderStatusTone,
   sellerChannelCopy,
   shouldShowSellerChannel,
-  sortDistributionCategories,
+  spendingInsightText,
   spendingSummaryText
 } from '@/utils/userHub'
 
@@ -343,7 +335,6 @@ const dashboard = ref(null)
 const attentionLoading = ref(true)
 const attentionError = ref('')
 const attention = ref(EMPTY_ATTENTION)
-const distributionMode = ref('amount')
 
 const user = computed(() => userStore.user)
 const identity = computed(() => buildUserIdentity({
@@ -401,14 +392,8 @@ const sellerChannelAriaLabel = computed(() => {
   return hint ? `进入卖家后台，${hint}` : '进入卖家后台'
 })
 const spendingSummary = computed(() => spendingSummaryText(overview.value))
-const distributionCategories = computed(() => sortDistributionCategories(
-  spendingDistribution.value.categories,
-  distributionMode.value
-))
-const distributionMaxValue = computed(() => distributionCategories.value.reduce((maxValue, item) => {
-  const nextValue = distributionMode.value === 'orders' ? Number(item.orderCount || 0) : Number(item.amount || 0)
-  return Math.max(maxValue, nextValue)
-}, 0))
+const spendingShares = computed(() => buildSpendingShares(spendingDistribution.value))
+const spendingInsight = computed(() => spendingInsightText(spendingShares.value))
 
 function orderAction(order) {
   return recentOrderAction(order)
@@ -485,6 +470,11 @@ async function handleLogout() {
   padding-bottom: 88px;
   background: var(--bg-primary);
   color-scheme: light;
+  font-family: var(--font-sans);
+  --hub-title: 15px;
+  --hub-body: 13px;
+  --hub-meta: 12px;
+  --hub-record: 13px;
   --user-card-border: var(--palette-hex-dfd6ca);
   --user-card-bg: var(--palette-hex-fcfaf6);
   --user-card-shadow: 0 10px 24px var(--palette-rgba-61-61-61-0p05);
@@ -496,7 +486,6 @@ async function handleLogout() {
   --user-accent: var(--palette-hex-7f9681);
   --user-accent-text: var(--palette-hex-5f7565);
   --user-avatar-border: var(--palette-rgba-255-255-255-0p92);
-  --user-switch-shell-bg: var(--palette-hex-f4f0e9);
   --user-skeleton-bg: var(--palette-hex-e2e8f0);
   --user-skeleton-shine: var(--palette-rgba-255-255-255-0p68);
   --user-menu-hover-bg: var(--palette-hex-f4f0e9);
@@ -525,7 +514,6 @@ async function handleLogout() {
   --user-accent: var(--palette-hex-8fb090);
   --user-accent-text: var(--palette-hex-d7ead3);
   --user-avatar-border: var(--palette-hex-352e24);
-  --user-switch-shell-bg: var(--palette-hex-3c342c);
   --user-skeleton-bg: var(--palette-hex-413931);
   --user-skeleton-shine: var(--palette-rgba-255-255-255-0p08);
   --user-menu-hover-bg: var(--palette-hex-312a24);
@@ -551,7 +539,7 @@ async function handleLogout() {
 .panel,
 .seller-strip {
   margin-bottom: var(--section-gap);
-  padding: var(--card-pad) var(--detail-pad);
+  padding: 16px 18px;
   border-radius: var(--card-radius);
   box-shadow: var(--user-card-shadow);
 }
@@ -587,7 +575,7 @@ async function handleLogout() {
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .user-avatar {
@@ -618,16 +606,18 @@ async function handleLogout() {
 .user-name {
   font-size: var(--text-subtitle);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
 }
 
 .identity-meta {
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 10px;
+  gap: 4px 8px;
   margin: 0;
   color: var(--text-tertiary);
-  font-size: var(--text-size-xs);
+  font-size: var(--hub-meta);
+  line-height: 1.4;
 }
 
 .identity-meta > * + *::before {
@@ -650,11 +640,10 @@ async function handleLogout() {
   align-items: center;
   gap: 2px;
   min-height: 28px;
-  font-size: 13px;
+  font-size: var(--hub-body);
 }
 
 .trust-chip,
-.switch-btn,
 .menu-item,
 .logout-btn,
 .distribution-item,
@@ -692,27 +681,27 @@ async function handleLogout() {
 :global(html.dark .user-page .trust-chip.trust-elite) { color: var(--palette-hex-d6f0e6); background: var(--palette-hex-313833); border-color: var(--palette-hex-333631); }
 
 .panel-head {
-  margin-bottom: var(--space-4);
+  margin-bottom: 12px;
 }
 
 .panel-head h2,
 .spending-panel strong {
-  font-size: var(--text-size-md);
+  font-size: var(--hub-title);
   font-weight: 700;
+  line-height: 1.3;
 }
 
 .panel-head p,
 .spending-panel small,
-.meta-row,
 .quiet-empty,
 .error-box,
 .seller-copy small,
 .recent-copy span,
 .attention-label {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: var(--text-tertiary);
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: var(--hub-meta);
+  line-height: 1.45;
 }
 
 .row-head {
@@ -734,11 +723,15 @@ async function handleLogout() {
   color: var(--user-accent-text);
 }
 
+.icon-well svg {
+  display: block;
+}
+
 .attention-grid,
 .record-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--grid-gap);
+  gap: 8px;
 }
 
 .attention-card,
@@ -752,33 +745,55 @@ async function handleLogout() {
   color: var(--text-primary);
 }
 
-.attention-card,
-.record-card {
-  position: relative;
+.attention-card {
   display: grid;
   align-content: start;
   gap: 6px;
-  min-height: 96px;
+  min-height: 88px;
   padding: 12px;
 }
 
 .attention-card strong {
-  font-size: var(--text-stat);
+  font-size: 20px;
+  font-weight: 700;
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .attention-card small {
   color: var(--user-accent-text);
-  font-size: 12px;
+  font-size: var(--hub-meta);
+}
+
+.record-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 10px 12px;
+}
+
+.record-card .icon-well {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.record-label {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--hub-record);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
 }
 
 .record-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  min-width: 20px;
+  flex-shrink: 0;
+  min-width: 18px;
   min-height: 18px;
-  padding: 0 6px;
+  padding: 0 5px;
   border-radius: var(--radius-pill);
   background: var(--user-badge-bg);
   color: var(--text-inverse);
@@ -786,6 +801,7 @@ async function handleLogout() {
   font-weight: 700;
   line-height: 18px;
   text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .hub-split,
@@ -796,9 +812,23 @@ async function handleLogout() {
   gap: var(--grid-gap);
 }
 
+.hub-split > .panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.hub-split .panel-head {
+  flex-shrink: 0;
+}
+
+.record-grid {
+  flex: 1 1 auto;
+}
+
 .recent-card {
-  min-height: 64px;
-  padding: 12px 14px;
+  min-height: 60px;
+  padding: 10px 12px;
+  gap: 10px;
 }
 
 .recent-card.is-skeleton,
@@ -809,7 +839,9 @@ async function handleLogout() {
 
 .recent-copy strong {
   overflow: hidden;
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -837,7 +869,8 @@ async function handleLogout() {
   flex-shrink: 0;
   align-items: center;
   gap: 2px;
-  font-size: 13px;
+  font-size: var(--hub-meta);
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -873,42 +906,31 @@ async function handleLogout() {
   transform: rotate(-90deg);
 }
 
-.distribution-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin: 12px 0;
-}
-
-.switch-group {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--user-subtle-border);
-  border-radius: var(--radius-pill);
-  background: var(--user-switch-shell-bg);
-}
-
-.switch-btn {
-  min-height: 36px;
-  padding: 0 12px;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.switch-btn.active {
-  color: var(--text-inverse);
-  background: var(--user-accent);
+.spending-insight {
+  margin: 4px 0 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.45;
 }
 
 .distribution-item {
   width: 100%;
-  padding: 12px 14px;
+  padding: 10px 12px;
   text-align: left;
   cursor: pointer;
+}
+
+.distribution-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.distribution-item strong {
+  font-size: var(--hub-meta);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
 }
 
 .attention-card:hover,
@@ -926,15 +948,11 @@ async function handleLogout() {
   gap: 8px;
 }
 
-.meta-row {
-  margin: 6px 0 8px;
-  font-size: 12px;
-}
-
 .bar,
 .bar-skeleton {
-  height: 8px;
+  height: 6px;
   overflow: hidden;
+  margin-top: 8px;
   border-radius: var(--radius-pill);
   background: var(--user-track-bg);
 }
@@ -944,6 +962,10 @@ async function handleLogout() {
   height: 100%;
   border-radius: var(--radius-pill);
   background: var(--user-accent);
+}
+
+.fill.has-value {
+  min-width: 4px;
 }
 
 .error-box,
@@ -986,7 +1008,7 @@ async function handleLogout() {
 }
 
 .attention-skeleton {
-  min-height: 96px;
+  min-height: 88px;
 }
 
 .pill {
@@ -1002,9 +1024,10 @@ async function handleLogout() {
 }
 
 .section-title {
-  margin: 0 0 10px 2px;
-  font-size: 13px;
+  margin: 0 0 8px 2px;
+  font-size: var(--hub-meta);
   font-weight: 650;
+  letter-spacing: 0.04em;
   color: var(--text-tertiary);
 }
 
@@ -1027,7 +1050,9 @@ async function handleLogout() {
 
 .menu-label {
   flex: 1;
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
 .menu-arrow {
@@ -1043,7 +1068,8 @@ async function handleLogout() {
   margin-top: var(--space-4);
   border-radius: var(--radius-lg);
   color: var(--color-danger);
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -1062,22 +1088,48 @@ async function handleLogout() {
 }
 
 @media (min-width: 768px) {
-  .identity { padding: 16px 20px; }
+  .identity,
+  .panel,
+  .seller-strip {
+    padding: 18px 20px;
+  }
+
   .user-avatar { width: 64px; height: 64px; }
   .attention-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .record-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .more-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (min-width: 1024px) {
   .hub-split {
-    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
-    align-items: start;
+    grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+    align-items: stretch;
     margin-bottom: var(--section-gap);
   }
 
   .hub-split > .panel {
     margin-bottom: 0;
+  }
+
+  .record-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+    gap: 10px;
+  }
+
+  .record-card {
+    min-height: 60px;
+    height: 100%;
+    padding: 12px 14px;
+  }
+
+  .record-card .icon-well {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+
+  .record-label {
+    font-size: 14px;
   }
 
   .attention-grid {
@@ -1093,16 +1145,18 @@ async function handleLogout() {
   }
 
   .attention-card,
-  .record-card,
   .attention-skeleton {
-    min-height: 88px;
+    min-height: 84px;
+  }
+
+  .record-card {
+    min-height: 48px;
   }
 
   .recent-card,
   .seller-strip,
   .menu-item,
-  .logout-btn,
-  .switch-btn {
+  .logout-btn {
     min-height: 44px;
   }
 
@@ -1136,7 +1190,6 @@ async function handleLogout() {
 
 @media (prefers-reduced-motion: reduce) {
   .trust-chip,
-  .switch-btn,
   .menu-item,
   .logout-btn,
   .distribution-item,

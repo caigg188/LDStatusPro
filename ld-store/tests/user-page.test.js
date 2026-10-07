@@ -25,5 +25,7 @@ describe('personal hub page', () => {
     expect(source).not.toContain('今日额度')
     expect(source).not.toContain('fetchLdcInfo')
     expect(source).not.toContain('累计购买订单')
+    expect(source).not.toContain('按订单数')
+    expect(source).toContain('spendingInsight')
   })
 })

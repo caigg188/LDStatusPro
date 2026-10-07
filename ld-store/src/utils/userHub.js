@@ -142,12 +142,12 @@ export function buildRecordLinks({
     return count > 99 ? '99+' : String(count)
   }
   return [
-    { key: 'orders', label: '我的订单', to: '/user/orders', badge: '' },
-    { key: 'coupons', label: '我的优惠券', to: '/user/coupons', badge: badge(unusedCouponCount) },
-    { key: 'favorites', label: '收藏与拉黑', to: '/user/favorites', badge: '' },
-    { key: 'buyRequests', label: '我的求购', to: '/user/buy-requests', badge: '' },
-    { key: 'messages', label: '我的消息', to: '/user/messages', badge: badge(messageUnread) },
-    { key: 'reports', label: '我的举报', to: '/user/reports', badge: badge(pendingReportCount) }
+    { key: 'orders', label: '订单', to: '/user/orders', badge: '' },
+    { key: 'coupons', label: '优惠券', to: '/user/coupons', badge: badge(unusedCouponCount) },
+    { key: 'favorites', label: '收藏', to: '/user/favorites', badge: '' },
+    { key: 'buyRequests', label: '求购', to: '/user/buy-requests', badge: '' },
+    { key: 'messages', label: '消息', to: '/user/messages', badge: badge(messageUnread) },
+    { key: 'reports', label: '举报', to: '/user/reports', badge: badge(pendingReportCount) }
   ]
 }
 
@@ -198,20 +198,35 @@ export function recentOrderStatusTone(order = {}) {
   return 'mute'
 }
 
-export function sortDistributionCategories(categories = [], mode = 'amount') {
-  return [...categories].sort((left, right) => {
-    const primary = mode === 'orders'
-      ? Number(right.orderCount || 0) - Number(left.orderCount || 0)
-      : Number(right.amount || 0) - Number(left.amount || 0)
-    if (primary !== 0) return primary
-    return Number(right.quantity || 0) - Number(left.quantity || 0)
-  })
+export function spendingSharePercent(amount, total) {
+  const value = Math.max(Number(amount) || 0, 0)
+  const sum = Math.max(Number(total) || 0, 0)
+  if (sum <= 0 || value <= 0) return 0
+  return Math.round((value / sum) * 100)
 }
 
-export function distributionWidth(item, maxValue, mode = 'amount') {
-  const currentValue = mode === 'orders' ? Number(item.orderCount || 0) : Number(item.amount || 0)
-  if (maxValue <= 0 || currentValue <= 0) return 0
-  return Math.max(10, Math.min((currentValue / maxValue) * 100, 100))
+export function buildSpendingShares(distribution = EMPTY_DISTRIBUTION) {
+  const categories = Array.isArray(distribution.categories) ? distribution.categories : []
+  const summed = categories.reduce((sum, item) => sum + Math.max(Number(item.amount) || 0, 0), 0)
+  const total = Math.max(Number(distribution.totals?.amount) || 0, summed)
+  return [...categories]
+    .sort((left, right) => {
+      const primary = Math.max(Number(right.amount) || 0, 0) - Math.max(Number(left.amount) || 0, 0)
+      if (primary !== 0) return primary
+      return Math.max(Number(right.orderCount) || 0, 0) - Math.max(Number(left.orderCount) || 0, 0)
+    })
+    .map(item => ({
+      ...item,
+      amount: Math.max(Number(item.amount) || 0, 0),
+      share: spendingSharePercent(item.amount, total)
+    }))
+}
+
+export function spendingInsightText(shares = []) {
+  const top = shares[0]
+  const name = String(top?.categoryName || '').trim()
+  if (!top || !name || Number(top.share || 0) <= 0) return ''
+  return `你把 ${top.share}% 的积分花在「${name}」`
 }
 
 export function spendingSummaryText(overview = EMPTY_OVERVIEW) {

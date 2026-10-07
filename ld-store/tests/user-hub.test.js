@@ -10,6 +10,8 @@ import {
   recentOrderStatusTone,
   sellerChannelCopy,
   shouldShowSellerChannel,
+  buildSpendingShares,
+  spendingInsightText,
   spendingSummaryText
 } from '../src/utils/userHub'
 
@@ -41,6 +43,7 @@ describe('personal hub presentation', () => {
     expect(records.find(item => item.key === 'coupons')?.badge).toBe('3')
     expect(records.find(item => item.key === 'messages')?.badge).toBe('12')
     expect(records.find(item => item.key === 'orders')?.badge).toBe('')
+    expect(records.map(item => item.label)).toEqual(['订单', '优惠券', '收藏', '求购', '消息', '举报'])
     expect(sellerChannelCopy({ sellerPendingDeliveryCount: 2, sellerRefundPendingCount: 1 })).toBe('待发 2 · 售后 1')
   })
 
@@ -62,5 +65,20 @@ describe('personal hub presentation', () => {
     expect(recentOrderStatusTone({ status: 'completed' })).toBe('ok')
     expect(spendingSummaryText({ totalPurchaseOrders: 36, totalSpent: 1280.5 })).toBe('累计 36 单 · 1,280.5 LDC')
     expect(remainingDeadlineLabel(new Date(Date.now() - 1000).toISOString())).toBe('已到期')
+  })
+
+  it('ranks spending by LDC share and names the top category', () => {
+    const shares = buildSpendingShares({
+      categories: [
+        { categoryId: 2, categoryName: '服务', amount: 358, orderCount: 8 },
+        { categoryId: 1, categoryName: '卡密', amount: 796, orderCount: 20 },
+        { categoryId: 3, categoryName: '其他', amount: 126, orderCount: 8 }
+      ],
+      totals: { amount: 1280, orderCount: 36, quantity: 40 }
+    })
+    expect(shares.map(item => item.categoryName)).toEqual(['卡密', '服务', '其他'])
+    expect(shares[0]).toMatchObject({ share: 62, amount: 796 })
+    expect(spendingInsightText(shares)).toBe('你把 62% 的积分花在「卡密」')
+    expect(spendingInsightText([])).toBe('')
   })
 })
