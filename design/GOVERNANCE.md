@@ -7,28 +7,31 @@
 3. 与现行规范一致的机器源、运行时资源和实现。
 4. `archive/` 中的历史提案与素材，仅作追溯。
 
-发现文档与实现不一致时，先确定最后确认的意图，修复相应一侧并记录来源，不直接以新旧文件的时间戳决定品牌。当前基线是官网提交 `9842b08`；原始提案 v0.1 的视觉与部分信息结构已经替代，原文保留不会让旧标准重新生效。
+发现文档与实现不一致时，先确定最后确认的意图，修复相应一侧并记录来源，不直接以新旧文件的时间戳决定品牌。官网基线是 `9842b08`；商城标识基线是 `59d13d1`，以[确认会话](codex://threads/01a12b52-6a43-75d3-beb0-32ce44460590)最终的明亮金钻石为准。产品专属标识规则优先于官网部署快照中的产品色版；原始提案 v0.1 的视觉与部分信息结构已经替代，原文保留不会让旧标准重新生效。
 
 ## 一份编辑源，多份部署产物
 
 | 内容 | 编辑位置 | 归档位置 |
 | --- | --- | --- |
 | 品牌定位、使用规则、运营计划 | `design/*.md` | 文件自身 |
-| 颜色、标志几何、favicon 设置 | `website/brand/identity.json` | `design/system/identity.json` |
+| 共用几何、官网颜色与 LDSP favicon 设置 | `website/brand/identity.json` | `design/system/identity.json` |
+| 士多标识配色、favicon 与收藏图标导出 | `ld-store/scripts/build-brand-assets.cjs` 的 `storeColors`；共用上述几何 | `design/system/store-asset-generator.cjs` |
 | CSS 颜色变量 | 按品牌生成流程生成 `website/src/brand-tokens.css` | `design/system/brand-tokens.css` |
-| 实际 Logo、分享图、字体和图标 | 从上述源生成到 `website/public/brand/` 和 favicon | `design/assets/brand/`、`design/assets/icons/` |
+| 官网 Logo、分享图、字体和图标 | 从官网源生成到 `website/public/brand/` 和 favicon | `design/assets/brand/`、`design/assets/icons/`，明确为官网基线 |
+| 士多明亮金／反白 Logo、favicon、收藏图标 | 从商城生成器输出到 `ld-store/public/brand/` 与 favicon | `design/assets/store/brand/`、`design/assets/store/icons/` |
+| 士多页面标识与主题切换 | `ld-store/src/components/common/StoreLogo.vue` | 在 `STORE_BRAND.md` 记录引用与使用规则 |
 | 插件演示数据 | `website/brand/plugin-demo.json` | `design/system/plugin-demo.json` |
 | 真实产品图片与来源 | `website/public/product-preview/`、`website/public/screenshots/` | `design/assets/product/` |
 | 官网视觉和动效实现 | `website/src/brand.css`、`website/src/hooks/useHomepageMotion.ts` | 在规范中记录链接与关键参数，不复制另一份可执行实现 |
 
-保留现有机器源路径，以免资源制作和各产品引用产生分歧。`design/system/` 与 `design/assets/` 是当前标准的可携带镜像，不是另一处自由编辑的源文件。整个 `design/` 在主仓库 Git 中版本管理；工作区根目录的 `design` 入口指向同一目录。
+每一用途保留一份编辑源，共用几何不等于所有产品共用配色。保留现有机器源路径，以免资源制作和各产品引用产生分歧。`design/system/` 与 `design/assets/` 是按来源和产品分区的可携带镜像，不是另一处自由编辑的源文件。官网历史色版与当前士多色版可以同时记录，选择资产时必须按产品专属规范。整个 `design/` 在主仓库 Git 中版本管理；工作区根目录的 `design` 入口指向同一目录。
 
 ## 更新步骤
 
 1. 明确本次需求和影响：定位、文案、颜色、几何、组件、动效或产品截图。
 2. 对照现行规范，记录已确认的新决策。保持文档完整描述最终方案，不只追加补丁式解释。
 3. 在对应源位置更新，按需生成运行时资产。只更新需要变更的产品，不把新的品牌规则误当成同时部署所有应用的指令。
-4. 执行 `node design/scripts/sync-assets.mjs` 同步资产、身份镜像与 SHA-256 清单；更新日期、图例和 `CHANGELOG.md`。
+4. 执行 `node design/scripts/sync-assets.mjs` 同步资产、身份镜像与 SHA-256 清单；更新日期、图例和 `CHANGELOG.md`。士多图例用 `design/scripts/render-store-proof.cjs` 在独立 Sharp 工具环境重新导出。
 5. 执行 `node design/scripts/sync-assets.mjs --check` 与 `git diff --check`，检查文档链接、名称、图像尺寸、透明度和许可文件。
 6. 代码变更运行相应本地 lint／构建与必要验证。浏览器检查使用真实目标视口，标明实际验收范围；仅文档与静态归档无需运行业务测试。
 7. 只提交本次文件，不混入其他产品的进行中修改。发布按项目部署协议独立执行；文档更新不自动授权推送、部署、迁移或发送公告。
@@ -40,8 +43,8 @@
 | 范围 | 检查点 |
 | --- | --- |
 | 品牌 | LDSP／LDStatusPro／LD 士多／Jacky 名称正确；产品中心、简短作者回链 |
-| Logo | 当前沙漏和切面钻石；比例、留白、彩色／反白；无旧表格和商店内核 |
-| favicon | SVG 与 ICO 透明；16／32／48px 清楚；深浅背景可辨；更新缓存版本 |
+| Logo | 当前沙漏和切面钻石；士多明亮金 `#E5A11B`／页面深底白色；比例、留白；无旧表格和商店内核 |
+| favicon | SVG 与 ICO 透明；16／32／48px 清楚；士多深色标签栏浅金 `#F3BE49`；Apple Touch 不透明；更新缓存版本 |
 | 图片 | 真实界面与演示数据标注；士多桌面比例与高清像素；来源和日期齐全 |
 | 内容 | 版本来自实际来源；不把 Stars、下载或演示数字当成活跃／收入；主行动可理解 |
 | 布局 | 桌面／平板／手机的实际断点无溢出，触屏可操作；减少装饰箭头 |
@@ -52,6 +55,6 @@
 
 ## 版本与历史
 
-规范包使用独立版本 `v1.0`，版本元数据见 `standard.json`；标志几何目前 `v0.2`，产品脚本版本独立记录，三者不可互相替代。仅修正文档错误可作补丁修订；新增兼容规范更新次版本；品牌架构、主色或几何破坏性改变更新主版本。每次写明日期、确认依据和影响范围。
+规范包使用独立版本 `v1.1`，版本元数据见 `standard.json`；标志几何目前 `v0.2`，产品脚本版本独立记录，三者不可互相替代。本次次版本同步已确认的士多专属配色并纠正文档覆盖范围，未新改运行时品牌。仅修正文档错误可作补丁修订；新增兼容规范更新次版本；品牌架构、主色或几何破坏性改变更新主版本。每次写明日期、确认依据和影响范围。
 
 原始运营方案、视觉提案、生成源、字体许可和历史资产保存在 `archive/2026-10-11-v0.1/`，不删除用户已有工作区文件。新提案先标为草案，确认后更新现行文件；归档只保留必要历史版本，不将未经确认的候选色或标志混入现行资产目录。

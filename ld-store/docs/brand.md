@@ -1,5 +1,7 @@
 # LD 士多品牌标识
 
+项目现行标准见 [design/STORE_BRAND.md](../../design/STORE_BRAND.md)，其中保留最终确认依据、商城专属资产、平板侧栏与配色边界。本文件是商城实现侧的简要生成说明。
+
 沿用官网品牌资源 v0.2 的开环与双切面钻石，商城主体采用明亮金 `#E5A11B`，延续旧版金色的明亮感。
 几何源文件为 `../../website/brand/identity.json`，颜色源文件为 `../scripts/build-brand-assets.cjs` 中的 `storeColors`。
 此配色调整仅用于商城标识，官网现有产品按钮和文字配色独立维护。

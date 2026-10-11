@@ -28,6 +28,14 @@ const pairs = [
   ['website/public/favicon.svg', 'assets/icons/favicon.svg'],
   ['website/public/favicon.ico', 'assets/icons/favicon.ico']
 ]
+// The storefront shares geometry with the homepage, but has its own approved gold.
+pairs.push(['ld-store/scripts/build-brand-assets.cjs', 'system/store-asset-generator.cjs'])
+for (const source of await filesBelow('ld-store/public/brand')) {
+  pairs.push([source, source.replace('ld-store/public/brand', 'assets/store/brand')])
+}
+for (const name of ['favicon.svg', 'favicon.ico']) {
+  pairs.push([`ld-store/public/${name}`, `assets/store/icons/${name}`])
+}
 for (const source of await filesBelow('website/public/brand')) {
   pairs.push([source, source.replace('website/public/brand', 'assets/brand')])
 }
@@ -65,6 +73,24 @@ for (const directory of ['design/system', 'design/assets']) {
 
 const standard = JSON.parse(await readFile(path.join(design, 'standard.json'), 'utf8'))
 const identity = JSON.parse(await readFile(path.join(root, standard.identitySource), 'utf8'))
+// Guard the approved product palette against accidentally reusing homepage brown.
+const store = standard.storefrontIdentity
+const storeMark = await readFile(path.join(root, 'ld-store/public/brand/store-mark.svg'), 'utf8')
+const storeWhite = await readFile(path.join(root, 'ld-store/public/brand/store-mark-white.svg'), 'utf8')
+const storeFavicon = await readFile(path.join(root, 'ld-store/public/favicon.svg'), 'utf8')
+const storeGenerator = await readFile(path.join(root, store.colorSource), 'utf8')
+const geometry = JSON.parse(await readFile(path.join(root, store.geometrySource), 'utf8'))
+const expectedPaths = [geometry.ring, ...geometry.marks.store.paths]
+for (const [name, artwork, width] of [['mark', storeMark, geometry.ringWidth], ['reverse mark', storeWhite, geometry.ringWidth], ['favicon', storeFavicon, geometry.favicon.ringWidth]]) {
+  const paths = [...artwork.matchAll(/<path\b[^>]*\bd="([^"]+)"/g)].map((match) => match[1])
+  if (JSON.stringify(paths) !== JSON.stringify(expectedPaths) || !artwork.includes(`stroke-width="${width}"`)) problems.push(`Storefront ${name} differs from the approved diamond geometry`)
+}
+if (!storeMark.includes(`stroke="${store.primary}"`) || !storeMark.includes(`fill="${store.primary}"`)) problems.push('Storefront mark differs from the approved primary gold')
+if (!storeWhite.includes(`stroke="${store.onDark}"`) || !storeWhite.includes(`fill="${store.onDark}"`)) problems.push('Storefront reverse mark differs from the approved white')
+if (!storeFavicon.includes(`color:${store.primary}`) || !storeFavicon.includes(`color:${store.faviconDark}`)) problems.push('Storefront favicon differs from the approved light/dark palette')
+for (const [key, color] of [['gold', store.primary], ['tabDark', store.faviconDark], ['touchBackground', store.touchBackground]]) {
+  if (!storeGenerator.includes(`${key}: '${color}'`)) problems.push(`Storefront generator ${key} differs from the approved palette`)
+}
 const manifest = { schemaVersion: 1, standard, identityVersion: identity.version, note: 'Derived mirrors; edit their source files and synchronize after a confirmed design change.', files: records }
 const serialized = JSON.stringify(manifest, null, 2) + '\n'
 if (check) {

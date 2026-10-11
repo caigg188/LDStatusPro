@@ -4,6 +4,8 @@
 
 ## 色彩与语义
 
+下表记录官网基线的界面 Token。**LD 士多当前 Logo 主色为明亮金 `#E5A11B`，页面深底使用白色，详见 [士多专属规范](STORE_BRAND.md)**；不要从官网按钮配色推断商城标识的颜色。
+
 | Token | 色值 | 用途 |
 | --- | --- | --- |
 | ink | `#233C3D` | 主文字、深色单色标志 |
@@ -13,13 +15,13 @@
 | suite | `#32665C` | LDSP 松绿、共同主张 |
 | plugin | `#4B5EA8` | 插件靛蓝、安装动作 |
 | plugin-soft | `#EEF0F9` | 插件浅色表面 |
-| store | `#916625` | 士多矿金、产品识别 |
-| store-soft | `#F6F0E3` | 士多浅色表面 |
+| store | `#916625` | 官网士多产品按钮与文字的矿金，不是当前商城 Logo 主色 |
+| store-soft | `#F6F0E3` | 官网士多产品区的浅色表面 |
 | favicon darkColor | `#A7D9C8` | LDSP SVG favicon 在深色标签栏下的浅松绿 |
 
 使用语义变量，不在组件中各自定义同名不同色的品牌色。普通白色表面可以配合 paper 使用。产品识别色与支付、订单、成功、警告、失败的业务语义色分别管理，状态同时有文字或图标，不单靠颜色判断。交易 UI 的已有主题和状态体系按功能渐进接入品牌，不整体涂成营销首页。
 
-规则来自 [当前 identity](system/identity.json)，CSS 镜像见 [brand-tokens.css](system/brand-tokens.css)。实际编辑与同步流程见 [维护规则](GOVERNANCE.md)。
+官网界面规则来自 [官网 identity 镜像](system/identity.json)，CSS 镜像见 [brand-tokens.css](system/brand-tokens.css)。商城标识独立配色来自 [士多生成源镜像](system/store-asset-generator.cjs)，保留与官网相同的钻石几何。实际编辑与同步流程见 [维护规则](GOVERNANCE.md)。
 
 ## 字体与层级
 

@@ -1,12 +1,25 @@
 {
   "schemaVersion": 1,
   "standard": {
-    "version": "1.0",
+    "version": "1.1",
     "status": "active",
     "updatedOn": "2026-10-11",
     "timezone": "Asia/Shanghai",
     "approvedHomepageCommit": "9842b08c1d6458c72d0a98021d1d36450043c2a9",
+    "approvedStorefrontCommit": "59d13d1fdf44a38646f1b3d031a5c615e3298485",
+    "confirmationThread": "codex://threads/01a12b52-6a43-75d3-beb0-32ce44460590",
     "identitySource": "website/brand/identity.json",
+    "storefrontIdentity": {
+      "geometrySource": "website/brand/identity.json",
+      "colorSource": "ld-store/scripts/build-brand-assets.cjs",
+      "componentSource": "ld-store/src/components/common/StoreLogo.vue",
+      "primary": "#E5A11B",
+      "onDark": "#FFFFFF",
+      "faviconDark": "#F3BE49",
+      "touchBackground": "#FFF8E5",
+      "cacheVersion": "store-v02-gold1",
+      "scope": "LD Store logo, favicon and Apple touch icon; not website UI or transaction theme colors"
+    },
     "scope": [
       "brand",
       "operations",
@@ -232,6 +245,36 @@
       "sha256": "1d9e72b9d2993598085a6fc1391a42794f954e48e683fc716f229ba6b412db20"
     },
     {
+      "file": "assets/store/brand/apple-touch-icon.png",
+      "source": "ld-store/public/brand/apple-touch-icon.png",
+      "bytes": 3264,
+      "sha256": "c4fabb2a9ea0ca2668a8c272683deaaf9990d4c4bbe4327a12de54b861bfede5"
+    },
+    {
+      "file": "assets/store/brand/store-mark-white.svg",
+      "source": "ld-store/public/brand/store-mark-white.svg",
+      "bytes": 325,
+      "sha256": "989b2ce56f43584c783c44cf2c06f37a1288c7c337bea571712255afc22cd03c"
+    },
+    {
+      "file": "assets/store/brand/store-mark.svg",
+      "source": "ld-store/public/brand/store-mark.svg",
+      "bytes": 325,
+      "sha256": "9d74907a503a45896d50740030aac2ef4e878bd207cfa2da579fe0f00608bd28"
+    },
+    {
+      "file": "assets/store/icons/favicon.ico",
+      "source": "ld-store/public/favicon.ico",
+      "bytes": 2214,
+      "sha256": "eb07acd8dd905bf5aef8b612a93484ba301fb6a6de4afe3af3a0afe667a41b33"
+    },
+    {
+      "file": "assets/store/icons/favicon.svg",
+      "source": "ld-store/public/favicon.svg",
+      "bytes": 439,
+      "sha256": "ff45025fb68af6d41a2a4d8327f1e302a261544c253b1432a0fb39a6f42c1580"
+    },
+    {
       "file": "system/brand-tokens.css",
       "source": "website/src/brand-tokens.css",
       "bytes": 259,
@@ -248,6 +291,12 @@
       "source": "website/brand/plugin-demo.json",
       "bytes": 1139,
       "sha256": "c535b3b960a82580aac2564fc6f7a8e559b3b4b9353e91c85f743ea55bf89da4"
+    },
+    {
+      "file": "system/store-asset-generator.cjs",
+      "source": "ld-store/scripts/build-brand-assets.cjs",
+      "bytes": 3221,
+      "sha256": "700c8ab30b5dab6028c16cdd6e624973670ba8d4309053d52964dd1f832bc22c"
     }
   ]
 }
