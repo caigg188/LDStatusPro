@@ -110,13 +110,8 @@ html.dark .help-page {
   place-items: center;
   border: 1px solid var(--palette-rgba-16-36-62-0p15);
   border-radius: 14px 14px 14px 5px;
-  color: var(--palette-hex-ffffff);
-  background: var(--help-navy);
+  background: var(--bg-card);
   box-shadow: 0 8px 22px var(--palette-rgba-16-36-62-0p15);
-}
-
-html.dark .help-brand__mark {
-  color: var(--palette-hex-10243e);
 }
 
 .help-brand > span:last-child {

@@ -4,11 +4,7 @@
       <!-- Logo -->
       <div class="login-header">
         <div class="login-logo-wrapper">
-          <img
-            src="/favicon.svg"
-            alt="LD士多"
-            class="login-logo"
-          />
+          <StoreLogo class="login-logo" decorative />
         </div>
         <h1 class="login-title">LD士多</h1>
         <p class="login-subtitle">LDC 积分兑换商城</p>
@@ -93,6 +89,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import StoreLogo from '@/components/common/StoreLogo.vue'
 import { useRoute } from 'vue-router'
 import { api } from '@/utils/api'
 import { useToast } from '@/composables/useToast'

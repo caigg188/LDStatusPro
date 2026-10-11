@@ -3,11 +3,7 @@
     <div class="header-content">
       <!-- Logo 和标题 -->
       <router-link to="/" class="header-brand">
-        <img
-          src="/favicon.svg"
-          alt="LD士多"
-          class="header-logo"
-        />
+        <StoreLogo class="header-logo" decorative />
         <span class="header-title">LD士多</span>
       </router-link>
       
@@ -271,6 +267,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ChevronDown, LogOut } from '@lucide/vue'
+import StoreLogo from '@/components/common/StoreLogo.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useNotificationSummaryStore } from '@/stores/notificationSummary'
@@ -538,7 +535,6 @@ onUnmounted(() => {
 .header-logo {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
 }
 
 .header-title {

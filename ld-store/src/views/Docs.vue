@@ -16,7 +16,7 @@
     <div class="help-layout">
       <aside class="help-sidebar" aria-label="帮助中心目录">
         <router-link to="/docs" class="help-brand">
-          <span class="help-brand__mark"><BookOpen :size="22" aria-hidden="true" /></span>
+          <span class="help-brand__mark"><StoreLogo decorative /></span>
           <span><strong>帮助中心</strong><small>LD 士多使用指南</small></span>
         </router-link>
 
@@ -190,6 +190,7 @@
 </template>
 
 <script setup>
+import StoreLogo from '@/components/common/StoreLogo.vue'
 import {
   computed,
   defineAsyncComponent,
@@ -208,7 +209,6 @@ import {
   ArrowUpRight,
   BadgePercent,
   BellRing,
-  BookOpen,
   Boxes,
   ChevronRight,
   CircleHelp,

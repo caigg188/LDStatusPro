@@ -6,8 +6,8 @@
 
     <aside id="seller-navigation" class="seller-sidebar" :class="{ 'is-open': drawerOpen }" aria-label="卖家后台导航">
       <div class="seller-brand-row">
-        <router-link to="/seller" class="seller-brand" @click="closeDrawer">
-          <span class="seller-brand-mark"><Store :size="20" aria-hidden="true" /></span>
+        <router-link to="/seller" class="seller-brand" aria-label="LD 士多卖家工作台" @click="closeDrawer">
+          <span class="seller-brand-mark"><StoreLogo class="seller-brand-logo" inverted decorative /></span>
           <span>
             <strong>LD 士多</strong>
             <small>卖家工作台</small>
@@ -193,6 +193,7 @@
 </template>
 
 <script setup>
+import StoreLogo from '@/components/common/StoreLogo.vue'
 import AnnouncementBar from '@/components/common/AnnouncementBar.vue'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
@@ -491,6 +492,7 @@ html.dark .seller-shell {
 .seller-brand-row { justify-content: space-between; margin-bottom: 24px; }
 .seller-brand { min-width: 0; gap: 11px; color: var(--seller-on-navy); }
 .seller-brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid var(--palette-rgba-255-255-255-p16); border-radius: 11px; background: var(--palette-rgba-255-255-255-p07); }
+.seller-brand-logo { width: 28px; height: 28px; }
 .seller-brand strong { display: block; font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", STSong, serif; font-size: 17px; letter-spacing: .05em; }
 .seller-brand small { display: block; margin-top: 2px; color: var(--palette-rgba-233-237-240-p58); font-size: 11px; letter-spacing: .12em; }
 
@@ -583,7 +585,7 @@ html.dark .seller-fulfillment-load-error a { border-color: var(--seller-jade); c
 @media (max-width: 1023px) and (min-width: 768px) {
   .seller-shell { grid-template-columns: 72px minmax(0, 1fr); }
   .seller-sidebar { width: 72px; padding: 16px 8px; }
-  .seller-brand span,
+  .seller-brand > span:last-child,
   .seller-nav-group h2,
   .seller-nav-item > span:not(.seller-nav-badge),
   .seller-market-link,
