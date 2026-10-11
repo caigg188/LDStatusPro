@@ -37,7 +37,7 @@ const faqs = [
 export default function FAQ() {
   return (
     <section id="faq" className="faq-section site-width section-space" aria-labelledby="faq-heading">
-      <div className="faq-intro">
+      <div className="faq-intro" data-reveal="">
         <p className="eyebrow">使用前，先了解</p>
         <h2 id="faq-heading">几个常见问题。</h2>
         <p>
@@ -50,7 +50,7 @@ export default function FAQ() {
           <ArrowUpRight size={16} aria-hidden="true" />
         </a>
       </div>
-      <div className="faq-list">
+      <div className="faq-list" data-reveal="" data-delay="0.08">
         {faqs.map((faq) => (
           <details className="faq-item" key={faq.question}>
             <summary>

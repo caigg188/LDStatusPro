@@ -22,9 +22,15 @@ LDStatusPro 插件与 LD 士多的双产品入口，生产地址 `https://ldspro
 - 官网只加载预先渲染的高清 WebP 面板图，不嵌入插件 iframe，不运行插件动画、滤镜或业务逻辑。保留浅深主题和升级要求 / 阅读趋势切换。面板采用插件支持的 380px 宽度、660px 高度上限和“仅未完成要求”设置；按网站展示要求移除完成度下方的等级徽标。
 - 士多：`public/screenshots/store-{home,shops}.{jpg,webp}` 来自 2026-10-11 的匿名公开物品广场与小店集市 DOM，使用原始样式与资源、移除脚本后在固定 1280 × 800 桌面视口中以 CSS 2 倍缩放重新渲染，采集为 2560 × 1600 像素。页面内容没有改动；保留 JPEG 和质量 96 的 WebP，来源见 `public/screenshots/source.json`。统计、物品及价格是截图时的状态。
 
-动效参考 [Pure Music](https://qingyueyin.github.io/Pure-music/) 的产品界面层次和浅深主题展示，以及 [Apple](https://www.apple.com/) 的滚动展开节奏；没有复制它们的代码或素材。实际动效由 Framer Motion 驱动，包括轻微首屏视差、段落进入和主题切换；截图保持平整，避免持续 3D 变换造成文字模糊，尊重 `prefers-reduced-motion`，不接管页面滚动。
+动效方向参考 [Apple 产品页](https://www.apple.com/iphone-18-pro/) 的分层展开、[Linear](https://linear.app/) 的界面展示节奏，以及 [Pure Music](https://qingyueyin.github.io/Pure-music/) 的浅深主题展示；没有复制它们的代码或素材。
 
-年报仍由 `src/pages/AnnualReport2025.tsx` 处理，使用 `https://api.ldspro.qzz.io` 的认证和年报 API。首页改造没有修改这条链路；本地检查年报时不执行真实登录。
+首页的 GSAP / ScrollTrigger 编排集中在 `src/hooks/useHomepageMotion.ts`：标题逐行展开，双产品画面随滚动进入最终位置，插件浅深面板舒展，士多截图从轻微缩小状态进入后保持平整。段落仅进入一次；滚动只改变展示外层的 transform / opacity，不接管滚轮、不固定页面，也不运行插件业务代码。没有常驻循环动画、动态模糊滤镜或截图 3D 旋转。
+
+组件反馈由 CSS 驱动：分段选项的指示块滑动，预加载的插件图片交叉淡入，士多截图切换淡入，按钮按下缩放、链接箭头移动。FAQ 保留原生 details / summary 及键盘操作；支持 `::details-content` 与 `interpolate-size` 的浏览器平滑展开高度，旧浏览器保留正常折叠与进入淡入。
+
+`gsap.matchMedia()` 按屏幕宽度缩小手机运动幅度；系统开启 `prefers-reduced-motion` 时不创建时间线或滚动触发器，直接显示最终状态。`useGSAP()` 在卸载时回收时间线、监听与样式，媒体条件变化时重新计算。文案获得键盘焦点时立即结束其进入动效。图片尺寸预留，字体加载完毕后刷新一次滚动位置。
+
+年报仍由 `src/pages/AnnualReport2025.tsx` 处理，使用 `https://api.ldspro.qzz.io` 的认证和年报 API。通过 React.lazy 按路由加载，年报组件及 Framer Motion 不进入首页的 JS 包。首页改造没有修改认证链路；本地检查年报时不执行真实登录。
 
 ## 视觉与静态资源
 
@@ -40,7 +46,7 @@ SVG 不依赖远程字体，分享图和规范图文字已经转为路径。资�
 
 ## 开发与验证
 
-使用 React 19、TypeScript 5.9、Vite 7、Tailwind CSS 4、Framer Motion 和 Lucide React；路由在 `App.tsx` 中根据 pathname 判断。
+使用 React 19、TypeScript 5.9、Vite 7、Tailwind CSS 4、GSAP、Framer Motion（年报）和 Lucide React；路由在 `App.tsx` 中根据 pathname 判断。
 
 ```bash
 npm install

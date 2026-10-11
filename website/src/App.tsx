@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import Header from './components/Header'
 import Hero from './components/Hero'
 import Features from './components/Features'
@@ -6,7 +6,9 @@ import Installation from './components/Installation'
 import Maintenance from './components/Maintenance'
 import FAQ from './components/FAQ'
 import Footer from './components/Footer'
-import AnnualReport2025 from './pages/AnnualReport2025'
+import { useHomepageMotion } from './hooks/useHomepageMotion'
+
+const AnnualReport2025 = lazy(() => import('./pages/AnnualReport2025'))
 
 // 简单路由逻辑
 function useSimpleRouter() {
@@ -23,8 +25,10 @@ function useSimpleRouter() {
 
 // 主页组件
 function HomePage() {
+  const scope = useRef<HTMLDivElement>(null)
+  useHomepageMotion(scope)
   return (
-    <div className="brand-site" id="top">
+    <div className="brand-site" id="top" ref={scope}>
       <a className="skip-link" href="#main-content">
         跳到主要内容
       </a>
@@ -46,7 +50,11 @@ function App() {
 
   // 年度报告路由 (支持 /report/2025 和 /report/2025/callback)
   if (path.startsWith('/report/2025')) {
-    return <AnnualReport2025 />
+    return (
+      <Suspense fallback={<p className="report-loading" role="status">正在加载年度报告…</p>}>
+        <AnnualReport2025 />
+      </Suspense>
+    )
   }
 
   // 默认主页

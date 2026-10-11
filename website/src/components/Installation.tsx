@@ -6,7 +6,7 @@ export default function Installation() {
   return (
     <section id="install" className="start-section section-space" aria-labelledby="start-heading">
       <div className="site-width">
-        <div className="section-heading">
+        <div className="section-heading" data-reveal="">
           <div>
             <p className="eyebrow">从这里开始</p>
             <h2 id="start-heading">
@@ -22,7 +22,7 @@ export default function Installation() {
           </p>
         </div>
         <div className="start-grid">
-          <article className="start-panel start-plugin">
+          <article className="start-panel start-plugin" data-reveal="">
             <div className="start-title">
               <Logo variant="plugin" size={42} decorative />
               <h3>安装 LDStatusPro</h3>
@@ -66,7 +66,7 @@ export default function Installation() {
               </a>
             </div>
           </article>
-          <article className="start-panel start-store">
+          <article className="start-panel start-store" data-reveal="" data-delay="0.08">
             <div className="start-title">
               <Logo variant="store" size={42} decorative />
               <h3>打开 LD 士多</h3>

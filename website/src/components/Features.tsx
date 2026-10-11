@@ -3,24 +3,20 @@ import { ArrowRight, ArrowUpRight, BookOpen, Cloud, Compass, PackageCheck, Spark
 import { Logo } from './Logo'
 import PluginPreview from './PluginPreview'
 import Reveal from './Reveal'
+import SegmentedControl from './SegmentedControl'
 import { links } from '../config/links'
 
 const storeViews = [
   { name: '物品广场', image: 'store-home', description: '浏览社区物品与服务，用分类、搜索和筛选找到需要的好物。' },
   { name: '小店集市', image: 'store-shops', description: '逛一逛社区成员的小店，发现持续经营的物品与服务。' }
 ]
+const galleryOptions = storeViews.map((item, index) => ({ value: String(index), label: item.name }))
 
 function StoreGallery() {
   const [view, setView] = useState(0)
   return (
     <div className="store-gallery">
-      <div className="gallery-controls" role="group" aria-label="选择士多实际截图">
-        {storeViews.map((item, index) => (
-          <button key={item.name} type="button" aria-pressed={view === index} onClick={() => setView(index)}>
-            {item.name}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl className="gallery-controls" label="选择士多实际截图" options={galleryOptions} value={String(view)} onChange={(value) => setView(Number(value))} />
       <figure className="store-figure">
         <div className="window-toolbar">
           <span className="window-dots" aria-hidden="true">
@@ -131,9 +127,9 @@ export default function Features() {
             适用于 Linux.do 与 IDCFlare · 开源用户脚本
           </p>
         </Reveal>
-        <Reveal className="plugin-display">
+        <div className="plugin-display">
           <PluginPreview />
-        </Reveal>
+        </div>
       </article>
       <article className="product-store" id="store">
         <Reveal className="store-copy site-width">
