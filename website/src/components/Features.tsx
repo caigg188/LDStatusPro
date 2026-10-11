@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, ArrowUpRight, BookOpen, Cloud, Compass, PackageCheck, Sparkles, TrendingUp } from 'lucide-react'
+import { BookOpen, Cloud, Compass, PackageCheck, Sparkles, TrendingUp } from 'lucide-react'
 import { Logo } from './Logo'
 import PluginPreview from './PluginPreview'
 import Reveal from './Reveal'
@@ -66,14 +66,12 @@ export default function Features() {
             <span>
               01 <strong>LDStatusPro 插件</strong>
             </span>
-            <ArrowDownIcon />
           </a>
           <a href="#store">
             <Logo variant="store" size={38} decorative />
             <span>
               02 <strong>LD 士多</strong>
             </span>
-            <ArrowDownIcon />
           </a>
         </div>
       </Reveal>
@@ -116,10 +114,10 @@ export default function Features() {
           </ul>
           <div className="product-links">
             <a className="action action-plugin" href="#install">
-              安装与使用 <ArrowRight size={17} />
+              安装与使用
             </a>
             <a className="text-link" href={links.pluginGuide} target="_blank" rel="noopener noreferrer">
-              功能说明 <ArrowUpRight size={16} />
+              功能说明
             </a>
           </div>
           <p className="product-note" id="levels">
@@ -147,10 +145,10 @@ export default function Features() {
           </p>
           <div className="product-links">
             <a className="action action-store" href={links.store} target="_blank" rel="noopener noreferrer">
-              去士多逛逛 <ArrowUpRight size={17} />
+              去士多逛逛
             </a>
             <a className="text-link" href={links.storeGuide} target="_blank" rel="noopener noreferrer">
-              使用指南 <ArrowUpRight size={16} />
+              使用指南
             </a>
           </div>
         </Reveal>
@@ -177,7 +175,4 @@ export default function Features() {
       </article>
     </section>
   )
-}
-function ArrowDownIcon() {
-  return <ArrowRight className="index-arrow" size={18} aria-hidden="true" />
 }

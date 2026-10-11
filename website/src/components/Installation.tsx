@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUpRight, Download, Globe, LogIn, Puzzle, RefreshCw } from 'lucide-react'
+import { Download, Globe, LogIn, Puzzle, RefreshCw } from 'lucide-react'
 import { Logo } from './Logo'
 import { links, pluginVersion } from '../config/links'
 
@@ -36,7 +36,6 @@ export default function Installation() {
                   <p>在浏览器安装 Tampermonkey 等管理器；手机浏览器需要支持用户脚本。</p>
                   <a className="text-link" href={links.scriptManagers} target="_blank" rel="noopener noreferrer">
                     查看管理器安装说明
-                    <ArrowUpRight size={14} aria-hidden="true" />
                   </a>
                 </div>
               </li>
@@ -58,11 +57,9 @@ export default function Installation() {
             <div className="start-actions">
               <a className="action action-plugin" href={links.install} target="_blank" rel="noopener noreferrer">
                 安装脚本
-                <ArrowUpRight size={17} aria-hidden="true" />
               </a>
               <a className="text-link" href={links.greasyFork} target="_blank" rel="noopener noreferrer">
                 Greasy Fork 安装
-                <ArrowUpRight size={15} aria-hidden="true" />
               </a>
             </div>
           </article>
@@ -98,11 +95,9 @@ export default function Installation() {
             <div className="start-actions">
               <a className="action action-store" href={links.store} target="_blank" rel="noopener noreferrer">
                 打开士多
-                <ArrowUpRight size={17} aria-hidden="true" />
               </a>
               <a className="text-link" href={links.sellerGuide} target="_blank" rel="noopener noreferrer">
                 我是卖家
-                <ArrowRight size={15} aria-hidden="true" />
               </a>
             </div>
           </article>

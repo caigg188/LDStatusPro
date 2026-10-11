@@ -1,4 +1,4 @@
-import { ArrowUpRight, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { links } from '../config/links'
 
 const faqs = [
@@ -47,7 +47,6 @@ export default function FAQ() {
         </p>
         <a className="text-link" href={links.issues} target="_blank" rel="noopener noreferrer">
           还有问题，告诉我们
-          <ArrowUpRight size={16} aria-hidden="true" />
         </a>
       </div>
       <div className="faq-list" data-reveal="" data-delay="0.08">
@@ -63,11 +62,9 @@ export default function FAQ() {
         <div className="faq-guides">
           <a href={links.pluginGuide} target="_blank" rel="noopener noreferrer">
             插件功能说明
-            <ArrowUpRight size={15} aria-hidden="true" />
           </a>
           <a href={links.storeGuide} target="_blank" rel="noopener noreferrer">
             士多帮助中心
-            <ArrowUpRight size={15} aria-hidden="true" />
           </a>
         </div>
       </div>

@@ -1,4 +1,3 @@
-import { ArrowUpRight } from 'lucide-react'
 import { Logo } from './Logo'
 import { links } from '../config/links'
 
@@ -20,15 +19,12 @@ export default function Footer() {
             <a href="#plugin">LDStatusPro 插件</a>
             <a href={links.store} target="_blank" rel="noopener noreferrer">
               LD 士多
-              <ArrowUpRight size={14} aria-hidden="true" />
             </a>
             <a href={links.author} target="_blank" rel="noopener noreferrer">
               Jacky 的 GitHub
-              <ArrowUpRight size={14} aria-hidden="true" />
             </a>
             <a href={links.issues} target="_blank" rel="noopener noreferrer">
               反馈问题
-              <ArrowUpRight size={14} aria-hidden="true" />
             </a>
             <a href="/report/2025">2025 阅读年报</a>
           </nav>
@@ -38,7 +34,6 @@ export default function Footer() {
           <p>独立社区项目，与 Linux.do、IDCFlare 官方无隶属关系。</p>
           <a href="/brand/identity-sheet.svg" target="_blank" rel="noopener noreferrer">
             品牌标志
-            <ArrowUpRight size={14} aria-hidden="true" />
           </a>
         </div>
       </div>

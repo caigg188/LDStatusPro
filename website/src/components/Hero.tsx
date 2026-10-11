@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowRight, ArrowUpRight } from 'lucide-react'
+import { ArrowDown } from 'lucide-react'
 import { Logo } from './Logo'
 import { PluginPanel } from './PluginPreview'
 import { links, pluginVersion } from '../config/links'
@@ -9,7 +9,7 @@ export default function Hero() {
       <div className="hero-copy site-width">
         <p className="eyebrow">
           <span className="brand-dot" />
-          LDSP · 为社区日常而造
+          LDSP · 为社区日常而生
         </p>
         <h1 id="hero-heading">
           <span className="hero-line"><span data-hero-line="">认真阅读。</span></span>
@@ -22,10 +22,10 @@ export default function Hero() {
         </p>
         <div className="hero-actions">
           <a className="action action-plugin" href="#install">
-            安装 LDStatusPro <ArrowRight size={17} />
+            安装 LDStatusPro
           </a>
           <a className="action action-store-outline" href={links.store} target="_blank" rel="noopener noreferrer">
-            打开 LD 士多 <ArrowUpRight size={17} />
+            打开 LD 士多
           </a>
         </div>
       </div>
@@ -59,7 +59,7 @@ export default function Hero() {
           </span>
         </div>
         <a className="explore-link" href="#products">
-          探索两款产品 <ArrowDown size={16} />
+          探索两款产品 <ArrowDown size={16} aria-hidden="true" />
         </a>
       </div>
       <p className="capture-note site-width">插件使用当前版本的原生界面与演示数据；士多为线上公开页面高清截图。</p>

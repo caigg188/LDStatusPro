@@ -1,4 +1,3 @@
-import { ArrowUpRight } from 'lucide-react'
 import { links } from '../config/links'
 
 export default function AboutJacky() {
@@ -10,7 +9,7 @@ export default function AboutJacky() {
         <span>AI 全栈开发 · 独立开发者</span>
       </p>
       <a className="text-link" href={links.author} target="_blank" rel="noopener noreferrer">
-        认识 Jacky · GitHub <ArrowUpRight size={16} />
+        认识 Jacky · GitHub
       </a>
     </div>
   )

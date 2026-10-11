@@ -26,7 +26,7 @@ LDStatusPro 插件与 LD 士多的双产品入口，生产地址 `https://ldspro
 
 首页的 GSAP / ScrollTrigger 编排集中在 `src/hooks/useHomepageMotion.ts`：标题逐行展开，双产品画面随滚动进入最终位置，插件浅深面板舒展，士多截图从轻微缩小状态进入后保持平整。段落仅进入一次；滚动只改变展示外层的 transform / opacity，不接管滚轮、不固定页面，也不运行插件业务代码。没有常驻循环动画、动态模糊滤镜或截图 3D 旋转。
 
-组件反馈由 CSS 驱动：分段选项的指示块滑动，预加载的插件图片交叉淡入，士多截图切换淡入，按钮按下缩放、链接箭头移动。FAQ 保留原生 details / summary 及键盘操作；支持 `::details-content` 与 `interpolate-size` 的浏览器平滑展开高度，旧浏览器保留正常折叠与进入淡入。
+组件反馈由 CSS 驱动：分段选项的指示块滑动，预加载的插件图片交叉淡入，士多截图切换淡入，按钮按下缩放。装饰箭头仅保留首屏的向下浏览提示。FAQ 保留原生 details / summary 及键盘操作；支持 `::details-content` 与 `interpolate-size` 的浏览器平滑展开高度，旧浏览器保留正常折叠与进入淡入。
 
 `gsap.matchMedia()` 按屏幕宽度缩小手机运动幅度；系统开启 `prefers-reduced-motion` 时不创建时间线或滚动触发器，直接显示最终状态。`useGSAP()` 在卸载时回收时间线、监听与样式，媒体条件变化时重新计算。文案获得键盘焦点时立即结束其进入动效。图片尺寸预留，字体加载完毕后刷新一次滚动位置。
 

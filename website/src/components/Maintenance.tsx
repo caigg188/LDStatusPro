@@ -1,4 +1,4 @@
-import { ArrowUpRight, GitPullRequest, MessageSquare, NotebookPen } from 'lucide-react'
+import { GitPullRequest, MessageSquare, NotebookPen } from 'lucide-react'
 import AboutJacky from './AboutJacky'
 import Reveal from './Reveal'
 import { links } from '../config/links'
@@ -18,7 +18,6 @@ export default function Maintenance() {
             <strong>查看源码</strong>
             <span>用户脚本、官网与士多前端</span>
           </div>
-          <ArrowUpRight size={18} aria-hidden="true" />
         </a>
         <a href={links.changes} target="_blank" rel="noopener noreferrer">
           <NotebookPen size={23} aria-hidden="true" />
@@ -26,7 +25,6 @@ export default function Maintenance() {
             <strong>查看近期改进</strong>
             <span>以仓库提交记录了解实际变化</span>
           </div>
-          <ArrowUpRight size={18} aria-hidden="true" />
         </a>
         <a href={links.issues} target="_blank" rel="noopener noreferrer">
           <MessageSquare size={23} aria-hidden="true" />
@@ -34,7 +32,6 @@ export default function Maintenance() {
             <strong>提出问题与建议</strong>
             <span>说明使用场景，帮助定位问题</span>
           </div>
-          <ArrowUpRight size={18} aria-hidden="true" />
         </a>
       </div>
       <AboutJacky />
