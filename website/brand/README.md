@@ -30,6 +30,8 @@ node scripts/render-brand-assets.cjs
 
 第一步生成 SVG、色彩变量和本地字体子集，第二步生成 PNG 与多尺寸 ICO。可通过 `PYTHONPATH`、`NODE_PATH` 指向独立工具环境，不必修改网站依赖。
 
+仅更新标签页图标时运行 `node scripts/render-brand-assets.cjs --favicon-only`，不需要原始字体。图标由 `identity.json` 中的 LDSP 几何与 `favicon` 设置生成：透明底、完整尺寸的圆环和菱形、加粗的小尺寸圆环；SVG 在深色标签栏下使用浅松绿。HTML 图标链接的版本参数用于刷新浏览器缓存。
+
 字体子集覆盖当前 TSX 中的中文字符，正文增加新字时重新生成，未覆盖字符会使用系统字体。子集内部字体名已更改为 `LDSP Site Display` / `LDSP Site Sans`，许可原文保留在 `public/brand/fonts/*-OFL.txt`。
 
 ## 产物

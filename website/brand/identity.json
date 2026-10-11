@@ -13,6 +13,10 @@
   },
   "ring": "M32 8A24 24 0 1 1 15.03 48.97",
   "ringWidth": 5.5,
+  "favicon": {
+    "ringWidth": 6,
+    "darkColor": "#A7D9C8"
+  },
   "marks": {
     "ldsp": {
       "name": "LDSP",

@@ -82,8 +82,6 @@ for i, (key, data) in enumerate(identity['marks'].items()):
 content += text(64, 761, 19, '插件：抽象沙漏 / 士多：双切面钻石 / 母版 64 × 64 / v0.2', colors['muted'])
 (out / 'identity-sheet.svg').write_text(svg(1400, 850, content, 'LDSP 新标志 · 抽象沙漏与切面钻石'))
 
-favicon = f'<rect width="64" height="64" rx="14" fill="{colors["paper"]}"/>' + placed('ldsp', 5, 5, 54)
-(ROOT / 'public/favicon.svg').write_text(svg(64, 64, favicon, 'LDSP by Jacky'))
 touch = f'<rect width="180" height="180" fill="{colors["paper"]}"/>' + placed('ldsp', 32, 32, 116)
 (out / 'apple-touch-icon.svg').write_text(svg(180, 180, touch, 'LDSP'))
 
