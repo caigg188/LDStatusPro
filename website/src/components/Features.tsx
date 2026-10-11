@@ -1,192 +1,187 @@
+import { useState } from 'react'
 import { ArrowRight, ArrowUpRight, BookOpen, Cloud, Compass, PackageCheck, Sparkles, TrendingUp } from 'lucide-react'
 import { Logo } from './Logo'
+import PluginPreview from './PluginPreview'
+import Reveal from './Reveal'
 import { links } from '../config/links'
 
-function ReadingPreview() {
+const storeViews = [
+  { name: '物品广场', image: 'store-home', description: '浏览社区物品与服务，用分类、搜索和筛选找到需要的好物。' },
+  { name: '小店集市', image: 'store-shops', description: '逛一逛社区成员的小店，发现持续经营的物品与服务。' }
+]
+
+function StoreGallery() {
+  const [view, setView] = useState(0)
   return (
-    <div className="product-visual reading-visual" aria-label="插件阅读统计功能示意，非真实账户数据">
-      <div className="visual-topline">
-        <Logo variant="plugin" size={32} decorative />
-        <span>LDStatusPro</span>
-        <span className="visual-label">功能示意</span>
-      </div>
-      <div className="reading-summary">
-        <span>把时间，留给好内容。</span>
-        <strong>
-          阅读的积累<span>都看得见。</span>
-        </strong>
-      </div>
-      <div className="reading-stat">
-        <div>
-          <span>今日阅读</span>
-          <strong>
-            42<small>分钟</small>
-          </strong>
-        </div>
-        <div className="reading-ring">
-          <span>
-            68<small>%</small>
-          </span>
-        </div>
-        <div>
-          <span>信任级别</span>
-          <strong>Lv.2</strong>
-        </div>
-      </div>
-      <div className="reading-calendar" aria-hidden="true">
-        {Array.from({ length: 56 }, (_, i) => (
-          <span key={i} className={`reading-cell tone-${(i * 7 + Math.floor(i / 8)) % 5}`} />
+    <div className="store-gallery">
+      <div className="gallery-controls" role="group" aria-label="选择士多实际截图">
+        {storeViews.map((item, index) => (
+          <button key={item.name} type="button" aria-pressed={view === index} onClick={() => setView(index)}>
+            {item.name}
+          </button>
         ))}
       </div>
-      <p className="visual-footnote">示例数据 · 阅读统计、信任进度与历史趋势</p>
-    </div>
-  )
-}
-
-function StorePreview() {
-  return (
-    <div className="product-visual store-visual" aria-label="LD 士多发现、兑换与交付流程示意">
-      <div className="visual-topline">
-        <Logo variant="store" size={32} decorative />
-        <span>LD 士多</span>
-        <span className="visual-label">使用流程</span>
-      </div>
-      <div className="store-visual-title">
-        <Logo variant="store" size={114} decorative />
-        <strong>
-          社区好物，
-          <br />
-          认真交付。
-        </strong>
-      </div>
-      <div className="store-flow">
-        <div>
-          <Compass size={23} aria-hidden="true" />
-          <span>发现物品</span>
-          <small>物品、求购、小店</small>
+      <figure className="store-figure">
+        <div className="window-toolbar">
+          <span className="window-dots" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span>ldcstore.com</span>
+          <span>高清桌面截图</span>
         </div>
-        <ArrowRight size={17} aria-hidden="true" />
-        <div>
-          <Logo variant="store" size={25} decorative />
-          <span>LDC 兑换</span>
-          <small>确认订单与支付</small>
+        <div className="gallery-images">
+          {storeViews.map((item, index) => (
+            <img
+              key={item.image}
+              src={`/screenshots/${item.image}.webp`}
+              alt={`LD 士多线上${item.name}真实页面`}
+              width="2560"
+              height="1600"
+              loading="lazy"
+              decoding="async"
+              className={view === index ? 'selected' : ''}
+              aria-hidden={view !== index}
+            />
+          ))}
         </div>
-        <ArrowRight size={17} aria-hidden="true" />
-        <div>
-          <PackageCheck size={23} aria-hidden="true" />
-          <span>跟进交付</span>
-          <small>查看记录与售后</small>
-        </div>
-      </div>
-      <p className="visual-footnote">面向 Linux.do 社区成员 · 使用社区积分</p>
+        <figcaption aria-live="polite">{storeViews[view].description}</figcaption>
+      </figure>
+      <p className="capture-note">2026-10-11 公开页面截图 · 物品、价格及统计以线上为准</p>
     </div>
   )
 }
 
 export default function Features() {
   return (
-    <section className="products-section site-width section-space" id="products" aria-labelledby="products-heading">
+    <section id="products" className="products-section" aria-labelledby="products-heading">
       <span id="features" className="anchor-alias" />
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">两款产品，各有所长</p>
-          <h2 id="products-heading">
-            从阅读的积累，
-            <br />
-            到好物的相遇。
-          </h2>
-        </div>
-        <p>
-          一个陪伴你的社区阅读，
+      <Reveal className="product-intro site-width">
+        <p className="eyebrow">同一个项目，两种陪伴</p>
+        <h2 id="products-heading">
+          把社区里的日常，
           <br />
-          一个连接社区里的物品与服务。
-        </p>
-      </div>
-      <article className="product-detail product-plugin" id="plugin">
-        <div className="product-copy">
-          <p className="product-type">
-            LDStatusPro 插件<span>开源用户脚本</span>
-          </p>
+          <span>变得更好用。</span>
+        </h2>
+        <div className="product-index">
+          <a href="#plugin">
+            <Logo variant="plugin" size={38} decorative />
+            <span>
+              01 <strong>LDStatusPro 插件</strong>
+            </span>
+            <ArrowDownIcon />
+          </a>
+          <a href="#store">
+            <Logo variant="store" size={38} decorative />
+            <span>
+              02 <strong>LD 士多</strong>
+            </span>
+            <ArrowDownIcon />
+          </a>
+        </div>
+      </Reveal>
+      <article className="product-detail product-plugin site-width" id="plugin">
+        <Reveal className="product-copy">
+          <div className="product-type">
+            <Logo variant="plugin" size={34} decorative />
+            <span>01 / LDStatusPro 插件</span>
+          </div>
           <h3>
-            看见你的
+            阅读的积累，
             <br />
-            社区成长。
+            <span>一眼就清楚。</span>
           </h3>
           <p className="product-description">
-            为 Linux.do 与 IDCFlare 提供阅读统计、信任级别进度和历史趋势，把日常的积累整理得更清楚。
+            阅读时间、信任级别、历史趋势，都在熟悉的社区页面里。一个轻巧的面板，让每一天的成长更清楚。
           </p>
           <ul className="product-benefits">
             <li>
-              <TrendingUp size={18} aria-hidden="true" />
-              查看信任进度与成长趋势
+              <TrendingUp size={20} />
+              <div>
+                <strong>信任进度与历史趋势</strong>
+                <span>了解升级要求，查看社区成长的变化。</span>
+              </div>
             </li>
             <li>
-              <Cloud size={18} aria-hidden="true" />
-              跨设备云同步与阅读排行榜
+              <Cloud size={20} />
+              <div>
+                <strong>阅读记录与云同步</strong>
+                <span>跨设备同步记录，也可参与阅读排行榜。</span>
+              </div>
             </li>
             <li>
-              <Sparkles size={18} aria-hidden="true" />
-              AI 话题总结与追问辅助
+              <Sparkles size={20} />
+              <div>
+                <strong>AI 话题总结</strong>
+                <span>辅助梳理帖子内容，支持继续追问。</span>
+              </div>
             </li>
           </ul>
           <div className="product-links">
             <a className="action action-plugin" href="#install">
-              安装与使用
-              <ArrowRight size={17} aria-hidden="true" />
+              安装与使用 <ArrowRight size={17} />
             </a>
             <a className="text-link" href={links.pluginGuide} target="_blank" rel="noopener noreferrer">
-              查看功能说明
-              <ArrowUpRight size={16} aria-hidden="true" />
+              功能说明 <ArrowUpRight size={16} />
             </a>
           </div>
           <p className="product-note" id="levels">
-            <BookOpen size={15} aria-hidden="true" />
-            通过用户脚本管理器使用，支持两款社区站点。
+            <BookOpen size={15} />
+            适用于 Linux.do 与 IDCFlare · 开源用户脚本
           </p>
-        </div>
-        <ReadingPreview />
+        </Reveal>
+        <Reveal className="plugin-display">
+          <PluginPreview />
+        </Reveal>
       </article>
-      <article className="product-detail product-store" id="store">
-        <StorePreview />
-        <div className="product-copy">
-          <p className="product-type">
-            LD 士多<span>社区积分兑换平台</span>
-          </p>
+      <article className="product-store" id="store">
+        <Reveal className="store-copy site-width">
+          <div className="product-type">
+            <Logo variant="store" size={34} decorative />
+            <span>02 / LD 士多</span>
+          </div>
           <h3>
-            好物有去处，
+            发现社区好物。
             <br />
-            交付有记录。
+            <span>也遇见有趣的人。</span>
           </h3>
           <p className="product-description">
-            发现社区成员发布的物品与服务，使用 LDC 兑换。从物品广场、求购到小店，连接需要与提供。
+            物品广场、求购广场、小店集市。用 LDC 社区积分连接需要与提供，让物品、服务和心意在社区里流动。
           </p>
-          <ul className="product-benefits">
-            <li>
-              <Compass size={18} aria-hidden="true" />
-              发现物品、发布求购与浏览小店
-            </li>
-            <li>
-              <PackageCheck size={18} aria-hidden="true" />
-              查看订单、交付记录与退款进度
-            </li>
-            <li>
-              <TrendingUp size={18} aria-hidden="true" />
-              独立卖家后台与经营工具
-            </li>
-          </ul>
           <div className="product-links">
             <a className="action action-store" href={links.store} target="_blank" rel="noopener noreferrer">
-              打开 LD 士多
-              <ArrowUpRight size={17} aria-hidden="true" />
+              去士多逛逛 <ArrowUpRight size={17} />
             </a>
             <a className="text-link" href={links.storeGuide} target="_blank" rel="noopener noreferrer">
-              阅读使用指南
-              <ArrowUpRight size={16} aria-hidden="true" />
+              使用指南 <ArrowUpRight size={16} />
             </a>
           </div>
-          <p className="product-note">士多可直接在浏览器使用，无需安装插件。</p>
+        </Reveal>
+        <div className="site-width">
+          <StoreGallery />
+        </div>
+        <div className="store-benefits site-width">
+          <Reveal>
+            <Compass size={23} />
+            <h4>从发现开始</h4>
+            <p>浏览物品、发布求购、探索小店。</p>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <PackageCheck size={23} />
+            <h4>让交付清楚</h4>
+            <p>订单、交付与售后记录，随时可查。</p>
+          </Reveal>
+          <Reveal delay={0.16}>
+            <TrendingUp size={23} />
+            <h4>认真经营小店</h4>
+            <p>独立卖家后台，管理物品与经营。</p>
+          </Reveal>
         </div>
       </article>
     </section>
   )
+}
+function ArrowDownIcon() {
+  return <ArrowRight className="index-arrow" size={18} aria-hidden="true" />
 }

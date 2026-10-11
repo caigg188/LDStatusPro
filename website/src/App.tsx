@@ -3,7 +3,6 @@ import Header from './components/Header'
 import Hero from './components/Hero'
 import Features from './components/Features'
 import Installation from './components/Installation'
-import AboutJacky from './components/AboutJacky'
 import Maintenance from './components/Maintenance'
 import FAQ from './components/FAQ'
 import Footer from './components/Footer'
@@ -34,7 +33,6 @@ function HomePage() {
         <Hero />
         <Features />
         <Installation />
-        <AboutJacky />
         <Maintenance />
         <FAQ />
       </main>

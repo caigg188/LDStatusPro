@@ -1,0 +1,12 @@
+{
+  "version": "3.9.0.6",
+  "sha256": "f5fd8fba605f54113aaa44fc09828700af67ab8b105a2911cf6a7818dc278f87",
+  "fixtureSha256": "c535b3b960a82580aac2564fc6f7a8e559b3b4b9353e91c85f743ea55bf89da4",
+  "presentationRevision": "compact-380x660-incomplete-no-level-badge-settled-v1",
+  "source": "LDStatusPro.user.js",
+  "state": "signed-in presentation with explicitly labeled synthetic demonstration data",
+  "fixture": "brand/plugin-demo.json",
+  "siteIconSource": "https://img.ldstore.cc.cd/JackyLiii/20260424_logo-new-5_0vbj4s.png",
+  "presentation": "original Panel._createPanel, Styles._css and Renderer; supported width 380 and incomplete requirements; level badge omitted for website; no application boot or network",
+  "delivery": "pre-rendered 2x browser screenshots; website loads images, not plugin documents"
+}

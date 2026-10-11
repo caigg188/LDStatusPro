@@ -1,12 +1,13 @@
 import { useRef, useState, type KeyboardEvent } from 'react'
-import { ArrowUpRight, Menu, X } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
+import GitHubStars from './GitHubStars'
 import { Logo } from './Logo'
 import { links } from '../config/links'
 
 const navigation = [
   { label: '两款产品', href: '#products' },
   { label: '开始使用', href: '#install' },
-  { label: '关于 Jacky', href: '#jacky' },
+  { label: '开源项目', href: '#updates' },
   { label: '常见问题', href: '#faq' }
 ]
 
@@ -24,10 +25,10 @@ export default function Header() {
   return (
     <header className="site-header" onKeyDown={closeWithEscape}>
       <div className="site-width header-inner">
-        <a className="brand-name" href="#top" aria-label="LDSP by Jacky 首页" onClick={() => setOpen(false)}>
+        <a className="brand-name" href="#top" aria-label="LDSP 项目首页" onClick={() => setOpen(false)}>
           <Logo size={38} decorative />
           <span>
-            LDSP<span className="brand-byline">by Jacky</span>
+            LDSP<span className="brand-byline">社区开源工具</span>
           </span>
         </a>
         <nav className="desktop-nav" aria-label="主导航">
@@ -37,10 +38,7 @@ export default function Header() {
             </a>
           ))}
         </nav>
-        <a className="header-source" href={links.github} target="_blank" rel="noopener noreferrer">
-          查看源码
-          <ArrowUpRight size={16} aria-hidden="true" />
-        </a>
+        <GitHubStars />
         <button
           className="menu-toggle"
           ref={toggle}
@@ -60,7 +58,6 @@ export default function Header() {
         ))}
         <a href={links.github} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}>
           查看源码
-          <ArrowUpRight size={16} aria-hidden="true" />
         </a>
       </nav>
     </header>

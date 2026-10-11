@@ -11,7 +11,7 @@ export default function Footer() {
             <a className="brand-name" href="#top">
               <Logo size={42} decorative inverted />
               <span>
-                LDSP<span className="brand-byline">by Jacky</span>
+                LDSP<span className="brand-byline">社区开源工具</span>
               </span>
             </a>
             <p>把社区里的好用工具，持续做好。</p>

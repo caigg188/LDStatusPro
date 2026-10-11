@@ -1,14 +1,16 @@
 import { ArrowUpRight, GitPullRequest, MessageSquare, NotebookPen } from 'lucide-react'
+import AboutJacky from './AboutJacky'
+import Reveal from './Reveal'
 import { links } from '../config/links'
 
 export default function Maintenance() {
   return (
     <section id="updates" className="maintenance-section site-width" aria-labelledby="maintenance-heading">
-      <div className="maintenance-heading">
+      <Reveal className="maintenance-heading">
         <p className="eyebrow">开源与持续维护</p>
-        <h2 id="maintenance-heading">好工具，一起慢慢做好。</h2>
+        <h2 id="maintenance-heading">开源，持续向前。</h2>
         <p>代码、维护记录与反馈入口，始终可以找到。</p>
-      </div>
+      </Reveal>
       <div className="maintenance-links">
         <a href={links.github} target="_blank" rel="noopener noreferrer">
           <GitPullRequest size={23} aria-hidden="true" />
@@ -35,6 +37,7 @@ export default function Maintenance() {
           <ArrowUpRight size={18} aria-hidden="true" />
         </a>
       </div>
+      <AboutJacky />
     </section>
   )
 }

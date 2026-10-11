@@ -4,11 +4,12 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "npm run preview:plugin && vite",
+    "build": "npm run preview:plugin && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy": "npm run build && npx wrangler pages deploy dist --project-name=ldstatus-pro"
+    "deploy": "npm run build && npx wrangler pages deploy dist --project-name=ldstatus-pro",
+    "preview:plugin": "node scripts/build-plugin-preview.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
@@ -24,10 +25,12 @@
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "acorn": "^8.19.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "jsdom": "^26.1.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4"

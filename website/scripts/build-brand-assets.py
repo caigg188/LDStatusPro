@@ -56,16 +56,16 @@ for key, data in identity['marks'].items():
         (out / f'{key}-mark{suffix}.svg').write_text(svg(64, 64, mark(key, color), data['name']))
 
 paper = f'<rect width="1200" height="630" fill="{colors["paper"]}"/>'
-content = paper + text(68, 82, 20, 'LDSP by Jacky', colors['suite'], 'display', 700)
+content = paper + text(68, 82, 20, 'LDSP', colors['suite'], 'display', 700)
 content += text(66, 186, 48, '社区里的日常，有好工具相伴。', weight=650)
-content += text(70, 240, 21, '开源社区工具，由 Jacky 持续开发与维护。', colors['muted'])
+content += text(70, 240, 21, 'LDStatusPro 插件与 LD 士多，持续开发的开源社区工具。', colors['muted'])
 content += placed('plugin', 72, 322, 104) + text(196, 363, 31, 'LDStatusPro', colors['plugin'], 'display', 700)
 content += text(198, 409, 20, '阅读统计与社区成长', colors['muted'])
 content += placed('store', 675, 322, 104) + text(800, 363, 31, 'LD 士多', colors['store'], weight=700)
 content += text(802, 409, 20, '社区积分兑换平台', colors['muted'])
 content += f'<path d="M70 505H1130" stroke="{colors["line"]}"/>'
-content += text(70, 560, 18, '用 AI 做产品，也把产品运营好。', colors['muted'])
-(out / 'og-default.svg').write_text(svg(1200, 630, content, 'LDSP by Jacky · LDStatusPro 插件与 LD 士多'))
+content += text(70, 560, 18, '认真阅读。尽兴发现。', colors['muted'])
+(out / 'og-default.svg').write_text(svg(1200, 630, content, 'LDSP · LDStatusPro 插件与 LD 士多'))
 
 content = f'<rect width="1400" height="850" fill="{colors["paper"]}"/>'
 content += text(64, 75, 27, 'LDSP / by Jacky', colors['suite'], 'display', 700)

@@ -1,0 +1,19 @@
+{
+  "capturedOn": "2026-10-11",
+  "source": "https://ldcstore.com/",
+  "state": "Anonymous public pages; no login, orders or private data",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "image": {
+    "width": 2560,
+    "height": 1600
+  },
+  "views": {
+    "store-home": "物品广场",
+    "store-shops": "小店集市"
+  },
+  "processing": "Original public DOM and styles, scripts removed, rendered by the browser at CSS scale 2 in a fixed desktop viewport. Original JPEG retained; WebP quality 96. No interface or content edits.",
+  "notice": "Products, prices and statistics are a dated snapshot. The live website is authoritative."
+}
