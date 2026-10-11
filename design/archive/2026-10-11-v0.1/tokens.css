@@ -1,0 +1,15 @@
+:root {
+  --brand-ink: #203A43;
+  --brand-muted: #51666C;
+  --brand-paper: #F5F8F7;
+  --brand-surface: #FFFFFF;
+  --brand-line: #CBDAD5;
+  --brand-suite: #1F6658;
+  --brand-plugin: #3263C9;
+  --brand-store: #9A4F27;
+  --brand-suiteSoft: #E9F1EE;
+  --brand-pluginSoft: #EAF0FD;
+  --brand-storeSoft: #F6EADF;
+  --brand-font-display: Manrope, sans-serif;
+  --brand-font-body: "Noto Sans SC", "PingFang SC", sans-serif;
+}

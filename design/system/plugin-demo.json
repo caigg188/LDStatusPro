@@ -1,0 +1,30 @@
+{
+  "notice": "演示数据，不对应真实社区账号",
+  "username": "demo",
+  "displayName": "小读",
+  "trustLevel": 1,
+  "readingMinutes": 87,
+  "following": 24,
+  "followers": 36,
+  "joinedDays": 128,
+  "recordedAt": "2026-10-11T17:45:00+08:00",
+  "startedAt": "2026-10-11T09:00:00+08:00",
+  "requirements": [
+    { "name": "访问天数", "currentValue": 23, "requiredValue": 15, "isSuccess": true },
+    { "name": "送出赞", "currentValue": 6, "requiredValue": 1, "isSuccess": true },
+    { "name": "获赞", "currentValue": 0, "requiredValue": 1, "isSuccess": false },
+    { "name": "回复话题", "currentValue": 2, "requiredValue": 3, "isSuccess": false },
+    { "name": "浏览话题", "currentValue": 18, "requiredValue": 20, "isSuccess": false },
+    { "name": "已读帖子", "currentValue": 128, "requiredValue": 100, "isSuccess": true },
+    { "name": "阅读时间", "currentValue": 87, "requiredValue": 60, "isSuccess": true }
+  ],
+  "baselineData": {
+    "访问天数": 22,
+    "送出赞": 3,
+    "获赞": 0,
+    "回复话题": 1,
+    "浏览话题": 12,
+    "已读帖子": 96,
+    "阅读时间": 42
+  }
+}

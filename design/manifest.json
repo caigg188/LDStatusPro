@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "standard": {
+    "version": "1.0",
+    "status": "active",
+    "updatedOn": "2026-10-11",
+    "timezone": "Asia/Shanghai",
+    "approvedHomepageCommit": "9842b08c1d6458c72d0a98021d1d36450043c2a9",
+    "identitySource": "website/brand/identity.json",
+    "scope": [
+      "brand",
+      "operations",
+      "visual-language",
+      "logo",
+      "motion",
+      "authentic-media",
+      "responsive-layout"
+    ],
+    "archivePolicy": "Historical proposals are reference only and do not override the active standard."
+  },
+  "identityVersion": "0.2",
+  "note": "Derived mirrors; edit their source files and synchronize after a confirmed design change.",
+  "files": [
+    {
+      "file": "assets/brand/apple-touch-icon.png",
+      "source": "website/public/brand/apple-touch-icon.png",
+      "bytes": 3186,
+      "sha256": "33c963a254bcec724d623242dad9e4d7b8d346b3930bd0a2411b690698ad97c2"
+    },
+    {
+      "file": "assets/brand/apple-touch-icon.svg",
+      "source": "website/public/brand/apple-touch-icon.svg",
+      "bytes": 472,
+      "sha256": "625762c53e5a6e5b1e0483a4ceec92f560cd1a594bb5557caf2a45a708beee01"
+    },
+    {
+      "file": "assets/brand/fonts/manrope-latin.woff2",
+      "source": "website/public/brand/fonts/manrope-latin.woff2",
+      "bytes": 15004,
+      "sha256": "a2698453c9e4af336b191d3e50eecc5b9d84a3177f6a5e9e9f2ff266a8075575"
+    },
+    {
+      "file": "assets/brand/fonts/Manrope-OFL.txt",
+      "source": "website/public/brand/fonts/Manrope-OFL.txt",
+      "bytes": 4386,
+      "sha256": "d6a309fcfb963d329a93baf9df66fa5f3c23a4be2b5f67edf24d6cafecde12ac"
+    },
+    {
+      "file": "assets/brand/fonts/noto-sans-sc-subset.woff2",
+      "source": "website/public/brand/fonts/noto-sans-sc-subset.woff2",
+      "bytes": 152144,
+      "sha256": "15c2f04cc03178088946239aa99fd4180c2601aa4cc141a013259510590c278f"
+    },
+    {
+      "file": "assets/brand/fonts/NotoSansSC-OFL.txt",
+      "source": "website/public/brand/fonts/NotoSansSC-OFL.txt",
+      "bytes": 4387,
+      "sha256": "babcfe66c8a098b2fa279bc724a3a342f8124f77ce18941fbcc1bbb39823cded"
+    },
+    {
+      "file": "assets/brand/identity-sheet.png",
+      "source": "website/public/brand/identity-sheet.png",
+      "bytes": 88753,
+      "sha256": "f58a81ba36ba565773b02b7987cbf7d6b726beee75c77a8be5a18e271f487853"
+    },
+    {
+      "file": "assets/brand/identity-sheet.svg",
+      "source": "website/public/brand/identity-sheet.svg",
+      "bytes": 306341,
+      "sha256": "6a91f1c1f5b3ddfb484d1a088e797cf8d5cbc1da5ea9ac40a363498cfc7491e4"
+    },
+    {
+      "file": "assets/brand/jacky-mark-mono.svg",
+      "source": "website/public/brand/jacky-mark-mono.svg",
+      "bytes": 322,
+      "sha256": "29af54729f42ccb96f71f05d35e13d4223e406b01bea9902acd86b482fcbf6b7"
+    },
+    {
+      "file": "assets/brand/jacky-mark-white.svg",
+      "source": "website/public/brand/jacky-mark-white.svg",
+      "bytes": 322,
+      "sha256": "5ed5d64e3717c96a9aca8e5df1cdd666728db67acc4240f30cbab6dd3e7cf580"
+    },
+    {
+      "file": "assets/brand/jacky-mark.svg",
+      "source": "website/public/brand/jacky-mark.svg",
+      "bytes": 322,
+      "sha256": "29af54729f42ccb96f71f05d35e13d4223e406b01bea9902acd86b482fcbf6b7"
+    },
+    {
+      "file": "assets/brand/ldsp-mark-mono.svg",
+      "source": "website/public/brand/ldsp-mark-mono.svg",
+      "bytes": 371,
+      "sha256": "c2d40298f81951c1c49e7172e200b9b4df4778c1b3a8994e0a1c6deff56fbdcc"
+    },
+    {
+      "file": "assets/brand/ldsp-mark-white.svg",
+      "source": "website/public/brand/ldsp-mark-white.svg",
+      "bytes": 371,
+      "sha256": "4311d4e61cc97efb3bf6110192ac881b2f96fa6cdd0f3a003f2f5af1b8b2f9ad"
+    },
+    {
+      "file": "assets/brand/ldsp-mark.svg",
+      "source": "website/public/brand/ldsp-mark.svg",
+      "bytes": 371,
+      "sha256": "f046a08e3dad180ffb1769bb55888351157bcb8919ff5e319c491906dfcf9616"
+    },
+    {
+      "file": "assets/brand/og-default.png",
+      "source": "website/public/brand/og-default.png",
+      "bytes": 52692,
+      "sha256": "9aa2a5ac056c9b2ec96f11ab1b0abf7a55db8f688ef2b13c4b4fcd11cef8262e"
+    },
+    {
+      "file": "assets/brand/og-default.svg",
+      "source": "website/public/brand/og-default.svg",
+      "bytes": 207956,
+      "sha256": "00ff76a7f75801c23549ab3cc338efba37a7059f93eadda4c88b4deed54e825c"
+    },
+    {
+      "file": "assets/brand/plugin-mark-mono.svg",
+      "source": "website/public/brand/plugin-mark-mono.svg",
+      "bytes": 384,
+      "sha256": "f53dbf71828f3a8adb3607c70ffec79a02863ae389f0ea048e9efc861a2ccd35"
+    },
+    {
+      "file": "assets/brand/plugin-mark-white.svg",
+      "source": "website/public/brand/plugin-mark-white.svg",
+      "bytes": 384,
+      "sha256": "ff92241e2d9cc6255f21320ddb790c388450d2d6166e010009b2b2926386289d"
+    },
+    {
+      "file": "assets/brand/plugin-mark.svg",
+      "source": "website/public/brand/plugin-mark.svg",
+      "bytes": 384,
+      "sha256": "08e8e0a23adb0180ef5c897e922d9459958f7bf8fbf4d9083eae045f485ea086"
+    },
+    {
+      "file": "assets/brand/store-mark-mono.svg",
+      "source": "website/public/brand/store-mark-mono.svg",
+      "bytes": 325,
+      "sha256": "ed4cfdb5b2ec8b2d0cf1af0080a9a457005e12ab95c4f2b0da22a77e4e06b670"
+    },
+    {
+      "file": "assets/brand/store-mark-white.svg",
+      "source": "website/public/brand/store-mark-white.svg",
+      "bytes": 325,
+      "sha256": "989b2ce56f43584c783c44cf2c06f37a1288c7c337bea571712255afc22cd03c"
+    },
+    {
+      "file": "assets/brand/store-mark.svg",
+      "source": "website/public/brand/store-mark.svg",
+      "bytes": 325,
+      "sha256": "40eb8a695876c3cdc23ad6631fc3cb74b548cfe95ca1bc598f5851709f5f5832"
+    },
+    {
+      "file": "assets/icons/favicon.ico",
+      "source": "website/public/favicon.ico",
+      "bytes": 1954,
+      "sha256": "cbec58ee4f5cf3b0e906dc6c82001736f86887c01e23e8cc3fc97016f780b929"
+    },
+    {
+      "file": "assets/icons/favicon.svg",
+      "source": "website/public/favicon.svg",
+      "bytes": 492,
+      "sha256": "e020520b0b0963b23b0b6364dc8a290f4fdd79f8b72898657d80052534fd05ca"
+    },
+    {
+      "file": "assets/product/plugin/capture.json",
+      "source": "website/public/product-preview/capture.json",
+      "bytes": 694,
+      "sha256": "424a0798206064a732e55049e3221371a62bacc2be4fd8910d57b8ae5c8114d8"
+    },
+    {
+      "file": "assets/product/plugin/plugin-dark-reqs.webp",
+      "source": "website/public/product-preview/plugin-dark-reqs.webp",
+      "bytes": 67208,
+      "sha256": "cb460e959100f94cd39ac572a6a7d34679f289e7d4f5e7a26e27918085926129"
+    },
+    {
+      "file": "assets/product/plugin/plugin-dark-trends.webp",
+      "source": "website/public/product-preview/plugin-dark-trends.webp",
+      "bytes": 76546,
+      "sha256": "7ece7104f08ca10040766d5cce377bc3d382ea7de60e591a97aa74c5c466937f"
+    },
+    {
+      "file": "assets/product/plugin/plugin-light-reqs.webp",
+      "source": "website/public/product-preview/plugin-light-reqs.webp",
+      "bytes": 71862,
+      "sha256": "5081204fc9adeef787a1bfe5956a8f7b6efcdce64990d8b452400636d16ac24a"
+    },
+    {
+      "file": "assets/product/plugin/plugin-light-trends.webp",
+      "source": "website/public/product-preview/plugin-light-trends.webp",
+      "bytes": 78712,
+      "sha256": "4a50fa33297eab2ecadf3b8fb44bcfdd59b6275cbb38e7c1f61ae617b5754500"
+    },
+    {
+      "file": "assets/product/plugin/source.json",
+      "source": "website/public/product-preview/source.json",
+      "bytes": 816,
+      "sha256": "6feeeb78281e1d4d616ca1e82b418a18384a3094d99e4c453f271faf1a1073b4"
+    },
+    {
+      "file": "assets/product/store/source.json",
+      "source": "website/public/screenshots/source.json",
+      "bytes": 653,
+      "sha256": "89a0aa2d19ce2a6d0ed677085321a6d65e330ebc1d7c6c1c7b0e480857f3141c"
+    },
+    {
+      "file": "assets/product/store/store-home.jpg",
+      "source": "website/public/screenshots/store-home.jpg",
+      "bytes": 344980,
+      "sha256": "a69683ff250c6c808237cd41e04a758df7dc1ec79c38dac02068e8aca73e7bb1"
+    },
+    {
+      "file": "assets/product/store/store-home.webp",
+      "source": "website/public/screenshots/store-home.webp",
+      "bytes": 405756,
+      "sha256": "46b659e05d135d7d15b7f802190a6d7148d0855f26ba2a84028c3ae7172ab789"
+    },
+    {
+      "file": "assets/product/store/store-shops.jpg",
+      "source": "website/public/screenshots/store-shops.jpg",
+      "bytes": 213925,
+      "sha256": "429718df89a802ff35cad059cc905aed837af30b607c887f511811db9c520a76"
+    },
+    {
+      "file": "assets/product/store/store-shops.webp",
+      "source": "website/public/screenshots/store-shops.webp",
+      "bytes": 213566,
+      "sha256": "1d9e72b9d2993598085a6fc1391a42794f954e48e683fc716f229ba6b412db20"
+    },
+    {
+      "file": "system/brand-tokens.css",
+      "source": "website/src/brand-tokens.css",
+      "bytes": 259,
+      "sha256": "d857dcffb1f793dd706820ef3659316bc399cf05bc702be65f3b36d8b722691e"
+    },
+    {
+      "file": "system/identity.json",
+      "source": "website/brand/identity.json",
+      "bytes": 1435,
+      "sha256": "0e2b97c3db758c2934bd2e74d6a0e3b20c576f78c97d878bc516def9b568a41d"
+    },
+    {
+      "file": "system/plugin-demo.json",
+      "source": "website/brand/plugin-demo.json",
+      "bytes": 1139,
+      "sha256": "c535b3b960a82580aac2564fc6f7a8e559b3b4b9353e91c85f743ea55bf89da4"
+    }
+  ]
+}

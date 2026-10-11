@@ -1,0 +1,47 @@
+Jacky 与 LDSP 品牌资源包 · 方案 v0.1 · 2026-10-11
+
+先打开 brand-preview.html 看视觉，再打开 strategy.html 阅读完整方案。
+预览不调用生产 API，不加载外部字体或统计脚本。可以离线打开。
+
+assets/
+  ldsp / plugin / store / jacky-mark.svg：透明色版，64×64 母版。
+  *-mark-mono.svg / *-mark-white.svg：深色单色版 / 反白版。
+  *-mark-small.svg：16px 的专用简化版。
+  *-lockup.svg / *-lockup-white.svg：字标组合，文字已转路径。
+  *-avatar.png：1024×1024，保留圆形裁切安全区域。
+  ldsp / plugin / store-favicon.svg / .ico：favicon。
+  *-app-180.png / *-app-192.png / *-app-512.png：不透明 app 图标。
+  social-*.png：1200×630 网站分享封面。
+  github-jacky.png：1280×640 个人 README 封面。
+  template-*.svg / .png：1080×1080 内容模板。样例文案发布前须替换。
+  *-mark.png / *-lockup.png：色版 PNG，透明背景。
+previews/：品牌总览与小尺寸校样的 SVG / PNG。
+tokens.json / tokens.css：设计 Token；产品色与业务语义色分别处理。
+source/：生成图形与文字路径的源文件。
+
+集成示例：
+  <link rel="icon" type="image/svg+xml" href="/brand/plugin-favicon.svg">
+  <link rel="icon" sizes="any" href="/brand/plugin-favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="/brand/plugin-app-180.png">
+  <meta property="og:image" content="https://你的实际域名/brand/social-plugin.png">
+按网站用途换成 ldsp 或 store；实际路径需要在部署时配置。
+
+视觉：开环从原项目标志演进；字标和内核为本方案制作。
+当前为供 Jacky 评审的设计提案，尚未做真人辨识或商标审查。
+代码的 MIT 许可不会自动决定本资源包未来的品牌使用规范。
+建议确认后另行发布品牌使用指南，明确 fork、转载与官方站点的区分。
+
+字体：Google Fonts 仓库中的 Manrope 与 Noto Sans SC OFL 版本。
+字标已转路径；fonts/ 中预览字体是重命名子集 LDSP Proof Display 与
+LDSP Proof Sans。OFL 许可和原版权声明随文件附带。
+没有打包或分发操作系统字体。
+
+重新生成（独立文档工具环境，不需要加载项目或生产环境变量）：
+  python build_assets.py /path/to/Manrope.ttf /path/to/NotoSansSC.ttf
+  node render_assets.cjs
+Python 需要 fonttools[woff]，Node 需要 sharp。
+原字体文件来自：
+https://github.com/google/fonts/tree/main/ofl/manrope
+https://github.com/google/fonts/tree/main/ofl/notosanssc
+
+本次仅新增提案与静态文件，没有修改应用源代码或线上资源。

@@ -1,0 +1,42 @@
+{
+  "as_of": "2026-10-11",
+  "timezone": "Asia/Shanghai",
+  "public_signals": {
+    "github_project": {
+      "url": "https://api.github.com/repos/caigg188/LDStatusPro",
+      "stars": 1168,
+      "forks": 67,
+      "license": "MIT",
+      "pushed_at": "2026-10-11T06:00:36Z"
+    },
+    "github_author": {
+      "url": "https://api.github.com/users/caigg188",
+      "name": "Jacky",
+      "followers": 15,
+      "public_repos": 12
+    },
+    "greasy_fork": {
+      "url": "https://greasyfork.org/zh-CN/scripts/558575-ldstatus-pro",
+      "version": "3.9.0.6",
+      "total_installs_observed": 1883,
+      "reported_as": "approximately 1900 cumulative channel installs",
+      "caveat": "Count is time-sensitive; it is neither unique users nor active users. GitHub direct installs are a separate channel."
+    }
+  },
+  "local_source": {
+    "LDStatusPro": "543f1d1022aa4b45474a9b2b9a41c87b34536d29",
+    "ld-store-backend-new": "4aa2919b2d55789522a38cc2dd7933e695e06511",
+    "storefront_implementation": "Vue routes, help articles, order/refund/seller interfaces",
+    "plugin_implementation": "Userscript metadata, collapsed icon, cloud sync integration and standalone store entry",
+    "website_implementation": "Hero, Header, Footer, Logo and favicon"
+  },
+  "live_read_only_checks": {
+    "official_site_html": "HTTP 200; title and script references verified",
+    "store_html": "HTTP 200; title, noindex, nofollow, noarchive and OG configuration verified",
+    "compiled_frontend_scripts": "HTTP 403; live body copy and displayed version were not confirmed",
+    "browser_visual_check": "Browser control timed out; live interaction and visual acceptance not completed",
+    "backend_public_api_lookup": "HTTP 404 anonymously; public availability of backend repository unverified"
+  },
+  "not_measured": ["DAU", "retention", "exchange_volume", "revenue", "private operational records"],
+  "scope": "Public web research and local code/document inspection. Only local proposal artifacts were created. No production test, database read, deployment, migration, payment or configuration mutation."
+}

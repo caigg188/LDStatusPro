@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "status": "active",
+  "updatedOn": "2026-10-11",
+  "timezone": "Asia/Shanghai",
+  "approvedHomepageCommit": "9842b08c1d6458c72d0a98021d1d36450043c2a9",
+  "identitySource": "website/brand/identity.json",
+  "scope": ["brand", "operations", "visual-language", "logo", "motion", "authentic-media", "responsive-layout"],
+  "archivePolicy": "Historical proposals are reference only and do not override the active standard."
+}

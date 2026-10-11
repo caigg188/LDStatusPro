@@ -1,0 +1,31 @@
+{
+  "ico": 3,
+  "local_html_links": "all resolved",
+  "html_files": [
+    "brand-preview.html",
+    "strategy.html"
+  ],
+  "font": "renamed local subsets; Chinese text glyph coverage passed",
+  "contrast": {
+    "ink_on_white": 12.02,
+    "muted_on_white": 6.06,
+    "suite_on_white": 6.77,
+    "plugin_on_white": 5.58,
+    "store_on_white": 5.96
+  },
+  "visually_reviewed": [
+    "brand-board.png",
+    "size-proof.png",
+    "social-jacky.png",
+    "template-store.png"
+  ],
+  "limitations": [
+    "Local HTML browser rendering not visually verified; responsive CSS and file links inspected.",
+    "Live website visual acceptance not performed.",
+    "Logo recognition tests with real users not performed."
+  ],
+  "svg_count": 50,
+  "png_count": 50,
+  "svg_checks": "XML parsed, viewBox/title present, no external references or scripts",
+  "png_checks": "decoded; dimension, transparency and opaque app icon checks passed"
+}

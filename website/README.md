@@ -2,6 +2,8 @@
 
 LDStatusPro 插件与 LD 士多的双产品入口，生产地址 `https://ldspro.qzz.io/`。Cloudflare Pages 项目名 `ldstatus-pro`。
 
+现行品牌、运营表达、视觉、动效与产品截图标准统一见 [design/README.md](../design/README.md)。本文件记录实现与开发流程；设计变更需同步更新规范和资源镜像。
+
 ## 页面与内容
 
 | 路径            | 内容                                                             |

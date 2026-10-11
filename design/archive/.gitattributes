@@ -1,0 +1,3 @@
+# Preserve imported proposals and third-party license text byte-for-byte.
+# Whitespace checks remain enabled for the active design standard.
+2026-10-11-v0.1/** -whitespace
