@@ -1,138 +1,75 @@
-import { motion, useInView, AnimatePresence } from 'framer-motion'
-import { useRef, useState } from 'react'
-import { ChevronDown, Shield, Cloud, Clock, Settings, Zap, Store } from 'lucide-react'
+import { ArrowUpRight, Plus } from 'lucide-react'
+import { links } from '../config/links'
 
-// 固定 FAQ 数据
 const faqs = [
   {
-    question: '安装这个脚本安全吗？会不会盗号？',
-    answer: '完全安全！LDStatus Pro 是开源项目，代码公开透明，你可以在 GitHub 查看全部源码。脚本使用官方 OAuth 认证登录，不会获取你的密码。所有数据存储在浏览器本地或你自己授权的云端账号中。',
-    icon: <Shield className="w-5 h-5" />,
-    color: 'text-[#8faa9d]'
+    question: 'LDStatusPro 插件和 LD 士多是什么关系？',
+    answer:
+      '两者都是 Jacky 持续维护的 LDSP 开源项目。LDStatusPro 是用于 Linux.do 与 IDCFlare 的社区阅读与成长助手；LD 士多是面向 Linux.do 的独立积分兑换平台。插件保留士多快捷入口，士多也可以直接在浏览器打开。'
   },
   {
-    question: '面板不显示怎么办？',
-    answer: '请检查：1. 浏览器开发者模式已开启；2. Tampermonkey 扩展中脚本已启用；3. 刷新页面后等待几秒。如仍不显示，尝试禁用其他可能冲突的扩展后重试。',
-    icon: <Settings className="w-5 h-5" />,
-    color: 'text-[#9d95ab]'
+    question: 'LDStatusPro 是浏览器扩展吗？手机能使用吗？',
+    answer:
+      '它是用户脚本，需要 Tampermonkey 等用户脚本管理器。电脑端通过浏览器安装管理器；手机端需要使用支持用户脚本的浏览器或管理器。安装步骤与兼容说明请查看功能文档。'
   },
   {
-    question: '阅读时间为什么不增加？',
-    answer: '脚本检测鼠标移动、滚动、点击等活动。60秒无操作会自动暂停计时，恢复操作后继续计时。这是为了确保统计的是真实阅读时间。',
-    icon: <Clock className="w-5 h-5" />,
-    color: 'text-[#c9a87c]'
+    question: '阅读记录保存在什么地方？',
+    answer:
+      '插件包含浏览器本地保存和登录后的云同步功能；排行榜、AI 总结等功能也涉及相应服务请求。数据处理与功能说明以公开文档和实现为准，使用前可以查看源码与说明。'
   },
   {
-    question: '云同步数据会覆盖本地数据吗？',
-    answer: '不会！云同步采用「取较大值合并」策略。同一天的数据，保留本地和云端中的较大值，不会丢失任何已记录的阅读时间。',
-    icon: <Cloud className="w-5 h-5" />,
-    color: 'text-[#8ba4b8]'
+    question: '使用 LD 士多需要先安装插件吗？',
+    answer:
+      '不需要。直接打开 ldcstore.com 即可浏览物品、求购与小店。准备兑换时使用 Linux.do 账号登录，并按平台指南使用 LDC 社区积分；交付和售后可在对应订单中查看。'
   },
   {
-    question: '如何在 LD士多 发布兑换信息？',
-    answer: '打开 LDC 积分面板 → 切换到「LD士多」→ 点击「我的发布」→「商家设置」→ 填写 LDC PID（从 credit.linux.do 个人页面获取）→ 保存后即可发布兑换信息。',
-    icon: <Store className="w-5 h-5" />,
-    color: 'text-[#c4a6a0]'
+    question: '怎样在 LD 士多发布物品或处理售后？',
+    answer:
+      '卖家通过士多的独立卖家后台配置收款、发布物品和管理订单。买家可以在订单详情查看交付记录、申请退款并跟进处理。具体条件与规则请阅读士多帮助中心。'
   },
   {
-    question: 'Firefox 浏览器登录失败怎么办？',
-    answer: '部分 Firefox 用户可能因隐私设置导致 OAuth 登录失败。请尝试：1. 将增强型追踪保护改为「标准」；2. 确保授权弹窗和主页面在同一个容器中；3. 检查第三方 Cookie 设置。',
-    icon: <Zap className="w-5 h-5" />,
-    color: 'text-[#b89090]'
+    question: '这两个产品属于社区官方吗？',
+    answer:
+      '这是由 Jacky 开发与维护的独立社区项目，与 Linux.do、IDCFlare 官方无隶属关系。平台账号、积分与相关第三方服务遵循各自规则。'
   }
 ]
 
 export default function FAQ() {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px" })
-  const [expanded, setExpanded] = useState<number | null>(0)
-
   return (
-    <section id="faq" className="py-24 relative bg-[#efedea]" ref={ref}>
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* 标题 */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-16 select-none"
-        >
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            <span className="text-[#3d3d3d]">常见问题</span>
-          </h2>
-          <p className="text-[#6b6b6b] text-lg">
-            解答你可能遇到的疑问
-          </p>
-        </motion.div>
-
-        {/* 问题列表 */}
-        <div className="space-y-4">
-          {faqs.map((faq, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-            >
-              <div className="glass glass-hover rounded-xl overflow-hidden">
-                {/* 问题头部 */}
-                <button
-                  className="w-full px-6 py-4 flex items-center gap-4 text-left cursor-pointer select-none"
-                  onClick={() => setExpanded(expanded === index ? null : index)}
-                >
-                  <div className={`${faq.color}`}>
-                    {faq.icon}
-                  </div>
-                  <span className="flex-1 font-medium text-[#3d3d3d]">
-                    {faq.question}
-                  </span>
-                  <motion.div
-                    animate={{ rotate: expanded === index ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <ChevronDown className="w-5 h-5 text-[#9a9a9a]" />
-                  </motion.div>
-                </button>
-
-                {/* 答案内容 */}
-                <AnimatePresence>
-                  {expanded === index && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.25 }}
-                    >
-                      <div className="px-6 pb-4 pl-14">
-                        <p className="text-[#6b6b6b] leading-relaxed">
-                          {faq.answer}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* 更多问题 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          className="text-center mt-12"
-        >
-          <p className="text-[#9a9a9a] mb-4">还有其他问题？</p>
-          <a
-            href="https://github.com/caigg188/LDStatusPro/issues"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-[#d4d2cf] text-[#6b6b6b] hover:border-[#9d95ab] hover:bg-white/50 transition-all glass"
-          >
-            在 GitHub 提问 →
+    <section id="faq" className="faq-section site-width section-space" aria-labelledby="faq-heading">
+      <div className="faq-intro">
+        <p className="eyebrow">使用前，先了解</p>
+        <h2 id="faq-heading">几个常见问题。</h2>
+        <p>
+          清楚的说明，
+          <br />
+          也是好工具的一部分。
+        </p>
+        <a className="text-link" href={links.issues} target="_blank" rel="noopener noreferrer">
+          还有问题，告诉我们
+          <ArrowUpRight size={16} aria-hidden="true" />
+        </a>
+      </div>
+      <div className="faq-list">
+        {faqs.map((faq) => (
+          <details className="faq-item" key={faq.question}>
+            <summary>
+              <span>{faq.question}</span>
+              <Plus size={20} aria-hidden="true" />
+            </summary>
+            <p>{faq.answer}</p>
+          </details>
+        ))}
+        <div className="faq-guides">
+          <a href={links.pluginGuide} target="_blank" rel="noopener noreferrer">
+            插件功能说明
+            <ArrowUpRight size={15} aria-hidden="true" />
           </a>
-        </motion.div>
+          <a href={links.storeGuide} target="_blank" rel="noopener noreferrer">
+            士多帮助中心
+            <ArrowUpRight size={15} aria-hidden="true" />
+          </a>
+        </div>
       </div>
     </section>
   )

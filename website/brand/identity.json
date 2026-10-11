@@ -1,0 +1,46 @@
+{
+  "version": "0.2",
+  "colors": {
+    "ink": "#233C3D",
+    "muted": "#536766",
+    "paper": "#F6F8F5",
+    "line": "#D4DFD9",
+    "suite": "#32665C",
+    "plugin": "#4B5EA8",
+    "plugin-soft": "#EEF0F9",
+    "store": "#916625",
+    "store-soft": "#F6F0E3"
+  },
+  "ring": "M32 8A24 24 0 1 1 15.03 48.97",
+  "ringWidth": 5.5,
+  "marks": {
+    "ldsp": {
+      "name": "LDSP",
+      "color": "suite",
+      "description": "开源社区工具 · by Jacky",
+      "paths": [
+        "M29.9 23.6Q32 21.5 34.1 23.6L40.4 29.9Q42.5 32 40.4 34.1L34.1 40.4Q32 42.5 29.9 40.4L23.6 34.1Q21.5 32 23.6 29.9Z"
+      ]
+    },
+    "plugin": {
+      "name": "LDStatusPro",
+      "color": "plugin",
+      "description": "抽象沙漏 · 阅读与成长",
+      "paths": ["M22 20H42C42 26 37 28 32 31C27 28 22 26 22 20Z", "M32 34C37 37 42 39 42 45H22C22 39 27 37 32 34Z"]
+    },
+    "store": {
+      "name": "LD 士多",
+      "color": "store",
+      "description": "双切面钻石 · 发现与兑换",
+      "paths": ["M25 22H39L44 28H20Z", "M20 31H44L32 44Z"]
+    },
+    "jacky": {
+      "name": "Jacky",
+      "color": "ink",
+      "description": "AI 全栈开发者 · 独立开发者",
+      "ring": false,
+      "strokes": [{ "path": "M37 12V37C37 49 17 51 15 38", "width": 9 }],
+      "paths": ["M46 10H52Q54 10 54 12V18Q54 20 52 20H46Q44 20 44 18V12Q44 10 46 10Z"]
+    }
+  }
+}

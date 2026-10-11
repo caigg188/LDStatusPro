@@ -1,5 +1,5 @@
 # 官网技术说明
 
-跨仓库现行文档：[docs/architecture/WEBSITE.md](../../../docs/architecture/WEBSITE.md)。
+当前双产品首页、插件版本来源、品牌资源和本地发布说明见仓库内 [website/README.md](../README.md)。
 
-本文件不维护第二份正文。路由、版本展示和年报 API 以工作区那份为准；实现以本目录源码为准。
+工作区跨仓库架构说明位于 [docs/architecture/WEBSITE.md](../../../docs/architecture/WEBSITE.md)，可能保留先前官网结构；当前实现以本仓库源码与 README 为准。
