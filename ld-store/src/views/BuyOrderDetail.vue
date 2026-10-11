@@ -91,7 +91,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useOrderStore } from '@/stores/order'
 import { isMaintenanceFeatureEnabled, isRestrictedMaintenanceMode } from '@/config/maintenance'
 import { useToast } from '@/composables/useToast'
-import { formatPrice } from '@/utils/format'
+import { formatPrice, formatStandardDateTime } from '@/utils/format'
 import { isValidLdcPaymentUrl } from '@/utils/security'
 import { preparePaymentPopup, openPaymentPopup, watchPaymentPopup, cleanupPreparedTab } from '@/utils/newTab'
 import { ORDER_LIST_SCROLL_SOURCE, readOrderScrollSnapshot } from '@/utils/orderListScroll'
@@ -180,11 +180,7 @@ function statusClass(status) {
 }
 
 function formatDate(timestamp) {
-  const value = Number(timestamp || 0)
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '-'
-  return date.toLocaleString('zh-CN')
+  return formatStandardDateTime(timestamp) || '-'
 }
 
 async function loadOrderDetail() {

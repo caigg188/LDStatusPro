@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   formatCompactCount,
+  formatDateTime,
   formatMessageTime,
   formatStandardDateTime,
   normalizeTimestampMs
@@ -32,6 +33,14 @@ describe('消息时间格式', () => {
   it('把无时区墙钟时间按 UTC 解析', () => {
     expect(normalizeTimestampMs('2026-10-07 07:58:17.092')).toBe(Date.parse('2026-10-07T07:58:17.092Z'))
     expect(formatStandardDateTime('2026-10-07 07:58:17.092')).toBe('2026-10-07 15:58:17')
+  })
+
+  it('日期末尾的日不是时区偏移', () => {
+    expect(normalizeTimestampMs('2026-10-07')).toBe(Date.parse('2026-10-07T00:00:00Z'))
+  })
+
+  it.each(['2026-12-31 23:59:59', '2026-12-31T23:59:59Z', '2027-01-01 07:59:59+08'])('订单列表跨年显示完整北京时间：%s', (value) => {
+    expect(formatDateTime(value)).toBe('2027-01-01 07:59')
   })
 
   it('固定显示北京时间标准格式并保留秒数', () => {

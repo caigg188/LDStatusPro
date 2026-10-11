@@ -114,6 +114,7 @@ export function normalizeTimestampMs(timestamp) {
 
   const text = String(timestamp || '').trim()
   if (!text) return Number.NaN
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return Date.parse(`${text}T00:00:00Z`)
   if (/^\d{10}(?:\d{3})?$/.test(text)) {
     const numeric = Number(text)
     return text.length === 10 ? numeric * 1000 : numeric

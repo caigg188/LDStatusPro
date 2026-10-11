@@ -203,6 +203,7 @@ import {
   ShieldCheck
 } from '@lucide/vue'
 import type { SellerFulfillment } from '@/contracts/fulfillment'
+import { formatDateTime } from '@/utils/format'
 import SellerStatusBadge from '@/components/seller/SellerStatusBadge.vue'
 import { useSellerFulfillmentStore } from '@/stores/sellerFulfillment'
 
@@ -238,15 +239,7 @@ watch(() => policy.value?.version, () => {
 })
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString('zh-CN', {
-    timeZone: 'Asia/Shanghai',
-    hour12: false,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  return formatDateTime(value) || '-'
 }
 
 function recordMeta(record: FulfillmentRecord) {

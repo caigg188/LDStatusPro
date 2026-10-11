@@ -36,6 +36,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { normalizeTimestampMs } from '@/utils/format'
 import {
   CircleCheck,
   CircleCheckBig,
@@ -71,12 +72,11 @@ const eventIcons = Object.freeze({
 const orderedEvents = computed(() => props.events
   .map((event, index) => ({ ...event, __index: index }))
   .sort((left, right) => {
-    const leftTime = new Date(left.createdAt).getTime()
-    const rightTime = new Date(right.createdAt).getTime()
-    if (Number.isNaN(leftTime) || Number.isNaN(rightTime) || leftTime === rightTime) {
-      return right.__index - left.__index
-    }
-    return rightTime - leftTime
+    const leftTime = normalizeTimestampMs(left.createdAt)
+    const rightTime = normalizeTimestampMs(right.createdAt)
+    const timeDifference = (Number.isFinite(rightTime) ? rightTime : -Infinity)
+      - (Number.isFinite(leftTime) ? leftTime : -Infinity)
+    return timeDifference || Number(right.id || 0) - Number(left.id || 0) || right.__index - left.__index
   }))
 
 function getEventMeta(event) {
@@ -88,8 +88,8 @@ function getEventIcon(event) {
 }
 
 function toDateTimeAttribute(value) {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString()
+  const ms = normalizeTimestampMs(value)
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : undefined
 }
 </script>
 

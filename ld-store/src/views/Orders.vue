@@ -1,7 +1,7 @@
 <template>
   <div class="orders-page" :class="{ 'seller-orders-page': sellerMode }">
     <template v-if="sellerMode">
-      <SellerPageToolbar eyebrow="交易台账" description="统一处理商品订单与求购服务订单。筛选、页码与来源会保留在地址中。">
+      <SellerPageToolbar eyebrow="交易台账" description="按下单时间从新到旧排列，时间均为北京时间。筛选、页码与来源会保留在地址中。">
         <!-- Tab selection/focus belongs to each control; pending feedback belongs to the list. -->
         <SellerTabs :modelValue="currentRole" :tabs="roleTabs" class="seller-source-tabs" size="sm" aria-label="订单来源" @update:modelValue="switchRole" />
         <OrderStatusFilter v-if="currentRole !== 'buy'" variant="seller" :modelValue="statusFilter" class="seller-status-tabs" size="sm" aria-label="订单状态" @update:modelValue="selectStatus" />
@@ -369,7 +369,7 @@ import {
   normalizeSellerPage,
   resolveSellerStatusTone
 } from '@/utils/sellerTables'
-import { normalizeTimestampMs } from '@/utils/format'
+import { formatDateTime as formatDate, normalizeTimestampMs } from '@/utils/format'
 
 const router = useRouter()
 const route = useRoute()
@@ -997,20 +997,6 @@ function getOrderDisplayName(order) {
     return order.requestTitle || order.product?.name || '求购订单'
   }
   return order.product?.name || order.productName
-}
-
-// 格式化日期
-function formatDate(date) {
-  const ms = normalizeTimestampMs(date)
-  if (!Number.isFinite(ms)) return ''
-  return new Intl.DateTimeFormat('zh-CN', {
-    timeZone: 'Asia/Shanghai',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  }).format(new Date(ms))
 }
 
 // 是否是CDK类型订单

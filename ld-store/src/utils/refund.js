@@ -1,3 +1,5 @@
+import { formatDateTime } from './format'
+
 export const REFUND_REASON_OPTIONS = Object.freeze([
   { value: 'not_received_or_unusable', label: '未收到或无法使用' },
   { value: 'not_as_described', label: '与物品描述不符' },
@@ -263,14 +265,5 @@ export function buildLinuxDoMessageUrl(username, orderNo, role = 'seller') {
 }
 
 export function formatRefundDate(value) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  return formatDateTime(value) || '—'
 }
