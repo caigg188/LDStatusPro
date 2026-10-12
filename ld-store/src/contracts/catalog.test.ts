@@ -62,14 +62,15 @@ describe('catalog service contracts', () => {
     expect(result.data.rankingContext).toMatchObject({ slateId: 'slate-1' })
   })
 
-  it('prefers an explicit camelCase value when both aliases are present', () => {
+  it.each([true, false])('prefers an explicit camelCase value in either serialized order: %s', (snakeFirst) => {
     const result = validateApiResult(
       success({
         categories: [{
           id: 2,
           name: '服务',
-          visibility_trust_level: 1,
-          visibilityTrustLevel: 3
+          ...(snakeFirst
+            ? { visibility_trust_level: 1, visibilityTrustLevel: 3 }
+            : { visibilityTrustLevel: 3, visibility_trust_level: 1 })
         }]
       }),
       CategoriesResponseSchema,

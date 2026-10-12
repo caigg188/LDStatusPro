@@ -22,6 +22,24 @@ function pagination(overrides: Record<string, unknown> = {}) {
 describe('commerce service contracts', () => {
   afterEach(() => vi.restoreAllMocks())
 
+  it('consumes a historical order with a single server field for name and type', () => {
+    const result = validateApiResult(success({
+      orders: [{
+        order_no: 'LS-LEGACY', status: 'delivered', product_name: '京东E卡-10元', product_type: 'normal',
+        order_type: 'normal', requires_buyer_contact: true,
+        product: { id: 7, name: '京东E卡-10元', product_type: 'normal' }
+      }],
+      pagination: pagination()
+    }), OrderListResponseSchema, { endpoint: '/api/shop/orders', schemaName: 'OrderListResponse' })
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.data.orders[0]).toMatchObject({
+      productName: '京东E卡-10元', productType: 'normal', orderType: 'normal', requiresBuyerContact: true,
+      product: { name: '京东E卡-10元', productType: 'normal' }
+    })
+    expect(result.data.orders[0]).not.toHaveProperty('product_name')
+  })
+
   it('normalizes order aliases once and keeps additive server fields', () => {
     const result = validateApiResult(
       success({

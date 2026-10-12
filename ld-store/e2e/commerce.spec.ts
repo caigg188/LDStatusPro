@@ -2,6 +2,32 @@ import { test, expect, signIn } from './fixtures'
 
 const confirm = (page: import('@playwright/test').Page) => page.locator('.confirm-button:visible').last()
 
+test('historical order names render from the single-field API contract', async ({ page }, testInfo) => {
+  await signIn(page)
+  const order = {
+    id: 31, order_no: 'E2E_ORDER_31', product_id: 7,
+    product_name: '京东E卡-10元', product_type: 'normal', order_type: 'normal',
+    product: { id: 7, name: '京东E卡-10元', product_type: 'normal' },
+    quantity: 1, amount: 999, total_amount: 999, status: 'delivered',
+    seller_username: 'history-seller', buyer_username: 'test-user',
+    created_at: '2026-08-14T05:03:15Z', requires_buyer_contact: true,
+    comment_enabled: false, displayStatus: 'delivered', refundStatus: null
+  }
+  await page.route('**/api/shop/orders?*', route => route.fulfill({
+    json: { success: true, data: { orders: [order], pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 } } }
+  }))
+  await page.route(/\/api\/shop\/orders\/E2E_ORDER_31(?:\?|$)/, route => route.fulfill({
+    json: { success: true, data: { order, logs: [] } }
+  }))
+  await page.goto('/user/orders')
+  await expect(page.locator('.orders-list .product-name')).toHaveText('京东E卡-10元')
+  await expect(page.locator('.orders-list .order-seller')).toContainText('history-seller')
+  await page.screenshot({ path: testInfo.outputPath('historical-order.png'), fullPage: true })
+  await page.locator('.orders-list .order-content').click()
+  await expect(page).toHaveURL(/\/order\/E2E_ORDER_31\?role=buyer$/)
+  await expect(page.getByText('京东E卡-10元', { exact: true })).toBeVisible()
+})
+
 test('logged-in users visiting /login are sent home', async ({ page }) => {
   await signIn(page)
   await page.goto('/login')

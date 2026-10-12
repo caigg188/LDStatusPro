@@ -16,8 +16,8 @@ function toCamelKey(key: string): string {
 
 /**
  * Wire payloads still contain a mix of snake_case and camelCase. Normalize that
- * once at the service boundary. When an endpoint deliberately emits both names,
- * preserve its serialized field order so the last compatibility alias wins.
+ * once at the service boundary. An explicit camelCase field wins independently
+ * of serialized field order, including its null/false/zero values.
  */
 export function camelizeWireValue(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(camelizeWireValue)
@@ -27,6 +27,7 @@ export function camelizeWireValue(value: unknown): unknown {
   const output: Record<string, unknown> = {}
   for (const [key, item] of Object.entries(source)) {
     const camelKey = toCamelKey(key)
+    if (camelKey !== key && Object.prototype.hasOwnProperty.call(source, camelKey)) continue
     output[camelKey] = camelizeWireValue(item)
   }
   return output
