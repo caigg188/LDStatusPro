@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import type { ApiResult } from '@/utils/api'
+import { captureAuthSession, isAuthSessionCurrent } from '@/utils/auth'
 
 interface Input { productId: number; quantity: number; couponClaimId: number | null; expectedAmount: number }
 interface Pending extends Input { token: string }
@@ -40,6 +41,9 @@ export function useCheckoutSubmission(options: Options) {
   const confirmed = ref<Created | null>(null)
   const checking = ref(false)
   let active = true
+  const session = captureAuthSession()
+  const isActive = () => active && !session.changed && isAuthSessionCurrent(session)
+  const stopped = (): ApiResult<Created> => ({ success: false, status: 0, error: '', errorCode: 'SESSION_CHANGED', kind: 'abort', aborted: true, abortReason: 'caller' })
 
   function persist(value: Pending | null) {
     pending.value = value
@@ -55,23 +59,26 @@ export function useCheckoutSubmission(options: Options) {
     error: '暂时无法确认订单是否创建，请确认本次订单结果，避免重复兑换。' })
 
   async function lookup() {
-    for (let attempt = 0; attempt < 3 && active && pending.value; attempt++) {
+    for (let attempt = 0; attempt < 3 && isActive() && pending.value; attempt++) {
       try {
         const result = await options.lookup(pending.value.token)
+        if (!isActive()) return stopped()
         if (result.success && result.data.exists && result.data.order) {
           confirmed.value = result.data.order
           return { success: true as const, status: 200, data: result.data.order }
         }
       } catch { /* Read failure does not establish whether the mutation committed. */ }
-      if (attempt < 2 && active) await (options.wait?.() ?? new Promise(resolve => setTimeout(resolve, 700)))
+      if (attempt < 2 && isActive()) await (options.wait?.() ?? new Promise(resolve => setTimeout(resolve, 700)))
     }
-    return unknown()
+    return isActive() ? unknown() : stopped()
   }
 
   async function send(): Promise<ApiResult<Created>> {
+    if (!isActive()) return stopped()
     if (!pending.value) return unknown()
     let result: ApiResult<Created>
     try { result = await options.create({ ...pending.value }) } catch { result = unknown() }
+    if (!isActive() || (!result.success && result.errorCode === 'SESSION_CHANGED')) return stopped()
     if (result.success) { confirmed.value = result.data; return result }
     const uncertain = result.status === 0 || result.status >= 500 || result.kind === 'contract'
       || result.errorCode === 'ORDER_SUBMISSION_CONFLICT'
@@ -80,21 +87,21 @@ export function useCheckoutSubmission(options: Options) {
   }
 
   async function submit(input: Input) {
-    if (checking.value || pending.value || !active) return unknown()
+    if (checking.value || pending.value || !isActive()) return unknown()
     persist({ ...input, token: `ord_${crypto.randomUUID().replaceAll('-', '')}` })
     checking.value = true
     try { return await send() } finally { checking.value = false }
   }
 
   async function recover(retry = false) {
-    if (checking.value || !pending.value || !active) return unknown()
+    if (checking.value || !pending.value || !isActive()) return unknown()
     checking.value = true
     try {
       if (confirmed.value && (['cancelled', 'expired', 'paid', 'delivered', 'completed'].includes(confirmed.value.status || '') || !['pending', 'creating', 'unknown'].includes(confirmed.value.paymentState || ''))) return { success: true as const, status: 200, data: confirmed.value }
       const result = await lookup()
       // Only an explicit retry replays the exact original payload and token.
       // Backend checks the original expected amount before creating anything.
-      return !result.success && retry && active ? await send() : result
+      return !result.success && retry && isActive() ? await send() : result
     } finally { checking.value = false }
   }
 

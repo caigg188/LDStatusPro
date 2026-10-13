@@ -38,7 +38,7 @@
       </section>
       <router-view v-if="showRouterView" v-slot="{ Component, route }">
         <transition name="fade" mode="out-in">
-          <keep-alive :key="userStore.sessionKey" :include="cachedViews" :max="12">
+          <keep-alive :key="route.name === 'AuthCallback' ? 'auth-callback' : userStore.sessionKey" :include="cachedViews" :max="12">
             <component :is="Component" :key="resolveAppViewKey(route)" />
           </keep-alive>
         </transition>
@@ -160,7 +160,7 @@ watch(
       notificationSummaryStore.stopRealtime()
     }
   },
-  { immediate: true }
+  { immediate: true, flush: 'sync' }
 )
 
 onUnmounted(() => {

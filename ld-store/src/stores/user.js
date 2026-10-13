@@ -1,67 +1,21 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { storage } from '@/utils/storage'
-import { isTokenExpired, parseJwtPayload } from '@/utils/auth'
+import { authSession, clearAuthSession, setAuthSession, syncAuthSession, parseJwtPayload } from '@/utils/auth'
 import { buildAvatarCandidates, buildFallbackAvatar } from '@/utils/avatar'
-
-function isPlainObject(value) {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-}
-
-function normalizeAuthUser(userData, tokenPayload) {
-  const userObject = isPlainObject(userData) ? { ...userData } : {}
-  const payload = isPlainObject(tokenPayload) ? tokenPayload : {}
-  const normalized = { ...userObject }
-
-  if (normalized.id === undefined || normalized.id === null || normalized.id === '') {
-    normalized.id = payload.sub ?? payload.id ?? null
-  }
-  if (!normalized.username) {
-    normalized.username = payload.username || ''
-  }
-  if (normalized.name === undefined || normalized.name === null || normalized.name === '') {
-    normalized.name = payload.name || ''
-  }
-  if (!normalized.avatar) {
-    normalized.avatar = payload.avatar || ''
-  }
-  if (!normalized.avatar_url) {
-    normalized.avatar_url = userObject.avatarUrl || payload.avatar_url || payload.avatarUrl || ''
-  }
-  if (!normalized.avatar_template) {
-    normalized.avatar_template = userObject.avatarTemplate || payload.avatar_template || payload.avatarTemplate || ''
-  }
-  if (!normalized.animated_avatar) {
-    normalized.animated_avatar = userObject.animatedAvatar || payload.animated_avatar || payload.animatedAvatar || ''
-  }
-  if (normalized.trust_level === undefined || normalized.trust_level === null || normalized.trust_level === '') {
-    normalized.trust_level = userObject.trustLevel ?? payload.trust_level ?? payload.trustLevel ?? null
-  }
-  if (!normalized.site) {
-    normalized.site = payload.site || ''
-  }
-
-  return normalized.id || normalized.username ? normalized : null
-}
 
 export const useUserStore = defineStore('user', () => {
   // 状态
-  const token = ref(null)
-  const user = ref(null)
+  const token = computed(() => authSession.value.token)
+  const user = computed(() => authSession.value.user)
   const loading = ref(false)
   const ldcInfo = ref(null)
   const sessionReady = ref(false)
 
   // 计算属性
   const tokenPayload = computed(() => parseJwtPayload(token.value))
-  const currentUser = computed(() => normalizeAuthUser(user.value, tokenPayload.value))
-  const isLoggedIn = computed(() => {
-    if (!token.value || !currentUser.value) return false
-    return !isTokenExpired(token.value)
-  })
-  const sessionKey = computed(() => token.value && currentUser.value
-    ? JSON.stringify([currentUser.value.site || 'linux.do', String(currentUser.value.id || currentUser.value.username), currentUser.value.trust_level ?? null])
-    : 'guest')
+  const currentUser = computed(() => user.value)
+  const isLoggedIn = computed(() => !!token.value && !!currentUser.value)
+  const sessionKey = computed(() => JSON.stringify([currentUser.value?.site, currentUser.value?.id, authSession.value.revision]))
   const username = computed(() => currentUser.value?.username || '')
   const avatarSeed = computed(() =>
     currentUser.value?.name || currentUser.value?.username || currentUser.value?.id || 'user'
@@ -88,85 +42,25 @@ export const useUserStore = defineStore('user', () => {
     return Number.isInteger(parsed) ? parsed : null
   })
 
-  function markSessionReady() {
-    sessionReady.value = true
-  }
-
-  // 恢复会话
   function restoreSession() {
-    if (sessionReady.value) {
-      return ensureValidSession()
-    }
-
-    const savedToken = storage.get('token')
-    const savedUser = storage.get('user')
-
-    if (!savedToken) {
-      if (savedUser) logout()
-      markSessionReady()
-      return false
-    }
-
-    if (isTokenExpired(savedToken)) {
-      logout()
-      markSessionReady()
-      return false
-    }
-
-    const hydratedUser = normalizeAuthUser(savedUser, parseJwtPayload(savedToken))
-    if (!hydratedUser) {
-      logout()
-      markSessionReady()
-      return false
-    }
-
-    token.value = savedToken
-    user.value = hydratedUser
-    storage.set('user', hydratedUser)
-    markSessionReady()
-    return true
+    syncAuthSession()
+    sessionReady.value = true
+    return isLoggedIn.value
   }
 
-  // 登录
-  async function login(authToken, userData) {
-    const hydratedUser = normalizeAuthUser(userData, parseJwtPayload(authToken))
-    if (!authToken || !hydratedUser || isTokenExpired(authToken)) {
-      logout()
-      return false
-    }
-
-    token.value = authToken
-    user.value = hydratedUser
-    storage.set('token', authToken)
-    storage.set('user', hydratedUser)
-    markSessionReady()
-    return true
+  function login(authToken, userData) {
+    const success = setAuthSession(authToken, userData)
+    sessionReady.value = true
+    return success
   }
 
-  // 登出
   function logout() {
-    token.value = null
-    user.value = null
+    clearAuthSession()
     ldcInfo.value = null
     sessionReady.value = true
-    storage.remove('token')
-    storage.remove('user')
   }
 
-  // 更新用户信息
-  function updateUser(data) {
-    user.value = normalizeAuthUser({ ...user.value, ...data }, tokenPayload.value)
-    storage.set('user', user.value)
-  }
-
-  function ensureValidSession() {
-    if (!token.value || !currentUser.value) return false
-    if (isTokenExpired(token.value)) {
-      logout()
-      return false
-    }
-    return true
-  }
+  const ensureValidSession = restoreSession
 
   async function fetchLdcInfo() {
     ldcInfo.value = null
@@ -192,7 +86,6 @@ export const useUserStore = defineStore('user', () => {
     restoreSession,
     login,
     logout,
-    updateUser,
     ensureValidSession,
     fetchLdcInfo
   }

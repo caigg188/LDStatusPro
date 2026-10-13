@@ -225,6 +225,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
 import { useInventoryStore } from '@/stores/inventory'
+import { captureAuthSession, isAuthSessionCurrent } from '@/utils/auth'
 import { useToast } from '@/composables/useToast'
 import { useDialog } from '@/composables/useDialog'
 import { validateProductName, validateProductDescription, validatePrice } from '@/utils/security'
@@ -255,6 +256,7 @@ const route = useRoute()
 const router = useRouter()
 const catalogStore = useCatalogStore()
 const inventoryStore = useInventoryStore()
+const editorSession = captureAuthSession()
 const toast = useToast()
 const dialog = useDialog()
 
@@ -363,6 +365,7 @@ async function toggleSharedCdkMode() {
 async function pollUpdateResult(productId, expectedData, expectedType) {
   const result = await reconcileByPolling(
     async () => {
+      if (!isAuthSessionCurrent(editorSession)) return null
       const latestResult = await inventoryStore.fetchProductDetail(productId)
       return latestResult.success ? latestResult.data.product : null
     },
@@ -376,6 +379,7 @@ async function confirmUpdateAfterUncertainResult(productId, expectedData, expect
   updateConfirming.value = true
   try {
     const confirmed = await pollUpdateResult(productId, expectedData, expectedType)
+    if (!isAuthSessionCurrent(editorSession)) return false
     if (confirmed.confirmed) {
       toast.success('物品已更新，已自动确认保存结果')
       router.push('/seller/products')
@@ -581,6 +585,7 @@ async function submitForm() {
   if (!imageValidated.value || lastValidatedUrl.value !== imageUrl) {
     imageValidationToastId = toast.loading('正在验证图片...')
     await validateImageLoad()
+    if (!isAuthSessionCurrent(editorSession)) { if (imageValidationToastId) toast.close(imageValidationToastId); return }
   }
   
   if (imageLoadError.value || !imageValidated.value || lastValidatedUrl.value !== imageUrl) {
@@ -601,9 +606,11 @@ async function submitForm() {
       includeTestMode: initialTestModeEnabled.value
     })
     
+    if (!isAuthSessionCurrent(editorSession)) return
     // 更新物品
     const result = await inventoryStore.updateProduct(product.value.id, updateData, { timeout: EDIT_SAVE_TIMEOUT_MS })
     
+    if (!isAuthSessionCurrent(editorSession)) return
     // 检查返回结果
     if (result?.success === false) {
       if (isUncertainMutationResult(result)) {

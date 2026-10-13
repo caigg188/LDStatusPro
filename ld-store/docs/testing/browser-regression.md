@@ -10,7 +10,8 @@ Touch-target checks round the measured height: a 2.625 device pixel ratio can re
 The seller fulfillment page does not render `.seller-fulfillment-gate`; that banner is for other seller routes.
 
 The suite loads the actual application, router, Pinia stores, components and
-service contracts. It exercises login/redirect/logout, checkout response loss,
+service contracts. It exercises cross-tab session changes, late authentication
+failures, OAuth validation/retry, idle expiry, login/redirect/logout, checkout response loss,
 reload recovery, price changes, blocked payment popups and catalog filters with
 back navigation. It mocks HTTP at the browser boundary, including OAuth and
 payment: it does not verify a real payment provider or production rendering.

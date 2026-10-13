@@ -34,11 +34,11 @@ export async function consumeSseStream(stream, { onEvent, onActivity, signal } =
   try {
     while (!signal?.aborted) {
       const { done, value } = await reader.read()
-      if (done) break
+      if (done || signal?.aborted) break
       onActivity?.()
       buffer += decoder.decode(value, { stream: true })
       let newline = buffer.indexOf('\n')
-      while (newline >= 0) {
+      while (newline >= 0 && !signal?.aborted) {
         let line = buffer.slice(0, newline)
         buffer = buffer.slice(newline + 1)
         if (line.endsWith('\r')) line = line.slice(0, -1)
@@ -46,6 +46,7 @@ export async function consumeSseStream(stream, { onEvent, onActivity, signal } =
         newline = buffer.indexOf('\n')
       }
     }
+    if (signal?.aborted) return
     buffer += decoder.decode()
     if (buffer) processLine(buffer.endsWith('\r') ? buffer.slice(0, -1) : buffer, state, onEvent)
     dispatchEvent(state, onEvent)

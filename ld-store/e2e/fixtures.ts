@@ -1,6 +1,6 @@
 import { test as base, expect, type Page } from '@playwright/test'
 export const user = { id: '11', username: 'browser-buyer', name: '回归买家', site: 'linux.do', trust_level: 2 }
-export const token = `test.${Buffer.from(JSON.stringify({ sub: user.id, ...user, exp: 4102444800 })).toString('base64url')}.fixture`
+export const token = `${Buffer.from(JSON.stringify({ alg: 'HS256' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: user.id, ...user, exp: 4102444800 })).toString('base64url')}.fixture`
 export const product = { id: 7, name: '回归测试物品', description: '仅供隔离浏览器回归使用', price: 10, discount: 1, stock: 20, availableStock: 20,
   productType: 'normal', status: 'approved', categoryId: 1, categoryName: '测试分类', sellerUserId: 22, sellerUsername: 'test-seller', sellerSite: 'linux.do',
   purchaseTrustLevel: 0, canPurchase: true, isFavorited: false, imageUrl: '', purchaseLimit: { mode: 'none', reached: false } }
@@ -44,7 +44,7 @@ export const test = base.extend<{ scenario: Scenario }>({
         callback.hash = `ldsp_oauth=${Buffer.from(JSON.stringify({ t: token, u: user, j: 1 })).toString('base64')}`
         return ok({ auth_url: callback.toString() })
       }
-      if (path === '/api/shop/auth/verify') return ok({})
+      if (path === '/api/shop/auth/verify') return ok({ authenticated: true, user })
       if (path === '/api/shop/system-status') return ok({ mode: 'normal', enabled: false })
       if (path === '/api/shop/announcements/states') return ok({ items: [] })
       if (path === '/api/shop/announcements') return ok({ items: [], timestamp: Date.now() })

@@ -17,7 +17,7 @@ type UnknownRecord = Record<string, unknown>
 const defaultWait = (milliseconds: number) => new Promise<void>(resolve => setTimeout(resolve, milliseconds))
 
 export function isUncertainMutationResult(result: ApiResult<unknown>): boolean {
-  if (result.success) return false
+  if (result.success || result.errorCode === 'SESSION_CHANGED') return false
   if (result.status === 0 || result.kind === 'network' || result.kind === 'abort') return true
   const message = result.error.toLowerCase()
   return ['超时', '网络', 'failed to fetch', 'network', 'abort'].some(value => message.includes(value))

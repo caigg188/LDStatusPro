@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { authSession, captureAuthSession, isAuthSessionCurrent } from '@/utils/auth'
 
 export const TOAST_TYPES = Object.freeze(['success', 'error', 'warning', 'info', 'loading'])
 export const TOAST_DURATIONS = Object.freeze({
@@ -175,7 +176,12 @@ export const useUiStore = defineStore('ui', () => {
     onSecondary: null
   })
 
+  watch(authSession, () => { if (dialog.value.visible) dialog.value.onCancel?.() }, { flush: 'sync' })
+
   function showDialog(options) {
+    const session = captureAuthSession()
+    if (session.changed) return Promise.resolve(false)
+    if (dialog.value.visible) dialog.value.onCancel?.()
     return new Promise((resolve) => {
       dialog.value = {
         visible: true,
@@ -199,15 +205,16 @@ export const useUiStore = defineStore('ui', () => {
         onSecondary: () => {
           dialog.value.visible = false
           resolve(false)
-          if (typeof options.onSecondary === 'function') {
+          if (isAuthSessionCurrent(session) && typeof options.onSecondary === 'function') {
             options.onSecondary()
           }
         }
       }
-    })
+    }).then(result => result && isAuthSessionCurrent(session))
   }
 
   function hideDialog() {
+    dialog.value.onCancel?.()
     dialog.value.visible = false
   }
 

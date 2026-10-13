@@ -1,6 +1,5 @@
-import { storage } from './storage'
 import { getMaintenanceRequestBlock } from '@/config/maintenance'
-import { emitAuthExpired, isAuthErrorCode, isTokenExpired } from './auth'
+import { captureAuthSession, isAuthSessionCurrent, emitAuthExpired, isAuthErrorCode } from './auth'
 import { getDiscoveryRequestHeaders } from './discovery'
 
 export type JsonPrimitive = string | number | boolean | null
@@ -41,6 +40,7 @@ export interface ApiRequestOptions {
    * responses, while `none` never attaches the stored storefront token.
    */
   auth?: ApiAuthMode
+  responseType?: 'blob'
 }
 
 export interface ApiReadOptions extends Omit<ApiRequestOptions, 'method' | 'body'> {}
@@ -80,7 +80,6 @@ const ERROR_MESSAGES: Record<number, string> = {
 
 const NETWORK_ERROR_MESSAGE = '网络连接异常，请检查网络后重试'
 const UNKNOWN_ERROR_MESSAGE = '请求失败，请稍后重试'
-const AUTH_EXPIRED_MESSAGE = ERROR_MESSAGES[401]
 const AUTH_REQUIRED_MESSAGE = '请先登录后再继续'
 
 function normalizeMessage(value: unknown): string {
@@ -297,6 +296,10 @@ function failureResponse(
   }
 }
 
+function sessionChangedResponse(): ApiFailure {
+  return { ...abortedResponse('caller'), errorCode: 'SESSION_CHANGED' }
+}
+
 /**
  * 发起 HTTP 请求
  */
@@ -313,16 +316,12 @@ async function request<T = unknown>(url: string, options: ApiRequestOptions = {}
   const fullUrl = url.startsWith('http') ? url : `${base}${url}`
 
   const authMode = options.auth || 'required'
-  const token = authMode === 'none' ? null : storage.get('token')
-
-  // 私有接口在客户端会话边界内失败，避免匿名请求进入后端并污染安全事件。
+  const session = authMode === 'none' ? null : captureAuthSession()
+  const token = session?.token
+  if (session?.changed) return sessionChangedResponse()
+  // 私有接口在客户端会话边界内失败，避免匿名请求进入后端。
   if (authMode === 'required' && !token) {
     return failureResponse('http', 401, AUTH_REQUIRED_MESSAGE, { code: 'AUTH_REQUIRED' })
-  }
-
-  if (token && isTokenExpired(token)) {
-    emitAuthExpired({ source: 'request', url, method, reason: 'local_token_expired' })
-    return failureResponse('http', 401, AUTH_EXPIRED_MESSAGE)
   }
 
   const jsonBody = isJsonBody(options.body)
@@ -349,13 +348,21 @@ async function request<T = unknown>(url: string, options: ApiRequestOptions = {}
       credentials: 'include'
     })
 
+    if (session && !isAuthSessionCurrent(session)) return sessionChangedResponse()
+    if (response.ok && options.responseType === 'blob' && !response.headers.get('content-type')?.includes('application/json')) {
+      const blob = await response.blob()
+      if (session && !isAuthSessionCurrent(session)) return sessionChangedResponse()
+      return { success: true, status: response.status, data: { blob, disposition: response.headers.get('content-disposition') || '' } as T }
+    }
     // 解析响应
     const data = await parseResponseBody(response)
+
+    if (session && !isAuthSessionCurrent(session)) return sessionChangedResponse()
 
     // 检查响应状态
     if (!response.ok) {
       if (token && hasAuthFailure(response.status, data)) {
-        emitAuthExpired({ source: 'request', url, method, reason: 'server_unauthorized', status: response.status })
+        emitAuthExpired({ source: 'request', url, method, reason: 'server_unauthorized', status: response.status }, session)
       }
       return failureResponse('http', response.status, normalizeServerErrorMessage(response.status, data), data)
     }
@@ -363,13 +370,15 @@ async function request<T = unknown>(url: string, options: ApiRequestOptions = {}
     if (isRecord(data) && data.success === false) {
       const payloadStatus = readPayloadStatus(data, response.status)
       if (token && hasAuthFailure(payloadStatus, data)) {
-        emitAuthExpired({ source: 'request', url, method, reason: 'payload_auth_error', status: payloadStatus })
+        emitAuthExpired({ source: 'request', url, method, reason: 'payload_auth_error', status: payloadStatus }, session)
       }
       return failureResponse('http', payloadStatus, normalizeServerErrorMessage(payloadStatus, data), data)
     }
 
+    if (options.responseType === 'blob') return failureResponse('contract', response.status, '导出文件响应无效，请重试')
     return normalizeResponsePayload<T>(data, response.status)
   } catch (error) {
+    if (session && !isAuthSessionCurrent(session)) return sessionChangedResponse()
     if (abortContext.signal.aborted) {
       return abortedResponse(abortContext.getAbortReason() || 'caller')
     }
@@ -388,11 +397,10 @@ async function openEventStream(url: string, { signal, headers: extraHeaders }: E
   if (maintenanceBlock) return maintenanceBlockedResponse(maintenanceBlock.message)
 
   const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`
-  const token = storage.get('token')
-  if (!token || isTokenExpired(token)) {
-    if (token) emitAuthExpired({ source: 'event-stream', url, method: 'GET', reason: 'local_token_expired' })
-    return failureResponse('http', 401, AUTH_EXPIRED_MESSAGE)
-  }
+  const session = captureAuthSession()
+  const token = session.token
+  if (session.changed) return sessionChangedResponse()
+  if (!token) return failureResponse('http', 401, AUTH_REQUIRED_MESSAGE, { code: 'AUTH_REQUIRED' })
 
   try {
     const headers = new Headers(extraHeaders)
@@ -406,16 +414,22 @@ async function openEventStream(url: string, { signal, headers: extraHeaders }: E
       signal
     })
 
+    if (!isAuthSessionCurrent(session)) {
+      void response.body?.cancel().catch(() => {})
+      return sessionChangedResponse()
+    }
     if (!response.ok) {
       const data = await parseResponseBody(response)
+      if (!isAuthSessionCurrent(session)) return sessionChangedResponse()
       if (hasAuthFailure(response.status, data)) {
-        emitAuthExpired({ source: 'event-stream', url, method: 'GET', reason: 'server_unauthorized', status: response.status })
+        emitAuthExpired({ source: 'event-stream', url, method: 'GET', reason: 'server_unauthorized', status: response.status }, session)
       }
       return failureResponse('http', response.status, normalizeServerErrorMessage(response.status, data), data)
     }
     if (!response.body) return failureResponse('network', 0, '浏览器不支持消息实时连接')
     return { success: true, status: response.status, response }
   } catch (error) {
+    if (!isAuthSessionCurrent(session)) return sessionChangedResponse()
     if (signal?.aborted || (error instanceof DOMException && error.name === 'AbortError')) {
       return abortedResponse('caller')
     }
@@ -471,6 +485,10 @@ async function upload<T = unknown>(url: string, formData: FormData, options: Api
   })
 }
 
+function download(url: string, options: ApiReadOptions = {}): Promise<ApiResult<{ blob: Blob; disposition: string }>> {
+  return request(url, { ...options, method: 'GET', responseType: 'blob' })
+}
+
 /**
  * 并发请求
  */
@@ -486,6 +504,7 @@ export const api = {
   delete: del,
   upload,
   openEventStream,
+  download,
   all,
   BASE_URL: API_BASE
 }

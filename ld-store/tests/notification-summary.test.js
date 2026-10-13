@@ -287,3 +287,36 @@ describe('通知汇总状态', () => {
     store.stopRealtime()
   })
 })
+
+it('keeps the new stream watchdog when an aborted old stream finishes later', async () => {
+  vi.useFakeTimers()
+  vi.stubGlobal('window', {
+    setTimeout: (...args) => globalThis.setTimeout(...args), clearTimeout: timer => globalThis.clearTimeout(timer),
+    setInterval: (...args) => globalThis.setInterval(...args), clearInterval: timer => globalThis.clearInterval(timer),
+    addEventListener: () => {}, removeEventListener: () => {}
+  })
+  vi.stubGlobal('document', { visibilityState: 'visible', addEventListener: () => {}, removeEventListener: () => {} })
+  vi.stubGlobal('navigator', { onLine: true })
+  setActivePinia(createPinia())
+  api.get.mockResolvedValue({ success: true, data: {} })
+  const pending = []
+  api.openEventStream.mockImplementation(async () => ({ success: true, response: { body: {
+    getReader: () => ({ read: () => new Promise(resolve => pending.push(resolve)), cancel: () => Promise.resolve(), releaseLock: () => {} })
+  } } }))
+  const store = useNotificationSummaryStore()
+  try {
+    store.startRealtime(); await vi.advanceTimersByTimeAsync(0)
+    store.stopRealtime(); store.startRealtime(); await vi.advanceTimersByTimeAsync(0)
+    expect(pending).toHaveLength(2)
+    const timers = vi.getTimerCount()
+    pending[0]({ done: true })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(vi.getTimerCount()).toBe(timers)
+    expect(store.connectionState).toBe('open')
+  } finally {
+    store.stopRealtime()
+    pending[1]?.({ done: true })
+    await vi.advanceTimersByTimeAsync(0)
+    vi.useRealTimers(); vi.unstubAllGlobals()
+  }
+})

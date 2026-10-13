@@ -398,6 +398,8 @@ const productId = computed(() => {
   const parsed = Number.parseInt(route.params.productId, 10)
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 0
 })
+const checkoutSessionKey = userStore.sessionKey
+const isCheckoutActive = () => checkoutActive && userStore.ensureValidSession() && userStore.sessionKey === checkoutSessionKey
 const submission = useCheckoutSubmission({
   owner: JSON.stringify([userStore.user?.site || 'linux.do', String(userStore.user?.id || '')]),
   productId: productId.value,
@@ -566,6 +568,7 @@ async function handleCouponOptionClick() {
   if (quoteLoading.value || submitting.value) return
   if (quoteError.value) {
     const quoteOk = await loadQuote()
+    if (!isCheckoutActive()) return
     if (!quoteOk) return
   }
   couponPickerOpen.value = true
@@ -735,6 +738,7 @@ async function submitOrder() {
 
   try {
     const quoteOk = await loadQuote()
+    if (!isCheckoutActive()) { cleanupPreparedTab(preparedWindow); return }
     if (!quoteOk) {
       cleanupPreparedTab(preparedWindow)
       submissionError.value = quoteError.value || '最终额度与金额校验失败，请刷新后重试。'
@@ -769,7 +773,7 @@ async function submitOrder() {
       productId: productId.value, quantity: normalizedQuantity,
       couponClaimId: selectedCouponClaimId.value, expectedAmount: payableAmount.value,
     })
-    if (!checkoutActive) { cleanupPreparedTab(preparedWindow); return }
+    if (!isCheckoutActive()) { cleanupPreparedTab(preparedWindow); return }
     if (result?.success && result.data?.orderNo) {
       await finishCreatedOrder(result.data, preparedWindow)
       return
@@ -791,7 +795,7 @@ async function submitOrder() {
 }
 
 async function finishCreatedOrder(order, preparedWindow = null) {
-  if (!checkoutActive) { cleanupPreparedTab(preparedWindow); return }
+  if (!isCheckoutActive()) { cleanupPreparedTab(preparedWindow); return }
   try {
     if (order.paymentUrl && !['cancelled', 'expired', 'paid', 'delivered', 'completed'].includes(order.status) && preparedWindow && !preparedWindow.closed) {
       const { popup, isPopup } = openPaymentPopup(order.paymentUrl, preparedWindow)
@@ -809,7 +813,7 @@ async function finishCreatedOrder(order, preparedWindow = null) {
   }
   try {
     await router.replace({ name: 'OrderDetail', params: { id: order.orderNo }, query: { role: 'buyer' } })
-    if (router.currentRoute.value.name === 'OrderDetail') {
+    if (userStore.ensureValidSession() && userStore.sessionKey === checkoutSessionKey && router.currentRoute.value.name === 'OrderDetail') {
       if (['cancelled', 'expired', 'paid', 'delivered', 'completed'].includes(order.status) || !['pending', 'creating', 'unknown'].includes(order.paymentState)) submission.complete()
       checkoutStore.clearCheckout(productId.value)
     }
@@ -820,7 +824,7 @@ async function finishCreatedOrder(order, preparedWindow = null) {
 
 async function recoverSubmission(retry = false) {
   const result = await submission.recover(retry)
-  if (!checkoutActive) return
+  if (!isCheckoutActive()) return
   if (result.success && ['cancelled', 'expired'].includes(result.data.status)) {
     submission.complete()
     toast.info('原订单已取消，请重新确认后提交')

@@ -1,11 +1,11 @@
-import { createApp } from 'vue'
+import { createApp, watch } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import { useUserStore } from '@/stores/user'
 import { useUiStore } from '@/stores/ui'
 import { initTheme } from '@/composables/useTheme'
-import { AUTH_EXPIRED_EVENT } from '@/utils/auth'
+import { AUTH_EXPIRED_EVENT, authSession, startAuthSessionSync, stopAuthSessionSync } from '@/utils/auth'
 import { captureStorefrontError, initializeStorefrontTelemetry } from '@/observability/faro'
 import { initializeMxaAnalytics } from '@/observability/mxa'
 import './styles/tokens.css'
@@ -131,29 +131,25 @@ if (typeof window !== 'undefined' && !window.__LD_STORE_CHUNK_ERROR_HANDLER__) {
 // 全局认证失效处理：清理登录态 + 提示 + 跳转登录
 if (typeof window !== 'undefined' && !window.__LD_STORE_AUTH_EXPIRED_HANDLER__) {
   window.__LD_STORE_AUTH_EXPIRED_HANDLER__ = true
-  window.addEventListener(AUTH_EXPIRED_EVENT, () => {
-    const userStore = useUserStore(pinia)
-    const uiStore = useUiStore(pinia)
-    const hadSession = !!userStore.token || !!userStore.user
-
-    userStore.logout()
-    if (hadSession) {
-      uiStore.showToast('登录已过期，请重新登录', 'warning', 3200)
-    }
-
+  window.addEventListener(AUTH_EXPIRED_EVENT, event => {
+    // 失效事件已由会话管理器清理对应凭据；不能再次清理后来登录的会话。
+    if (event.detail?.revision !== authSession.value.revision || authSession.value.token) return
+    globalUiStore.showToast('登录已过期，请重新登录', 'warning', 3200)
     const currentRoute = router.currentRoute.value
     if (currentRoute?.name === 'Login' || currentRoute?.name === 'AuthCallback') return
-
-    const redirect = currentRoute?.fullPath && currentRoute.fullPath !== '/login'
-      ? currentRoute.fullPath
-      : '/'
-
-    router.replace({
-      name: 'Login',
-      query: { redirect, reason: 'expired' }
-    }).catch(() => {})
+    router.replace({ name: 'Login', query: { redirect: currentRoute?.fullPath || '/', reason: 'expired' } }).catch(() => {})
   })
 }
+
+// storage 事件负责跨标签页同步，focus/visibility 负责休眠恢复时校准。
+watch(authSession, session => {
+  const currentRoute = router.currentRoute.value
+  if (!session.token && session.reason === 'storage' && currentRoute.matched.some(record => record.meta.requiresAuth)) {
+    router.replace({ name: 'Login', query: { redirect: currentRoute.fullPath } }).catch(() => {})
+  }
+}, { flush: 'sync' })
+startAuthSessionSync()
+if (import.meta.hot) import.meta.hot.dispose(stopAuthSessionSync)
 
 // 全局错误处理
 app.config.errorHandler = (err, vm, info) => {

@@ -9,6 +9,7 @@
       <div v-else-if="error" class="callback-error">
         <span class="error-icon">❌</span>
         <p class="error-text">{{ error }}</p>
+        <button v-if="retryable" type="button" class="retry-btn" @click="completeLogin">重试校验</button>
         <router-link to="/login" class="retry-btn">
           重新登录
         </router-link>
@@ -18,12 +19,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import { sanitizePostLoginRedirect } from '@/utils/navigation'
 import { api } from '@/utils/api'
+import { captureAuthSession, getAuthUser, isAuthSessionCurrent } from '@/utils/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -32,6 +34,11 @@ const toast = useToast()
 
 const loading = ref(true)
 const error = ref('')
+const retryable = ref(false)
+const baseline = captureAuthSession()
+let oauthData
+let active = true
+let controller
 
 /**
  * 解析 URL hash 中的 OAuth 数据
@@ -87,77 +94,70 @@ function parseOAuthData() {
   }
 }
 
-async function verifyAuthSync(token) {
-  if (!token) return false
-
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 8000)
-  const base = api.BASE_URL || ''
-
+async function completeLogin() {
+  if (!active || controller) return
+  loading.value = true
+  error.value = ''
+  retryable.value = false
+  if (!oauthData || !getAuthUser(oauthData.token, oauthData.user)) {
+    error.value = '登录信息无效或已过期，请重新登录'
+    loading.value = false
+    return
+  }
+  controller = new AbortController()
+  const timeoutId = setTimeout(() => controller?.abort(), 8000)
   try {
-    const resp = await fetch(`${base}/api/shop/auth/verify`, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      credentials: 'include',
-      signal: controller.signal
+    // 候选凭据只用于服务端校验，成功之前不写入当前会话。
+    const response = await fetch(`${api.BASE_URL}/api/shop/auth/verify`, {
+      headers: { Accept: 'application/json', Authorization: `Bearer ${oauthData.token}` },
+      credentials: 'include', signal: controller.signal
     })
-    return resp.ok
+    const payload = await response.json().catch(() => null)
+    if (!active) return
+    if (!isAuthSessionCurrent(baseline)) {
+      error.value = '登录状态已在其他页面变更，请重新进入'
+      return
+    }
+    if (!response.ok || payload?.success !== true || payload.data?.authenticated !== true
+      || !payload.data?.user || !getAuthUser(oauthData.token, payload.data.user)) {
+      retryable.value = response.status >= 500
+      error.value = retryable.value ? '登录校验服务暂时不可用，请重试' : '登录授权校验失败，请重新登录'
+      return
+    }
+    const loginOk = userStore.login(oauthData.token, oauthData.user)
+    if (!loginOk) {
+      error.value = '登录信息无法保存，请检查浏览器存储后重新登录'
+      return
+    }
+    toast.success('登录成功')
+    const redirect = sanitizePostLoginRedirect(
+      Array.isArray(route.query.redirect) ? route.query.redirect[0] : route.query.redirect, '/'
+    )
+    try { await router.replace(redirect) } catch { await router.replace('/') }
   } catch {
-    return false
+    if (active) {
+      error.value = '登录校验暂未完成，请检查网络后重试'
+      retryable.value = true
+    }
   } finally {
     clearTimeout(timeoutId)
+    controller = null
+    loading.value = false
   }
 }
 
-onMounted(async () => {
-  try {
-    // 优先从 URL hash 解析登录数据（后端回调传递）
-    const oauthData = parseOAuthData()
-    
-    if (oauthData) {
-      // 使用从 hash 获取的登录数据
-      const loginOk = await userStore.login(oauthData.token, oauthData.user)
-      if (!loginOk) {
-        error.value = '登录信息已过期，请重新登录'
-        loading.value = false
-        return
-      }
-      
-      toast.success('登录成功')
-      
-      // 清除 hash 以免影响后续导航
-      // 触发一次鉴权请求，确保 ld-store-backend 侧完成 users 表同步
-      const verified = await verifyAuthSync(oauthData.token)
-      if (!verified) {
-        console.warn('[AuthCallback] user sync verify failed')
-      }
-
-      history.replaceState(null, '', window.location.pathname + window.location.search)
-      
-      // 跳转到之前的页面
-      const redirect = sanitizePostLoginRedirect(
-        Array.isArray(route.query.redirect) ? route.query.redirect[0] : route.query.redirect,
-        '/'
-      )
-      try {
-        await router.replace(redirect)
-      } catch (navigationError) {
-        console.warn('[AuthCallback] redirect failed, fallback to home:', navigationError)
-        await router.replace('/')
-      }
-    } else {
-      // 没有找到 OAuth 数据
-      error.value = '登录授权失败，请重试'
-      loading.value = false
-    }
-  } catch (e) {
-    console.error('[AuthCallback] Error:', e)
-    error.value = e.message || '登录失败，请重试'
-    loading.value = false
-  }
+onMounted(() => {
+  oauthData = parseOAuthData()
+  // 解析后立即从历史记录移除凭据，包含旧版 query 回调。
+  const cleanUrl = new URL(window.location.href)
+  cleanUrl.searchParams.delete('ldsp_oauth')
+  cleanUrl.hash = ''
+  history.replaceState(history.state, '', cleanUrl.pathname + cleanUrl.search)
+  void completeLogin()
+})
+onBeforeUnmount(() => {
+  active = false
+  controller?.abort()
 })
 </script>
 

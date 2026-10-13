@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, expect, it, vi } from 'vitest'
+import { authToken } from './helpers/auth'
 import { createPinia, setActivePinia } from 'pinia'
 import { useUserStore } from '../src/stores/user'
 import { useProductStore } from '../src/stores/product'
@@ -16,7 +17,10 @@ vi.mock('@/services/shop/catalogService', async original => ({
   addFavoriteRequest: mocks.favorite,
 }))
 const success = (data: unknown) => ({ success: true, status: 200, data })
-async function login(id: string) { await useUserStore().login(`synthetic-${id}`, { id, site: 'linux.do' }) }
+async function login(account: string) {
+  const id = account === 'A' ? '11' : '22'
+  await useUserStore().login(authToken(id), { id, site: 'linux.do' })
+}
 beforeEach(() => { setActivePinia(createPinia()); localStorage.clear(); sessionStorage.clear(); vi.resetAllMocks() })
 
 it('clears viewer-specific detail data on logout and fetches a fresh guest result', async () => {

@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { fetchNotificationSummaryRequest, openNotificationStreamRequest } from '@/services/shop/messageService'
+import { authSession } from '@/utils/auth'
 import { consumeSseStream } from '@/utils/sse'
 import { createNotificationTabCoordinator } from '@/utils/notificationTabCoordinator'
 
@@ -281,9 +282,9 @@ export const useNotificationSummaryStore = defineStore('notification-summary', (
     }, CONNECT_TIMEOUT_MS)
 
     const result = await openNotificationStreamRequest(controller.signal)
+    if (generation !== streamGeneration) return
     if (connectTimer) window.clearTimeout(connectTimer)
     connectTimer = null
-    if (generation !== streamGeneration) return
     if (controller.signal.aborted) {
       streamController = null
       if (started && isConnectionOwner && document.visibilityState !== 'hidden' && navigator.onLine) {
@@ -317,8 +318,8 @@ export const useNotificationSummaryStore = defineStore('notification-summary', (
     } catch {
       // 连接中断统一在 finally 中进入低频兜底与重连。
     } finally {
-      clearStreamTimers()
       if (generation === streamGeneration) {
+        clearStreamTimers()
         streamController = null
         if (started && isConnectionOwner && document.visibilityState !== 'hidden' && navigator.onLine) {
           startFallbackPolling()
@@ -375,7 +376,10 @@ export const useNotificationSummaryStore = defineStore('notification-summary', (
   }
 
   function startTabCoordinator() {
+    const identity = JSON.stringify([authSession.value.user?.site, authSession.value.user?.id])
     tabCoordinator = createNotificationTabCoordinator({
+      channelName: `ld-store-notification-summary-v2:${identity}`,
+      leaseKey: `ld-store-notification-leader-v2:${identity}`,
       onLeadershipChange: handleLeadershipChange,
       onMessage: handleCoordinatorMessage
     })

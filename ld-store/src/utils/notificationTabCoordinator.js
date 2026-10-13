@@ -150,6 +150,7 @@ export function createNotificationTabCoordinator({
   }
 
   function handleChannelMessage(event) {
+    if (!started) return
     const message = event?.data
     if (!message || message.sourceTabId === tabId) return
     if (message.type === 'coordinator.released' && eligible) tryAcquireLeadership()

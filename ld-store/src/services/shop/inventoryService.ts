@@ -1,6 +1,4 @@
 import { api, type ApiRequestOptions, type ApiResult, type JsonValue } from '@/utils/api'
-import { storage } from '@/utils/storage'
-import { emitAuthExpired, isTokenExpired } from '@/utils/auth'
 import {
   CdkListResponseSchema,
   CommerceActionResponseSchema,
@@ -12,7 +10,7 @@ import {
   type ProductCreatePayload,
   type ProductUpdatePayload
 } from '@/contracts/commerce'
-import { serviceFailure, validateServiceResult, withServiceFailure } from '@/services/serviceContract'
+import { validateServiceResult, withServiceFailure } from '@/services/serviceContract'
 
 interface InventoryListOptions {
   status?: string
@@ -188,46 +186,8 @@ export async function clearCdkRequest(productId: string | number) {
 }
 
 export async function exportCdkRequest(productId: string | number, status = 'all'): Promise<ApiResult<CdkExportPayload>> {
-  try {
-    const token = storage.get('token') || ''
-    if (!token) {
-      return { success: false, status: 401, error: '请先登录后再继续', errorCode: 'AUTH_REQUIRED', aborted: false, kind: 'http' }
-    }
-    if (isTokenExpired(token)) {
-      emitAuthExpired({ source: 'download', url: '/api/shop/products/:id/cdk/export', method: 'GET', reason: 'local_token_expired' })
-      return { success: false, status: 401, error: '登录已过期，请重新登录', aborted: false, kind: 'http' }
-    }
-    const response = await fetch(
-      `${api.BASE_URL}/api/shop/products/${productId}/cdk/export?status=${encodeURIComponent(status)}&format=txt`,
-      {
-        method: 'GET',
-        credentials: 'include',
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      }
-    )
-    if (!response.ok) {
-      const contentType = response.headers.get('content-type') || ''
-      let details: unknown = null
-      let message = '导出 CDK 失败'
-      if (contentType.includes('application/json')) {
-        details = await response.json().catch(() => null)
-        if (details && typeof details === 'object') {
-          const payload = details as Record<string, unknown>
-          const nestedError = payload.error && typeof payload.error === 'object'
-            ? payload.error as Record<string, unknown>
-            : null
-          message = String(nestedError?.message || payload.error || payload.message || message)
-        }
-      } else {
-        details = await response.text().catch(() => '')
-        if (details) message = String(details)
-      }
-      return { success: false, status: response.status, error: message, details, aborted: false, kind: 'http' }
-    }
-    const disposition = response.headers.get('content-disposition') || ''
-    const filename = disposition.match(/filename="([^"]+)"/)?.[1] || `${productId}-cdk.txt`
-    return { success: true, status: response.status, data: { blob: await response.blob(), filename } }
-  } catch (error) {
-    return serviceFailure(error, '导出 CDK 失败')
-  }
+  const result = await api.download(`/api/shop/products/${productId}/cdk/export?status=${encodeURIComponent(status)}&format=txt`)
+  if (!result.success) return result
+  const filename = result.data.disposition.match(/filename="([^"]+)"/)?.[1] || `${productId}-cdk.txt`
+  return { ...result, data: { blob: result.data.blob, filename } }
 }

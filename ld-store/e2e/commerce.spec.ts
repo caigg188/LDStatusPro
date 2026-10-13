@@ -88,6 +88,7 @@ test('lost response recovers the original order and never submits twice', async 
   await confirm(page).click()
   await expect(page).toHaveURL(/\/order\/E2E_ORDER_31/)
   expect(scenario.submissions).toHaveLength(1)
+  expect(await page.evaluate(() => Object.keys(sessionStorage).filter(key => key.startsWith('ld-store-order-submission:')))).toEqual([])
   expect(scenario.submissions[0].submissionToken).toMatch(/^ord_/)
   await expect(page.getByText('E2E_ORDER_31', { exact: true }).first()).toBeVisible()
 })

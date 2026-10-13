@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, normalizeResponsePayload } from './api'
+import { authToken } from '../../tests/helpers/auth'
+import { clearAuthSession, setAuthSession } from './auth'
 import { storage } from './storage'
 
 function mockResponse(body, { status = 200, contentType = 'application/json' } = {}) {
@@ -26,6 +28,7 @@ function abortableFetch(_url, options) {
 describe('API request lifecycle', () => {
   beforeEach(() => {
     storage.clear()
+    clearAuthSession()
   })
 
   afterEach(() => {
@@ -68,7 +71,7 @@ describe('API request lifecycle', () => {
   })
 
   it('can force a public request to omit a stored token', async () => {
-    storage.set('token', 'synthetic-session')
+    setAuthSession(authToken())
     const fetchMock = vi.fn().mockResolvedValue(mockResponse({ success: true }))
     vi.stubGlobal('fetch', fetchMock)
 
@@ -103,7 +106,7 @@ describe('API request lifecycle', () => {
   })
 
   it('attaches the storefront token to authenticated image host requests', async () => {
-    storage.set('token', 'synthetic-session')
+    setAuthSession(authToken())
     const fetchMock = vi.fn().mockResolvedValue(mockResponse({ success: true }))
     vi.stubGlobal('fetch', fetchMock)
 
@@ -113,7 +116,7 @@ describe('API request lifecycle', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(3)
     for (const [, options] of fetchMock.mock.calls) {
-      expect(options.headers.get('Authorization')).toBe('Bearer synthetic-session')
+      expect(options.headers.get('Authorization')).toBe(`Bearer ${storage.get('token')}`)
     }
   })
 

@@ -408,6 +408,7 @@ import { onBeforeRouteLeave, useRouter, useRoute } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
 import { useInventoryStore } from '@/stores/inventory'
 import { useUserStore } from '@/stores/user'
+import { captureAuthSession, isAuthSessionCurrent } from '@/utils/auth'
 import { useToast } from '@/composables/useToast'
 import { useDialog } from '@/composables/useDialog'
 import { validateProductName, validateProductDescription, validatePrice } from '@/utils/security'
@@ -448,6 +449,7 @@ const route = useRoute()
 const catalogStore = useCatalogStore()
 const inventoryStore = useInventoryStore()
 const userStore = useUserStore()
+const editorSession = captureAuthSession()
 const toast = useToast()
 const dialog = useDialog()
 const fulfillmentReminder = reactive(useFulfillmentReminder(() => `${userStore.currentUser?.site || 'linux.do'}:${userStore.currentUser?.id || ''}`))
@@ -1000,6 +1002,7 @@ function clearSubmissionTokenState() {
 async function pollProductSubmissionResult(submissionToken) {
   const result = await reconcileByPolling(
     async () => {
+      if (!isAuthSessionCurrent(editorSession)) return null
       const statusResult = await inventoryStore.getProductSubmissionStatus(submissionToken)
       return statusResult?.success ? statusResult.data?.product || null : null
     },
@@ -1013,6 +1016,7 @@ async function confirmSubmitAfterUncertainResult(submissionToken) {
   submitConfirming.value = true
   try {
     const confirmed = await pollProductSubmissionResult(submissionToken)
+    if (!isAuthSessionCurrent(editorSession)) return false
     if (confirmed.confirmed) {
       clearSubmissionTokenState()
       clearPersistedProductDraft()
@@ -1120,6 +1124,7 @@ async function submitForm() {
   if (!imageValidated.value || lastValidatedUrl.value !== imageUrl) {
     imageValidationToastId = toast.loading('正在验证图片...')
     await validateImageLoad()
+    if (!isAuthSessionCurrent(editorSession)) { if (imageValidationToastId) toast.close(imageValidationToastId); return }
   }
   
   if (imageLoadError.value || !imageValidated.value || lastValidatedUrl.value !== imageUrl) {
@@ -1143,7 +1148,7 @@ async function submitForm() {
   if (form.value.productType === 'normal') {
     const snapshot = JSON.stringify(form.value)
     const confirmationCount = fulfillmentReminder.confirmationCount
-    if (!await fulfillmentReminder.request({ refresh: true })) return
+    if (!await fulfillmentReminder.request({ refresh: true }) || !isAuthSessionCurrent(editorSession)) return
     // A dialog confirms the rules only. Publishing always needs a separate click.
     if (confirmationCount !== fulfillmentReminder.confirmationCount || snapshot !== JSON.stringify(form.value)) return
   }
@@ -1156,9 +1161,11 @@ async function submitForm() {
     const submissionToken = resolveSubmissionToken(productData)
     productData.submissionToken = submissionToken
     
+    if (!isAuthSessionCurrent(editorSession)) return
     // 创建物品
     const result = await inventoryStore.createProduct(productData, { timeout: PRODUCT_SUBMIT_TIMEOUT_MS })
     
+    if (!isAuthSessionCurrent(editorSession)) return
     if (!result.success) {
       if (isUncertainMutationResult(result)) {
         await confirmSubmitAfterUncertainResult(submissionToken)

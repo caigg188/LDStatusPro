@@ -19,6 +19,8 @@ export interface ProductDraftOptions {
 }
 
 export function useProductDraft(options: ProductDraftOptions) {
+  // 页面卸载时仍可能自动保存；草稿始终属于打开编辑器的账号。
+  const owner = { ...options.getUser() }
   const draftReady = ref(false)
   const draftDirty = ref(false)
   const draftState = ref<'idle' | 'saved' | 'error'>('idle')
@@ -54,7 +56,7 @@ export function useProductDraft(options: ProductDraftOptions) {
   function persistProductDraft(): boolean {
     clearDraftSaveTimer()
     if (!draftReady.value || !draftDirty.value || !options.isActive()) return true
-    const result = writeProductPublishDraft(options.getUser(), options.form.value)
+    const result = writeProductPublishDraft(owner, options.form.value)
     if (!result.success || !result.draft) {
       draftState.value = 'error'
       draftError.value = '自动保存失败，离开页面可能丢失内容'
@@ -82,7 +84,7 @@ export function useProductDraft(options: ProductDraftOptions) {
   }
 
   function restoreProductDraft(defaults: () => ProductEditorFormState) {
-    const result = readProductPublishDraft(options.getUser())
+    const result = readProductPublishDraft(owner)
     if (result.error) {
       draftState.value = 'error'
       draftError.value = '草稿读取失败，本次填写仍会继续尝试自动保存'
@@ -107,7 +109,7 @@ export function useProductDraft(options: ProductDraftOptions) {
     clearDraftSaveTimer()
     draftReady.value = false
     draftDirty.value = false
-    const cleared = clearProductPublishDraft(options.getUser())
+    const cleared = clearProductPublishDraft(owner)
     if (!cleared) {
       draftReady.value = true
       return false
