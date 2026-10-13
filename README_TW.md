@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://mypbres.s3.bitiful.net/favicon.svg" width="120" height="120" alt="LDStatus Pro Logo" />
+  <img src="./design/assets/brand/apple-touch-icon.svg" width="120" height="120" alt="LDSP Logo" />
   
   # 🚀 LDStatus Pro
 
