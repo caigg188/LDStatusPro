@@ -80,7 +80,7 @@
         </div>
 
         <!-- 热门搜索 -->
-        <div v-if="!keyword" class="hot-section">
+        <div v-if="!keyword && hotKeywords.length" class="hot-section">
           <h3 class="section-title">热门搜索</h3>
           <div class="hot-list">
             <button
@@ -170,7 +170,7 @@
           <template #action>
             <div class="empty-actions">
               <button v-if="hasActiveFilters" class="feedback-btn" @click="clearAllFilters">清空筛选</button>
-              <button class="feedback-btn secondary" @click="fillSuggestedKeyword">试试热门搜索</button>
+              <button v-if="hotKeywords.length" class="feedback-btn secondary" @click="fillSuggestedKeyword">试试热门搜索</button>
             </div>
           </template>
         </EmptyState>
@@ -209,7 +209,7 @@ import { useRoute } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
 import { useToast } from '@/composables/useToast'
 import { storage } from '@/utils/storage'
-import { DEFAULT_SEARCH_KEYWORDS, loadSearchHistory, saveSearchHistory, clearSearchHistory as clearStoredSearchHistory } from '@/utils/search'
+import { loadSearchHistory, saveSearchHistory, clearSearchHistory as clearStoredSearchHistory } from '@/utils/search'
 import { fetchSearchSuggestionsRequest, recordSearchOutcome } from '@/services/shop/discoveryService'
 import ProductCard from '@/components/product/ProductCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -247,7 +247,7 @@ const sortTabs = [
   { value: 'sales', label: '销量' }
 ]
 
-const hotKeywords = ref([...DEFAULT_SEARCH_KEYWORDS])
+const hotKeywords = ref([])
 const suggestions = ref([])
 const suggestionsOpen = ref(false)
 const activeSuggestionIndex = ref(-1)
@@ -406,6 +406,7 @@ async function doSearch(options = {}) {
       recordSearchOutcome({
         query: trimmedKeyword,
         products: nextResults,
+        searchToken: result.searchToken,
         zeroResult: nextResults.length === 0,
         reformulation
       })
@@ -445,6 +446,7 @@ async function fetchSearchResults(searchKeyword, requestPage = 1) {
 
   return {
     products: result.data.products || [],
+    searchToken: result.data.rankingContext?.searchToken,
     total: pagination.total || 0,
     hasMore: typeof pagination.hasMore === 'boolean'
       ? pagination.hasMore
@@ -480,7 +482,7 @@ async function loadSuggestions(value = '') {
     const next = Array.isArray(result?.data?.suggestions) ? result.data.suggestions : []
     if (!query) {
       const trending = next.map(item => item.label || item.value).filter(Boolean)
-      if (trending.length > 0) hotKeywords.value = trending
+      hotKeywords.value = trending
       return
     }
     suggestions.value = next

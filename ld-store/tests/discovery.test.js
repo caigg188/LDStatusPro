@@ -4,7 +4,11 @@ import {
   clearDiscoveryTokenForProduct,
   getDiscoveryTokenForProduct,
   rememberDiscoveryToken,
+  recordSearchOutcome,
 } from '../src/services/shop/discoveryService'
+
+const { post } = vi.hoisted(() => ({ post: vi.fn() }))
+vi.mock('../src/utils/api', () => ({ api: { post } }))
 
 function createMemoryStorage() {
   const values = new Map()
@@ -17,6 +21,8 @@ function createMemoryStorage() {
 
 describe('商城发现会话与归因', () => {
   beforeEach(() => {
+    vi.useFakeTimers()
+    post.mockResolvedValue({ success: true, data: { accepted: 3, rejected: 0 } })
     vi.stubGlobal('window', {
       sessionStorage: createMemoryStorage(),
       setTimeout: globalThis.setTimeout,
@@ -27,7 +33,17 @@ describe('商城发现会话与归因', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
+  })
+
+  it('零结果提交和改写携带同一个响应签名上下文', async () => {
+    recordSearchOutcome({ query: 'empty', searchToken: 's1.payload.signature', zeroResult: true, reformulation: true })
+    await vi.advanceTimersByTimeAsync(600)
+    const events = post.mock.calls.at(-1)[1].events
+    expect(events.map(event => event.type)).toEqual(['search_reformulation', 'search_submit', 'search_zero_result'])
+    expect(events.every(event => event.searchToken === 's1.payload.signature')).toBe(true)
+    expect(events.every(event => !event.discoveryToken)).toBe(true)
   })
 
   it('同一标签页复用匿名 UUID，并且只给商城请求添加发现头', () => {

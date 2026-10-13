@@ -76,6 +76,7 @@ export const RankingContextSchema = looseObject({
   fallback: boolean(),
   requestId: optional(string()),
   slateId: optional(string()),
+  searchToken: optional(string()),
   releaseMode: optional(string()),
   statsComputedAt: optional(nullable(union([number(), string()])))
 })

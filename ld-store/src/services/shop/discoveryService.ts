@@ -20,6 +20,7 @@ interface DiscoveryProduct {
 
 interface DiscoveryEventOptions {
   discoveryToken?: string
+  searchToken?: string
   query?: string
 }
 
@@ -138,6 +139,7 @@ export function queueDiscoveryEvent(type: DiscoveryEventType, options: Discovery
     occurredAt: new Date().toISOString()
   }
   if (options.discoveryToken) event.discoveryToken = options.discoveryToken
+  if (options.searchToken) event.searchToken = options.searchToken
   if (options.query) event.query = String(options.query).slice(0, 500)
   eventQueue.push(event)
   if (eventQueue.length >= MAX_EVENT_BATCH) {
@@ -163,18 +165,20 @@ export function recordProductClick(product: DiscoveryProduct): void {
 export function recordSearchOutcome({
   query,
   products = [],
+  searchToken,
   zeroResult = false,
   reformulation = false
 }: {
   query: string
   products?: DiscoveryProduct[]
+  searchToken?: string
   zeroResult?: boolean
   reformulation?: boolean
 }): void {
   const token = discoveryTokenFor(products[0])
-  if (reformulation) queueDiscoveryEvent('search_reformulation', { query, discoveryToken: token })
-  queueDiscoveryEvent('search_submit', { query, discoveryToken: token })
-  if (zeroResult) queueDiscoveryEvent('search_zero_result', { query })
+  if (reformulation) queueDiscoveryEvent('search_reformulation', { query, discoveryToken: token, searchToken })
+  queueDiscoveryEvent('search_submit', { query, discoveryToken: token, searchToken })
+  if (zeroResult) queueDiscoveryEvent('search_zero_result', { query, searchToken })
 }
 
 export async function fetchSearchSuggestionsRequest(query: string, limit = 8) {
