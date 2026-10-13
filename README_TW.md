@@ -1,5 +1,8 @@
 <div align="center">
-  <img src="./design/assets/brand/apple-touch-icon.svg" width="120" height="120" alt="LDSP Logo" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./design/assets/brand/ldsp-mark-white.svg" />
+    <img src="./design/assets/brand/ldsp-mark.svg" width="120" height="120" alt="LDSP Logo" />
+  </picture>
   
   # 🚀 LDStatus Pro
 
