@@ -151,7 +151,7 @@ test('catalog filters recover from errors and survive a detail round trip', asyn
   await expect.poll(() => scenario.reads.some(query => query.includes('priceMin=5'))).toBe(true)
   await page.locator('a[href="/product/7"]').first().click()
   await expect(page).toHaveURL(/\/product\/7/)
-  await page.goBack()
+  await page.getByRole('button', { name: '返回', exact: true }).click()
   await expect(page.locator('a[href="/product/7"]').first()).toBeVisible()
   if (mobile) await expect(page.getByRole('button', { name: /筛选，已启用/ })).toBeVisible()
   else await expect(page.locator('#home-price-min')).toHaveValue('5')

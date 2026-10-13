@@ -1598,6 +1598,29 @@ function closeCommentReportModal() {
 }
 
 
+function goBack() {
+  if (window.history.length > 1) {
+    router.back()
+  } else if (route.query.from) {
+    router.push(String(route.query.from))
+  } else {
+    router.push({ name: 'Home' })
+  }
+}
+
+function goToSeller() {
+  const username = String(product.value?.sellerUsername || '').trim()
+  if (!username) {
+    toast.warning('商家主页暂不可用')
+    return
+  }
+  router.push({
+    name: 'MerchantProfile',
+    params: { username },
+    query: { site: product.value?.sellerSite || 'linux.do', userId: String(product.value?.sellerUserId || '') }
+  })
+}
+
 async function toggleFavorite() {
   if (!product.value?.id || favoriteSubmitting.value) return
 
