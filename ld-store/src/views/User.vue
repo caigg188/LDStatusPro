@@ -229,6 +229,7 @@
 </template>
 
 <script setup>
+import { merchantProfilePath } from '@/utils/merchantIdentity'
 import {
   ArrowUpRight,
   ChevronRight,
@@ -349,7 +350,7 @@ const avatarSeed = computed(() => user.value?.name || user.value?.username || us
 const avatar = computed(() => userStore.avatar)
 const publicProfilePath = computed(() => {
   const account = String(user.value?.username || '').trim()
-  return account ? `/merchant/${encodeURIComponent(account)}` : ''
+  return merchantProfilePath({ username: account, site: user.value?.site || 'linux.do', userId: user.value?.id })
 })
 const overview = computed(() => dashboard.value?.overview || EMPTY_OVERVIEW)
 const merchant = computed(() => dashboard.value?.merchant || EMPTY_MERCHANT)

@@ -2,6 +2,23 @@ import { test, expect, signIn } from './fixtures'
 
 const confirm = (page: import('@playwright/test').Page) => page.locator('.confirm-button:visible').last()
 
+test('seller navigation carries forum identity through a renamed profile', async ({ page }) => {
+  const requests: string[] = []
+  await page.route('**/api/shop/merchants/**', route => {
+    requests.push(route.request().url())
+    return route.fulfill({ json: { success: true, data: {
+      merchant: { site: 'linux.do', userId: '22', username: 'renamed-seller', name: '改名商家', configured: false },
+      profile: null, stats: { onlineCount: 0, totalListedCount: 0, totalSoldCount: 0 }, products: []
+    } } })
+  })
+  await page.goto('/product/7')
+  await page.locator('.seller-card').click()
+  await expect(page).toHaveURL(/\/merchant\/test-seller\?site=linux.do&userId=22$/)
+  await expect(page.getByRole('heading', { name: '@renamed-seller' })).toBeVisible()
+  expect(new URL(requests[0]).searchParams.get('userId')).toBe('22')
+  expect(new URL(requests[0]).searchParams.get('site')).toBe('linux.do')
+})
+
 test('historical order names render from the single-field API contract', async ({ page }, testInfo) => {
   await signIn(page)
   const order = {

@@ -22,7 +22,7 @@
       <div v-if="data.sellerTop?.length" class="hotboard-section">
         <h3 class="hotboard-section-title">🔥 今日热卖卖家</h3>
         <div class="hotboard-seller-list">
-          <router-link v-for="seller in data.sellerTop" :key="seller.username" :to="`/merchant/${seller.username}`" class="hotboard-seller-item" :class="`seller-rank-${seller.rank}`">
+          <router-link v-for="seller in data.sellerTop" :key="`${seller.site}:${seller.userId || seller.username}`" :to="merchantProfilePath(seller)" class="hotboard-seller-item" :class="`seller-rank-${seller.rank}`">
             <span class="hotboard-seller-medal" aria-hidden="true">{{ seller.rank === 1 ? '🥇' : (seller.rank === 2 ? '🥈' : '🥉') }}</span>
             <AvatarImage :candidates="[seller.avatar]" :seed="seller.username" :size="44" :alt="seller.username" class="hotboard-seller-avatar" />
             <span class="hotboard-seller-name">{{ seller.username }}</span>
@@ -96,6 +96,7 @@
 </template>
 
 <script setup>
+import { merchantProfilePath } from '@/utils/merchantIdentity'
 import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref } from 'vue'
 import { fetchMarketplaceHotboard } from '@/services/homeMarketplaceService'
 import { formatNumber } from '@/utils/format'

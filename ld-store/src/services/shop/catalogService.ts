@@ -24,6 +24,7 @@ import {
 } from '@/contracts/catalog'
 import { beginCatalogRotation, rememberCatalogSlate } from '@/utils/catalogRotation'
 import { ExternalProductLinkResponseSchema } from '@/contracts/commerce'
+import { merchantIdentityQuery, type MerchantIdentity } from '@/utils/merchantIdentity'
 
 export const productSortMapping: Record<string, { sortBy: string; sortOrder: 'ASC' | 'DESC' }> = {
   default: { sortBy: 'updated_at', sortOrder: 'DESC' },
@@ -203,7 +204,7 @@ export async function fetchExternalProductLinkRequest(id: string | number) {
   )
 }
 
-export async function fetchMerchantProfileRequest(username: string) {
+export async function fetchMerchantProfileRequest(username: string, identity: MerchantIdentity = {}) {
   const safeUsername = String(username || '').trim()
   if (!safeUsername) {
     return toRequestError(undefined, '商家用户名无效')
@@ -211,7 +212,7 @@ export async function fetchMerchantProfileRequest(username: string) {
 
   try {
     return validateApiResult(
-      await api.get(`/api/shop/merchants/${encodeURIComponent(safeUsername)}`, { auth: 'optional' }),
+      await api.get(`/api/shop/merchants/${encodeURIComponent(safeUsername)}${merchantIdentityQuery(identity)}`, { auth: 'optional' }),
       MerchantProfileResponseSchema,
       { endpoint: '/api/shop/merchants/:username', schemaName: 'MerchantProfileResponse' }
     )

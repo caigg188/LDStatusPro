@@ -1,4 +1,5 @@
 import { api, type JsonValue } from '@/utils/api'
+import { merchantProfilePath } from '@/utils/merchantIdentity'
 import {
   CouponCampaignSchema,
   CouponClaimResponseSchema,
@@ -147,5 +148,5 @@ export function formatCouponDate(value: unknown): string {
 
 export function getCouponUsePath(campaign: Record<string, unknown> = {}): string {
   if (campaign.scopeType === 'product' && campaign.productId) return `/product/${campaign.productId}`
-  return campaign.sellerUsername ? `/merchant/${encodeURIComponent(String(campaign.sellerUsername))}` : '/'
+  return merchantProfilePath({ username: campaign.sellerUsername, site: campaign.sellerSite, userId: campaign.sellerUserId }) || '/'
 }

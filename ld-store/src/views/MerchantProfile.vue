@@ -69,7 +69,7 @@
           <div class="merchant-actions">
             <button class="action-chip chip-linuxdo" type="button" @click="openLinuxDoProfile">
               <img src="https://img.ldstore.cc.cd/JackyLiii/20260424_logo-new-5_0vbj4s.png" alt="" class="chip-icon chip-icon--img" />
-              LinuxDo
+              {{ merchant.site === 'idcflare.com' ? 'IDCFlare' : 'LinuxDo' }}
             </button>
             <button class="action-chip chip-message" type="button" @click="openStoreMessage">
               <svg class="chip-icon chip-icon--svg" width="15" height="15" viewBox="0 0 16 16" fill="none">
@@ -139,6 +139,7 @@ const stats = ref({
 })
 const products = ref([])
 const loading = ref(true)
+let profileRequest = 0
 const error = ref('')
 
 const categories = computed(() => catalogStore.categories || [])
@@ -188,7 +189,7 @@ watch(
 )
 
 watch(
-  () => route.params.username,
+  () => [route.params.username, route.query.site, route.query.userId],
   () => {
     loadMerchantProfile()
   },
@@ -196,6 +197,7 @@ watch(
 )
 
 async function loadMerchantProfile() {
+  const request = ++profileRequest
   const username = routeUsername.value
   merchant.value = null
   products.value = []
@@ -215,9 +217,10 @@ async function loadMerchantProfile() {
   loading.value = true
   try {
     const [profileResult] = await Promise.all([
-      productStore.fetchMerchantProfile(username),
+      productStore.fetchMerchantProfile(username, { site: route.query.site, userId: route.query.userId }),
       catalogStore.fetchCategories()
     ])
+    if (request !== profileRequest) return
 
     if (!profileResult?.success || !profileResult.data?.merchant) {
       error.value = profileResult?.error || '商家不存在或暂未开放主页'
@@ -232,10 +235,11 @@ async function loadMerchantProfile() {
     }
     products.value = Array.isArray(profileResult.data.products) ? profileResult.data.products : []
   } catch (loadError) {
+    if (request !== profileRequest) return
     console.error('Load merchant profile failed:', loadError)
     error.value = '加载商家主页失败，请稍后重试'
   } finally {
-    loading.value = false
+    if (request === profileRequest) loading.value = false
   }
 }
 

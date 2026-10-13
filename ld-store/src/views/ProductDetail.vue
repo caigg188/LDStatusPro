@@ -1783,7 +1783,8 @@ function goToSeller() {
   }
   router.push({
     name: 'MerchantProfile',
-    params: { username }
+    params: { username },
+    query: { site: product.value?.sellerSite || 'linux.do', userId: String(product.value?.sellerUserId || '') }
   })
 }
 
