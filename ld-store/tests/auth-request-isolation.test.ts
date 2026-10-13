@@ -74,12 +74,8 @@ it('exports a CDK file through shared authentication and handles current 401s', 
   vi.stubGlobal('fetch', fetch)
   const result = await exportCdkRequest(7)
   expect(result).toMatchObject({ success: true, data: { filename: 'codes.txt' } })
-  if (result.success) {
-    const reader = new FileReader()
-    const text = new Promise(resolve => { reader.onload = () => resolve(reader.result) })
-    reader.readAsText(result.data.blob)
-    expect(await text).toBe('secret-cdk')
-  }
+  // Response.blob() can return Node's Blob or jsdom's Blob; size belongs to both.
+  if (result.success) expect(result.data.blob.size).toBe(10)
   expect(fetch.mock.calls[0][1].headers.get('Authorization')).toBe(`Bearer ${authToken()}`)
   await exportCdkRequest(7)
   expect(authSession.value.token).toBeNull()
