@@ -1,710 +1,185 @@
-<template>
-  <div class="my-report-detail-page">
-    <div class="page-container">
-      <div class="page-header">
-        <button class="back-btn" @click="goBack">← 返回</button>
-      </div>
-
-      <div v-if="loading" class="detail-loading">
-        <section class="hero-card skeleton-card">
-          <span class="skeleton pill short" />
-          <span class="skeleton title mt-14" />
-          <div class="summary-grid mt-18">
-            <span v-for="item in 4" :key="item" class="skeleton stat" />
-          </div>
-        </section>
-        <section class="content-card skeleton-card mt-16">
-          <span class="skeleton pill mid" />
-          <span class="skeleton line mt-16" />
-          <span class="skeleton line mt-10" />
-          <span class="skeleton line short mt-10" />
-        </section>
-        <section class="content-card skeleton-card mt-16">
-          <span class="skeleton pill mid" />
-          <span class="skeleton line mt-16" />
-          <span class="skeleton line short mt-10" />
-        </section>
-      </div>
-
-      <section v-else-if="!report" class="empty-wrap">
-        <EmptyState icon="🚩" text="举报不存在" hint="该举报记录可能已被删除，或你当前没有查看权限。">
-          <template #action>
-            <button type="button" class="back-home-btn" @click="goBack">返回举报列表</button>
-          </template>
-        </EmptyState>
-      </section>
-
-      <template v-else>
-        <section class="hero-card">
-          <div class="hero-top">
-            <div class="hero-main">
-              <p class="eyebrow">Report Detail</p>
-              <h1 class="page-title">{{ report.currentProductName || report.productName || '商品已删除' }}</h1>
-              <p class="page-subtitle">举报 #{{ report.id }} · {{ categoryText(report.reportCategory, report.reportCategoryLabel) }}</p>
-            </div>
-            <span :class="['status-badge', report.status]">{{ statusText(report.status) }}</span>
-          </div>
-
-          <div class="summary-grid">
-            <article class="summary-card">
-              <span class="summary-label">当前状态</span>
-              <strong class="summary-value">{{ statusText(report.status) }}</strong>
-              <span class="summary-meta">{{ statusDescription(report.status) }}</span>
-            </article>
-            <article class="summary-card">
-              <span class="summary-label">提交时间</span>
-              <strong class="summary-value small">{{ formatDate(report.createdAt) }}</strong>
-              <span class="summary-meta">首次提交举报的时间</span>
-            </article>
-            <article class="summary-card">
-              <span class="summary-label">最近更新</span>
-              <strong class="summary-value small">{{ formatDate(report.updatedAt) }}</strong>
-              <span class="summary-meta">平台最近一次更新记录</span>
-            </article>
-            <article class="summary-card">
-              <span class="summary-label">处理时间</span>
-              <strong class="summary-value small">{{ formatDate(report.handledAt) }}</strong>
-              <span class="summary-meta">若未处理则显示为 -</span>
-            </article>
-          </div>
-        </section>
-
-        <section class="content-card">
-          <div class="section-head">
-            <div>
-              <h2 class="section-title">举报原因</h2>
-              <p class="section-hint">这是你提交给平台的原始说明。</p>
-            </div>
-          </div>
-          <div class="content-block reason-block">{{ report.reportReason || '未填写举报原因' }}</div>
-        </section>
-
-        <section :class="['content-card', 'note-card', noteToneClass]">
-          <div class="section-head">
-            <div>
-              <h2 class="section-title">处理备注</h2>
-              <p class="section-hint">平台对该举报的处理结果或补充说明。</p>
-            </div>
-          </div>
-          <div v-if="report.adminNote" class="content-block">{{ report.adminNote }}</div>
-          <div v-else class="soft-empty">暂未填写处理备注，处理进展会在这里更新。</div>
-        </section>
-
-        <section class="content-card">
-          <div class="section-head">
-            <div>
-              <h2 class="section-title">处理历史</h2>
-              <p class="section-hint">展示该举报的状态流转与操作记录。</p>
-            </div>
-          </div>
-
-          <div v-if="logs.length === 0" class="soft-empty">暂无处理历史，平台后续跟进会记录在这里。</div>
-
-          <div v-else class="timeline">
-            <article v-for="(item, index) in logs" :key="`${item.createdAt}-${index}`" class="timeline-item">
-              <div class="timeline-dot" />
-              <div class="timeline-body">
-                <div class="timeline-time">{{ formatDate(item.createdAt) }}</div>
-                <div class="timeline-note">{{ item.note || `${statusText(item.fromStatus)} → ${statusText(item.toStatus)}` }}</div>
-              </div>
-            </article>
-          </div>
-        </section>
-      </template>
-    </div>
-  </div>
-</template>
-
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useProductStore } from '@/stores/product'
-import EmptyState from '@/components/common/EmptyState.vue'
-
-const route = useRoute()
-const router = useRouter()
-const productStore = useProductStore()
-
-const loading = ref(false)
-const report = ref(null)
-const logs = ref([])
-
-const noteToneClass = computed(() => {
-  const status = String(report.value?.status || '')
-  if (status === 'resolved') return 'tone-resolved'
-  if (status === 'rejected') return 'tone-rejected'
-  return 'tone-neutral'
-})
-
-function statusText(status) {
-  const map = { pending: '待处理', processing: '处理中', resolved: '已处理', rejected: '已驳回' }
-  return map[status] || status || '-'
-}
-
-function statusDescription(status) {
-  const map = {
-    pending: '举报已提交，等待平台受理。',
-    processing: '平台正在核查该举报内容。',
-    resolved: '举报已完成处理。',
-    rejected: '举报未被采纳或已驳回。'
-  }
-  return map[status] || '当前暂无更多状态说明。'
-}
-
-function categoryText(category, fallback = '-') {
-  const map = {
-    payment_config_issue: '收款配置异常',
-    test_mode_issue: '测试模式问题',
-    purchase_flow_issue: '购买流程异常',
-    content_mismatch: '内容不符',
-    fraud_risk: '欺诈风险',
-    other: '其他'
-  }
-  return map[category] || fallback || '-'
-}
-
-function formatDate(value) {
-  if (!value) return '-'
-  const date = new Date(Number(value) || value)
-  if (Number.isNaN(date.getTime())) return '-'
-  return date.toLocaleString('zh-CN')
-}
-
-async function loadDetail() {
-  loading.value = true
+import { onBeforeUnmount, ref, watch } from 'vue';
+import { useUserStore } from '@/stores/user';
+import { useRoute } from 'vue-router';
+import { reportDetail, reportStates, reportDecisions } from '@/services/shop/reportService';
+import ReportFollowup from '@/components/report/ReportFollowup.vue';
+const session = useUserStore();
+const route = useRoute(),
+  detail = ref(null),
+  loading = ref(false),
+  error = ref('');
+let generation = 0;
+async function load() {
+  const current = ++generation;
+  loading.value = true;
+  error.value = '';
   try {
-    const result = await productStore.fetchMyReportDetail(route.params.id)
-    report.value = result?.data?.report || null
-    logs.value = result?.data?.logs || []
+    const result = await reportDetail(
+      String(route.params.type || 'product'),
+      String(route.params.id),
+      route.query.party === 'subject'
+    );
+    if (current !== generation) return;
+    if (!result.success) {
+      detail.value = null;
+      error.value = result.error;
+      return;
+    }
+    detail.value = result.data;
   } finally {
-    loading.value = false
+    if (current === generation) loading.value = false;
   }
 }
-
-function goBack() {
-  router.push({ name: 'MyReports' })
+function date(value) {
+  return value ? new Date(value).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '未记录';
 }
-
-onMounted(() => {
-  loadDetail()
-})
+watch(
+  () => [route.fullPath, session.sessionKey],
+  () => {
+    detail.value = null;
+    load();
+  },
+  { immediate: true }
+);
+onBeforeUnmount(() => generation++);
 </script>
-
+<template>
+  <main class="report-detail page-container">
+    <router-link :to="{ path: '/user/reports', query: { ...route.query } }" class="back">← 返回举报列表</router-link>
+    <p v-if="loading" role="status">正在加载举报进度…</p>
+    <div v-else-if="error" role="alert" class="report-card">{{ error }} <button @click="load">重试</button></div>
+    <template v-else-if="detail">
+      <header class="report-card">
+        <h1>举报 #{{ detail.report.id }}</h1>
+        <p>
+          {{ detail.report.targetType === 'comment' ? '评论' : '商品' }}举报 · 商品 #{{ detail.report.productId }} ·
+          {{ detail.report.reportCategoryLabel }}
+        </p>
+        <strong>{{ reportStates[detail.report.status] }}{{ detail.report.reviewPending ? ' · 复核中' : '' }}</strong>
+        <p>提交 {{ date(detail.report.createdAt) }} · 最近更新 {{ date(detail.report.updatedAt) }}</p>
+      </header>
+      <section class="report-card">
+        <h2>原始问题说明</h2>
+        <p class="content">{{ detail.report.reportReason }}</p>
+        <details class="snapshot">
+          <summary>提交时的内容快照</summary>
+          <p v-if="detail.report.snapshot" class="content">
+            {{ detail.report.snapshot.commentContent || detail.report.snapshot.description }}<br />价格
+            {{ detail.report.snapshot.price }} · 内容版本 {{ detail.report.snapshot.contentVersion }}
+          </p>
+          <p v-else>历史记录未保存完整内容快照。</p>
+        </details>
+      </section>
+      <section class="report-card">
+        <h2>核查结论与下一步</h2>
+        <p>
+          {{
+            reportDecisions[detail.report.decision] ||
+            (detail.report.historical ? '历史已结案，未记录结构化结论' : '平台正在等待受理或继续核查')
+          }}
+        </p>
+        <p class="content">{{ detail.report.adminNote || '平台尚未填写处理说明。' }}</p>
+        <p v-if="detail.report.governanceAction && detail.report.governanceAction !== 'none'">
+          治理动作：{{
+            { offline: '商品已下架', delete: '商品已删除', hide_comment: '评论已隐藏' }[detail.report.governanceAction]
+          }}
+        </p>
+        <p class="content">{{ detail.report.nextStep || '有新信息时，可在下方补充原记录或申请复核。' }}</p>
+        <p v-if="detail.report.ruleVersion">适用依据：{{ detail.report.ruleVersion }}</p>
+        <p>举报结案或物品下架不代表订单已退款，请以订单中的售后结果为准。</p>
+        <router-link
+          v-if="detail.report.orderNo"
+          :to="
+            '/order/' +
+            encodeURIComponent(detail.report.orderNo) +
+            '?role=' +
+            (detail.report.orderRole || 'buyer') +
+            '#order-refund'
+          "
+          class="action-link"
+          >查看关联订单与售后</router-link
+        >
+      </section>
+      <section class="report-card">
+        <h2>处理历史</h2>
+        <p v-if="!detail.events.length">历史记录未保存处理事件。</p>
+        <article v-for="(event, index) in detail.events" :key="event.id || index" class="event">
+          <time>{{ date(event.createdAt) }}</time>
+          <p class="content">{{ event.publicNote }}</p>
+          <p v-if="event.context?.disposition && event.context.disposition !== 'none'">
+            历史治理动作：{{
+              { offline: '商品下架', delete: '商品删除', hide_comment: '评论隐藏' }[event.context.disposition]
+            }}
+            · {{ event.context.ruleVersion }}
+          </p>
+          <p v-if="event.decision">{{ reportDecisions[event.decision] }}</p>
+        </article>
+      </section>
+      <section class="report-card">
+        <ReportFollowup
+          :report="detail.report"
+          :evidence="detail.evidence"
+          :subject="route.query.party === 'subject'"
+          @updated="load"
+        />
+      </section>
+    </template>
+  </main>
+</template>
 <style scoped>
-.my-report-detail-page {
-  min-height: 100vh;
+.report-detail {
+  max-width: 940px;
+  display: grid;
+  gap: 16px;
   padding-bottom: 80px;
 }
-
-.page-container {
-  max-width: 940px;
-  padding-bottom: 40px;
-}
-
-.page-header {
-  margin-bottom: 14px;
-}
-
-.back-btn {
-  padding: 10px 16px;
-  background: var(--bg-card);
+.report-card {
+  padding: var(--detail-pad);
   border: 1px solid var(--border-light);
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: var(--card-radius);
+  background: var(--bg-card);
   color: var(--text-primary);
-  cursor: pointer;
-  transition: color var(--motion-duration-fast) var(--motion-ease-standard), background-color var(--motion-duration-fast) var(--motion-ease-standard), border-color var(--motion-duration-fast) var(--motion-ease-standard), box-shadow var(--motion-duration-fast) var(--motion-ease-standard), opacity var(--motion-duration-fast) var(--motion-ease-standard), transform var(--motion-duration-fast) var(--motion-ease-standard);
+  box-shadow: var(--shadow-sm);
 }
-
-.back-btn:hover {
-  background: var(--bg-secondary);
-  border-color: var(--border-hover);
+h1 {
+  font-size: var(--text-display);
 }
-
-.back-btn:focus-visible {
-  outline: 2px solid var(--palette-rgba-98-125-102-0p42);
-  outline-offset: 2px;
+h2 {
+  font-size: 20px;
 }
-
-.hero-card,
-.content-card,
-.empty-wrap {
-  border: 1px solid var(--palette-rgba-176-154-124-0p18);
-  border-radius: 24px;
-  background: var(--palette-rgba-255-252-247-0p94);
-  box-shadow: 0 18px 40px var(--palette-rgba-113-86-54-0p08);
+p {
+  margin-top: 12px;
+  line-height: 1.6;
 }
-
-.hero-card {
-  position: relative;
-  overflow: hidden;
-  padding: 24px;
+.content {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
-
-.hero-card::after {
-  content: '';
-  position: absolute;
-  inset: auto -46px -74px auto;
-  width: 180px;
-  height: 180px;
-  border-radius: 999px;
-  background: radial-gradient(circle, var(--palette-rgba-146-170-150-0p22), transparent 66%);
+.event {
+  border-bottom: 1px solid var(--border-light);
+  padding: 16px 0;
 }
-
-.hero-top {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.hero-main {
-  min-width: 0;
-}
-
-.eyebrow {
-  margin: 0 0 8px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--palette-hex-8d7760);
-}
-
-.page-title {
-  margin: 0;
-  font-size: 30px;
-  line-height: 1.2;
-  font-weight: 800;
-  color: var(--palette-hex-2f2418);
-}
-
-.page-subtitle {
-  margin: 10px 0 0;
+time {
+  color: var(--text-secondary);
   font-size: 14px;
-  color: var(--palette-hex-7b644f);
 }
-
-.status-badge {
-  flex-shrink: 0;
+.snapshot {
+  margin-top: 16px;
+}
+.back,
+.action-link,
+button {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.status-badge.pending {
-  background: var(--palette-rgba-255-241-204-0p95);
-  color: var(--palette-hex-9a6312);
-}
-
-.status-badge.processing {
-  background: var(--palette-rgba-220-235-255-0p96);
-  color: var(--palette-hex-2b66b1);
-}
-
-.status-badge.resolved {
-  background: var(--palette-rgba-225-243-228-0p96);
-  color: var(--palette-hex-2d7a43);
-}
-
-.status-badge.rejected {
-  background: var(--palette-rgba-250-226-226-0p96);
-  color: var(--palette-hex-b14c4c);
-}
-
-.summary-grid {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.summary-card {
-  padding: 16px;
-  border-radius: 18px;
-  border: 1px solid var(--palette-rgba-176-154-124-0p16);
-  background: var(--palette-rgba-255-255-255-0p72);
-}
-
-.summary-label {
-  display: block;
-  font-size: 12px;
-  color: var(--palette-hex-8a735e);
-}
-
-.summary-value {
-  display: block;
-  margin-top: 10px;
-  font-size: 20px;
-  font-weight: 800;
-  line-height: 1.4;
-  color: var(--palette-hex-2f2418);
-}
-
-.summary-value.small {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.summary-meta {
-  display: block;
-  margin-top: 8px;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--palette-hex-8a735e);
-}
-
-.content-card {
-  margin-top: 16px;
-  padding: 20px;
-}
-
-.section-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.section-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--palette-hex-2f2418);
-}
-
-.section-hint {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: var(--palette-hex-8a735e);
-}
-
-.content-block {
-  padding: 16px 18px;
-  border-radius: 18px;
-  background: var(--palette-rgba-250-245-237-0p9);
-  color: var(--palette-hex-4f3f30);
-  font-size: 14px;
-  line-height: 1.9;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.reason-block {
-  font-size: 15px;
-}
-
-.note-card.tone-resolved .content-block {
-  background: var(--palette-rgba-232-243-234-0p92);
-}
-
-.note-card.tone-rejected .content-block {
-  background: var(--palette-rgba-249-234-234-0p92);
-}
-
-.soft-empty {
-  padding: 16px 18px;
-  border-radius: 18px;
-  border: 1px dashed var(--palette-rgba-176-154-124-0p22);
-  background: var(--palette-rgba-252-248-241-0p72);
-  color: var(--palette-hex-8a735e);
-  font-size: 14px;
-  line-height: 1.8;
-}
-
-.timeline {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.timeline::before {
-  content: '';
-  position: absolute;
-  top: 8px;
-  bottom: 8px;
-  left: 8px;
-  width: 1px;
-  background: var(--palette-rgba-176-154-124-0p2);
-}
-
-.timeline-item {
-  position: relative;
-  display: flex;
-  gap: 14px;
-}
-
-.timeline-dot {
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  margin-top: 5px;
-  border: 3px solid var(--palette-rgba-116-143-120-0p4);
-  border-radius: 999px;
-  background: var(--palette-hex-fffdf8);
-}
-
-.timeline-body {
-  flex: 1;
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: var(--palette-rgba-250-245-237-0p9);
-}
-
-.timeline-time {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--palette-hex-8a735e);
-}
-
-.timeline-note {
-  margin-top: 8px;
-  font-size: 14px;
-  line-height: 1.8;
-  color: var(--palette-hex-4f3f30);
-}
-
-.empty-wrap {
-  padding: 24px;
-}
-
-.detail-loading {
-  display: flex;
-  flex-direction: column;
-}
-
-.skeleton-card {
-  pointer-events: none;
-}
-
-.skeleton {
-  position: relative;
-  overflow: hidden;
-  display: inline-block;
-  border-radius: 999px;
-  background: var(--palette-rgba-219-210-197-0p5);
-}
-
-.skeleton::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, var(--palette-rgba-255-255-255-0p6), transparent);
-  animation: shimmer 1.4s infinite;
-}
-
-.skeleton.pill.short {
-  width: 88px;
-  height: 14px;
-}
-
-.skeleton.pill.mid {
-  width: 128px;
-  height: 14px;
-}
-
-.skeleton.title {
-  display: block;
-  width: 52%;
-  height: 28px;
-  border-radius: 12px;
-}
-
-.skeleton.stat {
-  height: 88px;
-  border-radius: 18px;
-}
-
-.skeleton.line {
-  display: block;
-  width: 100%;
-  height: 16px;
+  min-height: 44px;
+  padding: 10px 16px;
   border-radius: 10px;
+  color: var(--text-primary);
 }
-
-.skeleton.line.short {
-  width: 72%;
-}
-
-.mt-10 {
-  margin-top: 10px;
-}
-
-.mt-14 {
-  margin-top: 14px;
-}
-
-.mt-16 {
-  margin-top: 16px;
-}
-
-.mt-18 {
-  margin-top: 18px;
-}
-
-@keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-:global(.dark) .my-report-detail-page {
-  background:
-    radial-gradient(circle at top right, var(--palette-rgba-96-122-104-0p2), transparent 28%),
-    linear-gradient(180deg, var(--palette-hex-181410), var(--palette-hex-221c16));
-}
-
-:global(.dark) .back-btn,
-:global(.dark) .back-home-btn,
-:global(.dark) .hero-card,
-:global(.dark) .content-card,
-:global(.dark) .empty-wrap {
-  border-color: var(--palette-rgba-255-232-205-0p08);
-  background: var(--palette-rgba-44-35-26-0p92);
-  color: var(--palette-hex-eadbc9);
-  box-shadow: 0 18px 40px var(--palette-rgba-0-0-0-0p24);
-}
-
-:global(.dark) .back-btn:focus-visible,
-:global(.dark) .back-home-btn:focus-visible {
-  outline-color: var(--palette-rgba-186-214-190-0p46);
-}
-
-:global(.dark) .eyebrow,
-:global(.dark) .page-subtitle,
-:global(.dark) .summary-label,
-:global(.dark) .summary-meta,
-:global(.dark) .section-hint,
-:global(.dark) .soft-empty,
-:global(.dark) .timeline-time {
-  color: var(--palette-hex-c8b39a);
-}
-
-:global(.dark) .page-title,
-:global(.dark) .summary-value,
-:global(.dark) .section-title {
-  color: var(--palette-hex-f8ead7);
-}
-
-:global(.dark) .summary-card,
-:global(.dark) .content-block,
-:global(.dark) .timeline-body {
-  border-color: var(--palette-rgba-255-232-205-0p08);
-  background: var(--palette-rgba-73-58-44-0p72);
-  color: var(--palette-hex-e4cfb7);
-}
-
-:global(.dark) .soft-empty {
-  border-color: var(--palette-rgba-255-232-205-0p08);
-  background: var(--palette-rgba-73-58-44-0p52);
-}
-
-:global(.dark) .note-card.tone-resolved .content-block {
-  background: var(--palette-rgba-53-88-63-0p42);
-}
-
-:global(.dark) .note-card.tone-rejected .content-block {
-  background: var(--palette-rgba-101-55-55-0p42);
-}
-
-:global(.dark) .timeline::before {
-  background: var(--palette-rgba-255-232-205-0p08);
-}
-
-:global(.dark) .timeline-dot {
-  border-color: var(--palette-rgba-152-183-156-0p42);
-  background: var(--palette-hex-3c3024);
-}
-
-:global(.dark) .status-badge.pending {
-  background: var(--palette-rgba-133-98-40-0p35);
-  color: var(--palette-hex-ffd78a);
-}
-
-:global(.dark) .status-badge.processing {
-  background: var(--palette-rgba-57-86-132-0p42);
-  color: var(--palette-hex-b8d7ff);
-}
-
-:global(.dark) .status-badge.resolved {
-  background: var(--palette-rgba-47-98-62-0p42);
-  color: var(--palette-hex-b8ecc5);
-}
-
-:global(.dark) .status-badge.rejected {
-  background: var(--palette-rgba-117-58-58-0p42);
-  color: var(--palette-hex-ffc0c0);
-}
-
-:global(.dark) .skeleton {
-  background: var(--palette-rgba-117-98-78-0p44);
-}
-
-@media (max-width: 767px) {
-
-  .hero-card,
-  .content-card,
-  .empty-wrap {
-    border-radius: 20px;
-  }
-
-  .hero-card,
-  .content-card {
-    padding: 18px;
-  }
-
-  .back-btn,
-  .back-home-btn {
-    min-height: 38px;
-    padding: 0 14px;
-    font-size: 12px;
-  }
-
-  .hero-top {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .page-title {
-    font-size: 26px;
-  }
-
-  .page-subtitle,
-  .summary-meta,
-  .section-hint,
-  .timeline-note,
-  .content-block,
-  .soft-empty {
-    font-size: 13px;
-  }
-
-  .summary-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .summary-value.small {
-    font-size: 14px;
-  }
-
-  .timeline-item {
-    gap: 10px;
-  }
-
-  .timeline-body {
-    padding: 12px 14px;
-  }
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
 }
 </style>

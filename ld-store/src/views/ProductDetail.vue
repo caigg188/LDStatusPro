@@ -579,128 +579,8 @@
         <div class="preview-hint">点击空白处或按 ESC 关闭</div>
       </div>
     </Teleport>
-    <Teleport to="body">
-      <div
-        v-if="showReportModal"
-        class="report-modal-overlay"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="product-report-title"
-        @click.self="closeReportModal"
-      >
-        <div class="report-modal">
-          <div class="report-modal-header">
-            <h3 id="product-report-title">举报物品</h3>
-            <button class="report-modal-close" aria-label="关闭举报物品弹窗" @click="closeReportModal">
-              <X :size="20" aria-hidden="true" />
-            </button>
-          </div>
-          <p class="report-modal-desc">请选择问题分类，并描述你遇到的情况。</p>
-          <div class="report-form-card">
-            <div class="report-select-wrap">
-              <label class="report-field-label">问题分类</label>
-              <div class="report-select-shell">
-                <select
-                  v-model="reportCategory"
-                  class="report-select"
-                >
-                  <option
-                    v-for="item in reportCategoryOptions"
-                    :key="item.value"
-                    :value="item.value"
-                  >
-                    {{ item.label }}
-                  </option>
-                </select>
-              </div>
-            </div>
-            <div class="report-textarea-wrap">
-              <label class="report-field-label">详细说明</label>
-              <textarea
-                v-model="reportReason"
-                class="report-textarea"
-                maxlength="500"
-                placeholder="请填写举报原因（5-500字）"
-              ></textarea>
-            </div>
-          </div>
-          <div class="report-quick-section">
-            <div class="report-quick-title">常见问题</div>
-            <div class="report-quick-list">
-              <button
-                v-for="item in quickReportReasons"
-                :key="item.text"
-                class="report-quick-item"
-                @click="applyQuickReason(item)"
-              >
-                {{ item.text }}
-              </button>
-            </div>
-          </div>
-          <div class="report-modal-footer">
-            <span class="report-count" :class="{ 'is-invalid': reportReason.trim().length > 0 && reportReason.trim().length < 5 }">
-              {{ reportReason.trim().length < 5 ? '至少填写 5 个字' : '内容长度符合要求' }} · {{ reportReason.trim().length }}/500
-            </span>
-            <div class="report-actions">
-              <button class="report-cancel-btn" @click="closeReportModal">取消</button>
-              <button
-                class="report-submit-btn"
-                :disabled="reportSubmitting || reportReason.trim().length < 5"
-                @click="submitReport"
-              >
-                {{ reportSubmitting ? '提交中...' : '提交举报' }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Teleport>
-    <Teleport to="body">
-      <div
-        v-if="showCommentReportModal"
-        class="report-modal-overlay"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="comment-report-title"
-        @click.self="closeCommentReportModal"
-      >
-        <div class="report-modal">
-          <div class="report-modal-header">
-            <h3 id="comment-report-title">举报评论</h3>
-            <button class="report-modal-close" aria-label="关闭举报评论弹窗" @click="closeCommentReportModal">
-              <X :size="20" aria-hidden="true" />
-            </button>
-          </div>
-          <p class="report-modal-desc">请描述该评论存在的问题，管理员会尽快处理。</p>
-          <div class="report-form-card">
-            <div class="report-textarea-wrap">
-              <label class="report-field-label">详细说明</label>
-              <textarea
-                v-model="commentReportReason"
-                class="report-textarea"
-                maxlength="500"
-                placeholder="请填写举报原因（5-500字）"
-              ></textarea>
-            </div>
-          </div>
-          <div class="report-modal-footer">
-            <span class="report-count" :class="{ 'is-invalid': commentReportReason.trim().length > 0 && commentReportReason.trim().length < 5 }">
-              {{ commentReportReason.trim().length < 5 ? '至少填写 5 个字' : '内容长度符合要求' }} · {{ commentReportReason.trim().length }}/500
-            </span>
-            <div class="report-actions">
-              <button class="report-cancel-btn" @click="closeCommentReportModal">取消</button>
-              <button
-                class="report-submit-btn"
-                :disabled="commentReportSubmitting || commentReportReason.trim().length < 5"
-                @click="submitCommentReport"
-              >
-                {{ commentReportSubmitting ? '提交中...' : '提交举报' }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <ReportComposer :open="showReportModal" :object-id="Number(product?.id || 0)" :object-name="product?.name || ''" @close="closeReportModal" @busy="reportSubmitting=$event" />
+    <ReportComposer :open="showCommentReportModal" target-type="comment" :object-id="Number(commentReportTarget?.id || 0)" :object-name="product?.name || ''" @close="closeCommentReportModal" />
   </div>
 </template>
 
@@ -752,6 +632,7 @@ import ProductPurchasePanel from '@/components/product-detail/ProductPurchasePan
 import ProductComments from '@/components/product-detail/ProductComments.vue'
 import { useProductDetail } from '@/composables/product-detail/useProductDetail'
 import { useProductComments } from '@/composables/product-detail/useProductComments'
+import ReportComposer from '@/components/report/ReportComposer.vue'
 import { useProductInteractions } from '@/composables/product-detail/useProductInteractions'
 import { buildAvatarCandidates } from '@/utils/avatar'
 import { fetchExternalProductLinkRequest } from '@/services/shop/catalogService'
@@ -779,8 +660,6 @@ const detailErrorMessage = ref('')
 const purchasing = ref(false)
 const showImagePreview = ref(false)
 const showReportModal = ref(false)
-const reportReason = ref('')
-const reportCategory = ref('payment_config_issue')
 const reportSubmitting = ref(false)
 const favoriteSubmitting = ref(false)
 const restockSubscribed = ref(false)
@@ -805,7 +684,6 @@ const {
   commentReportingId,
   showCommentReportModal,
   commentReportReason,
-  commentReportSubmitting,
   commentReportTarget,
   commentVotingMap,
   commentReplyComposerIdSet,
@@ -832,22 +710,6 @@ const COMMENT_PUBLIC_STATUS_SET = new Set(['ai_approved', 'manual_approved', 'ap
 const COMMENT_PENDING_STATUS_SET = new Set(['pending_ai', 'pending_manual', 'pending'])
 const COMMENT_REJECTED_STATUS_SET = new Set(['ai_rejected', 'manual_rejected', 'rejected'])
 
-const quickReportReasons = [
-  { text: '收款配置缺失，无法生成支付链接', category: 'payment_config_issue' },
-  { text: '商品仍处于测试模式，无法正常购买', category: 'test_mode_issue' },
-  { text: '平台支付配置异常，无法创建订单', category: 'purchase_flow_issue' },
-  { text: '价格或描述与实际不符', category: 'content_mismatch' },
-  { text: '疑似无法交付或存在欺诈风险', category: 'fraud_risk' }
-]
-
-const reportCategoryOptions = [
-  { value: 'payment_config_issue', label: '收款配置异常' },
-  { value: 'test_mode_issue', label: '测试模式问题' },
-  { value: 'purchase_flow_issue', label: '购买流程异常' },
-  { value: 'content_mismatch', label: '内容不符' },
-  { value: 'fraud_risk', label: '欺诈风险' },
-  { value: 'other', label: '其他' }
-]
 
 const {
   coverAspectRatio,
@@ -1735,58 +1597,6 @@ function closeCommentReportModal() {
   syncModalState()
 }
 
-async function submitCommentReport() {
-  if (!commentReportTarget.value?.id || commentReportSubmitting.value) return
-  const reason = commentReportReason.value.trim()
-  if (reason.length < 5 || reason.length > 500) {
-    toast.error('举报原因需为 5-500 个字符')
-    return
-  }
-
-  commentReportSubmitting.value = true
-  commentReportingId.value = commentReportTarget.value.id
-  try {
-    const result = await productStore.reportProductComment(commentReportTarget.value.id, reason)
-    if (!result?.success) {
-      const message = typeof result?.error === 'object'
-        ? (result.error?.message || result.error?.code || '举报提交失败')
-        : (result?.error || result?.message || '举报提交失败')
-      toast.error(message)
-      return
-    }
-
-    toast.success(result?.data?.message || '举报已提交，感谢反馈')
-    closeCommentReportModal()
-  } catch (error) {
-    toast.error(`举报提交失败：${error.message}`)
-  } finally {
-    commentReportSubmitting.value = false
-    commentReportingId.value = null
-  }
-}
-
-function goBack() {
-  if (window.history.length > 1) {
-    router.back()
-  } else if (route.query.from) {
-    router.push(String(route.query.from))
-  } else {
-    router.push({ name: 'Home' })
-  }
-}
-
-function goToSeller() {
-  const username = String(product.value?.sellerUsername || '').trim()
-  if (!username) {
-    toast.warning('商家主页暂不可用')
-    return
-  }
-  router.push({
-    name: 'MerchantProfile',
-    params: { username },
-    query: { site: product.value?.sellerSite || 'linux.do', userId: String(product.value?.sellerUserId || '') }
-  })
-}
 
 async function toggleFavorite() {
   if (!product.value?.id || favoriteSubmitting.value) return
@@ -1948,77 +1758,9 @@ async function openReportModal() {
 
 function closeReportModal() {
   showReportModal.value = false
-  reportReason.value = ''
-  reportCategory.value = 'payment_config_issue'
   syncModalState()
 }
 
-function applyQuickReason(item) {
-  const text = String(item?.text || '').trim()
-  if (!text) return
-
-  if (item?.category) {
-    reportCategory.value = item.category
-  }
-
-  const current = reportReason.value.trim()
-  if (!current) {
-    reportReason.value = text
-    return
-  }
-  if (!current.includes(text)) {
-    reportReason.value = `${current}；${text}`
-  }
-}
-
-async function submitReport() {
-  if (!product.value?.id || reportSubmitting.value) return
-
-  const reason = reportReason.value.trim()
-  if (reason.length < 5 || reason.length > 500) {
-    toast.error('举报原因需为 5-500 个字符')
-    return
-  }
-
-  if (!reportCategory.value) {
-    toast.error('请选择举报分类')
-    return
-  }
-
-  reportSubmitting.value = true
-  try {
-    const result = await productStore.reportProduct(product.value.id, {
-      reason,
-      reportCategory: reportCategory.value
-    })
-    if (result?.success) {
-      toast.success('举报已提交，感谢反馈')
-      closeReportModal()
-      return
-    }
-    const code = result?.error?.code || result?.code || ''
-    if (code === 'DUPLICATE_REPORT') {
-      toast.error('你已举报过该商品，平台正在处理中')
-      return
-    }
-    if (code === 'REPORT_RATE_LIMITED') {
-      toast.error('举报过于频繁，请稍后再试')
-      return
-    }
-    if (code === 'SIMILAR_REPORT_REJECTED') {
-      toast.error('请勿重复提交相似举报，平台会尽快处理')
-      return
-    }
-    const message = typeof result?.error === 'object'
-      ? (result.error.message || result.error.code || '举报提交失败')
-      : (result?.error || result?.message || '举报提交失败')
-    toast.error(message)
-  } catch (error) {
-    toast.error(`举报提交失败：${error.message}`)
-  } finally {
-    reportSubmitting.value = false
-  }
-}
 
 async function handleSubscribeRestock() {
   if (!product.value?.id || restockSubscribeLoading.value || restockStatusLoading.value || restockSubscribed.value) return
@@ -2169,6 +1911,7 @@ async function handleOpenStore() {
   }
   await openExternalProductLink()
 }
+
 </script>
 
 <style scoped>
