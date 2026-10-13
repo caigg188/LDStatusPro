@@ -35,7 +35,7 @@ async function act(page: Page, action: string, note: string, disposition = 'none
   await expect(dialog.getByRole('status')).toContainText('站内通知已记录');
 }
 
-test('real browser → HTTP → PostgreSQL: order report, private evidence, governance, both reviews and comment protection', async ({
+test('real browser → HTTP → PostgreSQL: product report with linked order, private evidence, governance, both reviews and comment protection', async ({
   page,
   browser,
   context
@@ -77,11 +77,14 @@ test('real browser → HTTP → PostgreSQL: order report, private evidence, gove
   };
   try {
     await page.goto('/order/' + f.orderNo + '?role=buyer');
-    await expect(page.getByRole('button', { name: '反馈交付问题' })).toBeVisible();
-    await page.getByRole('button', { name: '反馈交付问题' }).click();
+    await expect(page.getByRole('heading', { name: '物品信息' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '反馈交付问题' })).toHaveCount(0);
+    await page.goto('/product/' + f.productId);
+    await page.getByRole('button', { name: '举报', exact: true }).click();
     const composer = page.getByRole('dialog', { name: '反馈物品问题' });
     await composer.getByLabel('问题分类').selectOption('delivery_issue');
     await composer.getByLabel('详细说明').fill('关联订单交付的内容无法使用，需要核查报错');
+    await composer.getByLabel('关联订单号（可选）').fill(f.orderNo);
     const submitted = page.waitForResponse(
       (r) => r.url().endsWith('/products/' + f.productId + '/report') && r.request().method() === 'POST'
     );

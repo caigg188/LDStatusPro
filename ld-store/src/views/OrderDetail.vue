@@ -66,8 +66,6 @@
           </div>
         </div>
         
-        <button v-if="currentRole === 'buyer' && order.productId" type="button" class="support-btn" @click="reportOpen=true">反馈交付问题</button>
-        <ReportComposer v-if="currentRole === 'buyer' && order.productId" :open="reportOpen" :object-id="Number(order.productId)" :object-name="order.productName || order.product?.name || ''" :order-no="order.orderNo || ''" @close="reportOpen=false" />
         <!-- 物品信息 -->
         <div class="info-card">
           <h3 class="card-title">
@@ -368,7 +366,6 @@
 </template>
 
 <script setup>
-import ReportComposer from '@/components/report/ReportComposer.vue'
 import { orderStatusLabel, displayOrderStatus, orderFulfillmentLabel, refundStageText } from '@/utils/orderPresentation'
 import FulfillmentDeadline from '@/components/order/FulfillmentDeadline.vue'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
@@ -473,7 +470,6 @@ const sellerIdentity = computed(() => resolveOrderPartyIdentity(order.value, 'se
 const buyerIdentity = computed(() => resolveOrderPartyIdentity(order.value, 'buyer'))
 
 // 当前用户角色（买家/卖家）
-const reportOpen = ref(false)
 const currentRole = computed(() => route.meta.orderRole || route.query.role || 'buyer')
 const detailActions = useOrderActions()
 const orderDetailController = useOrderDetail({
