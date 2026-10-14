@@ -24,14 +24,48 @@ async function isolate(context: BrowserContext) {
   });
 }
 async function act(page: Page, action: string, note: string, disposition = 'none') {
-  const dialog = page.getByRole('dialog', { name: '举报核查' });
-  await dialog.getByLabel('处理任务').selectOption(action);
+  const dialog = page.getByRole('dialog', { name: /^(商品|评论)举报处理$/ });
+  const materialPane = dialog.getByRole('button', { name: '核查材料', exact: true });
+  if (await materialPane.isVisible()) await materialPane.click();
+  await expect(dialog.getByText(/处置对象：商品 #/)).toBeVisible();
+  const decisionPane = dialog.getByRole('button', { name: '处理结果', exact: true });
+  if (await decisionPane.isVisible()) await decisionPane.click();
+  const actions: Record<string, string> = {
+    start: '开始核查',
+    request_info: '需要补充',
+    confirm: '确认问题',
+    reject: '未确认违规',
+    refer: '转交售后',
+    reopen: '重开复核'
+  };
+  await dialog.getByRole('button', { name: actions[action] }).first().click();
   await dialog.getByLabel('给用户的核查说明（必填）').fill(note);
+  if (!(await dialog.getByLabel('用户下一步').isVisible()))
+    await dialog.locator('summary').filter({ hasText: '用户下一步' }).click();
   await dialog.getByLabel('用户下一步').fill('请在原记录补充证据，订单退款继续使用现有售后入口');
+  await dialog.locator('summary').filter({ hasText: '内部备注' }).click();
   await dialog.getByLabel('内部备注（不会向举报人返回）').fill('ACCEPTANCE_INTERNAL_ONLY');
-  await dialog.getByLabel('适用规则版本').fill('acceptance-rule-v1');
-  if (action === 'confirm') await dialog.getByLabel('治理动作').selectOption(disposition);
-  await dialog.getByRole('button', { name: '确认保存核查结果' }).click();
+  if (['confirm', 'reject', 'refer'].includes(action))
+    await dialog.getByLabel('处理依据', { exact: true }).fill('acceptance-rule-v1');
+  if (action === 'confirm' && disposition !== 'none') {
+    const dispositions: Record<string, string> = {
+      offline: '下架商品并结案',
+      hide_comment: '隐藏评论并结案',
+      delete: '删除商品并结案'
+    };
+    if (disposition === 'delete') await dialog.getByText('更多处置', { exact: true }).click();
+    await dialog.getByLabel(dispositions[disposition], { exact: true }).check();
+    await dialog.getByLabel('已核对处置对象和依据').check();
+  }
+  const saves: Record<string, string> = {
+    start: '保存核查进展',
+    request_info: '请求补充信息',
+    confirm: '确认问题并结案',
+    reject: '不予采纳并结案',
+    refer: '转交售后并结案',
+    reopen: '重开复核'
+  };
+  await dialog.getByRole('button', { name: saves[action], exact: true }).click();
   await expect(dialog.getByRole('status')).toContainText('站内通知已记录');
 }
 
