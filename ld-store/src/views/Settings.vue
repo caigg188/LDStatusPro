@@ -73,7 +73,7 @@
           </div>
           
           <p v-if="!isConfigured" class="card-desc">
-            配置 LDC 收款后，您发布的 CDK 物品可支持平台内支付和自动发货。
+            配置 LDC 收款后，您发布的普通物品和 CDK 物品可支持平台内支付，CDK 物品还可自动发货。
           </p>
           
           <div class="form-group">

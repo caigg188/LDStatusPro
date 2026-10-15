@@ -39,7 +39,7 @@
         </nav>
 
         <div class="help-sidebar__footer">
-          <router-link to="/support"><MessageCircleQuestion :size="17" /> 联系与反馈</router-link>
+          <router-link to="/support"><MessageCircleQuestion :size="17" /> 支持开发</router-link>
           <router-link to="/"><ArrowLeft :size="17" /> 返回物品广场</router-link>
         </div>
       </aside>
@@ -144,7 +144,7 @@
             @click="handleTocClick($event, heading.id)"
           >{{ heading.text }}</a>
         </nav>
-        <router-link to="/support" class="help-toc__feedback">这篇内容没解决问题？</router-link>
+        <router-link to="/docs/faq" class="help-toc__feedback">查看常见问题与排查</router-link>
       </aside>
     </div>
 
@@ -180,7 +180,7 @@
             </section>
           </nav>
           <div class="help-sidebar__footer">
-            <router-link to="/support" @click="closeDrawer()"><MessageCircleQuestion :size="17" /> 联系与反馈</router-link>
+            <router-link to="/support" @click="closeDrawer()"><MessageCircleQuestion :size="17" /> 支持开发</router-link>
             <router-link to="/" @click="closeDrawer()"><ArrowLeft :size="17" /> 返回物品广场</router-link>
           </div>
         </aside>
@@ -379,8 +379,7 @@ const HelpSearchBox = defineComponent({
           h('strong', `没有找到“${searchQuery.value}”`),
           h('p', '试试“共享卡密”“优惠券占用”“收款配置”或“待发货”。'),
           h('div', [
-            h('a', { href: '/docs/faq', onClick: handleInternalLink }, '查看常见问题'),
-            h('a', { href: '/support', onClick: handleInternalLink }, '提交反馈')
+            h('a', { href: '/docs/faq', onClick: handleInternalLink }, '查看常见问题')
           ])
         ])
       ]) : null

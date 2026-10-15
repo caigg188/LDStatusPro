@@ -8,7 +8,7 @@
     <h2 id="prepare">准备 LDC 应用</h2>
     <ul>
       <li>在 LDC 相关应用管理页面创建用于 LD 士多收款的应用。</li>
-      <li>准备页面要求的 Client ID、Client Key 和 PID，字段名以当前收款设置页为准。</li>
+      <li>准备 Client ID（PID）和 Client Key 两项凭证；PID 是收款设置中 Client ID 的名称，并非第三个字段。</li>
       <li>只在卖家后台保存这些凭证，不要发到评论、聊天、截图或公开工单。</li>
       <li>如果应用端需要通知地址或回调地址，直接复制 LD 士多页面生成的当前地址。</li>
     </ul>
@@ -59,7 +59,7 @@ import HelpTable from './HelpTable.vue'
 
 const credentialSteps = [
   { title: '打开收款设置', description: '进入独立卖家后台的收款设置，阅读当前字段提示。' },
-  { title: '填写应用凭证', description: '从 LDC 应用管理页复制 Client ID、Client Key 和 PID 等字段。' },
+  { title: '填写应用凭证', description: '从 LDC 应用管理页复制 Client ID（PID）和 Client Key，分别填写到对应字段。' },
   { title: '保存配置', description: '确认没有多余空格，也没有把公开 ID 与私密密钥填反。' },
   { title: '复制回调信息', description: '把页面生成的通知与回调地址配置到 LDC 应用端。' }
 ]

@@ -29,7 +29,7 @@
 
     <h2 id="dispute">举报与争议处理</h2>
     <HelpSteps :steps="disputeSteps" />
-    <p>商品与评论举报都在“我的举报”跟进。订单交付问题可从订单详情发起，平台可能请求补充说明；截图通过举报详情私密提交。举报结案、物品下架或评论隐藏不代表订单已经退款，请在原订单继续跟进售后。有新证据时可申请复核，原处理结论会保留。</p>
+    <p>商品与评论举报都在“我的举报”跟进。订单交付问题可从商品详情的举报入口提交，并关联自己的同商品订单号，平台可能请求补充说明；截图通过举报详情私密提交。举报结案、物品下架或评论隐藏不代表订单已经退款，请在原订单继续跟进售后。有新证据时可申请复核，原处理结论会保留。</p>
     <HelpCallout title="不要公开敏感证据" tone="danger">
       卡密、账号密码、Client Key、支付凭证中的私密字段不应出现在公开评论或帖子。提交给平台时也只提供定位问题所需的最少信息。
     </HelpCallout>
@@ -40,7 +40,7 @@
     <div class="help-actions">
       <router-link to="/user">打开个人中心</router-link>
       <router-link to="/user/reports" class="secondary">查看我的举报</router-link>
-      <router-link to="/support" class="secondary">联系与反馈</router-link>
+      <router-link to="/docs/faq" class="secondary">常见问题与排查</router-link>
     </div>
   </div>
 </template>

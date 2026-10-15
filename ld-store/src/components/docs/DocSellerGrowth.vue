@@ -12,6 +12,7 @@
     </HelpCallout>
 
     <h2 id="promotion-services">士多甄选和士多优选</h2>
+    <p>士多甄选和士多优选是付费推广服务。</p>
     <HelpPath :items="[{ label: '卖家后台', to: '/seller' }, { label: '商家服务', to: '/seller/services' }]" />
     <HelpTable :columns="serviceColumns" :rows="serviceRows" caption="具体位置、可用名额和所需条件以商家服务页为准" />
     <p>推广通常与物品及分类绑定。选择前检查物品是否审核通过、资料是否完整、库存是否充足，以及分类是否正确。页面显示的可用数量、时段、范围和名额均可能动态变化。</p>

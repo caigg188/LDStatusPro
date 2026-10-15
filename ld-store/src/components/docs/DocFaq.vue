@@ -99,7 +99,7 @@
       </details>
       <details>
         <summary>收款测试失败怎么办？</summary>
-        <div><p>检查 Client ID、Client Key、PID 等字段是否完整且没有填反，应用是否可用，通知与回调地址是否来自当前页面。不要公开 Client Key 请求帮助。</p></div>
+        <div><p>检查 Client ID（PID）和 Client Key 两个字段是否完整且没有填反，应用是否可用，通知与回调地址是否来自当前页面。不要公开 Client Key 请求帮助。</p></div>
       </details>
     </div>
 
@@ -120,7 +120,7 @@
       提供页面地址、订单号或物品名、发生时间、当前中文状态、已完成的排查步骤。截图请遮挡卡密、Client Key、联系方式和其他隐私。
     </HelpCallout>
     <div class="help-actions">
-      <router-link to="/support">联系与反馈</router-link>
+      <router-link to="/docs/account-safety">账号与交易安全</router-link>
       <router-link to="/user/reports" class="secondary">查看我的举报</router-link>
     </div>
   </div>
