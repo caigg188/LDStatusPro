@@ -10,6 +10,7 @@ export const HELP_GROUPS = Object.freeze([
 export const HELP_ARTICLES = Object.freeze([
   {
     id: 'quick-start',
+    updatedAt: '2026-10-15',
     group: 'start',
     title: '快速开始',
     summary: '按你现在要完成的任务，快速进入购买、卖家经营或问题处理路线。',
@@ -43,6 +44,7 @@ export const HELP_ARTICLES = Object.freeze([
   },
   {
     id: 'buy-guide',
+    updatedAt: '2026-10-15',
     group: 'buyer',
     title: '购买物品与查看订单',
     summary: '从浏览筛选到支付、收货、联系卖家和查看订单动态。',
@@ -54,9 +56,10 @@ export const HELP_ARTICLES = Object.freeze([
   },
   {
     id: 'refunds',
+    updatedAt: '2026-10-15',
     group: 'buyer',
     title: '退款、协商与争议',
-    summary: '买家申请全额退款、卖家处理申请，以及协商无果后的 Credit 争议路径。',
+    summary: '7 天在线申请窗口、72 小时响应、平台内部复核与 Credit 争议路径。',
     audience: ['买家', '卖家'],
     keywords: ['退款', '售后', '全额退款', '联系卖家', '拒绝退款', '退款异常', '退款争议', 'Credit 争议', '订单争议'],
     icon: 'RotateCcw',
@@ -65,6 +68,7 @@ export const HELP_ARTICLES = Object.freeze([
   },
   {
     id: 'shipping-deadline',
+    updatedAt: '2026-10-15',
     group: 'buyer',
     title: '发货时限与超时退款',
     summary: '普通物品 48 小时下架、72 小时自动退款，以及超时计次和异常处理规则。',
@@ -230,6 +234,7 @@ export const HELP_ARTICLES = Object.freeze([
   },
   {
     id: 'terms',
+    updatedAt: '2026-10-15',
     group: 'support',
     title: '服务条款',
     summary: '了解平台性质、用户责任、禁止行为、风险与争议处理规则。',
@@ -242,6 +247,7 @@ export const HELP_ARTICLES = Object.freeze([
 ])
 
 export const HELP_SEARCH_ENTRIES = Object.freeze([
+  { articleId: 'refunds', anchor: 'application-window', title: '7 天申请窗口与后续售后', keywords: ['七天', '超过7天', '七天后', '退款申请期限', '卡密无效'] },
   { articleId: 'seller-notifications', anchor: 'connect-telegram', title: '绑定 Telegram 机器人接收通知', keywords: ['TG绑定', '连接机器人', 'Start', '通知设置'] },
   { articleId: 'seller-notifications', anchor: 'workspace', title: '用 Telegram 处理退款和下架商品', keywords: ['卖家工作台', '同意退款', '拒绝退款', '商品搜索', '商品下架', '经营概览'] },
   { articleId: 'seller-notifications', anchor: 'not-received', title: 'Telegram 机器人没有响应怎么排查', keywords: ['机器人没响应', '消息延迟', '屏蔽机器人', '已暂停', '渠道异常', 'menu'] },
@@ -265,7 +271,7 @@ export const HELP_SEARCH_ENTRIES = Object.freeze([
   { articleId: 'buy-guide', anchor: 'order-status', title: '查看购买订单状态', keywords: ['待支付', '支付中', '待发货', '已发货', '已完成'] },
   { articleId: 'refunds', anchor: 'buyer-request', title: '买家申请订单全额退款', keywords: ['申请退款', '退LDC', '联系卖家', '售后申请'] },
   { articleId: 'refunds', anchor: 'seller-handle', title: '卖家处理退款待办', keywords: ['卖家退款', '同意退款', '拒绝退款', '协商中'] },
-  { articleId: 'refunds', anchor: 'credit-dispute', title: '退款协商无果后发起 Credit 争议', keywords: ['credit争议', '交易争议', '卖家拒绝', '平台介入'] },
+  { articleId: 'refunds', anchor: 'credit-dispute', title: '平台内部复核与 Credit 争议', keywords: ['credit争议', '交易争议', '卖家拒绝', '平台介入', '管理员复核', '拒绝退款', '内部复核'] },
   { articleId: 'refunds', anchor: 'refund-exceptions', title: '退款执行失败或结果待核实', keywords: ['退款失败', '结果待核实', '不要重复退款', '退款异常'] },
   { articleId: 'seller-growth', anchor: 'promotion-services', title: '士多甄选和士多优选', keywords: ['推广名额', '置顶服务', '分类绑定'] },
   { articleId: 'image-host', anchor: 'upload-image', title: '上传物品图片并复制链接', keywords: ['图片地址', 'HTTPS图片', '图床历史'] }

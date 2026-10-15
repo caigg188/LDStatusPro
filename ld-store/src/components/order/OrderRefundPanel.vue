@@ -72,6 +72,7 @@
           <Info v-else :size="16" aria-hidden="true" />
           {{ refundAvailabilityMessage }}
         </p>
+        <p class="refund-field__help"><router-link to="/docs/refunds#application-window">了解 7 天申请窗口与后续售后</router-link>。申请入口不可用不等于所有售后责任终止。</p>
 
         <form v-if="formOpen" id="refund-request-form" class="refund-form" novalidate @submit.prevent="submitRefund">
           <div
@@ -184,7 +185,7 @@
               <ShieldAlert :size="22" aria-hidden="true" />
               <div>
                 <strong>请到 Credit 核对实际处理结果</strong>
-                <p>此状态只表示 LD 士多检测到原订单已由 Credit 侧处理，并已停止本站退款流程；不代表争议已通过或积分已退回。</p>
+                <p>此状态表示原交易不再处于可退款的成功状态，或 Credit 明确返回交易不存在，本站已停止退款流程；不代表争议已受理、已通过或积分已退回。</p>
                 <div class="refund-actions">
                   <a :href="disputeGuideUrl" target="_blank" rel="noopener" class="refund-btn refund-btn--primary">查看 Credit 争议指引<ExternalLink :size="15" aria-hidden="true" /></a>
                 </div>
@@ -198,6 +199,7 @@
                 <p>可前往 LINUX DO Credit 发起争议。请准备业务单号、Credit 编号、双方沟通记录和相关履约证据。</p>
                 <div class="refund-actions">
                   <a v-if="counterpartyMessageUrl" :href="counterpartyMessageUrl" target="_blank" rel="noopener" class="refund-btn refund-btn--secondary">再次私信卖家</a>
+                  <router-link to="/docs/refunds#credit-dispute" class="refund-btn refund-btn--secondary">查看内部复核与争议路径</router-link>
                   <a :href="disputeGuideUrl" target="_blank" rel="noopener" class="refund-btn refund-btn--primary">查看 Credit 争议指引<ExternalLink :size="15" aria-hidden="true" /></a>
                 </div>
               </div>

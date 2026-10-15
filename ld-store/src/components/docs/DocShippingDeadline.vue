@@ -1,7 +1,7 @@
 <template>
   <div class="doc-content">
     <h2 id="rule">普通物品的发货期限</h2>
-    <p class="lead">普通物品订单从支付成功起连续计算 72 小时，包含周末。订单页显示准确截止时间，最终以服务端记录为准。</p>
+    <p class="lead">纳入本规则的新普通物品订单从支付成功起连续计算 72 小时，包含周末；历史订单按下方过渡安排计算。订单页显示准确截止时间，以对应订单的规则记录和通知为准。</p>
     <HelpCallout title="适用范围" tone="info">本规则只适用于普通物品的手动发货订单。自动发卡、求购服务和推广服务不纳入这套时限。</HelpCallout>
 
     <h2 id="timeline">48 小时与 72 小时会发生什么</h2>
@@ -13,9 +13,9 @@
     <HelpCallout title="主动退款的计次时间" tone="warning">截止前成功发起的主动退款不计超时。若请求在截止后才发起并最终成功，仍会计入超时记录；失败尝试不会重置截止时间。</HelpCallout>
 
     <h2 id="refund-results">自动退款结果</h2>
-    <p>到期后系统自动<strong>发起</strong>原订单实付全额退款，无需买家申请或卖家批准。系统只有在 Credit 明确确认成功后才显示“已退款”。</p>
+    <p>到期后系统自动<strong>发起</strong>原订单实付全额退款，无需买家申请或卖家批准。确认 Credit 已退回后才显示“已退款”；异常结果可由管理员依据 Credit 交易记录核实并登记，不以发起请求或订单消失推定退款成功。</p>
     <HelpTable :columns="resultColumns" :rows="resultRows" caption="退款结果与处理方式" />
-    <p>退款异常超过 24 小时仍未解决时会升级平台待办。买家可以通过支持入口联系平台，也可以在 Credit 原交易发起争议。</p>
+    <p>退款异常超过 24 小时仍未解决时会升级平台待办。买家可通过 <a href="https://linux.do/u/jackyliii" target="_blank" rel="noopener noreferrer">LD 士多管理员 Jacky 的论坛主页</a>发起私信并提供订单号，也可按 Credit 的规则在原交易发起争议。</p>
 
     <h2 id="seller-restriction">超时记录与卖家限制</h2>
     <ul>
@@ -65,6 +65,6 @@ const resultRows = [
   { result: '明确成功', meaning: 'Credit 已确认退回，订单显示已退款', next: '通知双方，并按规则记录超时' },
   { result: '明确失败', meaning: '没有完成退款，显示具体原因', next: '修复收款凭证、余额等问题后安全重试' },
   { result: '结果不明', meaning: '可能已送达 Credit，本站无法确认', next: '停止自动重试，由平台核对交易记录' },
-  { result: '已转 Credit 处理', meaning: '原交易已由 Credit 侧处理', next: '到 Credit 核对争议、交易与余额；本站不宣称已退款' }
+  { result: '已转 Credit 处理', meaning: '本站查询到原交易已不处于可退款的成功状态或不存在', next: '到 Credit 核对争议、交易与余额；不代表已立案或已退款' }
 ]
 </script>

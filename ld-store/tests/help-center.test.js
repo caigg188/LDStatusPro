@@ -83,6 +83,15 @@ describe('帮助搜索', () => {
     expect(dispute.path).toBe('/docs/refunds#credit-dispute')
   })
 
+  it.each([
+    ['七天后', '/docs/refunds#application-window'],
+    ['管理员复核', '/docs/refunds#credit-dispute']
+  ])('售后边界查询“%s”直达对应说明且不重复', (query, path) => {
+    const results = searchHelpCenter(query)
+    expect(results[0]?.path).toBe(path)
+    expect(results.filter(result => result.path === path)).toHaveLength(1)
+  })
+
   it('退款争议查询优先返回专项指南', () => {
     expect(searchHelpCenter('退款争议')[0]?.articleId).toBe('refunds')
   })

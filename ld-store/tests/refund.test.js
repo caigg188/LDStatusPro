@@ -97,7 +97,7 @@ describe('订单退款买家流程', () => {
     expect(stages.map(stage => stage.state)).toEqual(['done', 'skipped', 'skipped', 'current'])
     expect(stages[2].description).toBe('未从 LD 士多发起退款')
     expect(stages[3]).toMatchObject({ label: 'Credit 处理', tone: 'warning' })
-    expect(refundPanelSource).toContain('不代表争议已通过或积分已退回')
+    expect(refundPanelSource).toContain('不代表争议已受理、已通过或积分已退回')
     expect(refundControllerSource).toContain("refundState.value?.refund?.status === 'external_dispute'")
     expect(refundControllerSource).toContain('本站状态不代表积分已经退回')
   })

@@ -54,7 +54,7 @@
     </div>
 
     <h2 id="when-stuck">遇到异常时</h2>
-    <p>先记录订单号、物品名称和页面显示的中文状态，再到 <router-link to="/docs/faq">常见问题与排查</router-link> 搜索同一状态。需要人工协助时，通过 <router-link to="/support">联系与反馈</router-link> 提交必要信息，不要公开卡密或收款密钥。</p>
+    <p>先记录订单号、物品名称和页面显示的中文状态，再到 <router-link to="/docs/faq">常见问题与排查</router-link> 搜索同一状态。需要人工协助时，可通过 <a href="https://linux.do/u/jackyliii" target="_blank" rel="noopener noreferrer">LD 士多管理员 Jacky 的论坛主页</a>发起私信并提供必要信息，不要公开卡密或收款密钥。退款与争议请同时查看 <router-link to="/docs/refunds">售后处理路径</router-link>。</p>
   </div>
 </template>
 

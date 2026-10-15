@@ -48,7 +48,7 @@
       <details><summary>支付完成后状态没有变化</summary><div><p>先等待短暂同步并刷新订单详情，确认没有在新标签页重复支付。如果持续停留在“待支付”或“支付中”，保留订单号和支付页面结果后提交反馈。</p></div></details>
       <details><summary>自动发卡订单没有看到卡密</summary><div><p>进入订单详情检查状态和交付区域。若显示待发货，可能是支付通知或库存交付异常，联系卖家处理，不要再次购买同一物品。</p></div></details>
       <details><summary>普通物品一直待发货</summary><div><p>订单页会持续显示准确截止时间。可联系卖家询问安排；到期仍未发货时系统自动发起全额退款，无需另行申请。</p></div></details>
-      <details><summary>订单有问题，怎么申请退款</summary><div><p>先私信卖家协商，再到已支付订单详情的“退款与售后”提交全额退款申请。详细限制与争议路径见 <router-link to="/docs/refunds">退款、协商与争议</router-link>。</p></div></details>
+      <details><summary>订单有问题，怎么申请退款</summary><div><p>符合条件时，可直接到已支付订单详情的“退款与售后”提交全额退款申请，也可先私信卖家协商；联系卖家不是申请的前置条件。申请期限、处理结果与后续争议路径见 <router-link to="/docs/refunds">退款、协商与争议</router-link>。</p></div></details>
     </div>
 
     <div class="help-actions">
