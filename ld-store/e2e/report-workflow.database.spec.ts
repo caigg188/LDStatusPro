@@ -69,6 +69,26 @@ async function act(page: Page, action: string, note: string, disposition = 'none
   await expect(dialog.getByRole('status')).toContainText('站内通知已记录');
 }
 
+async function inspectReportContext(page: Page, reporter: { id: string; username: string }, subjectId: string, productId: number) {
+  await expect(page).toHaveURL(/\/shop(?:-comments)?\?.*reportPage=1/);
+  const originalUrl = page.url(), dialog = page.getByRole('dialog', { name: /^(商品|评论)举报处理$/ });
+  const materials = dialog.getByRole('button', { name: '核查材料', exact: true });
+  if (await materials.isVisible()) await materials.click();
+  const submission = dialog.locator('[aria-label="举报人提交内容"]');
+  await expect(submission).toContainText('UID ' + reporter.id);
+  await expect(dialog.locator('[aria-label="平台对象信息"]')).toContainText('UID ' + subjectId);
+  await submission.getByRole('button', { name: reporter.username, exact: true }).click();
+  const identity = page.getByRole('dialog', { name: '举报人信息', exact: true });
+  await expect(identity).toContainText(reporter.username);
+  await expect(identity).toContainText(reporter.id);
+  await identity.getByRole('button', { name: '关闭弹窗', exact: true }).click();
+  await dialog.locator('[aria-label="平台对象信息"] .report-object-link').click();
+  const product = page.getByRole('dialog', { name: '商品详情 · #' + productId, exact: true });
+  await expect(product.getByRole('heading', { name: /举报贯通验收物品/ })).toBeVisible();
+  await product.getByRole('button', { name: '关闭弹窗', exact: true }).click();
+  expect(page.url()).toBe(originalUrl);
+}
+
 test('real browser → HTTP → PostgreSQL: product report with linked order, private evidence, governance, both reviews and comment protection', async ({
   page,
   browser,
@@ -140,6 +160,7 @@ test('real browser → HTTP → PostgreSQL: product report with linked order, pr
     await expect(page.getByRole('link', { name: '查看关联订单与售后' })).toHaveAttribute('href', /REPORT_ACCEPTANCE_/);
     await admin.goto('http://127.0.0.1:4174/shop-reports?reportType=product&reportId=' + id);
     await expect(admin.getByText('处置对象：商品 #' + f.productId)).toBeVisible();
+    await inspectReportContext(admin, f.buyer, f.seller.id, f.productId);
     await act(admin, 'request_info', '目前信息不足，请补充具体报错与发生时间');
     await page.reload();
     await expect(page.getByText('待补充', { exact: true })).toBeVisible();
@@ -156,6 +177,7 @@ test('real browser → HTTP → PostgreSQL: product report with linked order, pr
     await page.getByRole('button', { name: '提交补充说明' }).click();
     await expect.poll(async () => (await api(detailPath)).json.data.events.length).toBe(4);
     const detail = (await api(detailPath)).json.data;
+    expect(detail).not.toHaveProperty('participants');
     const fileId = detail.evidence[0].id;
     expect((await api(detailPath, undefined, f.strangerToken)).status).toBe(404);
     const forbidden = await page.request.get('http://127.0.0.1:8798' + detailPath + '/evidence/' + fileId, {
@@ -174,6 +196,7 @@ test('real browser → HTTP → PostgreSQL: product report with linked order, pr
     const subjectDetail = (await api(subjectPath, undefined, f.sellerToken)).json.data;
     expect(JSON.stringify(subjectDetail)).not.toContain(f.buyer.id);
     expect(subjectDetail.evidence).toHaveLength(0);
+    expect(subjectDetail).not.toHaveProperty('participants');
     await seller.goto('http://127.0.0.1:4198/user/reports/product/' + id + '?party=subject');
     await seller.getByLabel('问题说明或新证据').fill('卖家已更新说明，提供新的事实申请复核');
     await seller.getByRole('button', { name: '提交复核申请' }).click();
@@ -223,6 +246,7 @@ test('real browser → HTTP → PostgreSQL: product report with linked order, pr
     await commentComposer.getByRole('link', { name: '查看进度 / 补充证据' }).click();
     await expect(seller.getByRole('heading', { name: '举报 #' + commentId, exact: true })).toBeVisible();
     await admin.goto('http://127.0.0.1:4174/shop-reports?reportType=comment&reportId=' + commentId);
+    await inspectReportContext(admin, f.seller, f.buyer.id, f.commentProductId);
     await act(admin, 'reject', '真实负面体验可以保留，低分本身不构成违规');
     expect((await sql`SELECT status FROM shop_product_comments WHERE id=${f.commentId}`)[0].status).toBe(
       'manual_approved'
