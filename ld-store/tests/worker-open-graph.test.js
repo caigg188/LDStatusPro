@@ -88,6 +88,24 @@ describe('Open Graph canonical URLs', () => {
     expect(canonicalizePageUrl('https://ldcstore.com/search?q=AI+service&page=3&sort=price', env))
       .toBe('https://ldcstore.com/search?q=AI+service')
   })
+
+  it('retains the merchant identity while dropping tracking parameters', () => {
+    expect(canonicalizePageUrl('https://ldcstore.com/merchant/old?site=idcflare.com&userId=123&utm_source=forum', env))
+      .toBe('https://ldcstore.com/merchant/old?site=idcflare.com&userId=123')
+  })
+
+  it('forwards the merchant site and ID to share metadata', async () => {
+    const fetchMock = vi.fn(async () => apiResponse({
+      ...productMetadata, kind: 'merchant', canonicalPath: '/merchant/current?site=idcflare.com&userId=123',
+      image: { ...productMetadata.image, path: '/og/merchant/idcflare.com%3A123.png?v=abc123' }
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    const metadata = await resolvePageMetadata('https://ldcstore.com/merchant/old?site=idcflare.com&userId=123&utm_source=forum', env)
+    const requestedPath = new URL(fetchMock.mock.calls[0][0]).searchParams.get('path')
+    expect(requestedPath).toBe('/merchant/old?site=idcflare.com&userId=123')
+    expect(metadata.url).toBe('https://ldcstore.com/merchant/current?site=idcflare.com&userId=123')
+    expect(parseOgImagePath('/og/merchant/idcflare.com%3A123.png')).toEqual({ kind: 'merchant', key: 'idcflare.com:123' })
+  })
 })
 
 describe('share metadata resolution', () => {

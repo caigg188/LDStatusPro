@@ -84,6 +84,12 @@ export function canonicalizePageUrl(input, env = {}) {
     const query = truncateText(source.searchParams.get('q') || '', 80)
     if (query) canonical.searchParams.set('q', query)
   }
+  if (/^\/merchant\/[^/]+$/.test(canonical.pathname)) {
+    for (const key of ['site', 'userId']) {
+      const value = source.searchParams.get(key)
+      if (value) canonical.searchParams.set(key, value)
+    }
+  }
   return canonical.toString()
 }
 
@@ -229,7 +235,8 @@ export async function resolvePageMetadata(input, env = {}) {
 
   if (dynamicRoute) {
     const apiBase = String(env.LD_STORE_META_API_BASE || DEFAULT_API_BASE).trim() || DEFAULT_API_BASE
-    const apiUrl = `${apiBase.replace(/\/$/, '')}/api/shop/share-meta?path=${encodeURIComponent(pathname)}`
+    const canonical = new URL(canonicalizePageUrl(url, env))
+    const apiUrl = `${apiBase.replace(/\/$/, '')}/api/shop/share-meta?path=${encodeURIComponent(canonical.pathname + canonical.search)}`
     const result = await fetchJsonResult(apiUrl)
     // The API deliberately uses the same 404 for missing and access-restricted
     // content. Returning a generic 200 card here prevents both existence leaks
