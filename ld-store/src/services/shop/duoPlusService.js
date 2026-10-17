@@ -7,6 +7,5 @@ export const duoApi = {
   order: (no) => api.get(`${root}/orders/${encodeURIComponent(no)}`),
   orderAction: (no, action) => api.post(`${root}/orders/${encodeURIComponent(no)}/${action}`, {}),
   detail: (id) => api.get(`${root}/campaigns/${encodeURIComponent(id)}`),
-  campaignAction: (id, action) => api.post(`${root}/campaigns/${encodeURIComponent(id)}/${action}`, {}),
-  event: (token, type) => api.post(`${root}/events`, { events: [{ token, type }] }, { timeout: 5000 })
+  campaignAction: (id, action) => api.post(`${root}/campaigns/${encodeURIComponent(id)}/${action}`, {})
 }
