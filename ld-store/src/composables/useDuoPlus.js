@@ -24,6 +24,7 @@ export function useDuoPlus() {
       const [o, r] = await Promise.all([unwrap(duoApi.options(), session), unwrap(duoApi.list(page.value), session)])
       if (g !== generation || stopped) return
       options.value = o; records.value = r
+      if (productId.value && !o.products.some(p => String(p.id) === String(productId.value))) productId.value = ''
       if (detail.value) detail.value = await unwrap(duoApi.detail(detail.value.campaign.id), session)
     } catch (e) { if (g === generation) error.value = e.message } finally { if (g === generation) loading.value = false }
   }
