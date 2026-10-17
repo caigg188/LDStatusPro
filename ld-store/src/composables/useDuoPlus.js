@@ -44,7 +44,7 @@ export function useDuoPlus() {
     })
   }
   const orderAction = (o, action) => mutate(async s => { await unwrap(duoApi.orderAction(o.orderNo, action), s); notice.value = action === 'cancel' ? '已核对并处理订单。' : '已核对支付状态。' })
-  const campaignAction = (c, action) => mutate(async s => { await unwrap(duoApi.campaignAction(c.id, action), s); notice.value = action === 'pause' ? '已暂停，剩余额度保留。' : '已恢复投放。' })
+  const campaignAction = (c, action) => mutate(async s => { await unwrap(duoApi.campaignAction(c.id, action), s); notice.value = action === 'pause' ? '已暂停，剩余额度保留。' : '已恢复活动并重新排期。' })
   const showDetail = (c) => mutate(async s => { detail.value = await unwrap(duoApi.detail(c.id), s) })
   watch([productId, packageId], () => { requestKey.value = ''; accepted.value = false })
   watch(() => authSession.value.revision, () => {
@@ -55,5 +55,5 @@ export function useDuoPlus() {
   const refreshVisible = () => { if (document.visibilityState === 'visible') void load(true) }
   onMounted(() => { void load(); timer = window.setInterval(refreshVisible, 30000); document.addEventListener('visibilitychange', refreshVisible) })
   onUnmounted(() => { stopped = true; generation++; window.clearInterval(timer); document.removeEventListener('visibilitychange', refreshVisible) })
-  return { options, records, detail, loading, busy, error, notice, productId, packageId, accepted, currentPackage, reason, page, load, purchase, orderAction, campaignAction, showDetail }
+  return { options, records, detail, loading, busy, error, notice, productId, packageId, accepted, currentProduct, currentPackage, reason, page, load, purchase, orderAction, campaignAction, showDetail }
 }
