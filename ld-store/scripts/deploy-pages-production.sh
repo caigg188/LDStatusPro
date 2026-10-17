@@ -80,9 +80,5 @@ public_hashes=$(find dist/assets -type f -name '*.js' -exec shasum -a 256 {} \; 
 }
 npm run check:artifact
 
-# Recheck after the build: never upload under a different commit or dirty tree.
-node ../scripts/verify-pages-release.mjs "$release_sha" >/dev/null
-npx wrangler pages deploy dist --project-name=ld-store --branch main --commit-hash="$release_sha" --commit-dirty=false
-
-release=${release_sha:0:12}
-printf 'Pages deployment completed: release=%s source-map artifact=.private-artifacts/ldstore-web-%s.tar.gz\n' "$release" "$release"
+# Shared publisher rechecks the SHA and records rollback/verification evidence.
+node ../scripts/pages-release.mjs deploy ld-store "$release_sha"
