@@ -2,6 +2,7 @@ node_modules/
 dist/
 .wrangler/
 .private-artifacts/
+.release-receipts/
 .csp-smoke-dist/
 *.local
 .DS_Store
