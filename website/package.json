@@ -8,8 +8,9 @@
     "build": "npm run preview:plugin && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy": "npm run build && npx wrangler pages deploy dist --project-name=ldstatus-pro",
-    "preview:plugin": "node scripts/build-plugin-preview.mjs"
+    "deploy": "bash scripts/deploy-pages-production.sh",
+    "preview:plugin": "node scripts/build-plugin-preview.mjs",
+    "check:deploy": "npm run lint && npm run build"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

@@ -9,8 +9,8 @@
     "lint": "eslint . --ext .js,.ts,.vue --ignore-pattern dist --ignore-pattern node_modules --ignore-pattern .wrangler --max-warnings=0",
     "lint:fix": "npm run lint -- --fix",
     "typecheck": "vue-tsc --noEmit",
-    "check": "npm run lint && npm run typecheck && npm run check:architecture && npm run check:styles && npm run check:csp && npm run validate:noindex && npm run audit && npm run test && npm run build && npm run check:csp:build && npm run validate:noindex:build && npm run validate:og && npm run check:bundle",
-    "check:deploy": "npm run lint && npm run typecheck && npm run check:architecture && npm run check:styles && npm run check:csp && npm run validate:noindex && npm run audit && npm run build && npm run check:csp:build && npm run validate:noindex:build && npm run validate:og && npm run check:bundle",
+    "check": "npm run check:source && npm run test && npm run build && npm run check:artifact",
+    "check:deploy": "npm run check:source && npm run build && npm run check:artifact",
     "audit": "node scripts/check-audit.mjs",
     "check:architecture": "node scripts/check-architecture.mjs",
     "check:styles": "node scripts/check-style-tokens.mjs",
@@ -29,7 +29,9 @@
     "preview:tabs": "vite --config tests/fixtures/liquid-tabs-preview/vite.config.js",
     "preview:services": "vite --config tests/fixtures/top-service-preview/vite.config.js",
     "deploy": "bash scripts/deploy-pages-production.sh",
-    "test:e2e": "node scripts/run-browser-tests.mjs"
+    "test:e2e": "node scripts/run-browser-tests.mjs",
+    "check:source": "npm run lint && npm run typecheck && npm run check:architecture && npm run check:styles && npm run check:csp && npm run validate:noindex && npm run audit",
+    "check:artifact": "npm run check:csp:build && npm run validate:noindex:build && npm run validate:og && npm run check:bundle"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

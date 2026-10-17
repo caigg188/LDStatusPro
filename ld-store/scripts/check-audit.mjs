@@ -27,30 +27,41 @@ export function collectAdvisoryIds(name, vulns, visiting = new Set()) {
 }
 
 export function leftoverVulnerabilities(report, allowedAdvisories = ALLOWED_ADVISORIES) {
-    const vulns = report?.vulnerabilities || {}
+    if (report?.error || !report?.vulnerabilities || typeof report.vulnerabilities !== 'object'
+        || Array.isArray(report.vulnerabilities)) {
+        throw new Error('npm audit did not return a valid vulnerability report')
+    }
+    const vulns = report.vulnerabilities
     return Object.entries(vulns).flatMap(([name, vuln]) => {
         const advisories = collectAdvisoryIds(name, vulns).filter((id) => !allowedAdvisories.has(id))
         return advisories.length ? [{ name, severity: vuln.severity, advisories }] : []
     })
 }
 
-function readAuditReport() {
-    const result = spawnSync('npm', ['audit', '--json', '--audit-level=low'], {
-        encoding: 'utf8',
-        maxBuffer: 16 * 1024 * 1024
-    })
-    const stdout = result.stdout || ''
-    try {
-        return JSON.parse(stdout)
-    } catch {
-        if (result.error) throw result.error
-        process.stderr.write(result.stderr || stdout)
-        process.exit(result.status === 0 ? 1 : result.status)
+export function parseAuditResult(result) {
+    if (result.error) throw result.error
+    if (result.signal || ![0, 1].includes(result.status)) {
+        throw new Error('npm audit failed to execute')
     }
+    let report
+    try {
+        report = JSON.parse(result.stdout)
+    } catch {
+        throw new Error('npm audit returned invalid JSON')
+    }
+    // Exit 1 is also used for valid reports containing allowed advisories.
+    leftoverVulnerabilities(report)
+    if (result.status === 1 && Object.keys(report.vulnerabilities).length === 0) {
+        throw new Error('npm audit failed without reporting vulnerabilities')
+    }
+    return report
 }
 
 function main() {
-    const report = readAuditReport()
+    const report = parseAuditResult(spawnSync('npm', ['audit', '--json', '--audit-level=low'], {
+        encoding: 'utf8',
+        maxBuffer: 16 * 1024 * 1024
+    }))
     const leftover = leftoverVulnerabilities(report)
     if (!leftover.length) {
         console.log('npm audit: no blocking vulnerabilities')

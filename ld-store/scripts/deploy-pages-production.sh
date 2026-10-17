@@ -4,33 +4,10 @@ set -euo pipefail
 project_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$project_dir"
 
-if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-  [[ "${GITHUB_REF:-}" == "refs/heads/main" ]] || {
-    echo "Refusing Pages deployment: GitHub Actions ref must be refs/heads/main, found ${GITHUB_REF:-unset}" >&2
-    exit 1
-  }
-else
-  current_branch=$(git branch --show-current)
-  [[ "$current_branch" == 'main' ]] || {
-    echo "Refusing Pages deployment: expected branch main, found ${current_branch:-detached HEAD}" >&2
-    exit 1
-  }
-fi
-[[ -z "$(git status --porcelain)" ]] || {
-  echo 'Refusing Pages deployment: Git worktree is not clean' >&2
-  exit 1
-}
-git fetch origin main
-local_head=$(git rev-parse HEAD)
-remote_head=$(git rev-parse origin/main)
-[[ "$local_head" == "$remote_head" ]] || {
-  echo 'Refusing Pages deployment: local main is not synchronized with origin/main' >&2
-  exit 1
-}
-
-npm run lint
-npm run audit
-npm run validate:og
+# Validate before loading any production configuration.
+release_sha=$(node ../scripts/verify-pages-release.mjs)
+readonly release_sha
+npm run check:source
 
 # This file is intentionally ignored by Git. It contains a public Faro
 # ingestion identifier, but keeping deployment-only values out of tracked
@@ -87,7 +64,7 @@ faro_api_key=${VITE_FARO_API_KEY:-}
 export VITE_FARO_API_KEY=$faro_api_key
 export VITE_FARO_SESSION_SAMPLE_RATE=1
 export VITE_DEPLOYMENT_ENVIRONMENT=production
-export CF_PAGES_COMMIT_SHA=$(git rev-parse HEAD)
+export CF_PAGES_COMMIT_SHA="$release_sha"
 
 npm run build:private-metadata
 private_hashes=$(find dist/assets -type f -name '*.js' -exec shasum -a 256 {} \; | sed 's#  dist/##' | sort)
@@ -101,9 +78,11 @@ public_hashes=$(find dist/assets -type f -name '*.js' -exec shasum -a 256 {} \; 
   echo 'Refusing Pages deployment: public build contains source maps' >&2
   exit 1
 }
-npm run check:bundle
+npm run check:artifact
 
-npx wrangler pages deploy dist --project-name=ld-store --branch main --commit-dirty=true
+# Recheck after the build: never upload under a different commit or dirty tree.
+node ../scripts/verify-pages-release.mjs "$release_sha" >/dev/null
+npx wrangler pages deploy dist --project-name=ld-store --branch main --commit-hash="$release_sha" --commit-dirty=false
 
-release=$(git rev-parse --short=12 HEAD)
+release=${release_sha:0:12}
 printf 'Pages deployment completed: release=%s source-map artifact=.private-artifacts/ldstore-web-%s.tar.gz\n' "$release" "$release"

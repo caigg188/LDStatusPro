@@ -37,9 +37,7 @@ jobs:
             base="$EVENT_BEFORE"
           fi
           mark_all() {
-            echo "userscript=true" >> "$GITHUB_OUTPUT"
-            echo "website=true" >> "$GITHUB_OUTPUT"
-            echo "storefront=true" >> "$GITHUB_OUTPUT"
+            printf '%s\n' 'userscript=true' 'website=true' 'storefront=true' >> "$GITHUB_OUTPUT"
           }
           if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
             mark_all
@@ -49,7 +47,7 @@ jobs:
             git fetch --no-tags origin "$base" || { mark_all; exit 0; }
           fi
           files="$(git diff --name-only "$base" HEAD)"
-          if printf '%s\n' "$files" | grep -Eq '^\.github/workflows/'; then
+          if printf '%s\n' "$files" | grep -Eq '^\.github/workflows/|^scripts/'; then
             mark_all
             exit 0
           fi
@@ -61,7 +59,7 @@ jobs:
             fi
           }
           set_flag userscript '^(LDStatusPro\.user\.js|eslint\.config\.js|package\.json|package-lock\.json)$|^src/core/|^tests/|^scripts/(embed-core|release-notes)\.mjs$'
-          set_flag website '^website/'
+          set_flag website '^website/|^LDStatusPro\.user\.js$'
           set_flag storefront '^ld-store/'
 
   userscript:
@@ -82,8 +80,8 @@ jobs:
 
   release-userscript:
     name: Release userscript
-    needs: userscript
-    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.userscript.result == 'success' }}
+    needs: [userscript, ci-gate]
+    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.userscript.result == 'success' && needs.ci-gate.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -129,8 +127,7 @@ jobs:
           cache: npm
           cache-dependency-path: website/package-lock.json
       - run: npm ci
-      - run: npm run lint
-      - run: npm run build
+      - run: npm run check:deploy
 
   storefront-quality:
     name: Storefront quality
@@ -149,19 +146,10 @@ jobs:
           cache: npm
           cache-dependency-path: ld-store/package-lock.json
       - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run check:architecture
-      - run: npm run check:styles
-      - run: npm run check:csp
-      - run: npm run validate:noindex
-      - run: npm run audit
+      - run: npm run check:source
       - run: npm run test
       - run: npm run build
-      - run: npm run check:csp:build
-      - run: npm run validate:noindex:build
-      - run: npm run validate:og
-      - run: npm run check:bundle
+      - run: npm run check:artifact
 
   storefront-browser:
     name: Storefront browser
@@ -191,3 +179,19 @@ jobs:
             ld-store/test-results/
           retention-days: 7
           if-no-files-found: ignore
+
+  ci-gate:
+    name: CI gate
+    if: ${{ always() }}
+    needs: [changes, userscript, website, storefront-quality, storefront-browser]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Require all affected checks to pass
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: node scripts/ci-gate.mjs
