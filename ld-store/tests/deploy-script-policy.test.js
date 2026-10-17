@@ -20,8 +20,8 @@ describe('Pages production deployment policy', () => {
   it('runs deploy-safe gates without invoking the test suite', () => {
     expect(script).toContain('npm run check:source')
     expect(script).toContain('npm run check:artifact')
-    expect(script).toContain('node ../scripts/verify-pages-release.mjs "$release_sha"')
-    expect(script).toContain('--commit-hash="$release_sha" --commit-dirty=false')
+    expect(script).toContain('node ../scripts/pages-release.mjs deploy ld-store "$release_sha"')
+    expect(script).not.toContain('npx wrangler')
     expect(script).not.toMatch(/npm run (?:test|check)(?:\s|$)/)
   })
 })

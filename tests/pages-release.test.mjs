@@ -26,6 +26,16 @@ test('local deployment guards and both entrypoints run without network or real c
     try {
         mkdirSync(join(dir, 'bin'));
         mkdirSync(join(dir, 'scripts'));
+        // The publisher itself has independent adapter tests; this fixture verifies
+        // that both shell entrypoints hand off the exact SHA after their build.
+        writeFileSync(join(dir, 'scripts/pages-release.mjs'), `
+import { spawnSync } from 'node:child_process';
+import { appendFileSync } from 'node:fs';
+const sha = process.argv[4];
+const guard = spawnSync(process.execPath, [new URL('./verify-pages-release.mjs', import.meta.url).pathname, sha], { env: process.env });
+if (guard.status !== 0) { process.stderr.write(guard.stderr); process.exit(guard.status); }
+appendFileSync(process.env.LOG, 'publisher ' + process.argv.slice(2).join(' ') + '\\n');
+`);
         const guard = join(dir, 'scripts/verify-pages-release.mjs');
         copyFileSync(new URL('../scripts/verify-pages-release.mjs', import.meta.url), guard);
         const mock = `#!${process.execPath}
@@ -79,7 +89,7 @@ if (name === 'git') {
             const result = spawnSync('/bin/bash', [script], { env: env({}), encoding: 'utf8' });
             assert.equal(result.status, 0, result.stderr);
             const log = readFileSync(join(dir, 'log'), 'utf8');
-            assert.match(log, new RegExp('--commit-hash=' + sha + ' --commit-dirty=false'));
+            assert.match(log, new RegExp('publisher deploy (ld-store|ldstatus-pro) ' + sha));
             assert.doesNotMatch(log, /npm run (test|check)(\s|$)/);
             assert.equal(log.match(/gh run list/g).length, 2);
         }
