@@ -382,6 +382,9 @@ function safePaymentUrl(v) {
 </script>
 <style scoped>
 .duo-page {
+  --seller-muted: color-mix(in srgb, var(--text-paper-secondary) 85%, var(--text-paper-primary));
+  --seller-jade-strong: color-mix(in srgb, var(--action-paper-accent-strong) 85%, var(--text-paper-primary));
+  --seller-warning: color-mix(in srgb, var(--status-paper-warning) 75%, var(--text-paper-primary));
   display: grid;
   gap: 28px;
   color: var(--seller-ink);
