@@ -20,7 +20,7 @@
     </p>
 
     <div v-if="options && !options.settings.purchaseEnabled" class="duo-availability">
-      <span class="duo-icon-tile"><ChartNoAxesCombined :size="22" aria-hidden="true" /></span>
+      <span class="duo-icon-tile"><Eye :size="22" aria-hidden="true" /></span>
       <div>
         <strong>DUO+ 暂未开放购买</strong>
         <p>套餐将结合可交付容量开放。已有推广的进度与剩余额度，仍可在下方查看。</p>
@@ -169,7 +169,7 @@
       </header>
       <p v-if="options?.settings.deliveryEnabled === false && records.campaigns.some(c => c.state !== 'completed')" class="duo-delivery-paused" role="status"><Clock3 :size="17" aria-hidden="true" />平台暂未投放，已购剩余额度保留。活动恢复后仍需等待平台开放投放。</p>
       <div v-if="!loading && !records.campaigns.length" class="duo-empty">
-        <span class="duo-empty-icon"><ChartNoAxesCombined :size="28" aria-hidden="true" /></span>
+        <span class="duo-empty-icon"><Eye :size="28" aria-hidden="true" /></span>
         <h3>{{ page > 1 ? '本页没有推广活动' : '推广进度，从这里开始' }}</h3>
         <p>{{ page > 1 ? '可返回上一页查看已有活动。' : '开通后，已交付曝光、剩余额度和每日明细都会展示在这里。' }}</p>
         <router-link to="/seller/services"
@@ -315,7 +315,7 @@
 import { ref } from 'vue'
 import {
   ArrowUpRight,
-  ChartNoAxesCombined,
+  Eye,
   ChevronDown,
   CircleAlert,
   CircleCheck,
