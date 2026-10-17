@@ -49,7 +49,7 @@
               :disabled="busy || loading"
               :aria-describedby="currentProduct?.reason ? 'duo-product-reason' : undefined"
             >
-              <option value="">{{ options.products.length ? '选择要推广的物品' : '暂无可选择的物品' }}</option>
+              <option value="">{{ options.products.length ? '选择已上架的物品' : '暂无已上架的物品' }}</option>
               <option v-for="p in options.products" :key="p.id" :value="p.id">{{ p.name }}</option>
             </select>
             <p v-if="currentProduct?.reason" id="duo-product-reason" class="duo-field-note">
@@ -58,7 +58,7 @@
             <p v-else-if="!options.products.length" class="duo-field-note">
               先在<router-link to="/seller/products">物品管理</router-link>准备一件已上架的物品。
             </p>
-            <p v-else class="duo-field-note">同一物品不能同时持有置顶权益与未完成的 DUO+。</p>
+            <p v-else class="duo-field-note">仅展示已上架的物品。置顶、库存与曝光容量仍需符合推广条件。</p>
           </div>
           <fieldset class="duo-package-field" :disabled="busy || loading">
             <legend>曝光套餐</legend>

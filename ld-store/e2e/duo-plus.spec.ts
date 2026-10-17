@@ -113,3 +113,28 @@ test('existing rights show platform delivery suspension without claiming active 
  await expect(page.locator('.duo-campaign')).not.toContainText('投放中')
  await expect(page.locator('progress')).toHaveAttribute('value','37')
 })
+
+test('a product removed from published options is cleared before another purchase',async({page})=>{
+ await signIn(page)
+ let listed=true,creates=0
+ await page.route('**/api/shop/duo-plus/**',route=>{
+  const path=new URL(route.request().url()).pathname
+  if(route.request().method()==='POST'){creates++;return route.abort()}
+  const data=path.endsWith('/options')?{settings:{purchaseEnabled:true,deliveryEnabled:false},products:listed?[{id:7,name:'已上架物品',reason:''}]:[],packages:[{id:1,name:'试运营曝光包',target:100,price:'10.00',expected_days:7}]}:{orders:[],campaigns:[]}
+  return route.fulfill({json:{success:true,data}})
+ })
+ await page.goto('/seller/duo-plus')
+ const select=page.getByRole('combobox',{name:'推广物品',exact:true})
+ await expect(select).toContainText('选择已上架的物品')
+ await select.selectOption('7')
+ await page.getByRole('radio').check()
+ await page.getByLabel('我已阅读并接受以上规则').check()
+ await expect(page.getByRole('button',{name:'创建 LDC 支付订单'})).toBeEnabled()
+ listed=false
+ await page.getByRole('button',{name:'刷新进度'}).click()
+ await expect(select).toHaveValue('')
+ await expect(select).toContainText('暂无已上架的物品')
+ await expect(page.getByLabel('我已阅读并接受以上规则')).not.toBeChecked()
+ await expect(page.getByRole('button',{name:'创建 LDC 支付订单'})).toBeDisabled()
+ expect(creates).toBe(0)
+})
