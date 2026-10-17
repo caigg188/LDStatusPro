@@ -2,7 +2,7 @@
   <div class="merchant-services-page top-service-theme" :class="{ 'has-purchase-bar': activeTab === 'service' && !focusedOrder && products.length > 0 }">
     <div class="services-content" :inert="orderDialogOpen ? '' : null">
     <SellerPageToolbar eyebrow="推广" description="选择展示范围与推广时长，支付确认后开始服务。">
-      <template #actions>
+      <template #actions><router-link to="/seller/duo-plus" class="text-button">DUO+ 曝光推广</router-link>
         <SellerButton variant="ghost" @click="activeTab = 'board'">查看名额<ArrowRight :size="16" aria-hidden="true" /></SellerButton>
       </template>
     </SellerPageToolbar>

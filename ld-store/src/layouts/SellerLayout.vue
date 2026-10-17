@@ -285,6 +285,7 @@ const navigation = computed(() => [
     label: '经营',
     items: [
       { label: '优惠券管理', to: '/seller/coupons', activeRouteNames: ['SellerCoupons'], icon: BadgePercent },
+      { label: 'DUO+', to: '/seller/duo-plus', activeRouteNames: ['SellerDuoPlus'], icon: Sparkles },
       { label: '推广', to: '/seller/services', activeRouteNames: ['SellerServices'], icon: Sparkles },
       { label: '小店管理', to: '/seller/store', activeRouteNames: ['SellerStore'], icon: Store }
     ]

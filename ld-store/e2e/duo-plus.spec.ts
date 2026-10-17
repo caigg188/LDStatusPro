@@ -1,0 +1,55 @@
+import { test,expect,signIn,product } from './fixtures'
+test('DUO+ purchase, payment reconciliation, progress and pause remain usable on small screens',async({page},info)=>{
+ await signIn(page)
+ const requests:Record<string,unknown>[]=[]
+ let paid=false,paused=false,orderExists=false
+ const campaign=()=>({id:'00000000-0000-4000-8000-000000000001',product_id:7,target:100,delivered:37,remaining:63,state:paused?'paused':'active',pause_reason:paused?'manual':null,extended:true,internal:false,expected_at:'2026-10-16T12:00:00Z'})
+ await page.route('**/api/shop/duo-plus/**',async route=>{
+  const path=new URL(route.request().url()).pathname,method=route.request().method()
+  const ok=(data:unknown)=>route.fulfill({json:{success:true,data}})
+  if(path.endsWith('/options'))return ok({settings:{purchaseEnabled:true},products:[{id:7,name:'独立曝光推广物品',reason:orderExists?'已有未完成 DUO+ 或待支付订单':''}],packages:[{id:1,name:'试运营曝光包',target:100,price:'10.00',expected_days:7}]})
+  if(path.endsWith('/orders')&&method==='POST'){requests.push(route.request().postDataJSON());orderExists=true;return ok({orderNo:'LU123abcdef',paymentUrl:'https://payment.invalid/duo'})}
+  if(path.endsWith('/orders'))return ok({orders:orderExists?[{orderNo:'LU123abcdef',package:{name:'试运营曝光包'},amount:'10.00',status:paid?'paid':'pending',paymentUrl:paid?null:'https://payment.invalid/duo'}]:[],campaigns:paid?[campaign()]:[],updatedAt:new Date().toISOString()})
+  if(path.endsWith('/refresh')){paid=true;return ok({status:'paid'})}
+  if(path.endsWith('/pause')){paused=true;return ok({success:true})}
+  if(path.endsWith('/resume')){paused=false;return ok({success:true})}
+  if(path.includes('/campaigns/'))return ok({campaign:campaign(),series:[{day:'2026-10-17',impressions:37,clicks:3}],operations:[]})
+  return route.abort()
+ })
+ if(info.project.name==='mobile')await page.setViewportSize({width:320,height:780})
+ await page.goto('/seller/duo-plus')
+ await expect(page.getByRole('heading',{name:'购买曝光套餐'})).toBeVisible()
+ await page.getByRole('combobox',{name:'推广物品',exact:true}).selectOption('7')
+ await page.getByRole('combobox',{name:'曝光套餐',exact:true}).selectOption('1')
+ const submit=page.getByRole('button',{name:'创建 LDC 支付订单'})
+ await expect(submit).toBeDisabled();await page.getByLabel('我已阅读并接受以上规则').check();await submit.click()
+ await expect(page.getByRole('link',{name:'继续支付'})).toHaveAttribute('href','https://payment.invalid/duo')
+ expect(requests).toHaveLength(1);expect(requests[0]).toMatchObject({productId:7,packageId:1});expect(String(requests[0].requestKey)).toMatch(/^[a-f0-9-]{36}$/)
+ await page.getByRole('button',{name:'核对支付'}).click()
+ await expect(page.locator('.duo-campaign')).toContainText('已延长交付')
+ await expect(page.locator('progress')).toHaveAttribute('value','37')
+ await page.getByRole('button',{name:'每日明细'}).click();await expect(page.locator('.duo-detail')).toContainText('3 次去重点击')
+ await page.getByRole('button',{name:'暂停',exact:true}).click();await expect(page.locator('.duo-campaign')).toContainText('已暂停')
+ await page.getByRole('button',{name:'恢复并重新排期'}).click();await expect(page.locator('.duo-campaign')).toContainText('投放中')
+ for(const width of [320,390,768,1440]){
+  await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true)
+ }
+ await page.setViewportSize({width:320,height:900})
+ await expect.poll(()=>page.locator('#seller-navigation').evaluate(el=>el.getBoundingClientRect().right)).toBeLessThanOrEqual(0)
+ await page.locator('.duo-campaign').scrollIntoViewIfNeeded()
+ await page.screenshot({path:info.outputPath('duo-progress-light-320.png'),fullPage:true})
+ await page.evaluate(()=>document.documentElement.classList.add('dark'))
+ await page.screenshot({path:info.outputPath('duo-progress-dark.png'),fullPage:true})
+})
+
+test('promoted product shows an ad label and reports a foreground qualified exposure',async({page})=>{
+ await signIn(page)
+ const events:unknown[]=[]
+ await page.route('**/api/shop/products?*',route=>route.fulfill({json:{success:true,data:{products:[{...product,duo_promotion:{kind:'paid',token:'signed-paid-fixture',label:'广告'}}],pagination:{total:1,page:1,pageSize:20,totalPages:1,hasMore:false}}}}))
+ await page.route('**/api/shop/duo-plus/events',route=>{events.push(route.request().postDataJSON());return route.fulfill({json:{success:true,data:{accepted:1}}})})
+ await page.goto('/')
+ const card=page.locator('.product-card').first();await card.scrollIntoViewIfNeeded()
+ await expect(card.getByText('广告',{exact:true})).toBeVisible()
+ await expect.poll(()=>events.length).toBe(1)
+ expect(events[0]).toEqual({events:[{token:'signed-paid-fixture',type:'impression'}]})
+})

@@ -294,6 +294,12 @@ const routes = [
         meta: { title: '优惠券管理 - LD士多卖家后台' }
       },
       {
+        path: 'duo-plus',
+        name: 'SellerDuoPlus',
+        component: () => import('@/views/seller/SellerDuoPlus.vue'),
+        meta: { title: 'DUO+ 推广 - LD士多卖家后台' }
+      },
+      {
         path: 'services',
         name: 'SellerServices',
         component: () => import('@/views/MerchantServices.vue'),

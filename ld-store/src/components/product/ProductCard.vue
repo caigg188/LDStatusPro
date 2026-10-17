@@ -25,6 +25,7 @@
       <span v-if="showFeaturedBadge" class="selection-badge" :style="featuredBadgeStyle">{{ featuredBadgeText }}</span>
     </div>
     
+    <span v-if="product.duoPromotion?.kind === 'paid'" class="duo-ad-label" title="DUO+ 推广">广告</span>
     <!-- 类型标签 -->
     <div v-if="isTestMode || isCdk || isNormal || isStore || isLegacyLink" class="badge-stack">
       <span v-if="isTestMode" class="type-tag test type-tag--stacked">
@@ -118,6 +119,10 @@
 </template>
 
 <script setup>
+import { observeDuoVisibility } from '@/utils/duoVisibility'
+import { reportDuo } from '@/services/shop/duoTelemetry'
+import { authSession, captureAuthSession, isAuthSessionCurrent } from '@/utils/auth'
+
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import {
   Eye,
@@ -197,6 +202,7 @@ let resetTimer = null
 let impressionTimer = null
 let impressionObserver = null
 let impressionRecorded = false
+let stopDuoObserver = () => {}
 
 function cardElement() {
   return cardRef.value?.$el || cardRef.value || null
@@ -204,6 +210,7 @@ function cardElement() {
 
 function handleCardClick() {
   recordProductClick(props.product)
+  if (props.product.duoPromotion?.kind === 'paid') void reportDuo(props.product.duoPromotion.token, 'click')
 }
 
 function setupImpressionObserver() {
@@ -224,7 +231,7 @@ function setupImpressionObserver() {
     if (impressionRecorded || impressionTimer) return
     impressionTimer = window.setTimeout(() => {
       impressionTimer = null
-      if (impressionRecorded) return
+      if (impressionRecorded || document.visibilityState !== 'visible') return
       impressionRecorded = true
       recordProductImpression(props.product)
       impressionObserver?.disconnect()
@@ -232,8 +239,22 @@ function setupImpressionObserver() {
   }, { threshold: [0.5] })
   impressionObserver.observe(element)
 }
-onMounted(setupImpressionObserver)
+function handleDiscoveryVisibility() { if (!impressionRecorded) setupImpressionObserver() }
+onMounted(() => { setupImpressionObserver(); document.addEventListener('visibilitychange', handleDiscoveryVisibility) })
+onUnmounted(() => document.removeEventListener('visibilitychange', handleDiscoveryVisibility))
 watch(() => props.product?.discoveryToken, setupImpressionObserver, { flush: 'post' })
+function setupDuoObserver() {
+  stopDuoObserver()
+  const token = props.product?.duoPromotion?.token, element = cardElement(), session = captureAuthSession()
+  if (!token || !element || typeof IntersectionObserver === 'undefined') return
+  stopDuoObserver = observeDuoVisibility(element, () => {
+    if (isAuthSessionCurrent(session)) void reportDuo(token, 'impression', session)
+  })
+}
+onMounted(setupDuoObserver)
+watch([() => props.product?.duoPromotion?.token, () => authSession.value.revision], setupDuoObserver, { flush: 'post' })
+onUnmounted(() => stopDuoObserver())
+
 
 function lerp(start, end, factor) {
   return start + (end - start) * factor
@@ -456,6 +477,8 @@ function handleImageError(e) {
 </script>
 
 <style scoped>
+.duo-ad-label { position:absolute; z-index:2; right:10px; bottom:10px; padding:2px 7px; border:1px solid var(--border-color); border-radius:5px; color:var(--text-secondary); background:var(--bg-card); font-size:12px; line-height:1.5; }
+
 .product-card {
   --product-featured-border: var(--palette-rgba-197-151-49-0p24);
   --product-featured-shadow:
