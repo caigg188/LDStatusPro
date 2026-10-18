@@ -10,10 +10,10 @@ export const NOINDEX_POLICY = 'noindex, nofollow, noarchive'
 export const STOREFRONT_CSP = "default-src 'self'; script-src 'self' https://mxana.tacool.com https://static.cloudflareinsights.com; style-src 'self'; style-src-elem 'self'; style-src-attr 'none'; img-src 'self' https: data: blob:; font-src 'self' https: data:; connect-src 'self' https://api2.ldspro.qzz.io https://api1.ldspro.qzz.io https://api.ldspro.qzz.io https://credit.linux.do https://linux.do https://*.linux.do https://*.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
 const DYNAMIC_ROUTES = [
-  { pattern: /^\/product\/\d+\/?$/, label: '商品', fallbackTitle: '商品详情 - LD士多', fallbackDescription: '在 LD士多 查看商品详情、价格与兑换方式。' },
+  { pattern: /^\/product\/(?:\d+|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})\/?$/, label: '商品', fallbackTitle: '商品详情 - LD士多', fallbackDescription: '在 LD士多 查看商品详情、价格与兑换方式。' },
   { pattern: /^\/merchant\/[^/]+\/?$/, label: '商家主页', fallbackTitle: '商家主页 - LD士多', fallbackDescription: '浏览 LD士多 商家的公开商品与服务。' },
-  { pattern: /^\/shop\/\d+\/?$/, label: '小店', fallbackTitle: '小店详情 - LD士多', fallbackDescription: '发现 LD士多 社区成员经营的小店。' },
-  { pattern: /^\/buy-request\/\d+\/?$/, label: '求购', fallbackTitle: '求购详情 - LD士多', fallbackDescription: '查看并响应 LD士多 社区求购需求。' },
+  { pattern: /^\/shop\/(?:\d+|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})\/?$/, label: '小店', fallbackTitle: '小店详情 - LD士多', fallbackDescription: '发现 LD士多 社区成员经营的小店。' },
+  { pattern: /^\/buy-request\/(?:\d+|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})\/?$/, label: '求购', fallbackTitle: '求购详情 - LD士多', fallbackDescription: '查看并响应 LD士多 社区求购需求。' },
   { pattern: /^\/coupon\/[^/]+\/?$/, label: '优惠券', fallbackTitle: '领取优惠券 - LD士多', fallbackDescription: '领取 LD士多 商家发放的优惠券。' },
   { pattern: /^\/category\/[^/]+\/?$/, label: '分类', fallbackTitle: '分类商品 - LD士多', fallbackDescription: '浏览 LD士多 分类中的公开商品与服务。' }
 ]
@@ -383,7 +383,7 @@ export function parseOgImagePath(pathname) {
   const key = safeDecode(match[2]).trim()
   if (kind === 'default' && key === 'base') return { kind, key }
   if (!OG_IMAGE_KINDS.has(kind) || !key || key.length > 160 || key.includes('/')) return null
-  if (['product', 'shop', 'buy_request'].includes(kind) && (!/^\d+$/.test(key) || Number(key) <= 0)) return null
+  if (['product', 'shop', 'buy_request'].includes(kind) && !new RegExp('^(?:[1-9]\\d*|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}'+')$').test(key)) return null
   return { kind, key }
 }
 

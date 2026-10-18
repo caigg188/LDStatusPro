@@ -7,6 +7,7 @@
 | [ADR-0001：全站 noindex 与分享元数据并存](./adr/0001-noindex-sharing-metadata.md) | 继续禁止搜索收录、允许分享抓取的决策、门禁与重新评估条件 |
 | [前台响应式与密度合同](./responsive-layout.md) | 断点、密度 token、货架列数与小屏桌面 compact 落地顺序 |
 | [列表加载合同](./list-loading.md) | 续载、分页、失败恢复、页面返回和验收边界 |
+| [对外资源编号](./public-resource-ids.md) | UUID、历史数字链接、订单号与迁移兼容合同 |
 | [商城登录态与会话边界](./auth-session.md) | JWT 会话、跨标签页同步、请求隔离、OAuth 和回归验证 |
 | [CI / CD](../../CI.md) | 推送时的质量门禁，以及手动的 Pages 发布 |
 

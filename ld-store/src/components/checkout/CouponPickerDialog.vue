@@ -91,7 +91,7 @@ const props = defineProps({
   open: { type: Boolean, default: false },
   coupons: { type: Array, default: () => [] },
   unavailableCoupons: { type: Array, default: () => [] },
-  selectedClaimId: { type: Number, default: null },
+  selectedClaimId: { type: [String, Number], default: null },
 })
 
 const emit = defineEmits(['close', 'confirm'])

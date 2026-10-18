@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { safeParse } from 'valibot'
 import RefundDeadlineNotice from '../src/components/order/RefundDeadlineNotice.vue'
-import { RefundSchema } from '../src/contracts/commerce'
+import { RefundSchema, SellerRefundListResponseSchema } from '../src/contracts/commerce'
 import { buildRefundStages } from '../src/utils/refund'
 const wrappers = []
 afterEach(() => { wrappers.splice(0).forEach(wrapper => wrapper.unmount()); vi.useRealTimers() })
@@ -36,5 +36,11 @@ describe('refund deadline presentation', () => {
     expect(safeParse(RefundSchema, original).success).toBe(true)
     expect(safeParse(RefundSchema, { ...original, decisionDeadlineAt: null, overdue: false, allowedActions: { approve: true, reject: true, contact: true } }).success).toBe(true)
     expect(safeParse(RefundSchema, { ...original, overdue: 'false' }).success).toBe(false)
+  })
+  it('uses order numbers for public refunds without requiring internal refund IDs', () => {
+    const refund = { orderNo: 'LS_PUBLIC_REFUND', status: 'requested', refundAmount: 10, events: [] }
+    expect(safeParse(RefundSchema, refund).success).toBe(true)
+    expect(safeParse(SellerRefundListResponseSchema, { refunds: [refund], summary: {},
+      pagination: { total: 1, page: 1, pageSize: 20, totalPages: 1 } }).success).toBe(true)
   })
 })

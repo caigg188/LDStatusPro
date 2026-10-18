@@ -21,8 +21,8 @@ interface BuyRequestListOptions {
 
 interface BuyMessageListOptions {
   limit?: number
-  sinceId?: number
-  beforeId?: number
+  sinceId?: string | number
+  beforeId?: string | number
   signal?: AbortSignal
 }
 
@@ -81,9 +81,10 @@ export async function updateBuyRequestPriceRequest(requestId: string | number, p
   ), '调价失败，请稍后重试')
 }
 
-export async function fetchBuySessionDetailRequest(sessionId: string | number, signal?: AbortSignal) {
+export async function fetchBuySessionDetailRequest(sessionId: string | number, signal?: AbortSignal, requestId?: string | number) {
+  const query = requestId ? `?${new URLSearchParams({ requestId: String(requestId) })}` : ''
   return withServiceFailure(async () => validateServiceResult(
-    await api.get(`/api/shop/buy-sessions/${sessionId}`, { auth: 'required', signal }),
+    await api.get(`/api/shop/buy-sessions/${sessionId}${query}`, { auth: 'required', signal }),
     BuySessionDetailResponseSchema,
     '/api/shop/buy-sessions/:id',
     'BuySessionDetailResponse'
@@ -103,8 +104,8 @@ export async function fetchBuySessionMessagesRequest(sessionId: string | number,
   const params = new URLSearchParams({
     limit: String(options.limit || 50)
   })
-  if (Number(options.sinceId) > 0) params.set('sinceId', String(options.sinceId))
-  if (Number(options.beforeId) > 0) params.set('beforeId', String(options.beforeId))
+  if (options.sinceId) params.set('sinceId', String(options.sinceId))
+  if (options.beforeId) params.set('beforeId', String(options.beforeId))
   return withServiceFailure(async () => validateServiceResult(
     await api.get(`/api/shop/buy-sessions/${sessionId}/messages?${params.toString()}`, { auth: 'required', signal: options.signal }),
     BuyMessagesResponseSchema,
@@ -113,7 +114,7 @@ export async function fetchBuySessionMessagesRequest(sessionId: string | number,
   ), '加载会话消息失败，请稍后重试')
 }
 
-export async function markBuySessionReadRequest(sessionId: string | number, lastReadMessageId: number) {
+export async function markBuySessionReadRequest(sessionId: string | number, lastReadMessageId: string | number) {
   return validateServiceResult(
     await api.post(`/api/shop/buy-sessions/${sessionId}/read`, { lastReadMessageId }, { auth: 'required' }),
     CommerceActionResponseSchema,

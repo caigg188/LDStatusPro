@@ -22,7 +22,8 @@ import {
 const PositiveIntegerSchema = pipe(number(), integer(), minValue(1))
 const NonnegativeIntegerSchema = pipe(number(), integer(), minValue(0))
 const NumericIdStringSchema = pipe(string(), regex(/^[1-9]\d*$/))
-const EntityIdSchema = union([PositiveIntegerSchema, NumericIdStringSchema])
+const DictionaryIdSchema = union([PositiveIntegerSchema, NumericIdStringSchema])
+const EntityIdSchema = union([DictionaryIdSchema, pipe(string(), regex(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i))])
 const NonemptyStringSchema = pipe(string(), minLength(1))
 
 export const PostgreSqlCountSchema = union([
@@ -49,7 +50,7 @@ export const PostgreSqlCountPaginationSchema = looseObject({
 })
 
 export const CategorySchema = looseObject({
-  id: EntityIdSchema,
+  id: DictionaryIdSchema,
   name: NonemptyStringSchema,
   icon: optional(nullable(string())),
   visibilityTrustLevel: optional(nullable(number()))

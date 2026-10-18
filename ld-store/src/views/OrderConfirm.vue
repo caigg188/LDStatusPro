@@ -312,6 +312,7 @@
 </template>
 
 <script setup>
+import { normalizeResourceId } from '@/utils/resourceId'
 import FulfillmentPolicyNotice from '@/components/order/FulfillmentPolicyNotice.vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
@@ -395,8 +396,8 @@ const submissionError = ref('')
 const errorSummaryRef = ref(null)
 
 const productId = computed(() => {
-  const parsed = Number.parseInt(route.params.productId, 10)
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 0
+  const parsed = normalizeResourceId(route.params.productId)
+  return !!parsed ? parsed : 0
 })
 const checkoutSessionKey = userStore.sessionKey
 const isCheckoutActive = () => checkoutActive && userStore.ensureValidSession() && userStore.sessionKey === checkoutSessionKey

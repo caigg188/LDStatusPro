@@ -1,3 +1,4 @@
+import { normalizeResourceId } from '@/utils/resourceId'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchProductImagesRequest } from '@/services/shop/inventoryService'
@@ -372,7 +373,7 @@ export function useTopServicePurchase() {
     if (!productId) return
     const loaded = await loadOptions()
     if (!loaded || disposed) return
-    let existing = products.value.find(p => Number(p.id) === productId)?.currentTopOrder
+    let existing = products.value.find(p => normalizeResourceId(p.id) === productId)?.currentTopOrder
     // The product may have been taken off sale while creation was in flight, so
     // absence from purchase options alone cannot establish that no order exists.
     if (!existing) {
@@ -387,7 +388,7 @@ export function useTopServicePurchase() {
           })
           if (!response?.success) throw new Error(getTopServiceError(response, '暂时无法核对购买记录，请重试，不要重复下单。'))
           if (disposed) return
-          existing = response.data?.orders?.find(order => Number(order.productId) === productId && ['pending', 'active', 'suspended'].includes(order.status))
+          existing = response.data?.orders?.find(order => normalizeResourceId(order.productId) === productId && ['pending', 'active', 'suspended'].includes(order.status))
           totalPages = Number(response.data?.pagination?.totalPages || 1)
           page++
         } while (!existing && page <= totalPages)
@@ -409,7 +410,7 @@ export function useTopServicePurchase() {
   async function submitOrder() {
     if (!canSubmit.value || submitting.value) return
     const quote = Object.freeze({
-      productId: Number(selectedProduct.value.id), productName: selectedProduct.value.name, categoryId: Number(selectedProduct.value.categoryId),
+      productId: normalizeResourceId(selectedProduct.value.id), productName: selectedProduct.value.name, categoryId: Number(selectedProduct.value.categoryId),
       packageType: selectedConfig.value.packageType, durationDays: Number(selectedConfig.value.durationDays), amount: Number(selectedConfig.value.price)
     })
     submitting.value = true

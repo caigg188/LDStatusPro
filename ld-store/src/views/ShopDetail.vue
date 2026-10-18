@@ -198,6 +198,7 @@ async function loadShopDetail() {
     const result = await fetchShopDetailRequest(shopId)
     if (result.success && result.data) {
       shop.value = result.data
+      if (String(route.params.id) !== String(shop.value.id)) await router.replace({ ...route, params: { ...route.params, id: shop.value.id } })
     } else {
       error.value = result.error?.message || '小店不存在或已下架'
     }

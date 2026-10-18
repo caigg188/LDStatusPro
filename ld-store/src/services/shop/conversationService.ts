@@ -1,3 +1,4 @@
+import { normalizeResourceId } from '@/utils/resourceId'
 import { api } from '@/utils/api'
 import { ConversationListResponseSchema, NotificationSummaryResponseSchema } from '@/contracts/commerce'
 import { validateServiceResult, withServiceFailure } from '@/services/serviceContract'
@@ -51,8 +52,8 @@ export async function fetchMyConversations(options: ConversationOptions = {}) {
 export function resolveConversationPath(item: Record<string, unknown>): string {
   if (item?.chatPath) return String(item.chatPath)
   const request = item.request && typeof item.request === 'object' ? item.request as Record<string, unknown> : null
-  const requestId = Number(item?.requestId || request?.id || 0)
-  const sessionId = Number(item?.sessionId || item?.sourceId || item?.id || 0)
+  const requestId = normalizeResourceId(item?.requestId || request?.id || 0)
+  const sessionId = normalizeResourceId(item?.sessionId || item?.sourceId || item?.id || 0)
   if (!requestId || !sessionId) return ''
   return `/buy-request/${requestId}?session=${sessionId}`
 }

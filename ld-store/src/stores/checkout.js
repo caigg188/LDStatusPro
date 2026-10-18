@@ -1,3 +1,4 @@
+import { normalizeResourceId } from '@/utils/resourceId'
 import { useSessionScope } from '@/composables/useSessionScope'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
@@ -8,10 +9,10 @@ export const ORDER_CONFIRM_DRAFT_KEY = 'ld-store-order-confirm-draft'
 export const ORDER_CONFIRM_DRAFT_TTL_MS = 30 * 60 * 1000
 
 export function shouldPreserveCheckoutDraft(to, productId) {
-  const currentProductId = toPositiveInt(productId, 0)
+  const currentProductId = normalizeResourceId(productId)
   return String(to?.name || '') === 'ProductDetail'
-    && currentProductId > 0
-    && toPositiveInt(to?.params?.id, 0) === currentProductId
+    && !!currentProductId
+    && normalizeResourceId(to?.params?.id) === currentProductId
 }
 
 function getSessionStorage() {
@@ -34,14 +35,13 @@ function toCheckoutQuantity(value, fallback = 1) {
 
 function normalizeCouponClaimId(value) {
   if (value === null || value === undefined || value === '') return null
-  const parsed = Number.parseInt(value, 10)
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null
+  return normalizeResourceId(value) || null
 }
 
 export function normalizeOrderConfirmDraft(value) {
   if (!value || typeof value !== 'object') return null
 
-  const productId = toPositiveInt(value.productId, 0)
+  const productId = normalizeResourceId(value.productId)
   if (!productId) return null
 
   const updatedAt = Number(value.updatedAt || 0)
@@ -95,12 +95,12 @@ export const useCheckoutStore = defineStore('checkout', () => {
       persistDraft(null)
       return null
     }
-    if (productId !== null && current.productId !== toPositiveInt(productId, 0)) return null
+    if (productId !== null && current.productId !== normalizeResourceId(productId)) return null
     return current
   }
 
   function setDraft(nextDraft) {
-    const currentProductId = toPositiveInt(nextDraft?.productId, 0)
+    const currentProductId = normalizeResourceId(nextDraft?.productId)
     if (!currentProductId) return null
 
     const current = getDraft(currentProductId)
@@ -129,7 +129,7 @@ export const useCheckoutStore = defineStore('checkout', () => {
   }
 
   function startCheckout({ productId, quantity, sourceFullPath = '', sourceScrollY = 0 }) {
-    const normalizedProductId = toPositiveInt(productId, 0)
+    const normalizedProductId = normalizeResourceId(productId)
     if (!normalizedProductId) return null
 
     const activeDraft = getDraft()

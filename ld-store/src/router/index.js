@@ -1,3 +1,4 @@
+import { fetchProductRequest } from '@/services/shop/catalogService'
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useMerchantEnforcementStore } from '@/stores/merchantEnforcement'
@@ -43,6 +44,12 @@ const routes = [
   },
   {
     path: '/checkout/:productId',
+    beforeEnter: async (to) => {
+      if (!/^[1-9]\d*$/.test(String(to.params.productId))) return
+      const result = await fetchProductRequest(String(to.params.productId))
+      const id = result.success ? result.data.product.id : null
+      if (id && String(id) !== String(to.params.productId)) return { name: 'OrderConfirm', params: { productId: id }, query: to.query, hash: to.hash, replace: true }
+    },
     name: 'OrderConfirm',
     component: () => import('@/views/OrderConfirm.vue'),
     meta: { title: '确认订单 - LD士多', requiresAuth: true }

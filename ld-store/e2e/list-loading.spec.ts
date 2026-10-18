@@ -1,11 +1,13 @@
 import { test, expect, product, signIn } from './fixtures'
 
-const products = (start: number, count: number) => Array.from({ length: count }, (_, i) => ({ ...product, id: start + i, name: `分页物品 ${start + i}` }))
+// Deterministic UUIDv4 fixtures exercise list loading after the ID cutover.
+const resourceId = (value: number) => `a1111111-1111-4111-8111-${String(value).padStart(12, '0')}`
+const products = (start: number, count: number) => Array.from({ length: count }, (_, i) => ({ ...product, id: resourceId(start + i), name: `分页物品 ${start + i}` }))
 const pagination = (page: number, total = 40, pageSize = 20) => ({ page, total, pageSize, totalPages: Math.ceil(total / pageSize), hasMore: page * pageSize < total })
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/shop/products/46', route => route.fulfill({ json: { success: true, data: { product: { ...product, id: 46 } } } }))
-  await page.route('**/api/shop/products/46/comments*', route => route.fulfill({ json: { success: true, data: { commentEnabled: true, comments: [], pagination: pagination(1, 0), summary: {} } } }))
+  await page.route(`**/api/shop/products/${resourceId(46)}`, route => route.fulfill({ json: { success: true, data: { product: { ...product, id: resourceId(46) } } } }))
+  await page.route(`**/api/shop/products/${resourceId(46)}/comments*`, route => route.fulfill({ json: { success: true, data: { commentEnabled: true, comments: [], pagination: pagination(1, 0), summary: {} } } }))
   await page.route('**/api/shop/search/suggestions*', route => route.fulfill({ json: { success: true, data: { normalizedQuery: '', suggestions: [], source: 'fallback' } } }))
 })
 
@@ -17,7 +19,7 @@ test('shop filtering keeps automatic loading connected to the current list', asy
     reads.push(current)
     await new Promise(resolve => setTimeout(resolve, 30))
     return route.fulfill({ json: { success: true, data: {
-      shops: Array.from({ length: 20 }, (_, i) => ({ id: (current - 1) * 20 + i + 1, name: `分页小店 ${i + 1}`, ownerUsername: 'fixture', tags: '[]' })),
+      shops: Array.from({ length: 20 }, (_, i) => ({ id: resourceId((current - 1) * 20 + i + 1), name: `分页小店 ${i + 1}`, ownerUsername: 'fixture', tags: '[]' })),
       pagination: pagination(current),
     } } })
   })
@@ -40,7 +42,7 @@ test('shop append failure preserves results and retries the failed page', async 
     reads.push(current)
     if (current === 2 && !failed) { failed = true; return route.fulfill({ status: 503, json: { success: false, message: '模拟分页失败' } }) }
     return route.fulfill({ json: { success: true, data: {
-      shops: Array.from({ length: 20 }, (_, i) => ({ id: (current - 1) * 20 + i + 1, name: `分页小店 ${i + 1}`, ownerUsername: 'fixture', tags: '[]' })),
+      shops: Array.from({ length: 20 }, (_, i) => ({ id: resourceId((current - 1) * 20 + i + 1), name: `分页小店 ${i + 1}`, ownerUsername: 'fixture', tags: '[]' })),
       pagination: pagination(current),
     } } })
   })
@@ -74,7 +76,7 @@ test('search retries append failures and preserves loaded results after visiting
   await expect(page.locator('.product-card')).toHaveCount(40)
   expect(reads).toEqual([1, 2, 2])
   await page.locator('.product-card').last().click()
-  await expect(page).toHaveURL(/\/product\/46$/)
+  await expect(page).toHaveURL(`/product/${resourceId(46)}`)
   await page.goBack()
   await expect(page.locator('.product-card')).toHaveCount(40)
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(300)
@@ -129,7 +131,7 @@ test('favorites keep appended pages when returning from product detail', async (
   await page.locator('.load-more button').click()
   await expect(page.locator('.collection-card')).toHaveCount(40)
   await page.locator('.collection-card').last().getByRole('link', { name: '查看详情' }).click()
-  await expect(page).toHaveURL(/\/product\/46$/)
+  await expect(page).toHaveURL(`/product/${resourceId(46)}`)
   await page.goBack()
   await expect(page.locator('.collection-card')).toHaveCount(40)
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(300)
@@ -140,7 +142,7 @@ test('my requests exposes later pages beyond the previous 100-item cap', async (
   await page.route('**/api/shop/buy-requests/my?*', route => {
     const current = Number(new URL(route.request().url()).searchParams.get('page'))
     return route.fulfill({ json: { success: true, data: {
-      requests: Array.from({ length: current === 6 ? 1 : 20 }, (_, i) => ({ id: (current - 1) * 20 + i + 1, title: `求购分页 ${(current - 1) * 20 + i + 1}`, status: 'open', budgetPrice: 1, details: '隔离分页场景' })),
+      requests: Array.from({ length: current === 6 ? 1 : 20 }, (_, i) => ({ id: resourceId((current - 1) * 20 + i + 1), title: `求购分页 ${(current - 1) * 20 + i + 1}`, status: 'open', budgetPrice: 1, details: '隔离分页场景' })),
       pagination: pagination(current, 101),
     } } })
   })
@@ -161,7 +163,7 @@ test('request marketplace keeps one batch seed across pages and rotates explicit
     reads.push(params)
     const current = Number(params.get('page'))
     return route.fulfill({ json: { success: true, data: {
-      requests: [{ id: current, title: `求购批次 ${current}`, status: 'open', budgetPrice: 1, details: '隔离批次' }],
+      requests: [{ id: resourceId(current), title: `求购批次 ${current}`, status: 'open', budgetPrice: 1, details: '隔离批次' }],
       pagination: pagination(current),
     } } })
   })
@@ -184,9 +186,9 @@ test('returning favorites refreshes changed preferences while keeping loaded dep
     return route.fulfill({ json: { success: true, data: { products: items.slice((current - 1) * 20, current * 20), pagination: pagination(current, items.length) } } })
   })
   await page.route('**/api/shop/blocked-products?*', route => route.fulfill({ json: { success: true, data: { products: [], pagination: pagination(1, 0) } } }))
-  await page.route('**/api/shop/products/46', route => route.fulfill({ json: { success: true, data: { product: { ...product, id: 46, isFavorited: true } } } }))
-  await page.route('**/api/shop/products/46/favorite', route => {
-    items = items.filter(item => item.id !== 46)
+  await page.route(`**/api/shop/products/${resourceId(46)}`, route => route.fulfill({ json: { success: true, data: { product: { ...product, id: resourceId(46), isFavorited: true } } } }))
+  await page.route(`**/api/shop/products/${resourceId(46)}/favorite`, route => {
+    items = items.filter(item => item.id !== resourceId(46))
     return route.fulfill({ json: { success: true, data: {} } })
   })
   await page.goto('/user/favorites')

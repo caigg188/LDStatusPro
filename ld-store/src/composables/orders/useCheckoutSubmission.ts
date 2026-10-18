@@ -1,13 +1,14 @@
+import { normalizeResourceId } from '@/utils/resourceId'
 import { ref } from 'vue'
 import type { ApiResult } from '@/utils/api'
 import { captureAuthSession, isAuthSessionCurrent } from '@/utils/auth'
 
-interface Input { productId: number; quantity: number; couponClaimId: number | null; expectedAmount: number }
+interface Input { productId: string | number; quantity: number; couponClaimId: string | number | null; expectedAmount: number }
 interface Pending extends Input { token: string }
 interface Created { status?: string; paymentResolutionDeadline?: string | null; orderNo: string; orderId: string | number; paymentUrl?: string | null; paymentState?: string; retryAfterSeconds?: number | null }
 interface Options {
   owner: string
-  productId: number
+  productId: string | number
   create: (input: Pending) => Promise<ApiResult<Created>>
   lookup: (token: string) => Promise<ApiResult<{ exists: boolean; order: Created | null }>>
   wait?: () => Promise<void>
@@ -35,7 +36,7 @@ export function useCheckoutSubmission(options: Options) {
     const value = JSON.parse(sessionStorage.getItem(key) || 'null')
     if (value?.productId === options.productId && /^ord_[a-zA-Z0-9_-]{16,80}$/.test(value?.token)
       && Number.isInteger(value.quantity) && value.quantity > 0 && Number.isFinite(value.expectedAmount)
-      && (value.couponClaimId === null || Number.isInteger(value.couponClaimId))) saved = value
+      && (value.couponClaimId === null || !!normalizeResourceId(value.couponClaimId))) saved = value
   } catch { /* Memory still protects retries when storage is unavailable. */ }
   const pending = ref<Pending | null>(saved)
   const confirmed = ref<Created | null>(null)

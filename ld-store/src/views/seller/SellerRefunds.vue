@@ -28,7 +28,7 @@
       :columns="columns"
       :rows="refunds"
       :loading="loading"
-      row-key="id"
+      row-key="orderNo"
     >
       <template #cell-orderNo="{ row }">
         <router-link :to="detailTarget(row)" class="refund-order-link">

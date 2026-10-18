@@ -14,6 +14,7 @@ const env = {
   LD_STORE_SITE_URL: 'https://ldcstore.com/',
   LD_STORE_META_API_BASE: 'https://api2.example.com'
 }
+const publicId = 'aaaaaaaa-1111-4111-8111-111111111111'
 
 const productMetadata = {
   kind: 'product',
@@ -114,6 +115,9 @@ describe('share metadata resolution', () => {
     '/merchant/alice',
     '/shop/7',
     '/buy-request/9',
+    `/product/${publicId}`,
+    `/shop/${publicId}`,
+    `/buy-request/${publicId}`,
     '/coupon/coupon-token',
     '/category/AI%20%E6%9C%8D%E5%8A%A1'
   ])('uses the unified side-effect-free endpoint for %s', async path => {
@@ -282,6 +286,9 @@ describe('same-origin OG image proxy', () => {
   it.each([
     ['/og/product/42.png', { kind: 'product', key: '42' }],
     ['/og/buy_request/9.png', { kind: 'buy_request', key: '9' }],
+    [`/og/product/${publicId}.png`, { kind: 'product', key: publicId }],
+    [`/og/shop/${publicId}.png`, { kind: 'shop', key: publicId }],
+    [`/og/buy_request/${publicId}.png`, { kind: 'buy_request', key: publicId }],
     ['/og/merchant/%E5%BC%A0%E4%B8%89.png', { kind: 'merchant', key: '张三' }],
     ['/og/default/base.png', { kind: 'default', key: 'base' }]
   ])('parses %s', (path, expected) => {
@@ -314,6 +321,17 @@ describe('same-origin OG image proxy', () => {
     expect(response.headers.get('x-robots-tag')).toBe(NOINDEX_POLICY)
     expect(new URL(upstreamFetch.mock.calls[0][0]).pathname).toBe('/api/shop/share-image/product/42')
     expect(edgeCache.put).toHaveBeenCalledOnce()
+  })
+  it('forwards UUID image keys intact to the API', async () => {
+    const upstream = vi.fn(async () => new Response(pngHeader(), { headers: { 'content-type': 'image/png' } }))
+    vi.stubGlobal('fetch', upstream)
+    vi.stubGlobal('caches', { default: { match: vi.fn(async () => null), put: vi.fn(async () => undefined) } })
+    const pending = []
+    const response = await handleOgImage(new Request(`https://ldcstore.com/og/product/${publicId}.png?v=test`), env,
+      { waitUntil: promise => pending.push(promise) })
+    await Promise.all(pending)
+    expect(response.status).toBe(200)
+    expect(new URL(upstream.mock.calls[0][0]).pathname).toBe(`/api/shop/share-image/product/${publicId}`)
   })
 
   it('serves cached images to HEAD without contacting the backend', async () => {

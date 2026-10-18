@@ -1,3 +1,4 @@
+import { normalizeResourceId } from '@/utils/resourceId'
 import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { duoApi } from '@/services/shop/duoPlusService'
 import { authSession, captureAuthSession, isAuthSessionCurrent } from '@/utils/auth'
@@ -39,7 +40,7 @@ export function useDuoPlus() {
     if (reason.value) return
     if (!requestKey.value) requestKey.value = crypto.randomUUID()
     await mutate(async session => {
-      const o = await unwrap(duoApi.create({ productId: Number(productId.value), packageId: Number(packageId.value), requestKey: requestKey.value }), session)
+      const o = await unwrap(duoApi.create({ productId: normalizeResourceId(productId.value), packageId: Number(packageId.value), requestKey: requestKey.value }), session)
       notice.value = o.paymentUrl ? '订单已创建，请在下方购买记录中继续支付。' : '订单已保留，正在核实支付链接，请勿重复下单。'
       requestKey.value = ''
     })
