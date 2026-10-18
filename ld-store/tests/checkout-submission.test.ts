@@ -121,8 +121,8 @@ it('still recovers a committed order after the transport times out', async () =>
   controller.complete()
 })
 
-describe('numeric pending intents across the UUID cutover', () => {
-  const productId = 'aaaaaaaa-1111-4111-8111-111111111111'
+describe('historical product pending intents across the UUID cutover', () => {
+  const productId = 7
   const couponClaimId = 'bbbbbbbb-2222-4222-8222-222222222222'
   const token = 'ord_original_numeric_pending_1234'
   const original = { ...input, token }
@@ -137,12 +137,12 @@ describe('numeric pending intents across the UUID cutover', () => {
     const options = { owner, productId, create, lookup, wait: async () => {} }
     return { owner, create, lookup, options, controller: useCheckoutSubmission(options) }
   }
-  it('finds a numeric intent on direct UUID entry and recovers the original committed order', async () => {
+  it('keeps the numeric product key and recovers the original committed order', async () => {
     const { owner, controller, create, lookup } = legacySetup()
     expect(await controller.restore()).toBe(true)
     expect(controller.pending.value).toEqual({ ...original, productId, couponClaimId })
     expect(lookup).toHaveBeenCalledWith(token, original)
-    expect(sessionStorage.getItem(key(owner, 7))).toBeNull()
+    expect(JSON.parse(sessionStorage.getItem(key(owner, 7))!).productId).toBe(7)
     expect(await controller.recover(true)).toMatchObject({ success: true, data: order })
     expect(create).not.toHaveBeenCalled()
     controller.complete()
@@ -179,14 +179,42 @@ describe('numeric pending intents across the UUID cutover', () => {
     }
     controller.stop()
   })
-  it('blocks conflicting tokens instead of replacing one pending order with another', async () => {
-    const { owner, controller, create } = legacySetup()
+  it('does not let an unrelated product pending record block this checkout', async () => {
+    const { owner, controller, lookup } = legacySetup()
     sessionStorage.setItem(key(owner, 8), JSON.stringify({ ...original, productId: 8, token: 'ord_another_numeric_pending_1234' }))
-    expect(await controller.restore()).toBe(false)
-    await controller.recover(true)
-    expect(controller.restorationBlocked.value).toBe(true)
-    expect(create).not.toHaveBeenCalled()
+    expect(await controller.restore()).toBe(true)
+    expect(lookup).toHaveBeenCalledExactlyOnceWith(token, original)
+    expect(controller.pending.value?.token).toBe(token)
+    controller.complete()
     expect(sessionStorage.getItem(key(owner, 8))).not.toBeNull()
+  })
+  it('rechecks a numeric coupon when the same page crosses the server cutover', async () => {
+    const { controller, lookup, create } = legacySetup()
+    lookup.mockResolvedValue(absent) // Preparation-mode server, no mapping yet.
+    expect(await controller.restore()).toBe(true)
+    expect(controller.pending.value).toEqual(original)
+    lookup.mockResolvedValue(unknown) // The cutover happens while this page stays open.
+    expect(await controller.recover(true)).toMatchObject({ success: false })
+    expect(controller.restorationBlocked.value).toBe(true)
+    expect(controller.pending.value?.token).toBe(token)
+    expect(create).not.toHaveBeenCalled()
+    lookup.mockImplementation(async (_token, legacy) => ({ ...absent, data: { ...absent.data, ...(legacy ? { legacyIntent: { productId, couponClaimId } } : {}) } }))
+    expect(await controller.recover(true)).toMatchObject({ success: true })
+    expect(create).toHaveBeenCalledExactlyOnceWith({ ...original, productId, couponClaimId })
+    controller.complete()
+  })
+  it('retains an uncertain token when the server requires public IDs instead of treating it as a definitive rejection', async () => {
+    const { controller, lookup, create } = legacySetup()
+    lookup.mockResolvedValue(absent)
+    create.mockResolvedValue({ ...unknown, kind: 'http', status: 400, errorCode: 'PUBLIC_ID_REQUIRED' })
+    await controller.recover(true)
+    expect(controller.pending.value?.token).toBe(token)
+    create.mockClear()
+    lookup.mockResolvedValue(unknown)
+    await controller.recover(true)
+    expect(create).not.toHaveBeenCalled()
+    expect(controller.pending.value?.token).toBe(token)
+    controller.complete()
   })
   it('restores memory-only intents when browser storage is unavailable', async () => {
     const { options: oldOptions, controller: oldController } = setup()
@@ -202,7 +230,7 @@ describe('numeric pending intents across the UUID cutover', () => {
       controller.complete()
     } finally { storage.mockRestore() }
   })
-  it('clears all memory aliases after a definitive rejection of a restored intent', async () => {
+  it('clears the numeric memory key after a definitive rejection of a restored intent', async () => {
     const { options: oldOptions, controller: oldController } = setup()
     const storage = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('storage blocked') })
     try {

@@ -38,7 +38,6 @@ export function getCheckoutSubmissionError(result: unknown) {
 
 export function useCheckoutSubmission(options: Options) {
   const key = `${prefix}${JSON.stringify([options.owner, options.productId])}`
-  const aliases = new Set([key])
   let saved = memory.get(key) || null
   try {
     const value = JSON.parse(sessionStorage.getItem(key) || 'null')
@@ -53,15 +52,16 @@ export function useCheckoutSubmission(options: Options) {
   let active = true
   const session = captureAuthSession()
   const isActive = () => active && !session.changed && isAuthSessionCurrent(session)
+  const confirmedIsResolved = () => confirmed.value && (['cancelled', 'expired', 'paid', 'delivered', 'completed'].includes(confirmed.value.status || '') || !['pending', 'creating', 'unknown'].includes(confirmed.value.paymentState || ''))
   const stopped = (): ApiResult<Created> => ({ success: false, status: 0, error: '', errorCode: 'SESSION_CHANGED', kind: 'abort', aborted: true, abortReason: 'caller' })
 
   function persist(value: Pending | null) {
     pending.value = value
     if (value) memory.set(key, value)
-    else for (const alias of aliases) memory.delete(alias)
+    else memory.delete(key)
     try {
       if (value) sessionStorage.setItem(key, JSON.stringify(value))
-      else for (const alias of aliases) sessionStorage.removeItem(alias)
+      else sessionStorage.removeItem(key)
       return true
     } catch { /* Keep the in-memory intent. */ }
     return false
@@ -71,51 +71,32 @@ export function useCheckoutSubmission(options: Options) {
     error: '暂时无法确认订单是否创建，请确认本次订单结果，避免重复兑换。' })
 
   async function restore() {
-    if (restored) return isActive()
+    if (confirmedIsResolved()) return isActive()
+    // A page can stay open while the server cuts over. A numeric coupon must be
+    // checked again on every recovery until the server supplies its public reference.
+    if (restored && !(pending.value && pending.value.couponClaimId !== null
+      && typeof normalizeResourceId(pending.value.couponClaimId) === 'number')) return isActive()
     if (restoring) return restoring
     restoring = (async () => {
       checking.value = true
       restorationBlocked.value = false
       try {
-        // A direct UUID visit must find old numeric keys too, not only a numeric redirect.
-        const candidates = new Map(memory)
-        try {
-          for (let index = 0; index < sessionStorage.length; index++) {
-            const alias = sessionStorage.key(index)
-            if (alias?.startsWith(prefix)) {
-              try { candidates.set(alias, JSON.parse(sessionStorage.getItem(alias) || 'null')) } catch { /* Ignore corrupt entries. */ }
-            }
+        // Historical products keep their numeric key. Only an old coupon reference
+        // needs translation, while the original token and purchase intent stay intact.
+        const intent = pending.value
+        if (intent && typeof normalizeResourceId(intent.productId) === 'number'
+          && intent.couponClaimId !== null && typeof normalizeResourceId(intent.couponClaimId) === 'number') {
+          const result = await options.lookup(intent.token, intent)
+          if (!isActive()) return false
+          const mapped = result.success ? result.data.legacyIntent : null
+          if (!result.success || (mapped && (normalizeResourceId(mapped.productId) !== normalizeResourceId(options.productId)
+            || typeof normalizeResourceId(mapped.couponClaimId) !== 'string'))) {
+            restorationBlocked.value = true
+          } else {
+            if (mapped) persist({ ...intent, couponClaimId: mapped.couponClaimId })
+            if (result.success && result.data.exists && result.data.order) confirmed.value = result.data.order
           }
-        } catch { /* In-memory intents remain available when browser storage is blocked. */ }
-        if (typeof normalizeResourceId(options.productId) === 'string') {
-          for (const [alias, intent] of candidates) {
-            let owner, productId
-            try { [owner, productId] = JSON.parse(alias.slice(prefix.length)) } catch { continue }
-            if (owner !== options.owner || typeof normalizeResourceId(productId) !== 'number'
-              || !normalizeResourceId(productId) || !validPending(intent, productId)) continue
-            const result = await options.lookup(intent.token, intent)
-            if (!isActive()) return false
-            const mapped = result.success ? result.data.legacyIntent : null
-            if (!mapped || typeof normalizeResourceId(mapped.productId) !== 'string'
-              || (mapped.couponClaimId !== null && typeof normalizeResourceId(mapped.couponClaimId) !== 'string')) {
-              restorationBlocked.value = true
-              continue
-            }
-            if (normalizeResourceId(mapped.productId) !== normalizeResourceId(options.productId)) continue
-            const canonical = { ...intent, productId: options.productId, couponClaimId: mapped.couponClaimId }
-            aliases.add(alias)
-            if (pending.value && (pending.value.token !== canonical.token
-              || pending.value.quantity !== canonical.quantity || pending.value.expectedAmount !== canonical.expectedAmount
-              || pending.value.couponClaimId !== canonical.couponClaimId)) {
-              restorationBlocked.value = true
-              continue
-            }
-            // Never delete the old durable key until the canonical copy is durable.
-            if (persist(canonical)) {
-              try { sessionStorage.removeItem(alias) } catch { /* Both aliases are safe to retain. */ }
-              memory.delete(alias)
-            }
-          }
+          // Preparation-mode servers omit legacyIntent and still accept numeric coupons.
         }
         restored = !restorationBlocked.value
         return restored && isActive()
@@ -149,8 +130,9 @@ export function useCheckoutSubmission(options: Options) {
     try { result = await options.create({ ...pending.value }) } catch { result = unknown() }
     if (!isActive() || (!result.success && result.errorCode === 'SESSION_CHANGED')) return stopped()
     if (result.success) { confirmed.value = result.data; return result }
+    if (result.errorCode === 'PUBLIC_ID_REQUIRED') restored = false
     const uncertain = result.status === 0 || result.status >= 500 || result.kind === 'contract'
-      || result.errorCode === 'ORDER_SUBMISSION_CONFLICT'
+      || ['ORDER_SUBMISSION_CONFLICT', 'PUBLIC_ID_REQUIRED'].includes(result.errorCode || '')
     if (!uncertain) { persist(null); return result }
     return lookup()
   }
@@ -168,7 +150,7 @@ export function useCheckoutSubmission(options: Options) {
     if (checking.value || !pending.value || !isActive()) return unknown()
     checking.value = true
     try {
-      if (confirmed.value && (['cancelled', 'expired', 'paid', 'delivered', 'completed'].includes(confirmed.value.status || '') || !['pending', 'creating', 'unknown'].includes(confirmed.value.paymentState || ''))) return { success: true as const, status: 200, data: confirmed.value }
+      if (confirmed.value && confirmedIsResolved()) return { success: true as const, status: 200, data: confirmed.value }
       const result = await lookup()
       // Only an explicit retry replays the exact original payload and token.
       // Backend checks the original expected amount before creating anything.
