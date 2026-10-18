@@ -109,9 +109,10 @@ export async function createOrderRequest(
   ), '创建订单失败，请稍后重试')
 }
 
-export async function getOrderSubmissionRequest(token: string) {
+export async function getOrderSubmissionRequest(token: string, legacy?: { productId: string | number; couponClaimId: string | number | null }) {
+  const query = legacy ? `?${new URLSearchParams({ legacyProductId: String(legacy.productId), legacyCouponClaimId: legacy.couponClaimId === null ? '' : String(legacy.couponClaimId) })}` : ''
   return withServiceFailure(async () => validateServiceResult(
-    await api.get(`/api/shop/order-submissions/${encodeURIComponent(token)}`, { auth: 'required' }),
+    await api.get(`/api/shop/order-submissions/${encodeURIComponent(token)}${query}`, { auth: 'required' }),
     OrderSubmissionResponseSchema,
     '/api/shop/order-submissions/:token',
     'OrderSubmissionResponse'

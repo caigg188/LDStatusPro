@@ -160,7 +160,8 @@ export const OrderCreatedResponseSchema = looseObject({
 
 export const OrderSubmissionResponseSchema = looseObject({
   exists: boolean(),
-  order: nullable(OrderCreatedResponseSchema)
+  order: nullable(OrderCreatedResponseSchema),
+  legacyIntent: optional(looseObject({ productId: EntityIdSchema, couponClaimId: nullable(EntityIdSchema) }))
 })
 
 export const OrderPaymentResponseSchema = looseObject({

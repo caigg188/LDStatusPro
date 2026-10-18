@@ -6,14 +6,16 @@
         <span>返回物品详情</span>
       </button>
 
-      <div v-if="pendingSubmission" class="submission-error" role="status" aria-live="polite">
+      <div v-if="pendingSubmission || restorationBlocked" class="submission-error" role="status" aria-live="polite">
         <CircleAlert :size="20" aria-hidden="true" />
         <div>
           <strong>{{ confirmedSubmission ? '订单已创建' : '正在确认本次订单结果' }}</strong>
           <p>{{ confirmedSubmission ? '请进入订单详情查看状态并继续支付。' : '网络可能中断，订单仍可能已创建。请先确认本次结果，避免重复兑换。' }}</p>
-          <button type="button" class="state-action" :disabled="submitting || checkingSubmission" @click="recoverSubmission(true)">
+          <p v-if="restorationBlocked">旧订单记录尚未确认，请重试查询，或前往我的订单核对。</p>
+          <button type="button" class="state-action" :disabled="submitting || checkingSubmission" @click="restorationBlocked ? initializeCheckout() : recoverSubmission(true)">
             {{ checkingSubmission || submitting ? '正在确认…' : confirmedSubmission ? '进入订单详情' : '确认并继续本次订单' }}
           </button>
+          <RouterLink v-if="restorationBlocked" class="state-action" to="/user/orders">查看我的订单</RouterLink>
         </div>
       </div>
 
@@ -288,7 +290,7 @@
       </template>
     </section>
 
-    <div v-if="product && !pendingSubmission" class="mobile-confirm-bar">
+    <div v-if="product && !pendingSubmission && !restorationBlocked" class="mobile-confirm-bar">
       <div>
         <span>最终应付 · {{ quantity }} 件</span>
         <strong>{{ formatMoney(payableAmount) }} LDC</strong>
@@ -405,9 +407,9 @@ const submission = useCheckoutSubmission({
   owner: JSON.stringify([userStore.user?.site || 'linux.do', String(userStore.user?.id || '')]),
   productId: productId.value,
   create: input => orderStore.createOrder(input.productId, input.quantity, input.couponClaimId, input.token, input.expectedAmount),
-  lookup: token => orderStore.getOrderSubmission(token),
+  lookup: (token, legacy) => orderStore.getOrderSubmission(token, legacy),
 })
-const { pending: pendingSubmission, checking: checkingSubmission, confirmed: confirmedSubmission } = submission
+const { pending: pendingSubmission, checking: checkingSubmission, confirmed: confirmedSubmission, restorationBlocked } = submission
 let checkoutActive = true
 
 const productName = computed(() => String(product.value?.name || '未命名物品'))
@@ -530,6 +532,7 @@ const submitBlockMessage = computed(() => {
 const canSubmit = computed(() => (
   !loading.value
   && !pendingSubmission.value
+  && !restorationBlocked.value
   && !submitting.value
   && !quoteLoading.value
   && !submitBlockMessage.value
@@ -687,6 +690,9 @@ async function loadProduct({ force = true } = {}) {
 }
 
 async function initializeCheckout() {
+  const restored = await submission.restore()
+  if (!isCheckoutActive()) return
+  if (!restored) { loading.value = false; return }
   if (pendingSubmission.value) {
     await recoverSubmission(false)
     loading.value = false

@@ -1,4 +1,4 @@
-import { test, expect, product, signIn } from './fixtures'
+import { test, expect, product, signIn, user } from './fixtures'
 const id='aaaaaaaa-1111-4111-8111-111111111111'
 const claim='bbbbbbbb-2222-4222-8222-222222222222'
 const pagination={total:0,page:1,pageSize:20,totalPages:0,hasMore:false}
@@ -36,6 +36,47 @@ test('historical checkout is canonical before recovery state is constructed',asy
   await page.goto('/checkout/7')
   await expect(page).toHaveURL(`/checkout/${id}`)
   await expect(page.locator('.confirm-button:visible').last()).toBeEnabled()
+})
+for (const path of ['/checkout/7', `/checkout/${id}`]) {
+  test(`recovers a pre-cutover pending order without a second submission from ${path}`, async ({ page, context, scenario }) => {
+    await signIn(page)
+    const token = 'ord_pre_cutover_lost_response_1234'
+    const key = `ld-store-order-submission:${JSON.stringify([JSON.stringify([user.site, user.id]), 7])}`
+    await page.addInitScript(({ key, token }) => sessionStorage.setItem(key, JSON.stringify({ token, productId: 7, couponClaimId: 4, quantity: 2, expectedAmount: 19 })), { key, token })
+    scenario.order = { orderId: 31, orderNo: 'E2E_ORDER_31', paymentUrl: 'https://payment.invalid/test-only', status: 'pending' }
+    const lookups: string[] = []
+    await context.route('**/api/**', async route => {
+      const url = new URL(route.request().url())
+      if (url.pathname === '/api/shop/products/7' || url.pathname === `/api/shop/products/${id}`)
+        return route.fulfill({ json: { success: true, data: { product: { ...product, id } } } })
+      if (url.pathname.startsWith('/api/shop/order-submissions/')) {
+        expect(url.pathname).toBe(`/api/shop/order-submissions/${token}`)
+        lookups.push(url.search)
+        return route.fulfill({ json: { success: true, data: { exists: true, order: { ...scenario.order, orderId: scenario.order.orderNo },
+          ...(url.searchParams.has('legacyProductId') ? { legacyIntent: { productId: id, couponClaimId: claim } } : {}) } } })
+      }
+      return route.fallback()
+    })
+    await page.goto(path)
+    await expect(page).toHaveURL(/\/order\/E2E_ORDER_31/)
+    expect(lookups).toContain('?legacyProductId=7&legacyCouponClaimId=4')
+    expect(scenario.submissions).toHaveLength(0)
+    expect(await page.evaluate(key => sessionStorage.getItem(key), key)).toBeNull()
+  })
+}
+test('blocks a new checkout while an old pending intent cannot be resolved', async ({ page, context, scenario }) => {
+  await signIn(page)
+  const key = `ld-store-order-submission:${JSON.stringify([JSON.stringify([user.site, user.id]), 7])}`
+  await page.addInitScript(key => sessionStorage.setItem(key, JSON.stringify({ token: 'ord_unknown_pre_cutover_12345678', productId: 7, couponClaimId: 4, quantity: 2, expectedAmount: 19 })), key)
+  await context.route('**/api/shop/order-submissions/**', route => route.abort('failed'))
+  await page.goto(`/checkout/${id}`)
+  await expect(page.getByText('旧订单记录尚未确认，请重试查询，或前往我的订单核对。')).toBeVisible()
+  await expect(page.getByRole('link', { name: '查看我的订单' })).toHaveAttribute('href', '/user/orders')
+  await expect(page.locator('.confirm-button:visible')).toHaveCount(0)
+  await page.getByRole('button', { name: '确认并继续本次订单' }).click()
+  await expect(page.getByText('旧订单记录尚未确认，请重试查询，或前往我的订单核对。')).toBeVisible()
+  expect(scenario.submissions).toHaveLength(0)
+  expect(await page.evaluate(key => sessionStorage.getItem(key), key)).not.toBeNull()
 })
 for (const fallback of [false, true]) {
   test(`historical session link selects the same UUID conversation (fallback=${fallback})`, async ({ page, context, scenario }) => {
