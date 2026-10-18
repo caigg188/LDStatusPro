@@ -9,21 +9,10 @@ import { storage } from '@/utils/storage'
 import { resolveGuestOnlyRedirect } from '@/utils/navigation'
 import HomeView from '@/views/Home.vue'
 import { resolveLegacyPublishTarget } from '@/utils/sellerNavigation'
-import { getHelpArticle, resolveLegacyHelpLocation } from '@/config/helpCenter'
 import {
   resolveMaintenanceRedirect,
   startBackgroundMaintenanceRefresh,
 } from '@/utils/maintenanceNavigation'
-
-function resolveHelpRoute(to) {
-  const section = String(to.params.section || '')
-  const legacyTarget = resolveLegacyHelpLocation(section, to.query)
-  if (legacyTarget) return legacyTarget
-  if (!getHelpArticle(section)) {
-    return { name: 'Docs', query: to.query, replace: true }
-  }
-  return true
-}
 
 // 路由配置
 const routes = [
@@ -219,7 +208,7 @@ const routes = [
     path: '/docs/:section',
     name: 'DocsSection',
     component: () => import('@/views/Docs.vue'),
-    beforeEnter: resolveHelpRoute,
+    beforeEnter: async (to) => (await import('./help')).resolveHelpRoute(to),
     meta: { title: '帮助中心 - LD士多' }
   },
 
