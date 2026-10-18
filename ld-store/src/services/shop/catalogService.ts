@@ -19,12 +19,10 @@ import {
   RankingContextSchema,
   UserDashboardResponseSchema,
   UserAttentionResponseSchema,
-  MerchantProfileResponseSchema,
   type ProductListResponse
 } from '@/contracts/catalog'
 import { beginCatalogRotation, rememberCatalogSlate } from '@/utils/catalogRotation'
 import { ExternalProductLinkResponseSchema } from '@/contracts/commerce'
-import { merchantIdentityQuery, type MerchantIdentity } from '@/utils/merchantIdentity'
 
 export const productSortMapping: Record<string, { sortBy: string; sortOrder: 'ASC' | 'DESC' }> = {
   default: { sortBy: 'updated_at', sortOrder: 'DESC' },
@@ -204,22 +202,6 @@ export async function fetchExternalProductLinkRequest(id: string | number) {
   )
 }
 
-export async function fetchMerchantProfileRequest(username: string, identity: MerchantIdentity = {}) {
-  const safeUsername = String(username || '').trim()
-  if (!safeUsername) {
-    return toRequestError(undefined, '商家用户名无效')
-  }
-
-  try {
-    return validateApiResult(
-      await api.get(`/api/shop/merchants/${encodeURIComponent(safeUsername)}${merchantIdentityQuery(identity)}`, { auth: 'optional' }),
-      MerchantProfileResponseSchema,
-      { endpoint: '/api/shop/merchants/:username', schemaName: 'MerchantProfileResponse' }
-    )
-  } catch (error) {
-    return toRequestError(error, '加载商家主页失败，请稍后重试')
-  }
-}
 
 export async function reportProductRequest(id: string | number, payload: string | ProductReportPayload = {}) {
   const requestPayload = typeof payload === 'string'
@@ -457,7 +439,7 @@ export async function fetchFavoritesRequest(options: PagedRequestOptions & { sea
   }
 
   return validateApiResult(
-    await api.get(`/api/shop/favorites?${params.toString()}`, { auth: 'required' }),
+    await api.get(`/api/shop/favorites?${params.toString()}`, { auth: 'required', signal: options.signal }),
     ProductCollectionResponseSchema,
     { endpoint: '/api/shop/favorites', schemaName: 'ProductCollectionResponse' }
   )
@@ -473,7 +455,7 @@ export async function fetchBlockedProductsRequest(options: PagedRequestOptions &
   }
 
   return validateApiResult(
-    await api.get(`/api/shop/blocked-products?${params.toString()}`, { auth: 'required' }),
+    await api.get(`/api/shop/blocked-products?${params.toString()}`, { auth: 'required', signal: options.signal }),
     ProductCollectionResponseSchema,
     { endpoint: '/api/shop/blocked-products', schemaName: 'ProductCollectionResponse' }
   )

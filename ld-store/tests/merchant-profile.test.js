@@ -6,7 +6,7 @@ import { createPinia } from 'pinia'
 import MerchantProfile from '../src/views/MerchantProfile.vue'
 
 const requests = vi.hoisted(() => ({ profile: vi.fn() }))
-vi.mock('../src/stores/product', () => ({ useProductStore: () => ({ fetchMerchantProfile: requests.profile }) }))
+vi.mock('../src/services/shop/merchantProfileService', () => ({ fetchMerchantProfileRequest: requests.profile }))
 vi.mock('../src/stores/catalog', () => ({ useCatalogStore: () => ({ categories: [], fetchCategories: async () => [] }) }))
 vi.mock('../src/stores/user', () => ({ useUserStore: () => ({ isLoggedIn: false, trustLevel: 0 }) }))
 
@@ -23,8 +23,10 @@ it('reloads same-name identities on query changes and ignores an older profile r
     await router.push('/merchant/same?site=linux.do&userId=456')
     await flushPromises()
     expect(pending.map(request => request.identity)).toEqual([
-      { site: 'idcflare.com', userId: '123' }, { site: 'linux.do', userId: '456' }
+      expect.objectContaining({ site: 'idcflare.com', userId: '123' }),
+      expect.objectContaining({ site: 'linux.do', userId: '456' })
     ])
+    expect(pending[0].identity.signal.aborted).toBe(true)
     const result = username => ({ success: true, data: { merchant: { username }, stats: {}, products: [] } })
     pending[1].resolve(result('current-identity'))
     await flushPromises()

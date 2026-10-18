@@ -545,8 +545,8 @@ async function restoreScrollState() {
     // 恢复滚动深度：顺序拉取到快照所在页（订单中途被取消/退款时 hasMore 提前为 false，自然截断）
     const targetPage = Math.max(1, Number(snapshot.page) || 1)
     while (page.value < targetPage && hasMore.value) {
-      page.value++
-      await loadOrders(true)
+      const result = await orderListController.loadMore()
+      if (!result?.success) break
     }
 
     await nextTick()

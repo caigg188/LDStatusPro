@@ -57,7 +57,7 @@
           </div>
 
           <EmptyState
-            v-else-if="activeState.items.length === 0"
+            v-else-if="activeState.items.length === 0 && !activeState.error"
             :text="emptyContent.text"
             :hint="emptyContent.hint"
           >
@@ -156,11 +156,7 @@
             </article>
           </div>
 
-          <div v-if="activeState.hasMore && !activeState.loading" class="load-more">
-            <button type="button" class="load-more-btn" :disabled="activeState.loadingMore" @click="loadMore">
-              {{ activeState.loadingMore ? '加载中…' : '加载更多' }}
-            </button>
-          </div>
+          <LoadMore v-if="!activeState.loading && (activeState.items.length || activeState.error)" :has-more="activeState.hasMore || activeState.refreshPage > 0" :loading="activeState.loadingMore" :error="activeState.error" @load="loadMore" />
         </div>
       </section>
     </div>
@@ -168,8 +164,8 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { EyeOff, Heart, RotateCcw, Search } from '@lucide/vue'
 import { useProductStore } from '@/stores/product'
 import { useToast } from '@/composables/useToast'
@@ -177,6 +173,12 @@ import { useDialog } from '@/composables/useDialog'
 import { formatPrice, formatRelativeTime } from '@/utils/format'
 import { stripMarkdown } from '@/utils/renderProductDescription'
 import EmptyState from '@/components/common/EmptyState.vue'
+import LoadMore from '@/components/common/LoadMore.vue'
+
+defineOptions({ name: 'MyFavorites' })
+let savedScrollPosition = 0
+let preferenceLists = null
+const controllers = {}
 
 const route = useRoute()
 const router = useRouter()
@@ -201,7 +203,11 @@ function createListState() {
     hasMore: false,
     loading: false,
     loadingMore: false,
-    loaded: false
+    loaded: false,
+    requestId: 0,
+    search: '',
+    error: '',
+    refreshPage: 0
   }
 }
 
@@ -299,11 +305,18 @@ function isItemBusy(_itemId) {
   return currentAction.value !== ''
 }
 
-async function loadCollection(tabId, { append = false, page: requestedPage } = {}) {
+async function loadCollection(tabId, { append = false, page: requestedPage, replaceTail = false } = {}) {
   const state = lists[tabId]
   const targetPage = requestedPage || (append ? state.page + 1 : 1)
-  state.loading = !append
-  state.loadingMore = append
+  const requestId = ++state.requestId
+  controllers[tabId]?.abort()
+  const controller = new AbortController()
+  controllers[tabId] = controller
+  if (!append && !replaceTail) state.search = searchTerms[tabId]
+  const prefix = append ? state.items : replaceTail ? state.items.slice(0, (targetPage - 1) * pageSize) : []
+  state.loading = !append && !replaceTail
+  state.loadingMore = append || replaceTail
+  state.error = ''
 
   try {
     const loader = tabId === 'favorites'
@@ -312,22 +325,27 @@ async function loadCollection(tabId, { append = false, page: requestedPage } = {
     const result = await loader({
       page: targetPage,
       pageSize,
-      search: searchTerms[tabId]
+      search: state.search,
+      signal: controller.signal
     })
+    if (requestId !== state.requestId || result.aborted) return
     if (!result.success) throw new Error(result.error || '列表加载失败')
     const items = Array.isArray(result.data?.products) ? result.data.products : []
     const total = Number(result.data?.pagination?.total || 0)
 
-    state.items = append ? [...state.items, ...items] : items
+    state.items = [...prefix, ...items]
+    state.refreshPage = 0
     state.page = targetPage
     state.total = total
     state.hasMore = targetPage * pageSize < total
     state.loaded = true
   } catch (error) {
-    toast.error(error.message || `加载${tabs.find(tab => tab.id === tabId)?.label || '列表'}失败`)
+    if (requestId === state.requestId) state.error = error.message || '列表加载失败，请重试'
   } finally {
-    state.loading = false
-    state.loadingMore = false
+    if (requestId === state.requestId) {
+      state.loading = false
+      state.loadingMore = false
+    }
   }
 }
 
@@ -359,18 +377,20 @@ async function searchActiveCollection() {
 }
 
 async function loadMore() {
-  if (activeState.value.loadingMore || !activeState.value.hasMore) return
-  await loadCollection(activeTab.value, { append: true })
+  const state = activeState.value
+  if (state.loading || state.loadingMore) return
+  if (state.refreshPage) return loadCollection(activeTab.value, { page: state.refreshPage, replaceTail: true })
+  await loadCollection(activeTab.value, { append: state.items.length > 0 })
 }
 
 async function removeCurrentItem(tabId, itemId) {
   const state = lists[tabId]
   state.items = state.items.filter(item => String(item.id) !== String(itemId))
   state.total = Math.max(0, state.total - 1)
-  state.hasMore = state.page * pageSize < state.total
-  if (state.items.length === 0 && state.page > 1) {
-    await loadCollection(tabId, { page: state.page - 1 })
-  }
+  // Refill only the last loaded page: deletion shifts OFFSET, while the
+  // preceding local prefix already contains the correct remaining items.
+  state.refreshPage = Math.max(1, Math.min(state.page, Math.ceil(state.total / pageSize)))
+  await loadCollection(tabId, { page: state.refreshPage, replaceTail: true })
 }
 
 function getErrorMessage(result, fallback) {
@@ -440,6 +460,7 @@ watch(
   () => route.query.tab,
   (tab) => {
     const nextTab = tab === 'blocked' ? 'blocked' : 'favorites'
+    if (route.name && route.name !== 'MyFavorites') return
     if (nextTab !== activeTab.value) void switchTab(nextTab, { updateRoute: false })
   }
 )
@@ -447,6 +468,35 @@ watch(
 onMounted(async () => {
   await Promise.all([loadCollection('favorites'), loadCollection('blocked')])
 })
+onBeforeRouteLeave(() => {
+  savedScrollPosition = window.scrollY
+  preferenceLists = [productStore.favorites, productStore.blockedProducts]
+})
+onActivated(async () => {
+  const changed = preferenceLists && (preferenceLists[0] !== productStore.favorites || preferenceLists[1] !== productStore.blockedProducts)
+  if (changed) {
+    for (const [tab, state] of Object.entries(lists)) {
+      const targetPage = state.page
+      await loadCollection(tab)
+      while (state.page < targetPage && state.hasMore && !state.error) await loadCollection(tab, { append: true })
+    }
+  }
+  for (const [tab, state] of Object.entries(lists)) {
+    if (!state.loaded && !state.loading && !state.error) void loadCollection(tab)
+  }
+  await nextTick()
+  window.scrollTo(0, savedScrollPosition)
+})
+function stopLists() {
+  for (const [tab, state] of Object.entries(lists)) {
+    state.requestId++
+    controllers[tab]?.abort()
+    state.loading = false
+    state.loadingMore = false
+  }
+}
+onDeactivated(stopLists)
+onUnmounted(stopLists)
 </script>
 
 <style scoped>
@@ -464,7 +514,7 @@ onMounted(async () => {
 .collection-tab:hover { color: var(--text-primary); }
 .collection-workspace[data-mode='favorites'] .collection-tab.is-active { border-color: var(--palette-rgba-217-119-6-p24); background: var(--bg-card); color: var(--color-warning); }
 .collection-workspace[data-mode='blocked'] .collection-tab.is-active { border-color: var(--palette-rgba-220-38-38-p22); background: var(--bg-card); color: var(--color-danger); }
-.collection-tab:focus-visible, .browse-link:focus-visible, .action-btn:focus-visible, .load-more-btn:focus-visible, .search-button:focus-visible, .search-field:focus-within { outline: 3px solid var(--color-primary-light); outline-offset: 2px; }
+.collection-tab:focus-visible, .browse-link:focus-visible, .action-btn:focus-visible, .search-button:focus-visible, .search-field:focus-within { outline: 3px solid var(--color-primary-light); outline-offset: 2px; }
 .tab-count { min-width: 24px; padding: 2px 7px; border-radius: 999px; background: var(--bg-tertiary); color: currentColor; font-size: 11px; text-align: center; }
 .collection-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 14px; border-bottom: 1px solid var(--border-light); }
 .search-field { min-height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 13px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-primary); color: var(--text-tertiary); }
@@ -495,9 +545,7 @@ onMounted(async () => {
 .action-btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 14px; border: 1px solid var(--border-color); border-radius: 11px; background: var(--bg-card); color: var(--text-secondary); font-size: 13px; text-decoration: none; cursor: pointer; }
 .action-btn.quiet-danger { border-color: var(--palette-rgba-220-38-38-p22); color: var(--color-danger); }
 .action-btn.restore { border-color: var(--palette-rgba-34-197-94-p28); color: var(--color-success); }
-.action-btn:disabled, .search-button:disabled, .load-more-btn:disabled { opacity: .56; cursor: not-allowed; }
-.load-more { padding: 4px 14px 18px; text-align: center; }
-.load-more-btn { min-height: 44px; padding: 0 22px; border: 1px solid var(--border-color); border-radius: 999px; background: var(--bg-card); color: var(--text-secondary); cursor: pointer; }
+.action-btn:disabled, .search-button:disabled { opacity: .56; cursor: not-allowed; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @keyframes loading-pulse { to { opacity: .28; transform: scale(.76); } }
 

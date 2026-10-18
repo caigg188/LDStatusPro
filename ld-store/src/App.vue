@@ -110,7 +110,7 @@ const showRouterView = computed(() => userStore.sessionReady)
 
 // 需要缓存的页面组件名称
 // Home = 首页(物品广场), Category = 分类页(小店集市等)
-const cachedViews = ref(['Home', 'Category'])
+const cachedViews = ref(['Home', 'Category', 'SearchResults', 'MyFavorites'])
 
 // 涂鸦背景状态（默认开启，从本地存储读取）
 const DOODLE_STORAGE_KEY = 'ld-store-doodle-bg'

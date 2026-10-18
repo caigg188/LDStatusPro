@@ -18,6 +18,8 @@
         v-if="shop.imageUrl"
         :src="shop.imageUrl"
         :alt="shop.name"
+        loading="lazy"
+        decoding="async"
         @error="handleImageError"
       />
       <div v-else class="shop-image-placeholder">

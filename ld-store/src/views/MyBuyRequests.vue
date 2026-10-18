@@ -87,12 +87,17 @@
           </div>
         </article>
       </div>
+      <nav v-if="pagination.totalPages > 1" class="request-pagination" aria-label="我的求购分页">
+        <button type="button" :disabled="loading || pagination.page <= 1" @click="goPage(pagination.page - 1)">上一页</button>
+        <span>第 {{ pagination.page }} / {{ pagination.totalPages }} 页 · 共 {{ pagination.total }} 条</span>
+        <button type="button" :disabled="loading || pagination.page >= pagination.totalPages" @click="goPage(pagination.page + 1)">下一页</button>
+      </nav>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchMyBuyRequestsRequest, updateBuyRequestStatusRequest } from '@/services/shop/buyRequestService'
 import { useToast } from '@/composables/useToast'
@@ -109,6 +114,10 @@ const loading = ref(false)
 const requests = ref([])
 const statusFilter = ref('')
 const searchKeyword = ref('')
+const pagination = reactive({ page: 1, pageSize: 20, total: 0, totalPages: 0 })
+let requestId = 0
+let controller = null
+let appliedFilters = { status: '', search: '' }
 
 const statusOptions = [
   { value: 'pending_review', label: '待审核' },
@@ -130,25 +139,36 @@ function statusText(status) {
   return map[status] || status
 }
 
-async function loadRequests() {
+async function loadRequests(requestedPage = 1) {
+  const nextPage = typeof requestedPage === 'number' ? requestedPage : 1
+  if (nextPage === 1) appliedFilters = { status: statusFilter.value, search: searchKeyword.value }
+  const request = ++requestId
+  controller?.abort()
+  controller = new AbortController()
   loading.value = true
   try {
     const result = await fetchMyBuyRequestsRequest({
-      page: 1,
-      pageSize: 100,
-      status: statusFilter.value,
-      search: searchKeyword.value
+      page: nextPage,
+      pageSize: pagination.pageSize,
+      ...appliedFilters,
+      signal: controller.signal
     })
+    if (request !== requestId || result.aborted) return
     if (result.success) {
+      Object.assign(pagination, result.data.pagination)
       requests.value = result.data?.requests || []
     } else {
       toast.error(result.error || '加载求购失败')
     }
   } catch (error) {
-    toast.error(error.message || '加载求购失败')
+    if (request === requestId) toast.error(error.message || '加载求购失败')
   } finally {
-    loading.value = false
+    if (request === requestId) loading.value = false
   }
+}
+
+function goPage(nextPage) {
+  if (!loading.value) void loadRequests(nextPage)
 }
 
 function openDetail(id) {
@@ -169,13 +189,14 @@ async function updateStatus(item, status) {
       return
     }
     toast.success('状态已更新')
-    await loadRequests()
+    await loadRequests(pagination.page)
   } catch (error) {
     toast.error(error.message || '状态更新失败')
   }
 }
 
 onMounted(loadRequests)
+onUnmounted(() => { requestId++; controller?.abort() })
 </script>
 
 <style scoped>
@@ -388,7 +409,13 @@ onMounted(loadRequests)
   color: var(--palette-hex-dc2626);
 }
 
+.request-pagination { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 20px; color: var(--text-secondary); font-size: 13px; }
+.request-pagination button { min-height: 44px; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-card); color: inherit; cursor: pointer; }
+.request-pagination button:disabled { opacity: .5; cursor: not-allowed; }
+.request-pagination button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+
 @media (max-width: 767px) {
+  .my-buy-requests-page { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
   .toolbar {
     grid-template-columns: 1fr;
   }

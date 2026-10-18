@@ -96,6 +96,8 @@
             />
           </div>
 
+          <LoadMore v-if="products.length" :has-more="hasMore" :loading="loadingMore" :error="loadError" automatic @load="loadMore" />
+
           <div v-else class="empty-panel">
             <EmptyState
               icon="📦"
@@ -110,10 +112,10 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
-import { useProductStore } from '@/stores/product'
+import { fetchMerchantProfileRequest } from '@/services/shop/merchantProfileService'
 import { useUserStore } from '@/stores/user'
 import AvatarImage from '@/components/common/AvatarImage.vue'
 import { useToast } from '@/composables/useToast'
@@ -121,13 +123,13 @@ import { buildAvatarCandidates } from '@/utils/avatar'
 import ProductCard from '@/components/product/ProductCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
+import LoadMore from '@/components/common/LoadMore.vue'
 
 defineOptions({ name: 'MerchantProfile' })
 
 const route = useRoute()
 const router = useRouter()
 const catalogStore = useCatalogStore()
-const productStore = useProductStore()
 const userStore = useUserStore()
 const toast = useToast()
 
@@ -138,6 +140,11 @@ const stats = ref({
   totalSoldCount: 0
 })
 const products = ref([])
+const page = ref(1)
+const hasMore = ref(false)
+const loadingMore = ref(false)
+const loadError = ref('')
+let controller = null
 const loading = ref(true)
 let profileRequest = 0
 const error = ref('')
@@ -198,6 +205,10 @@ watch(
 
 async function loadMerchantProfile() {
   const request = ++profileRequest
+  controller?.abort()
+  controller = new AbortController()
+  loadingMore.value = false
+  loadError.value = ''
   const username = routeUsername.value
   merchant.value = null
   products.value = []
@@ -217,7 +228,7 @@ async function loadMerchantProfile() {
   loading.value = true
   try {
     const [profileResult] = await Promise.all([
-      productStore.fetchMerchantProfile(username, { site: route.query.site, userId: route.query.userId }),
+      fetchMerchantProfileRequest(username, { site: route.query.site, userId: route.query.userId, signal: controller.signal }),
       catalogStore.fetchCategories()
     ])
     if (request !== profileRequest) return
@@ -234,6 +245,8 @@ async function loadMerchantProfile() {
       totalSoldCount: Number(profileResult.data.stats?.totalSoldCount || 0)
     }
     products.value = Array.isArray(profileResult.data.products) ? profileResult.data.products : []
+    page.value = 1
+    hasMore.value = profileResult.data.pagination?.hasMore === true
   } catch (loadError) {
     if (request !== profileRequest) return
     console.error('Load merchant profile failed:', loadError)
@@ -267,6 +280,27 @@ function openLinuxDoProfile() {
 function openStoreMessage() {
   toast.warning('该功能暂未开放')
 }
+async function loadMore() {
+  if (loadingMore.value || !hasMore.value) return
+  const request = profileRequest
+  const requestPage = page.value + 1
+  loadingMore.value = true
+  loadError.value = ''
+  try {
+    const result = await fetchMerchantProfileRequest(routeUsername.value, {
+      site: route.query.site, userId: route.query.userId, page: requestPage, signal: controller.signal
+    })
+    if (request !== profileRequest || result.aborted) return
+    if (!result.success) { loadError.value = result.error || '加载物品失败，请重试'; return }
+    products.value = [...products.value, ...(result.data.products || [])]
+    page.value = requestPage
+    hasMore.value = result.data.pagination?.hasMore === true
+  } finally {
+    if (request === profileRequest) loadingMore.value = false
+  }
+}
+onUnmounted(() => { profileRequest++; controller?.abort() })
+
 </script>
 
 <style scoped>

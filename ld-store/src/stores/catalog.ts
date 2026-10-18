@@ -218,11 +218,9 @@ export const useCatalogStore = defineStore('catalog', () => {
       hasMore.value = true
       catalogCursor.value = ''
       rankingContext.value = null
-    } else if (requestedPage) {
-      page.value = requestedPage
     }
 
-    const requestPage = page.value
+    const requestPage = shouldReset ? 1 : (requestedPage || page.value)
     const requestId = ++latestProductsRequestId
     loading.value = true
     try {
@@ -295,17 +293,14 @@ export const useCatalogStore = defineStore('catalog', () => {
 
   async function loadMore(options: { signal?: AbortSignal } = {}) {
     if (loading.value || !hasMore.value) return cancelledFailure('')
-    const previousPage = page.value
-    const result = await fetchProducts({
+    return fetchProducts({
       categoryId: currentCategory.value,
-      page: previousPage + 1,
+      page: page.value + 1,
       sort: currentSort.value,
       priceMin: currentPriceMin.value,
       priceMax: currentPriceMax.value,
       signal: options.signal
     })
-    if (!result.success) page.value = previousPage
-    return result
   }
 
   async function searchProducts(query: string, options: SearchInput = {}): Promise<ApiResult<ProductListResponse>> {

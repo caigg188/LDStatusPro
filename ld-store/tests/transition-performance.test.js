@@ -64,7 +64,7 @@ describe('商城动效性能约束', () => {
   it('减少动态效果时停止持续动画、位移和缩放', () => {
     for (const source of [productsSource, storesSource]) {
       const reducedMotion = source.slice(source.indexOf('@media (prefers-reduced-motion: reduce)'))
-      expect(reducedMotion).toContain('.section-content, .spinner { animation: none; }')
+      expect(reducedMotion).toContain('.section-content { animation: none; }')
     }
 
     const themeReducedMotion = themeToggleSource.slice(themeToggleSource.indexOf('@media (prefers-reduced-motion: reduce)'))

@@ -46,28 +46,25 @@
 
     <div v-else-if="shops.length > 0" class="products-grid stores-grid" :aria-busy="loading">
       <ShopCard v-for="shop in shops" :key="shop.id" :shop="shop" />
-      <div v-if="hasMore" ref="sentinel" class="load-more">
-        <div v-if="loading" class="loading-indicator"><span class="spinner"></span><span>加载中...</span></div>
-        <span v-else class="load-hint">⬇️ 滚动加载更多</span>
-      </div>
-      <div v-else class="loaded-all">✨ 已加载全部</div>
+
     </div>
 
-    <EmptyState v-else icon="🏬" text="暂无小店" hint="快来入驻开设你的第一家小店吧~">
+    <EmptyState v-else-if="!loadError" icon="🏬" text="暂无小店" hint="快来入驻开设你的第一家小店吧~">
       <template #action>
         <router-link to="/seller/store" class="btn btn-primary mt-4">🏪 小店入驻</router-link>
       </template>
     </EmptyState>
+    <LoadMore v-if="!initialLoading && (shops.length || loadError)" :has-more="hasMore" :loading="loading" :error="loadError" automatic @load="loadMore" />
   </section>
 </template>
 
 <script setup>
-import { computed, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useToast } from '@/composables/useToast'
+import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref } from 'vue'
 import { fetchMarketplaceShops } from '@/services/homeMarketplaceService'
 import ShopCard from '@/components/shop/ShopCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
+import LoadMore from '@/components/common/LoadMore.vue'
 import { catalogColumns } from '@/config/breakpoints'
 
 defineOptions({ name: 'StoresMarketplace' })
@@ -77,7 +74,6 @@ const tagClassMap = { '订阅': 'subscription', '服务': 'service', '小鸡': '
 const CACHE_TTL = 2 * 60 * 1000
 const pageSize = 20
 
-const toast = useToast()
 const shops = ref([])
 const loading = ref(false)
 const initialLoading = ref(true)
@@ -85,15 +81,16 @@ const initialized = ref(false)
 const total = ref(0)
 const page = ref(1)
 const hasMore = ref(false)
-const sentinel = ref(null)
+const loadError = ref('')
 const selectedTags = ref([])
 const searchKeyword = ref('')
 const gridColumns = ref(2)
 const hasFilters = computed(() => selectedTags.value.length > 0 || !!searchKeyword.value.trim())
-let observer = null
+let appliedFilters = { tags: [], search: '' }
 let activeRequest = null
 let requestId = 0
 let lastLoadedAt = 0
+let interruptedReset = false
 
 function updateGridColumns() {
   gridColumns.value = catalogColumns(window.innerWidth)
@@ -114,9 +111,14 @@ function resetFilters() {
 
 async function loadShops(resetPage = true) {
   if (resetPage) {
-    page.value = 1
     initialLoading.value = true
+    shops.value = []
+    total.value = 0
+    hasMore.value = false
+    appliedFilters = { tags: [...selectedTags.value], search: searchKeyword.value }
   }
+  const requestPage = resetPage ? 1 : page.value + 1
+  loadError.value = ''
   activeRequest?.abort()
   activeRequest = new AbortController()
   const currentRequestId = ++requestId
@@ -124,28 +126,25 @@ async function loadShops(resetPage = true) {
 
   try {
     const result = await fetchMarketplaceShops({
-      page: page.value,
+      page: requestPage,
       pageSize,
-      tags: selectedTags.value,
-      search: searchKeyword.value,
+      ...appliedFilters,
       signal: activeRequest.signal
     })
     if (currentRequestId !== requestId || result.aborted) return
     if (!result.success || !result.data?.shops) {
-      if (resetPage) shops.value = []
-      total.value = 0
-      hasMore.value = false
-      toast.error(result.error || '加载小店列表失败，请稍后重试')
+      loadError.value = result.error || '加载小店列表失败，请重试'
       return
     }
 
+    page.value = requestPage
     const nextShops = result.data.shops
     shops.value = resetPage ? nextShops : [...shops.value, ...nextShops]
     total.value = result.data.pagination?.total || nextShops.length
     hasMore.value = page.value < (result.data.pagination?.totalPages || 1)
     lastLoadedAt = Date.now()
   } catch (error) {
-    if (currentRequestId === requestId) toast.error(error.message || '加载小店列表失败，请稍后重试')
+    if (currentRequestId === requestId) loadError.value = error.message || '加载小店列表失败，请重试'
   } finally {
     if (currentRequestId === requestId) {
       loading.value = false
@@ -156,18 +155,8 @@ async function loadShops(resetPage = true) {
 }
 
 async function loadMore() {
-  if (loading.value || !hasMore.value) return
-  page.value++
-  await loadShops(false)
-}
-
-function setupInfiniteScroll() {
-  observer?.disconnect()
-  if (!sentinel.value || !hasMore.value || typeof IntersectionObserver !== 'function') return
-  observer = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting) loadMore()
-  }, { rootMargin: '100px' })
-  observer.observe(sentinel.value)
+  if (loading.value) return
+  await loadShops(shops.value.length === 0)
 }
 
 onMounted(() => {
@@ -176,29 +165,28 @@ onMounted(() => {
   loadShops(true)
 })
 
-onActivated(async () => {
+onActivated(() => {
   window.addEventListener('resize', updateGridColumns)
-  if (initialized.value && Date.now() - lastLoadedAt >= CACHE_TTL) await loadShops(true)
-  await nextTick()
-  setupInfiniteScroll()
+  if (!loading.value && (interruptedReset || !initialized.value || Date.now() - lastLoadedAt >= CACHE_TTL)) {
+    interruptedReset = false
+    void loadShops(true)
+  }
 })
 
 onDeactivated(() => {
+  interruptedReset = initialLoading.value
   requestId++
   activeRequest?.abort()
-  observer?.disconnect()
+  loading.value = false
+  initialLoading.value = false
   window.removeEventListener('resize', updateGridColumns)
 })
 
 onUnmounted(() => {
   activeRequest?.abort()
-  observer?.disconnect()
   window.removeEventListener('resize', updateGridColumns)
 })
 
-watch(hasMore, (value) => {
-  if (value) nextTick(setupInfiniteScroll)
-})
 </script>
 
 <style scoped>
@@ -206,7 +194,7 @@ watch(hasMore, (value) => {
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 .stores-header { margin-bottom: 20px; padding: 16px 20px; background: var(--color-success-bg); border-radius: 14px; }
 .stores-desc { margin: 0; font-size: 14px; color: var(--color-success); }
-.stores-filter, .stores-tag-filter, .products-header, .loading-indicator { display: flex; align-items: center; }
+.stores-filter, .stores-tag-filter, .products-header { display: flex; align-items: center; }
 .stores-filter { gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
 .stores-tag-filter { gap: 6px; flex-wrap: wrap; }
 .stores-tag-btn { min-height: 34px; display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; font-size: 12px; font-weight: 500; border-radius: 14px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; transition: color .2s, border-color .2s, background-color .2s; }
@@ -222,14 +210,11 @@ watch(hasMore, (value) => {
 .products-header { justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .products-count { font-size: 13px; color: var(--text-tertiary); }.products-count strong { color: var(--text-primary); }
 .products-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--grid-gap); }
-.load-more, .loaded-all { grid-column: 1 / -1; display: flex; justify-content: center; align-items: center; min-height: 64px; color: var(--text-tertiary); font-size: 13px; }
-.loading-indicator { gap: 8px; }.spinner { width: 16px; height: 16px; border: 2px solid var(--border-medium); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .8s linear infinite; }
 .products-loading { min-height: 360px; padding: 20px 0; }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
 @media (min-width: 768px) { .products-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 1024px) { .products-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 639px) { .stores-filter { flex-direction: column; align-items: stretch; gap: 8px; }.stores-search-input, .stores-tag-btn, .stores-reset-btn { min-height: 44px; }.stores-search-input { font-size: 16px; }.stores-search-btn { width: 40px; height: 40px; } }
 @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-@keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .section-content, .spinner { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .section-content { animation: none; } }
 </style>
