@@ -40,6 +40,7 @@ export function useOrderListController(options: OrderListControllerOptions) {
   let controller: AbortController | null = null
 
   async function load(append = false): Promise<ApiResult<OrderListPage> | null> {
+    const requestPage = append ? page.value + 1 : page.value
     const currentRequestId = ++requestId
     controller?.abort('caller')
     controller = new AbortController()
@@ -48,7 +49,7 @@ export function useOrderListController(options: OrderListControllerOptions) {
     error.value = ''
 
     try {
-      const query = options.buildQuery(page.value, controller.signal)
+      const query = options.buildQuery(requestPage, controller.signal)
       const result = await options.fetchPage(query)
       if (currentRequestId !== requestId || controller.signal.aborted) return null
       if (!result.success) {
@@ -66,6 +67,7 @@ export function useOrderListController(options: OrderListControllerOptions) {
         total: Number(responsePagination?.total || list.length),
         totalPages
       }
+      page.value = Number(responsePagination?.page || requestPage)
       hasMore.value = page.value < totalPages
       orders.value = append ? [...orders.value, ...list] : list
       return result
@@ -84,7 +86,6 @@ export function useOrderListController(options: OrderListControllerOptions) {
 
   async function loadMore() {
     if (loading.value || loadingMore.value || !hasMore.value) return null
-    page.value += 1
     return load(true)
   }
 

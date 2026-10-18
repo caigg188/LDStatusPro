@@ -135,18 +135,11 @@
         :image-loading="priorityImageIds.has(product.id) ? 'eager' : 'lazy'"
         :fetch-priority="priorityImageIds.has(product.id) ? 'high' : 'auto'"
       />
-      <div v-if="hasMore" ref="sentinel" class="load-more">
-        <div v-if="loading" class="loading-indicator">
-          <span class="spinner"></span>
-          <span>加载中...</span>
-        </div>
-        <span v-else class="load-hint">⬇️ 滚动加载更多</span>
-      </div>
-      <div v-else class="loaded-all">✨ 已加载全部</div>
+
     </div>
 
     <EmptyState
-      v-else
+      v-else-if="!loadError"
       :icon="isProductListHiddenByMaintenance ? '🚧' : '🛒'"
       :text="isProductListHiddenByMaintenance ? maintenanceTitle : '暂无物品'"
       :hint="isProductListHiddenByMaintenance ? maintenanceCatalogHint : '快来发布第一个物品吧~'"
@@ -155,11 +148,12 @@
         <router-link to="/seller/products/new" class="btn btn-primary mt-4">➕ 发布物品</router-link>
       </template>
     </EmptyState>
+    <LoadMore v-if="!showCatalogSkeleton && (marketProducts.length || loadError)" :has-more="hasMore" :loading="loading" :error="loadError" :automatic="!mobileFilterOpen" @load="loadMore" />
   </section>
 </template>
 
 <script setup>
-import { computed, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue'
 import { ChevronDown, SlidersHorizontal } from '@lucide/vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useToast } from '@/composables/useToast'
@@ -168,6 +162,7 @@ import CategoryFilter from '@/components/product/CategoryFilter.vue'
 import CatalogFilterSheet from '@/components/home/CatalogFilterSheet.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
+import LoadMore from '@/components/common/LoadMore.vue'
 import { MAINTENANCE_STATE, isMaintenanceFeatureEnabled, isRestrictedMaintenanceMode } from '@/config/maintenance'
 import { createTtlLruCache } from '@/utils/ttlLruCache'
 import { normalizePriceFilterInput, normalizePriceFilterRange } from '@/utils/catalogFilters'
@@ -177,7 +172,7 @@ defineOptions({ name: 'ProductsMarketplace' })
 
 const shopStore = useCatalogStore()
 const toast = useToast()
-const sentinel = ref(null)
+const loadError = ref('')
 const initialLoading = ref(true)
 const hasInitialized = ref(false)
 const categorySwitchPending = ref(false)
@@ -191,7 +186,8 @@ const CATEGORY_CACHE_TTL = 5 * 60 * 1000
 const CATEGORY_SWITCH_DEBOUNCE_MS = 140
 const categoryCache = createTtlLruCache({ ttl: CATEGORY_CACHE_TTL, max: 24 })
 let lastLoadedAt = 0
-let observer = null
+let viewActive = true
+let interruptedCatalog = false
 let latestCatalogActionId = 0
 let activeRequest = null
 let categorySwitchTimer = null
@@ -263,6 +259,7 @@ function tryRestoreFromCache(categoryId, sortKey, filters = buildCatalogFilters(
     syncPriceFilterInputs(cached.priceMin, cached.priceMax)
     initialLoading.value = false
     categorySwitchPending.value = false
+    loadError.value = ''
     return true
   }
   return false
@@ -338,22 +335,19 @@ function handleViewportResize() {
   if (!isMobileNav(window.innerWidth)) mobileFilterOpen.value = false
 }
 
-function setupInfiniteScroll() {
-  observer?.disconnect()
-  if (!sentinel.value || !hasMore.value || typeof IntersectionObserver !== 'function') return
-  observer = new IntersectionObserver(async (entries) => {
-    if (!entries[0].isIntersecting || loading.value || !hasMore.value) return
-    const controller = new AbortController()
-    activeRequest = controller
-    const result = await shopStore.loadMore({ signal: controller.signal })
-    if (activeRequest !== controller) return
-    if (result?.success === false) {
-      if (!result.aborted) toast.error(result.error || consumeStoreError('加载更多失败，请稍后重试'))
-      return
-    }
-    saveCache(shopStore.currentCategory, shopStore.currentSort || 'default', buildCatalogFilters())
-  }, { rootMargin: '100px' })
-  observer.observe(sentinel.value)
+async function loadMore() {
+  if (loading.value) return
+  loadError.value = ''
+  if (!marketProducts.value.length) return runCatalogAction({ useCache: false })
+  const controller = new AbortController()
+  activeRequest = controller
+  const result = await shopStore.loadMore({ signal: controller.signal })
+  if (activeRequest !== controller) return
+  if (!result.success) {
+    if (!result.aborted) loadError.value = result.error || consumeStoreError('加载更多失败，请重试')
+    return
+  }
+  saveCache(shopStore.currentCategory, shopStore.currentSort || 'default', buildCatalogFilters())
 }
 
 function cancelScheduledCategorySwitch() {
@@ -373,7 +367,6 @@ function restoreCachedCatalog(categoryId, sortKey, filters = buildCatalogFilters
   if (!tryRestoreFromCache(categoryId, sortKey, filters)) return false
   cancelScheduledCategorySwitch()
   discardInFlightCatalogAction()
-  void nextTick(setupInfiniteScroll)
   return true
 }
 
@@ -387,13 +380,12 @@ async function loadCatalogState({
 } = {}) {
   selectedCategory.value = categoryId
   if (useCache && tryRestoreFromCache(categoryId, sortKey, filters)) {
-    await nextTick()
     if (actionId !== null && actionId !== latestCatalogActionId) return { success: false, cancelled: true, error: '' }
-    setupInfiniteScroll()
     return { success: true, restored: true }
   }
 
   initialLoading.value = true
+  loadError.value = ''
   const result = await shopStore.fetchProducts({
     categoryId,
     forceRefresh: true,
@@ -410,9 +402,6 @@ async function loadCatalogState({
   if (isSameCatalogState(categoryId, sortKey, filters)) saveCache(categoryId, sortKey, filters)
   syncPriceFilterInputs(filters.priceMin, filters.priceMax)
   lastLoadedAt = Date.now()
-  await nextTick()
-  if (actionId !== null && actionId !== latestCatalogActionId) return { success: false, cancelled: true, error: '' }
-  setupInfiniteScroll()
   return result
 }
 
@@ -424,7 +413,7 @@ async function runCatalogAction(options) {
   activeRequest = new AbortController()
   const result = await loadCatalogState({ ...options, actionId, signal: activeRequest.signal })
   if (!result?.success && !result?.cancelled && !result?.aborted) {
-    toast.error(result?.error || consumeStoreError('加载物品失败，请稍后重试'))
+    loadError.value = result?.error || consumeStoreError('加载物品失败，请重试')
   }
   return result
 }
@@ -509,11 +498,11 @@ async function handleMobileFilterApply(draft) {
       return
     }
     if (!result?.cancelled && !result?.aborted) {
+      toast.error(loadError.value || '筛选失败，请重试')
+      loadError.value = ''
       shopStore.restoreFromCache(previousSnapshot)
       syncPriceFilterInputs(previousSnapshot.priceMin, previousSnapshot.priceMax)
-      await nextTick()
-      setupInfiniteScroll()
-    }
+        }
   } finally {
     filterApplying.value = false
   }
@@ -549,20 +538,24 @@ function clearPriceFilter() {
 
 async function initialize() {
   if (hasInitialized.value) return
+  const actionId = ++latestCatalogActionId
   const categoriesResult = await shopStore.fetchCategories()
+  if (!viewActive || actionId !== latestCatalogActionId) return
   if (!categoriesResult.success) toast.warning(categoriesResult.error || '加载分类失败，请稍后重试')
   activeRequest?.abort()
   activeRequest = new AbortController()
   const result = await loadCatalogState({
-    categoryId: '',
+    actionId,
+    categoryId: selectedCategory.value,
     sortKey: shopStore.currentSort || 'default',
     filters: buildCatalogFilters(),
     useCache: false,
     signal: activeRequest.signal
   })
-  if (!result?.success) toast.error(result?.error || consumeStoreError('加载物品失败，请稍后重试'))
+  if (actionId !== latestCatalogActionId) return
+  if (!result?.success && !result?.aborted) loadError.value = result?.error || consumeStoreError('加载物品失败，请重试')
   initialLoading.value = false
-  hasInitialized.value = true
+  hasInitialized.value = !result?.aborted
 }
 
 onMounted(() => {
@@ -572,24 +565,27 @@ onMounted(() => {
 })
 
 onActivated(async () => {
+  viewActive = true
   window.addEventListener('resize', handleViewportResize)
-  if (!hasInitialized.value || initialLoading.value) return
+  if (!hasInitialized.value) { if (!initialLoading.value) void initialize(); return }
+  if (interruptedCatalog) { interruptedCatalog = false; await runCatalogAction({}); return }
+  if (initialLoading.value) return
   if (Date.now() - lastLoadedAt >= CATEGORY_CACHE_TTL) {
     activeRequest?.abort()
     activeRequest = new AbortController()
     await loadCatalogState({ useCache: true, signal: activeRequest.signal })
-  } else {
-    await nextTick()
-    setupInfiniteScroll()
   }
 })
 
 onDeactivated(() => {
+  viewActive = false
+  interruptedCatalog = initialLoading.value
+  initialLoading.value = false
   cancelScheduledCategorySwitch()
   categorySwitchPending.value = false
   latestCatalogActionId++
   activeRequest?.abort()
-  observer?.disconnect()
+  activeRequest = null
   window.removeEventListener('resize', handleViewportResize)
   mobileFilterOpen.value = false
 })
@@ -598,20 +594,17 @@ onUnmounted(() => {
   cancelScheduledCategorySwitch()
   categorySwitchPending.value = false
   activeRequest?.abort()
-  observer?.disconnect()
+  activeRequest = null
   window.removeEventListener('resize', handleViewportResize)
 })
 
-watch(hasMore, (value) => {
-  if (value) nextTick(setupInfiniteScroll)
-})
 </script>
 
 <style scoped>
 .section-content { min-height: 360px; animation: fade-in .3s ease; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .filter-section, .sort-section, .mobile-catalog-toolbar { margin-bottom: 12px; }
-.sort-section, .catalog-filters, .sort-options, .price-filter, .stock-filter, .products-header, .loading-indicator { display: flex; align-items: center; }
+.sort-section, .catalog-filters, .sort-options, .price-filter, .stock-filter, .products-header { display: flex; align-items: center; }
 .sort-section { justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .mobile-catalog-toolbar { display: none; }
 .sort-options { gap: 4px; flex-wrap: wrap; }
@@ -637,9 +630,6 @@ watch(hasMore, (value) => {
 .filter-tag { display: inline-block; margin-left: 8px; padding: 2px 8px; font-size: 11px; color: var(--color-success); background: var(--color-success-bg); border-radius: 10px; }
 .filter-tag.price-tag { color: var(--color-primary); background: var(--color-primary-bg); }
 .products-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--grid-gap); }
-.load-more, .loaded-all { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; min-height: 64px; padding: 20px; color: var(--text-tertiary); font-size: 13px; }
-.loading-indicator { gap: 8px; }
-.spinner { width: 16px; height: 16px; border: 2px solid var(--border-medium); border-top-color: var(--color-primary); border-radius: 50%; animation: spin .8s linear infinite; }
 .products-loading { min-height: 360px; padding: 20px 0; }
 @media (min-width: 768px) { .products-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 1024px) { .products-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
@@ -657,6 +647,5 @@ watch(hasMore, (value) => {
   .filter-tag { display: none; }
 }
 @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-@keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .section-content, .spinner { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .section-content { animation: none; } }
 </style>

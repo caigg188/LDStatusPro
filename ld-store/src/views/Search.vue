@@ -98,7 +98,7 @@
 
       <!-- 搜索结果 -->
       <div v-if="keyword" class="results-section">
-        <div v-if="searchError" class="feedback-card error-card">
+        <div v-if="searchError && !results.length" class="feedback-card error-card">
           <div>
             <strong>搜索失败</strong>
             <p>{{ searchError }}</p>
@@ -162,7 +162,7 @@
         </div>
 
         <EmptyState
-          v-else-if="results.length === 0 && hasSearched"
+          v-else-if="results.length === 0 && hasSearched && !searchError"
           icon="🔍"
           text="未找到相关物品"
           :hint="emptyHint"
@@ -191,12 +191,7 @@
               :product="product"
             />
           </div>
-          <div v-if="hasMore" class="load-more">
-            <button class="load-more-btn" @click="loadMore" :disabled="loadingMore">
-              {{ loadingMore ? '加载中...' : '加载更多' }}
-            </button>
-          </div>
-          <div v-else-if="results.length > 0" class="loaded-all">✨ 已加载全部</div>
+          <LoadMore :has-more="hasMore" :loading="loadingMore" :error="searchError" automatic @load="loadMore" />
         </div>
       </div>
     </div>
@@ -204,8 +199,8 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, ref, nextTick, onMounted, onActivated, onDeactivated, onBeforeUnmount, watch } from 'vue'
+import { useRoute, onBeforeRouteLeave } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
 import { useToast } from '@/composables/useToast'
 import { storage } from '@/utils/storage'
@@ -214,7 +209,10 @@ import { fetchSearchSuggestionsRequest, recordSearchOutcome } from '@/services/s
 import ProductCard from '@/components/product/ProductCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
+import LoadMore from '@/components/common/LoadMore.vue'
 import { catalogColumns } from '@/config/breakpoints'
+
+defineOptions({ name: 'SearchResults' })
 
 const route = useRoute()
 const shopStore = useCatalogStore()
@@ -291,6 +289,12 @@ let suggestionCloseTimer = null
 let latestSearchRequestId = 0
 let latestSuggestionRequestId = 0
 let lastCompletedQuery = ''
+let failedAppend = false
+let interruptedInitial = false
+let savedScrollPosition = 0
+let activeRequest = null
+let viewActive = true
+let currentRouteQuery = String(route.query.q || '').trim()
 
 const showSuggestions = computed(() => (
   suggestionsOpen.value && keyword.value.trim().length > 0 && suggestions.value.length > 0
@@ -351,6 +355,7 @@ function clearHistory() {
 
 function resetSearchState() {
   latestSearchRequestId++
+  activeRequest?.abort()
   searching.value = false
   loadingMore.value = false
   results.value = []
@@ -365,6 +370,7 @@ function resetSearchState() {
 }
 
 async function doSearch(options = {}) {
+  clearTimeout(searchTimer)
   const trimmedKeyword = keyword.value.trim()
   if (!trimmedKeyword) {
     resetSearchState()
@@ -380,6 +386,9 @@ async function doSearch(options = {}) {
   }
 
   const requestId = ++latestSearchRequestId
+  activeRequest?.abort()
+  activeRequest = new AbortController()
+  failedAppend = false
   searchError.value = ''
   hasSearched.value = true
 
@@ -392,7 +401,7 @@ async function doSearch(options = {}) {
 
   try {
     const result = await fetchSearchResults(trimmedKeyword, requestPage)
-    if (requestId !== latestSearchRequestId) return
+    if (requestId !== latestSearchRequestId || !result) return
 
     const nextResults = Array.isArray(result.products) ? result.products : []
     const effectiveAppend = append && !result.cursorRestarted
@@ -416,6 +425,7 @@ async function doSearch(options = {}) {
   } catch (error) {
     if (requestId !== latestSearchRequestId) return
     console.error('Search error:', error)
+    failedAppend = append
     searchError.value = error.message || '搜索失败，请稍后重试'
     if (!append) {
       results.value = []
@@ -438,9 +448,11 @@ async function fetchSearchResults(searchKeyword, requestPage = 1) {
     page: requestPage,
     pageSize,
     priceMin: appliedPriceMin.value,
-    priceMax: appliedPriceMax.value
+    priceMax: appliedPriceMax.value,
+    signal: activeRequest.signal
   })
 
+  if (result.aborted) return null
   if (!result.success) throw new Error(result.error || '搜索失败，请稍后重试')
   const pagination = result.data.pagination
 
@@ -609,15 +621,18 @@ function fillSuggestedKeyword() {
 
 function retrySearch() {
   if (!keyword.value.trim()) return
-  doSearch({ saveHistory: false, page: page.value || 1 })
+  if (failedAppend) return loadMore()
+  doSearch({ saveHistory: false })
 }
 
 async function loadMore() {
-  if (loadingMore.value || !hasMore.value || !keyword.value.trim()) return
+  if (searching.value || loadingMore.value || !hasMore.value || !keyword.value.trim()) return
   await doSearch({ saveHistory: false, page: page.value + 1, append: true })
 }
 
 watch(() => route.query.q, (q) => {
+  if (route.name !== 'Search' || !viewActive) return
+  currentRouteQuery = String(q || '').trim()
   const nextKeyword = String(q || '').trim()
   if (!nextKeyword) {
     keyword.value = ''
@@ -639,13 +654,39 @@ onMounted(() => {
   void loadSuggestions('')
 })
 
-onBeforeUnmount(() => {
+onBeforeRouteLeave(() => { savedScrollPosition = window.scrollY })
+
+onActivated(async () => {
+  viewActive = true
+  window.addEventListener('resize', updateGridColumns)
+  const nextKeyword = String(route.query.q || '').trim()
+  if (nextKeyword !== currentRouteQuery) {
+    currentRouteQuery = nextKeyword
+    keyword.value = nextKeyword
+    await doSearch()
+  } else if (interruptedInitial) {
+    interruptedInitial = false
+    await doSearch({ saveHistory: false })
+  }
+  await nextTick()
+  window.scrollTo(0, savedScrollPosition)
+})
+
+function stopSearch() {
+  viewActive = false
+  interruptedInitial = searching.value
   clearTimeout(searchTimer)
   clearTimeout(suggestionTimer)
   clearTimeout(suggestionCloseTimer)
   window.removeEventListener('resize', updateGridColumns)
   latestSearchRequestId++
-})
+  latestSuggestionRequestId++
+  activeRequest?.abort()
+  searching.value = false
+  loadingMore.value = false
+}
+onDeactivated(stopSearch)
+onBeforeUnmount(stopSearch)
 </script>
 
 <style scoped>
@@ -1118,38 +1159,10 @@ onBeforeUnmount(() => {
   gap: var(--grid-gap);
 }
 
-.load-more {
-  padding: 30px;
-  text-align: center;
-}
 
-.load-more-btn {
-  padding: 12px 40px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: 24px;
-  font-size: 14px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color var(--motion-duration-fast) var(--motion-ease-standard), background-color var(--motion-duration-fast) var(--motion-ease-standard), border-color var(--motion-duration-fast) var(--motion-ease-standard), box-shadow var(--motion-duration-fast) var(--motion-ease-standard), opacity var(--motion-duration-fast) var(--motion-ease-standard), transform var(--motion-duration-fast) var(--motion-ease-standard);
-}
 
-.load-more-btn:hover:not(:disabled) {
-  background: var(--bg-secondary);
-  border-color: var(--border-default);
-}
 
-.load-more-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
 
-.loaded-all {
-  padding: 24px 0 8px;
-  text-align: center;
-  color: var(--text-tertiary);
-  font-size: 13px;
-}
 
 @media (min-width: 768px) {
   .products-grid {

@@ -10,6 +10,7 @@ interface MarketplaceListOptions {
   page?: number
   pageSize?: number
   tags?: string[]
+  sortSeed?: string
   status?: string
   search?: string
   signal?: AbortSignal
@@ -33,12 +34,13 @@ export async function fetchMarketplaceShops({ page, pageSize, tags = [], search 
   )
 }
 
-export async function fetchMarketplaceBuyRequests({ page, pageSize, status = '', search = '', signal }: MarketplaceListOptions = {}) {
+export async function fetchMarketplaceBuyRequests({ page, pageSize, status = '', search = '', sortSeed = '', signal }: MarketplaceListOptions = {}) {
   const params = new URLSearchParams({
     page: String(page || 1),
     pageSize: String(pageSize || 20),
     sort: 'random'
   })
+  if (sortSeed) params.set('sortSeed', sortSeed)
   if (status) params.set('status', status)
   if (search.trim()) params.set('search', search.trim())
   return validateApiResult(

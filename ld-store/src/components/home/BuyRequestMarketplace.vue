@@ -14,7 +14,7 @@
         :options="[{ value: '', label: '全部状态' }, ...statusOptions]"
         variant="toolbar"
         class="buy-toolbar-select"
-        @change="loadRequests(true)"
+        @change="loadRequests()"
       />
       <div class="buy-toolbar-search">
         <label for="home-buy-search" class="sr-only">搜索求购</label>
@@ -24,13 +24,13 @@
           type="search"
           class="buy-toolbar-input"
           placeholder="搜索求购标题或内容"
-          @keyup.enter="loadRequests(true)"
+          @keyup.enter="loadRequests()"
         />
-        <button type="button" class="buy-toolbar-btn buy-toolbar-btn-search" aria-label="搜索求购" @click="loadRequests(true)">
+        <button type="button" class="buy-toolbar-btn buy-toolbar-btn-search" aria-label="搜索求购" @click="loadRequests()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
       </div>
-      <button type="button" class="buy-toolbar-btn secondary buy-toolbar-btn-refresh" @click="loadRequests(false)">换一批</button>
+      <button type="button" class="buy-toolbar-btn secondary buy-toolbar-btn-refresh" @click="refreshBatch">换一批</button>
     </div>
 
     <div class="products-header"><span class="products-count">求购信息 <strong>{{ pagination.total }}</strong> 条</span></div>
@@ -105,6 +105,8 @@ const statusOptions = [
 let activeRequest = null
 let requestId = 0
 let lastLoadedAt = 0
+let sortSeed = crypto.randomUUID()
+let appliedFilters = { status: '', search: '' }
 
 function updateGridColumns() {
   gridColumns.value = catalogColumns(window.innerWidth)
@@ -119,28 +121,28 @@ function statusClass(status) {
   return ['open', 'negotiating', 'matched', 'closed', 'blocked', 'pending_review'].includes(value) ? value : 'default'
 }
 
-async function loadRequests(resetPage = true) {
-  if (resetPage) pagination.page = 1
+async function loadRequests(requestedPage = 1, requestedSeed = sortSeed) {
+  const filters = requestedPage === 1 ? { status: statusFilter.value, search: searchKeyword.value } : appliedFilters
   activeRequest?.abort()
   activeRequest = new AbortController()
   const currentRequestId = ++requestId
   loading.value = true
   try {
     const result = await fetchMarketplaceBuyRequests({
-      page: pagination.page,
+      page: requestedPage,
       pageSize: pagination.pageSize,
-      status: statusFilter.value,
-      search: searchKeyword.value,
+      sortSeed: requestedSeed,
+      ...filters,
       signal: activeRequest.signal
     })
     if (currentRequestId !== requestId || result.aborted) return
     if (!result.success || !result.data) {
       toast.error(result.error || '加载求购信息失败，请稍后重试')
-      requests.value = []
-      pagination.total = 0
-      pagination.totalPages = 0
       return
     }
+    pagination.page = requestedPage
+    sortSeed = requestedSeed
+    appliedFilters = filters
     requests.value = result.data.requests || []
     pagination.total = result.data.pagination?.total || 0
     pagination.totalPages = result.data.pagination?.totalPages || 0
@@ -155,10 +157,13 @@ async function loadRequests(resetPage = true) {
   }
 }
 
+function refreshBatch() {
+  return loadRequests(1, crypto.randomUUID())
+}
+
 function goPage(page) {
   if (page < 1 || page > pagination.totalPages) return
-  pagination.page = page
-  loadRequests(false)
+  loadRequests(page)
 }
 
 function publishBuyRequest() {
@@ -172,17 +177,19 @@ function publishBuyRequest() {
 onMounted(() => {
   updateGridColumns()
   window.addEventListener('resize', updateGridColumns)
-  loadRequests(true)
+  loadRequests()
 })
 
 onActivated(() => {
   window.addEventListener('resize', updateGridColumns)
-  if (initialized.value && Date.now() - lastLoadedAt >= CACHE_TTL) loadRequests(false)
+  if (!loading.value && (!initialized.value || Date.now() - lastLoadedAt >= CACHE_TTL)) loadRequests(pagination.page)
 })
 
 onDeactivated(() => {
   requestId++
   activeRequest?.abort()
+  loading.value = false
+  if (!requests.value.length) initialized.value = false
   window.removeEventListener('resize', updateGridColumns)
 })
 

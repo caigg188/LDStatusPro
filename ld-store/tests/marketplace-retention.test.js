@@ -46,9 +46,9 @@ describe('marketplace retention boundaries', () => {
     wrapper.unmount()
   })
 
-  it('keeps only Home and Category in the global route cache', () => {
+  it('keeps browsing lists in the session-scoped route cache', () => {
     const appSource = readFileSync('src/App.vue', 'utf8')
-    expect(appSource).toContain("ref(['Home', 'Category'])")
+    expect(appSource).toContain("ref(['Home', 'Category', 'SearchResults', 'MyFavorites'])")
     expect(appSource).not.toContain("'ProductDetail'")
   })
 

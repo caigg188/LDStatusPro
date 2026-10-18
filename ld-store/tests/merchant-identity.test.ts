@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { merchantProfilePath } from '../src/utils/merchantIdentity'
-import { fetchMerchantProfileRequest } from '../src/services/shop/catalogService'
+import { fetchMerchantProfileRequest } from '../src/services/shop/merchantProfileService'
 import { getCouponUsePath } from '../src/services/shop/couponService'
 import { api } from '../src/utils/api'
 

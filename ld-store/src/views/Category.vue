@@ -62,7 +62,7 @@
       </div>
 
       <EmptyState
-        v-else-if="products.length === 0"
+        v-else-if="products.length === 0 && !loadError"
         :icon="isProductListHiddenByMaintenance ? '🚧' : '📭'"
         :title="isProductListHiddenByMaintenance ? maintenanceTitle : '暂无物品'"
         :description="isProductListHiddenByMaintenance ? maintenanceCatalogDescription : `${categoryName} 分类下暂时没有符合条件的物品`"
@@ -80,11 +80,7 @@
         />
       </div>
 
-      <div v-if="hasMore && !loading" class="load-more">
-        <button class="load-more-btn" @click="loadMore" :disabled="loadingMore">
-          {{ loadingMore ? '加载中...' : '加载更多' }}
-        </button>
-      </div>
+      <LoadMore v-if="!loading && (products.length || loadError)" :has-more="hasMore" :loading="loadingMore" :error="loadError" automatic @load="loadMore" />
     </div>
   </div>
 </template>
@@ -93,7 +89,6 @@
 import { ref, computed, watch, onActivated, onDeactivated, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
-import { useToast } from '@/composables/useToast'
 import { fetchProductsRequest } from '@/services/shop/catalogService'
 import { MAINTENANCE_STATE, isMaintenanceFeatureEnabled, isRestrictedMaintenanceMode } from '@/config/maintenance'
 import { createTtlLruCache } from '@/utils/ttlLruCache'
@@ -101,15 +96,17 @@ import ProductCard from '@/components/product/ProductCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
 import LiquidTabs from '@/components/common/LiquidTabs.vue'
+import LoadMore from '@/components/common/LoadMore.vue'
 
 defineOptions({ name: 'Category' })
 
 const route = useRoute()
 const catalogStore = useCatalogStore()
-const toast = useToast()
 
 const loading = ref(true)
 const loadingMore = ref(false)
+const loadError = ref('')
+let interrupted = false
 const products = ref([])
 const page = ref(1)
 const total = ref(0)
@@ -239,6 +236,7 @@ function tryRestoreCategoryCache(categoryId = resolvedCategoryId.value) {
   hasMore.value = !!cached.hasMore
   page.value = Number.isFinite(Number(cached.page)) ? Number(cached.page) : 1
   nextCursor.value = cached.cursor || ''
+  loadError.value = ''
   loading.value = false
   loadingMore.value = false
   return true
@@ -270,13 +268,14 @@ function discardInFlightCategoryLoad() {
 
 async function loadProducts(append = false) {
   const token = ++loadToken
+  const requestPage = append ? page.value + 1 : 1
+  loadError.value = ''
+  activeRequest?.abort()
+  activeRequest = new AbortController()
   try {
     if (!append) {
       loading.value = true
-      page.value = 1
       nextCursor.value = ''
-      activeRequest?.abort()
-      activeRequest = new AbortController()
     } else {
       loadingMore.value = true
     }
@@ -293,18 +292,19 @@ async function loadProducts(append = false) {
 
     const result = await fetchProductsRequest({
       categoryId,
-      page: page.value,
+      page: requestPage,
       pageSize,
       sort: currentSort.value,
       priceMin: appliedPriceMin.value,
       priceMax: appliedPriceMax.value,
       cursor: append ? nextCursor.value : '',
-      signal: append ? undefined : activeRequest?.signal
+      signal: activeRequest.signal
     })
 
     if (token !== loadToken || result?.aborted) return false
     if (!result?.success || !Array.isArray(result.data?.products)) {
-      toast.error(result?.error || '加载分类物品失败，请稍后重试')
+      loadError.value = result?.error || '加载分类物品失败，请重试'
+      if (!append) { products.value = []; total.value = 0; hasMore.value = false }
       return false
     }
 
@@ -317,7 +317,7 @@ async function loadProducts(append = false) {
       products.value = nextProducts
     }
 
-    if (cursorRestarted) page.value = 1
+    page.value = cursorRestarted ? 1 : requestPage
     nextCursor.value = pagination.nextCursor || ''
     total.value = pagination.total || nextProducts.length
     hasMore.value = typeof pagination.hasMore === 'boolean'
@@ -329,7 +329,7 @@ async function loadProducts(append = false) {
   } catch (error) {
     if (token !== loadToken) return false
     console.error('Load category products error:', error)
-    toast.error(error.message || '加载分类物品失败，请稍后重试')
+    loadError.value = error.message || '加载分类物品失败，请重试'
     return false
   } finally {
     if (token === loadToken) {
@@ -360,11 +360,8 @@ function scheduleCategoryLoad({ immediate = false } = {}) {
 }
 
 async function loadMore() {
-  page.value += 1
-  const success = await loadProducts(true)
-  if (!success) {
-    page.value = Math.max(page.value - 1, 1)
-  }
+  if (loading.value || loadingMore.value) return
+  await loadProducts(products.value.length > 0 && hasMore.value)
 }
 
 function changeSort(sort) {
@@ -400,6 +397,7 @@ watch(() => route.params.name, (newCategory, previousCategory) => {
 }, { immediate: true })
 
 onActivated(async () => {
+  if (interrupted) { interrupted = false; await loadProducts() }
   if (route.params.name === lastCategory && savedScrollPosition > 0) {
     await nextTick()
     window.scrollTo(0, savedScrollPosition)
@@ -408,6 +406,7 @@ onActivated(async () => {
 
 onDeactivated(() => {
   savedScrollPosition = window.scrollY
+  interrupted = loading.value
   cancelScheduledCategoryLoad()
   discardInFlightCategoryLoad()
   loading.value = false
@@ -554,31 +553,9 @@ onUnmounted(() => {
   gap: var(--grid-gap);
 }
 
-.load-more {
-  padding: 30px;
-  text-align: center;
-}
 
-.load-more-btn {
-  padding: 12px 40px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: 24px;
-  font-size: 14px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color var(--motion-duration-fast) var(--motion-ease-standard), background-color var(--motion-duration-fast) var(--motion-ease-standard), border-color var(--motion-duration-fast) var(--motion-ease-standard), box-shadow var(--motion-duration-fast) var(--motion-ease-standard), opacity var(--motion-duration-fast) var(--motion-ease-standard), transform var(--motion-duration-fast) var(--motion-ease-standard);
-}
 
-.load-more-btn:hover:not(:disabled) {
-  background: var(--bg-secondary);
-  border-color: var(--border-default);
-}
 
-.load-more-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
 
 @media (min-width: 768px) {
   .products-grid {

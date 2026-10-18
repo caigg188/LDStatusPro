@@ -124,7 +124,8 @@ export const MerchantProfileResponseSchema = looseObject({
     totalListedCount: NonnegativeIntegerSchema,
     totalSoldCount: NonnegativeIntegerSchema
   }),
-  products: optional(array(ProductSchema))
+  products: optional(array(ProductSchema)),
+  pagination: optional(looseObject({ page: PositiveIntegerSchema, pageSize: PositiveIntegerSchema, hasMore: boolean() }))
 })
 
 const ModerationStatusSchema = union([
