@@ -1,3 +1,4 @@
+import { normalizeResourceId } from '@/utils/resourceId'
 const PAYMENT_WINDOW_MS = 5 * 60 * 1000
 
 export function parseTopServiceBeijingDateTimeMs(value = '') {
@@ -85,7 +86,7 @@ export function getTopServiceOrderPresentation(order = {}, nowMs = Date.now()) {
 }
 
 export function topServiceQuoteChanged(quote, order) {
-  return Number(quote.productId) !== Number(order.productId)
+  return normalizeResourceId(quote.productId) !== normalizeResourceId(order.productId)
     || quote.packageType !== order.packageType
     || Number(quote.durationDays) !== Number(order.durationDays)
     || Math.round(Number(quote.amount) * 100) !== Math.round(Number(order.amount) * 100)

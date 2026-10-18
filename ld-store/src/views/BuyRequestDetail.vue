@@ -230,6 +230,7 @@
 </template>
 
 <script setup>
+import { normalizeResourceId } from '@/utils/resourceId'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
@@ -289,7 +290,7 @@ const MESSAGE_FETCH_LIMIT = 50
 const CHAT_FALLBACK_INTERVAL = 15000
 
 const isLoggedIn = computed(() => userStore.isLoggedIn)
-const requestId = computed(() => Number(route.params.id || 0))
+const requestId = computed(() => normalizeResourceId(route.params.id || 0))
 
 const requestDetailState = ref(null)
 const canStartSession = computed(() => !!requestDetailState.value?.canStartSession)
@@ -366,21 +367,21 @@ function normalizeSessions(detailData) {
 }
 
 function getPreferredSessionId() {
-  const value = Number(route.query.session || 0)
-  return Number.isFinite(value) && value > 0 ? value : 0
+  const value = normalizeResourceId(route.query.session || 0)
+  return !!value ? value : 0
 }
 
 function mergeMessages(currentList = [], incomingList = []) {
   const merged = new Map()
   for (const item of currentList) {
-    const id = Number(item?.id || 0)
-    if (id > 0) merged.set(id, item)
+    const id = normalizeResourceId(item?.id || 0)
+    if (!!id) merged.set(id, item)
   }
   for (const item of incomingList) {
-    const id = Number(item?.id || 0)
-    if (id > 0) merged.set(id, item)
+    const id = normalizeResourceId(item?.id || 0)
+    if (!!id) merged.set(id, item)
   }
-  return Array.from(merged.values()).sort((a, b) => Number(a.id || 0) - Number(b.id || 0))
+  return Array.from(merged.values()).sort((a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0))
 }
 
 function notifyMessageSyncError(message, immediate = false) {
@@ -417,7 +418,7 @@ async function restoreScrollPosition(previousScrollTop, previousScrollHeight) {
   el.scrollTop = previousScrollTop + Math.max(delta, 0)
 }
 
-function applyDetailState(data = {}) {
+async function applyDetailState(data = {}) {
   requestDetailState.value = data
   requestData.value = data.request || null
   viewerRole.value = data.viewerRole || 'guest'
@@ -427,10 +428,17 @@ function applyDetailState(data = {}) {
     adjustPrice.value = String(requestData.value.budgetPrice || '')
   }
 
+  let preferredSessionId = getPreferredSessionId()
   if (sessions.value.length > 0) {
-    const preferredSessionId = getPreferredSessionId()
+    if (typeof preferredSessionId === 'number' && preferredSessionId && isLoggedIn.value
+      && !sessions.value.some(item => item.id === preferredSessionId)) {
+      const result = await fetchBuySessionDetailRequest(preferredSessionId, undefined, requestData.value.id)
+      if (result.success && sessions.value.some(item => item.id === result.data?.session.id)) {
+        preferredSessionId = result.data.session.id
+      }
+    }
     const exists = sessions.value.some(item => item.id === activeSessionId.value)
-    const preferredExists = preferredSessionId > 0
+    const preferredExists = !!preferredSessionId
       && sessions.value.some((item) => item.id === preferredSessionId)
 
     if (preferredExists) {
@@ -443,14 +451,21 @@ function applyDetailState(data = {}) {
     messages.value = []
     hasOlderMessages.value = false
   }
+  const preferred = getPreferredSessionId()
+  const canonicalSession = preferredSessionId
+  if (requestData.value?.id && (String(route.params.id) !== String(requestData.value.id)
+      || String(preferred) !== String(canonicalSession))) {
+    await router.replace({ ...route, params: { ...route.params, id: requestData.value.id },
+      query: { ...route.query, ...(canonicalSession ? { session: canonicalSession } : {}) } })
+  }
 }
 
 async function loadDetailBySessionFallback() {
   const sessionId = getPreferredSessionId()
-  if (!isLoggedIn.value || sessionId <= 0) return { ok: false, error: '' }
+  if (!isLoggedIn.value || !sessionId) return { ok: false, error: '' }
 
   try {
-    const result = await fetchBuySessionDetailRequest(sessionId)
+    const result = await fetchBuySessionDetailRequest(sessionId, undefined, requestId.value)
     if (!result.success) return { ok: false, error: result.error || '' }
 
     const payload = result.data || {}
@@ -458,10 +473,10 @@ async function loadDetailBySessionFallback() {
     const fallbackSession = payload.session || null
     if (!fallbackRequest || !fallbackSession) return { ok: false, error: '' }
 
-    const fallbackRequestId = Number(fallbackRequest.id || 0)
-    if (requestId.value && fallbackRequestId !== requestId.value) return { ok: false, error: '' }
+    const fallbackRequestId = normalizeResourceId(fallbackRequest.id || 0)
+    if (typeof requestId.value === 'string' && fallbackRequestId !== requestId.value) return { ok: false, error: '' }
 
-    applyDetailState({
+    await applyDetailState({
       request: fallbackRequest,
       viewerRole: payload.viewerRole || 'provider',
       sessions: [fallbackSession],
@@ -494,7 +509,7 @@ async function loadDetail(showLoading = true) {
       return
     }
 
-    applyDetailState(result.data || {})
+    await applyDetailState(result.data || {})
   } catch (error) {
     const fallback = await loadDetailBySessionFallback()
     if (fallback.ok) return
@@ -520,11 +535,11 @@ async function loadMessages(options = {}) {
   const fetchVersion = ++messageFetchVersion
   const currentMessages = [...messages.value]
   const beforeId = loadBefore
-    ? Number(currentMessages[0]?.id || 0)
+    ? normalizeResourceId(currentMessages[0]?.id || 0)
     : 0
   const sinceId = loadBefore || reset || currentMessages.length === 0
     ? 0
-    : Number(currentMessages[currentMessages.length - 1]?.id || 0)
+    : normalizeResourceId(currentMessages[currentMessages.length - 1]?.id || 0)
   if (loadBefore && !beforeId) return
   const shouldAutoScroll = reset || (!loadBefore && isNearBottom())
   const previousScrollTop = loadBefore ? Number(chatMessageListRef.value?.scrollTop || 0) : 0
@@ -569,8 +584,8 @@ async function loadMessages(options = {}) {
       notificationSummaryStore.markBuyChatRead(unreadBefore)
     }
 
-    const latestMessageId = Number(pagination.latestMessageId || messages.value[messages.value.length - 1]?.id || 0)
-    if (!loadBefore && latestMessageId > 0 && document.visibilityState === 'visible') {
+    const latestMessageId = normalizeResourceId(pagination.latestMessageId || messages.value[messages.value.length - 1]?.id || 0)
+    if (!loadBefore && !!latestMessageId && document.visibilityState === 'visible') {
       void markBuySessionReadRequest(targetSessionId, latestMessageId)
     }
 
@@ -638,7 +653,7 @@ function syncChatFallback() {
 
 function handleRealtimeNotification(event) {
   if (event.type !== 'buy-message.created') return
-  if (Number(event.data?.sessionId || 0) !== activeSessionId.value) return
+  if (normalizeResourceId(event.data?.sessionId || 0) !== activeSessionId.value) return
   if (document.visibilityState === 'hidden') return
   loadMessages(false)
 }
@@ -693,7 +708,7 @@ async function sendMessage() {
     }
     messageInput.value = ''
     const sentMessage = result.data?.message
-    if (sentMessage && Number(sentMessage.sessionId || targetSessionId) === targetSessionId) {
+    if (sentMessage && normalizeResourceId(sentMessage.sessionId || targetSessionId) === targetSessionId) {
       messages.value = mergeMessages(messages.value, [sentMessage])
     }
     await loadMessages(false)

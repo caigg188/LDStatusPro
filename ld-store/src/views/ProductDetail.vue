@@ -579,12 +579,13 @@
         <div class="preview-hint">点击空白处或按 ESC 关闭</div>
       </div>
     </Teleport>
-    <ReportComposer :open="showReportModal" :object-id="Number(product?.id || 0)" :object-name="product?.name || ''" @close="closeReportModal" @busy="reportSubmitting=$event" />
-    <ReportComposer :open="showCommentReportModal" target-type="comment" :object-id="Number(commentReportTarget?.id || 0)" :object-name="product?.name || ''" @close="closeCommentReportModal" />
+    <ReportComposer :open="showReportModal" :object-id="normalizeResourceId(product?.id || 0)" :object-name="product?.name || ''" @close="closeReportModal" @busy="reportSubmitting=$event" />
+    <ReportComposer :open="showCommentReportModal" target-type="comment" :object-id="normalizeResourceId(commentReportTarget?.id || 0)" :object-name="product?.name || ''" @close="closeCommentReportModal" />
   </div>
 </template>
 
 <script setup>
+import { normalizeResourceId } from '@/utils/resourceId'
 import { ref, computed, watch, onActivated, onDeactivated, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -964,6 +965,7 @@ onMounted(async () => {
   const result = await productStore.fetchProduct(String(productId))
   if (result?.success && result?.data?.product) {
     product.value = result.data.product
+    if (String(route.params.id) !== String(product.value.id)) await router.replace({ ...route, params: { ...route.params, id: product.value.id } })
     detailErrorMessage.value = ''
     // 更新页面标题
     document.title = `${product.value.name} - LD士多`
@@ -1146,29 +1148,29 @@ function normalizeCommentVoteType(value) {
 }
 
 function isCommentVoting(commentId) {
-  return !!commentVotingMap.value[Number(commentId || 0)]
+  return !!commentVotingMap.value[normalizeResourceId(commentId || 0)]
 }
 
 function isCommentReplyComposerOpen(commentId) {
-  const safeCommentId = Number(commentId || 0)
+  const safeCommentId = normalizeResourceId(commentId || 0)
   if (!safeCommentId) return false
   return commentReplyComposerIdSet.value.has(safeCommentId)
 }
 
 function isCommentReplyLoading(commentId) {
-  return !!commentReplyLoadingMap.value[Number(commentId || 0)]
+  return !!commentReplyLoadingMap.value[normalizeResourceId(commentId || 0)]
 }
 
 function isCommentReplySubmitting(commentId) {
-  return !!commentReplySubmittingMap.value[Number(commentId || 0)]
+  return !!commentReplySubmittingMap.value[normalizeResourceId(commentId || 0)]
 }
 
 function getCommentReplies(commentId) {
-  return commentReplyMap.value[Number(commentId || 0)] || []
+  return commentReplyMap.value[normalizeResourceId(commentId || 0)] || []
 }
 
 function getCommentReplyPagination(commentId) {
-  return commentReplyPaginationMap.value[Number(commentId || 0)] || {
+  return commentReplyPaginationMap.value[normalizeResourceId(commentId || 0)] || {
     total: 0,
     page: 1,
     pageSize: 10,
@@ -1182,14 +1184,14 @@ function canLoadMoreCommentReplies(commentId) {
 }
 
 function getCommentReplyDraftLength(commentId) {
-  const safeCommentId = Number(commentId || 0)
+  const safeCommentId = normalizeResourceId(commentId || 0)
   return String(commentReplyDraftMap.value[safeCommentId] || '').trim().length
 }
 
 function updateCommentListItem(commentId, updater) {
-  const safeCommentId = Number(commentId || 0)
+  const safeCommentId = normalizeResourceId(commentId || 0)
   if (!safeCommentId || typeof updater !== 'function') return
-  const index = commentList.value.findIndex((item) => Number(item.id || 0) === safeCommentId)
+  const index = commentList.value.findIndex((item) => normalizeResourceId(item.id || 0) === safeCommentId)
   if (index < 0) return
   const current = commentList.value[index]
   commentList.value[index] = updater(current)
@@ -1262,9 +1264,9 @@ async function loadComments(page = 1) {
       pageSize: Number(pagination.pageSize || 10),
       totalPages: Number(pagination.totalPages || 0)
     }
-    const validCommentIds = new Set(commentList.value.map((item) => Number(item?.id || 0)).filter((id) => id > 0))
+    const validCommentIds = new Set(commentList.value.map((item) => normalizeResourceId(item?.id || 0)).filter((id) => !!id))
     commentReplyComposerIdSet.value = new Set(
-      [...commentReplyComposerIdSet.value].filter((id) => validCommentIds.has(Number(id)))
+      [...commentReplyComposerIdSet.value].filter((id) => validCommentIds.has(normalizeResourceId(id)))
     )
     for (const mapRef of [
       commentVotingMap,
@@ -1302,7 +1304,7 @@ function toggleCommentActionMenu(commentId) {
 }
 
 async function voteComment(comment, voteType) {
-  const safeCommentId = Number(comment?.id || 0)
+  const safeCommentId = normalizeResourceId(comment?.id || 0)
   if (!safeCommentId || ![COMMENT_VOTE_UP, COMMENT_VOTE_DOWN].includes(voteType)) return
 
   if (!userStore.isLoggedIn) {
@@ -1348,10 +1350,10 @@ async function voteComment(comment, voteType) {
 async function preloadCommentRepliesForVisibleComments() {
   const targets = commentList.value
     .map((item) => ({
-      id: Number(item?.id || 0),
+      id: normalizeResourceId(item?.id || 0),
       replyCount: Number(item?.replyCount || 0)
     }))
-    .filter((item) => item.id > 0 && item.replyCount > 0)
+    .filter((item) => !!item.id && item.replyCount > 0)
 
   if (targets.length === 0) return
   await Promise.all(
@@ -1360,7 +1362,7 @@ async function preloadCommentRepliesForVisibleComments() {
 }
 
 async function loadCommentReplies(commentId, page = 1, options = {}) {
-  const safeCommentId = Number(commentId || 0)
+  const safeCommentId = normalizeResourceId(commentId || 0)
   if (!safeCommentId || isCommentReplyLoading(safeCommentId)) return
   const targetPage = Math.max(Number.parseInt(page, 10) || 1, 1)
   const append = targetPage > 1
@@ -1397,7 +1399,7 @@ async function loadCommentReplies(commentId, page = 1, options = {}) {
     }))
     const currentList = commentReplyMap.value[safeCommentId] || []
     const merged = append
-      ? [...currentList, ...normalizedList.filter((item) => !currentList.some((existing) => Number(existing.id) === Number(item.id)))]
+      ? [...currentList, ...normalizedList.filter((item) => !currentList.some((existing) => normalizeResourceId(existing.id) === normalizeResourceId(item.id)))]
       : normalizedList
     commentReplyMap.value[safeCommentId] = merged
 
@@ -1422,7 +1424,7 @@ async function loadCommentReplies(commentId, page = 1, options = {}) {
 }
 
 function toggleCommentReplyComposer(commentId) {
-  const safeCommentId = Number(commentId || 0)
+  const safeCommentId = normalizeResourceId(commentId || 0)
   if (!safeCommentId) return
   const nextSet = new Set(commentReplyComposerIdSet.value)
   if (nextSet.has(safeCommentId)) {
@@ -1439,7 +1441,7 @@ function toggleCommentReplyComposer(commentId) {
 }
 
 async function loadMoreCommentReplies(commentId) {
-  const safeCommentId = Number(commentId || 0)
+  const safeCommentId = normalizeResourceId(commentId || 0)
   if (!safeCommentId) return
   const pagination = getCommentReplyPagination(safeCommentId)
   if (Number(pagination.page || 0) >= Number(pagination.totalPages || 0)) return
@@ -1447,7 +1449,7 @@ async function loadMoreCommentReplies(commentId) {
 }
 
 async function submitCommentReply(comment) {
-  const safeCommentId = Number(comment?.id || 0)
+  const safeCommentId = normalizeResourceId(comment?.id || 0)
   if (!safeCommentId || isCommentReplySubmitting(safeCommentId)) return
 
   if (!userStore.isLoggedIn) {

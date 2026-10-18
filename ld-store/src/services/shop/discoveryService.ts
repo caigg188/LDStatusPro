@@ -1,3 +1,4 @@
+import { normalizeResourceId } from '@/utils/resourceId'
 import { api, type JsonValue } from '@/utils/api'
 import { validateApiResult } from '@/contracts/apiContract'
 import {
@@ -77,9 +78,9 @@ function writeTokenMap(value: Record<string, StoredDiscoveryToken>): void {
 }
 
 export function rememberDiscoveryToken(product: DiscoveryProduct): string {
-  const productId = Number(product?.id)
+  const productId = normalizeResourceId(product?.id)
   const token = discoveryTokenFor(product)
-  if (!Number.isInteger(productId) || productId <= 0 || !token) return ''
+  if (!productId || !token) return ''
   const entries = readTokenMap()
   entries[String(productId)] = { token, expiresAt: Date.now() + TOKEN_TTL_MS }
   const boundedEntries = Object.entries(entries)

@@ -1,6 +1,6 @@
+import { normalizeResourceId } from '@/utils/resourceId'
 function toPositiveId(value) {
-  const id = Number(value)
-  return Number.isInteger(id) && id > 0 ? id : 0
+  return normalizeResourceId(value)
 }
 
 export function resolveOrderSubjectTarget(order = {}) {

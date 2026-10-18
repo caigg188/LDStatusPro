@@ -89,6 +89,7 @@
 </template>
 
 <script setup>
+import { normalizeResourceId } from '@/utils/resourceId'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { ArrowUpRight, CircleAlert, CircleCheck, Link2, LockKeyhole, Search, TicketPercent } from '@lucide/vue'
 import { useInventoryStore } from '@/stores/inventory'
@@ -167,7 +168,7 @@ async function submitCampaign() {
     return
   }
   submitting.value = true
-  const payload = { name: form.name, description: form.description, scopeType: form.scopeType, productId: form.scopeType === 'product' ? Number(form.productId) : null, discountType: form.discountType, fixedAmount: form.discountType === 'fixed_amount' ? Number(form.fixedAmount) : null, percentageBps: form.discountType === 'percentage' ? Math.round(Number(form.percentage) * 1000) : null, minSpend: Number(form.minSpend || 0), totalQuantity: Number(form.totalQuantity), startsAt: new Date(`${form.startsAt}:00+08:00`).toISOString(), expiresAt: new Date(`${form.expiresAt}:00+08:00`).toISOString() }
+  const payload = { name: form.name, description: form.description, scopeType: form.scopeType, productId: form.scopeType === 'product' ? normalizeResourceId(form.productId) : null, discountType: form.discountType, fixedAmount: form.discountType === 'fixed_amount' ? Number(form.fixedAmount) : null, percentageBps: form.discountType === 'percentage' ? Math.round(Number(form.percentage) * 1000) : null, minSpend: Number(form.minSpend || 0), totalQuantity: Number(form.totalQuantity), startsAt: new Date(`${form.startsAt}:00+08:00`).toISOString(), expiresAt: new Date(`${form.expiresAt}:00+08:00`).toISOString() }
   const result = await createCouponRequest(payload)
   if (result.success) { createdCampaign.value = result.data; toast.success('优惠券发布成功'); viewMode.value = 'list'; await loadCampaigns(1) }
   else toast.error(result.error || '发布失败，请稍后重试')

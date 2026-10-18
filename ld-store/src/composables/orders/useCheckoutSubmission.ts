@@ -1,18 +1,26 @@
+import { normalizeResourceId } from '@/utils/resourceId'
 import { ref } from 'vue'
 import type { ApiResult } from '@/utils/api'
 import { captureAuthSession, isAuthSessionCurrent } from '@/utils/auth'
 
-interface Input { productId: number; quantity: number; couponClaimId: number | null; expectedAmount: number }
+interface Input { productId: string | number; quantity: number; couponClaimId: string | number | null; expectedAmount: number }
 interface Pending extends Input { token: string }
 interface Created { status?: string; paymentResolutionDeadline?: string | null; orderNo: string; orderId: string | number; paymentUrl?: string | null; paymentState?: string; retryAfterSeconds?: number | null }
+interface Lookup { exists: boolean; order: Created | null; legacyIntent?: { productId: string | number; couponClaimId: string | number | null } }
 interface Options {
   owner: string
-  productId: number
+  productId: string | number
   create: (input: Pending) => Promise<ApiResult<Created>>
-  lookup: (token: string) => Promise<ApiResult<{ exists: boolean; order: Created | null }>>
+  lookup: (token: string, legacy?: Pending) => Promise<ApiResult<Lookup>>
   wait?: () => Promise<void>
 }
 const memory = new Map<string, Pending>()
+const prefix = 'ld-store-order-submission:'
+function validPending(value: Pending | null, productId: unknown): value is Pending {
+  return !!value && value.productId === productId && /^ord_[a-zA-Z0-9_-]{16,80}$/.test(value.token)
+    && Number.isInteger(value.quantity) && value.quantity > 0 && Number.isFinite(value.expectedAmount)
+    && (value.couponClaimId === null || !!normalizeResourceId(value.couponClaimId))
+}
 
 export function getCheckoutSubmissionError(result: unknown) {
   const failure = result && typeof result === 'object'
@@ -29,20 +37,22 @@ export function getCheckoutSubmissionError(result: unknown) {
 }
 
 export function useCheckoutSubmission(options: Options) {
-  const key = `ld-store-order-submission:${JSON.stringify([options.owner, options.productId])}`
+  const key = `${prefix}${JSON.stringify([options.owner, options.productId])}`
   let saved = memory.get(key) || null
   try {
     const value = JSON.parse(sessionStorage.getItem(key) || 'null')
-    if (value?.productId === options.productId && /^ord_[a-zA-Z0-9_-]{16,80}$/.test(value?.token)
-      && Number.isInteger(value.quantity) && value.quantity > 0 && Number.isFinite(value.expectedAmount)
-      && (value.couponClaimId === null || Number.isInteger(value.couponClaimId))) saved = value
+    if (validPending(value, options.productId)) saved = value
   } catch { /* Memory still protects retries when storage is unavailable. */ }
   const pending = ref<Pending | null>(saved)
   const confirmed = ref<Created | null>(null)
   const checking = ref(false)
+  const restorationBlocked = ref(false)
+  let restored = false
+  let restoring: Promise<boolean> | null = null
   let active = true
   const session = captureAuthSession()
   const isActive = () => active && !session.changed && isAuthSessionCurrent(session)
+  const confirmedIsResolved = () => confirmed.value && (['cancelled', 'expired', 'paid', 'delivered', 'completed'].includes(confirmed.value.status || '') || !['pending', 'creating', 'unknown'].includes(confirmed.value.paymentState || ''))
   const stopped = (): ApiResult<Created> => ({ success: false, status: 0, error: '', errorCode: 'SESSION_CHANGED', kind: 'abort', aborted: true, abortReason: 'caller' })
 
   function persist(value: Pending | null) {
@@ -52,11 +62,51 @@ export function useCheckoutSubmission(options: Options) {
     try {
       if (value) sessionStorage.setItem(key, JSON.stringify(value))
       else sessionStorage.removeItem(key)
+      return true
     } catch { /* Keep the in-memory intent. */ }
+    return false
   }
 
   const unknown = (): ApiResult<Created> => ({ success: false, status: 0, kind: 'network', aborted: false,
     error: '暂时无法确认订单是否创建，请确认本次订单结果，避免重复兑换。' })
+
+  async function restore() {
+    if (confirmedIsResolved()) return isActive()
+    // A page can stay open while the server cuts over. A numeric coupon must be
+    // checked again on every recovery until the server supplies its public reference.
+    if (restored && !(pending.value && pending.value.couponClaimId !== null
+      && typeof normalizeResourceId(pending.value.couponClaimId) === 'number')) return isActive()
+    if (restoring) return restoring
+    restoring = (async () => {
+      checking.value = true
+      restorationBlocked.value = false
+      try {
+        // Historical products keep their numeric key. Only an old coupon reference
+        // needs translation, while the original token and purchase intent stay intact.
+        const intent = pending.value
+        if (intent && typeof normalizeResourceId(intent.productId) === 'number'
+          && intent.couponClaimId !== null && typeof normalizeResourceId(intent.couponClaimId) === 'number') {
+          const result = await options.lookup(intent.token, intent)
+          if (!isActive()) return false
+          const mapped = result.success ? result.data.legacyIntent : null
+          if (!result.success || (mapped && (normalizeResourceId(mapped.productId) !== normalizeResourceId(options.productId)
+            || typeof normalizeResourceId(mapped.couponClaimId) !== 'string'))) {
+            restorationBlocked.value = true
+          } else {
+            if (mapped) persist({ ...intent, couponClaimId: mapped.couponClaimId })
+            if (result.success && result.data.exists && result.data.order) confirmed.value = result.data.order
+          }
+          // Preparation-mode servers omit legacyIntent and still accept numeric coupons.
+        }
+        restored = !restorationBlocked.value
+        return restored && isActive()
+      } catch {
+        restorationBlocked.value = true
+        return false
+      } finally { checking.value = false }
+    })()
+    try { return await restoring } finally { restoring = null }
+  }
 
   async function lookup() {
     for (let attempt = 0; attempt < 3 && isActive() && pending.value; attempt++) {
@@ -80,13 +130,15 @@ export function useCheckoutSubmission(options: Options) {
     try { result = await options.create({ ...pending.value }) } catch { result = unknown() }
     if (!isActive() || (!result.success && result.errorCode === 'SESSION_CHANGED')) return stopped()
     if (result.success) { confirmed.value = result.data; return result }
+    if (result.errorCode === 'PUBLIC_ID_REQUIRED') restored = false
     const uncertain = result.status === 0 || result.status >= 500 || result.kind === 'contract'
-      || result.errorCode === 'ORDER_SUBMISSION_CONFLICT'
+      || ['ORDER_SUBMISSION_CONFLICT', 'PUBLIC_ID_REQUIRED'].includes(result.errorCode || '')
     if (!uncertain) { persist(null); return result }
     return lookup()
   }
 
   async function submit(input: Input) {
+    if (!await restore()) return unknown()
     if (checking.value || pending.value || !isActive()) return unknown()
     persist({ ...input, token: `ord_${crypto.randomUUID().replaceAll('-', '')}` })
     checking.value = true
@@ -94,10 +146,11 @@ export function useCheckoutSubmission(options: Options) {
   }
 
   async function recover(retry = false) {
+    if (!await restore()) return unknown()
     if (checking.value || !pending.value || !isActive()) return unknown()
     checking.value = true
     try {
-      if (confirmed.value && (['cancelled', 'expired', 'paid', 'delivered', 'completed'].includes(confirmed.value.status || '') || !['pending', 'creating', 'unknown'].includes(confirmed.value.paymentState || ''))) return { success: true as const, status: 200, data: confirmed.value }
+      if (confirmed.value && confirmedIsResolved()) return { success: true as const, status: 200, data: confirmed.value }
       const result = await lookup()
       // Only an explicit retry replays the exact original payload and token.
       // Backend checks the original expected amount before creating anything.
@@ -105,5 +158,7 @@ export function useCheckoutSubmission(options: Options) {
     } finally { checking.value = false }
   }
 
-  return { pending, checking, confirmed, submit, recover, complete: () => { persist(null); confirmed.value = null }, stop: () => { active = false } }
+  return { pending, checking, confirmed, restorationBlocked, restore, submit, recover,
+    complete: () => { persist(null); confirmed.value = null },
+    stop: () => { active = false } }
 }

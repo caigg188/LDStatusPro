@@ -5,7 +5,7 @@ import { submitReport, reportCategories } from '@/services/shop/reportService';
 const props = defineProps({
   open: Boolean,
   targetType: { type: String, default: 'product' },
-  objectId: { type: Number, required: true },
+  objectId: { type: [String, Number], required: true },
   objectName: { type: String, default: '' },
   orderNo: { type: String, default: '' }
 });

@@ -160,7 +160,8 @@ export const OrderCreatedResponseSchema = looseObject({
 
 export const OrderSubmissionResponseSchema = looseObject({
   exists: boolean(),
-  order: nullable(OrderCreatedResponseSchema)
+  order: nullable(OrderCreatedResponseSchema),
+  legacyIntent: optional(looseObject({ productId: EntityIdSchema, couponClaimId: nullable(EntityIdSchema) }))
 })
 
 export const OrderPaymentResponseSchema = looseObject({
@@ -202,7 +203,7 @@ const RefundResponseFields = {
 
 export const RefundSchema = looseObject({
   ...RefundResponseFields,
-  id: EntityIdSchema,
+  id: optional(EntityIdSchema),
   orderNo: NonemptyStringSchema,
   status: RefundStatusSchema,
   refundAmount: union([number(), string()]),
@@ -228,7 +229,7 @@ export const SellerRefundListResponseSchema = looseObject({
   serverNow: optional(string()),
   refunds: array(looseObject({
     ...RefundResponseFields,
-    id: EntityIdSchema,
+    id: optional(EntityIdSchema),
     orderNo: NonemptyStringSchema,
     status: RefundStatusSchema,
     refundAmount: union([number(), string()])

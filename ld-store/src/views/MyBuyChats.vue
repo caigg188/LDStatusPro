@@ -233,6 +233,7 @@
 </template>
 
 <script setup>
+import { normalizeResourceId } from '@/utils/resourceId'
 import { onMounted, onUnmounted, reactive, ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
@@ -440,7 +441,7 @@ function goSystemPage(page) {
 }
 
 async function markSystemMessageRead(item) {
-  const messageId = Number(item?.id || 0)
+  const messageId = normalizeResourceId(item?.id || 0)
   if (!messageId || item.isRead || markingSystemId.value === messageId) return
 
   markingSystemId.value = messageId

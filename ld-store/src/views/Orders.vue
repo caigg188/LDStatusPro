@@ -312,6 +312,7 @@
 </template>
 
 <script setup>
+import { normalizeResourceId } from '@/utils/resourceId'
 import FulfillmentDeadline from '@/components/order/FulfillmentDeadline.vue'
 import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import {
@@ -1027,8 +1028,8 @@ function getOrderQuantity(order) {
 }
 
 function getOrderProductId(order) {
-  const value = Number(order?.productId ?? order?.product?.id ?? 0)
-  return Number.isInteger(value) && value > 0 ? value : 0
+  const value = normalizeResourceId(order?.productId ?? order?.product?.id ?? 0)
+  return !!value ? value : 0
 }
 
 function getOrderSubjectTarget(order) {
@@ -1040,7 +1041,7 @@ function canReviewOrder(order) {
   if (!isCdkOrder(order)) return false
   if (order?.status !== 'delivered') return false
   if (order?.commentEnabled === false) return false
-  return getOrderProductId(order) > 0
+  return !!getOrderProductId(order)
 }
 
 function goToOrderReview(order) {
