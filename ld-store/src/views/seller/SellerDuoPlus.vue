@@ -143,7 +143,7 @@
         </summary>
         <ul>
           <li>已登录用户前台看见卡片至少 50%，持续 1 秒，才计有效曝光。</li>
-          <li>同账号同物品每天最多计 1 次，首页与分类合并去重，卖家自览不计。</li>
+          <li>同账号同物品两次计量至少间隔 6 小时，每北京时间自然日最多 3 次；首页与分类合并，卖家自览不计。</li>
           <li>
             仅推广展示消耗额度，自然曝光不扣量。不保证点击、成交或固定名次；预计周期内未完成将免费延长，剩余额度不失效。
           </li>
@@ -209,6 +209,7 @@
               <span>去重点击</span><strong>{{ number(c.clicks ?? 0) }}<small>次</small></strong>
             </div>
           </div>
+          <p class="duo-muted">今日触达 {{ number(c.today_reach ?? 0) }} 个账号，同账号重复曝光合并计算触达。</p>
           <p v-if="c.extended" class="duo-extension">
             <Clock3 :size="15" aria-hidden="true" />已延长交付，继续保留剩余额度
           </p>
@@ -307,7 +308,7 @@
       </nav>
     </section>
     <p class="duo-footnote">
-      <ShieldCheck :size="15" aria-hidden="true" />有效曝光次数按账号与物品每日去重，不等同于独立人数或成交承诺。
+      <ShieldCheck :size="15" aria-hidden="true" />有效曝光按 6 小时间隔、每日最多 3 次计量，重复触达不等同于新增人数或成交承诺。
     </p>
   </div>
 </template>

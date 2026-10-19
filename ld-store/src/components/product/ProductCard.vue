@@ -246,13 +246,16 @@ watch(() => props.product?.discoveryToken, setupImpressionObserver, { flush: 'po
 function setupDuoObserver() {
   stopDuoObserver()
   const token = props.product?.duoPromotion?.token, element = cardElement(), session = captureAuthSession()
-  if (!token || !element || typeof IntersectionObserver === 'undefined') return
+  const observation = props.product?.duoObservation && props.product?.discoveryToken
+  if ((!token && !observation) || !element || typeof IntersectionObserver === 'undefined') return
   stopDuoObserver = observeDuoVisibility(element, () => {
-    if (isAuthSessionCurrent(session)) void reportDuo(token, 'impression', session)
+    if (!isAuthSessionCurrent(session)) return
+    if (token) void reportDuo(token, 'impression', session)
+    if (observation) void reportDuo(observation, 'observation', session)
   })
 }
 onMounted(setupDuoObserver)
-watch([() => props.product?.duoPromotion?.token, () => authSession.value.revision], setupDuoObserver, { flush: 'post' })
+watch([() => props.product?.duoPromotion?.token, () => props.product?.duoObservation, () => props.product?.discoveryToken, () => authSession.value.revision], setupDuoObserver, { flush: 'post' })
 onUnmounted(() => stopDuoObserver())
 
 

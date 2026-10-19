@@ -59,6 +59,18 @@ test('promoted product shows an ad label and reports a foreground qualified expo
  expect(events[0]).toEqual({events:[{token:'signed-paid-fixture',type:'impression'}]})
 })
 
+test('sampled natural cards report a separate one-second observation without billing an impression',async({page})=>{
+ await signIn(page)
+ const events:unknown[]=[]
+ await page.route('**/api/shop/products?*',route=>route.fulfill({json:{success:true,data:{products:[{...product,duo_observation:true,discovery_token:'signed-natural-observation-fixture'}],pagination:{total:1,page:1,pageSize:20,totalPages:1,hasMore:false}}}}))
+ await page.route('**/api/shop/duo-plus/events',route=>{events.push(route.request().postDataJSON());return route.fulfill({json:{success:true,data:{accepted:1}}})})
+ await page.goto('/')
+ const card=page.locator('.product-card').first();await card.scrollIntoViewIfNeeded()
+ await expect(card.getByText('广告',{exact:true})).toHaveCount(0)
+ await expect.poll(()=>events.length).toBe(1)
+ expect(events[0]).toEqual({events:[{token:'signed-natural-observation-fixture',type:'observation'}]})
+})
+
 test('DUO+ closed storefront has a complete responsive empty state and keyboard-readable rules',async({page},info)=>{
  await signIn(page)
  let creates=0
@@ -78,6 +90,7 @@ test('DUO+ closed storefront has a complete responsive empty state and keyboard-
  await expect(page.locator('.duo-rules')).toHaveAttribute('open','')
  await expect(page.locator('.duo-rules summary')).toBeFocused()
  await expect(page.getByText('已登录用户前台看见卡片至少 50%，持续 1 秒，才计有效曝光。')).toBeVisible()
+ await expect(page.getByText('同账号同物品两次计量至少间隔 6 小时，每北京时间自然日最多 3 次；首页与分类合并，卖家自览不计。')).toBeVisible()
  await page.keyboard.press('Enter')
  await expect(page.locator('.duo-rules')).not.toHaveAttribute('open','')
  for(const theme of ['light','dark']){
