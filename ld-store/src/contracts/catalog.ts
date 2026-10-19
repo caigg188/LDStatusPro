@@ -69,6 +69,7 @@ export const ProductSchema = looseObject({
   availableStock: optional(number()),
   sellerUsername: optional(nullable(string())),
   duoPromotion: optional(looseObject({ kind: union([literal('paid'), literal('shadow')]), token: NonemptyStringSchema, label: optional(nullable(string())) })),
+  duoObservation: optional(boolean()),
   discoveryToken: optional(string())
 })
 
