@@ -8,7 +8,7 @@
 
 > **Linux.do & IDCFlare 社区增强工具** - 信任级别追踪 · 阅读统计 · 云同步 · 排行榜 · LD 士多入口
 
-![Version](https://img.shields.io/badge/version-v3.9.0.6-blue)
+![Version](https://img.shields.io/badge/version-v3.9.0.7-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-✓-brightgreen)
 ![Multi-Site](https://img.shields.io/badge/Multi--Site-✓-brightgreen)
@@ -18,7 +18,7 @@
 
 🌐 **[官网](https://ldspro.qzz.io/)** | 🏪 **[LD 士多](https://ldcstore.com/)** | 📖 **[脚本说明](./DOCS.md)**
 
-脚本版本以 `LDStatusPro.user.js` 头部 `@version` 为准（当前 **3.9.0.6**）。`update_log.md` 停在 v3.5.4.10，后续变更看 git 与下方近期条目。
+脚本版本以 `LDStatusPro.user.js` 头部 `@version` 为准（当前 **3.9.0.7**）。`update_log.md` 停在 v3.5.4.10，后续变更看 git 与下方近期条目。
 
 **简体中文** | [English](./README_EN.md) | [繁體中文](./README_TW.md)
 
@@ -280,7 +280,7 @@ LDStatusPro/
 
 ### 技术栈
 
-- **用户脚本**: 原生 JavaScript，无运行时 npm 依赖，约 17665 行；版本 `3.9.0.3`
+- **用户脚本**: 原生 JavaScript，markdown-it 与 DOMPurify 在构建时嵌入，无运行时 CDN 依赖；版本以脚本元数据为准
 - **士多 Web**: Vue 3.5 + Vite 8 + Pinia + Vue Router 4 + Tailwind 3.4
 - **官网**: React 19.2 + TypeScript + Vite 7.2 + Tailwind CSS 4 + Framer Motion；首页不走 CMS API
 - **认证**: 用户 OAuth 由 api1 签发 JWT；管理面板不在本仓
@@ -297,6 +297,14 @@ LDStatusPro/
 ---
 
 ## 📋 更新日志
+
+### v3.9.0.7
+
+- 导出与 AI 总结共用按真实楼层读取的内容缓存、串行节流及可取消的退避等待。
+- 修复图片原图选择、跨域嵌图和完整性报告，改善 HTML、Markdown 与打印 PDF 的富文本排版。
+- AI 改用脚本管理器后台请求，支持 HTTP 本地 OpenAI 兼容服务、可选密钥与连接检查。
+- 增加长帖分段汇总、停止与失败重试复用，保留部分结果与来源楼层；升级安全 Markdown 渲染。
+- 保留旧配置与历史；新历史记录站点、范围、模型和完成状态。详见 [使用说明](./DOCS.md#帖子导出与-ai-总结)。
 
 ### v3.9.0.6
 
