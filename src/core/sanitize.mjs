@@ -1,3 +1,5 @@
+import MarkdownIt from 'markdown-it';
+
 /**
  * Pure sanitizers shared by the userscript (embedded as SafeDom) and unit tests.
  * Edit this file, then run `npm run embed:core`.
@@ -63,79 +65,36 @@ export function sanitizeHref(url) {
     return parsed.href;
 }
 
-export function renderMarkdown(md) {
+const markdown = new MarkdownIt({ html: false, breaks: true, linkify: false });
+markdown.renderer.rules.text = (tokens, index, options, env) => {
+    const text = escapeHtml(tokens[index].content);
+    if (!env.topicId || !Array.isArray(env.postNumbers)) return text;
+    const origin = sanitizeHref(env.site || '');
+    if (!origin) return text;
+    return text.replace(/\[第(\d+)楼\]/g, (label, number) => env.postNumbers.includes(Number(number))
+        ? `<a class="ldsp-melon-link" href="${escapeHtml(new URL(`/t/${encodeURIComponent(env.topicId)}/${number}`, origin).href)}" target="_blank" rel="noopener noreferrer">${label}</a>` : label);
+};
+const defaultOpen = markdown.renderer.rules.link_open || ((tokens, index, options, env, renderer) => renderer.renderToken(tokens, index, options));
+markdown.renderer.rules.link_open = (tokens, index, options, env, renderer) => {
+    const token = tokens[index];
+    const href = sanitizeHref(token.attrGet('href'));
+    if (!href) { token.attrSet('href', '#'); }
+    else token.attrSet('href', href);
+    token.attrSet('target', '_blank');
+    token.attrSet('rel', 'noopener noreferrer');
+    token.attrSet('class', 'ldsp-melon-link');
+    return defaultOpen(tokens, index, options, env, renderer);
+};
+markdown.renderer.rules.image = (tokens, index) => {
+    const token = tokens[index];
+    const label = escapeHtml(token.content || '图片');
+    const href = sanitizeHref(token.attrGet('src'));
+    return href ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">[${label}]</a>` : label;
+};
+markdown.renderer.rules.fence = (tokens, index) => `<pre class="ldsp-melon-codeblock"><code>${escapeHtml(tokens[index].content)}</code></pre>`;
+markdown.renderer.rules.code_inline = (tokens, index) => `<code class="ldsp-melon-inline-code">${escapeHtml(tokens[index].content)}</code>`;
+
+export function renderMarkdown(md, context = {}) {
     if (md === undefined || md === null || md === '') return '';
-
-    const codeBlocks = [];
-    const inlineCodes = [];
-    const cbPh = (i) => `\uE000CB${i}\uE001`;
-    const icPh = (i) => `\uE000IC${i}\uE001`;
-
-    let html = String(md).replace(/```(\w*)\n([\s\S]*?)```/g, (_match, _lang, code) => {
-        const placeholder = cbPh(codeBlocks.length);
-        codeBlocks.push(`<pre class="ldsp-melon-codeblock"><code>${escapeHtml(String(code).trim())}</code></pre>`);
-        return placeholder;
-    });
-
-    html = html.replace(/`([^`\n]+)`/g, (_match, code) => {
-        const placeholder = icPh(inlineCodes.length);
-        inlineCodes.push(`<code class="ldsp-melon-inline-code">${escapeHtml(code)}</code>`);
-        return placeholder;
-    });
-
-    html = escapeHtml(html);
-
-    html = html.replace(/^#### (.+)$/gm, '<h5 class="ldsp-melon-h5">$1</h5>');
-    html = html.replace(/^### (.+)$/gm, '<h4 class="ldsp-melon-h4">$1</h4>');
-    html = html.replace(/^## (.+)$/gm, '<h3 class="ldsp-melon-h3">$1</h3>');
-    html = html.replace(/^# (.+)$/gm, '<h2 class="ldsp-melon-h2">$1</h2>');
-
-    html = html.replace(/^&gt; (.+)$/gm, '<blockquote class="ldsp-melon-quote">$1</blockquote>');
-    html = html.replace(/<\/blockquote>\n<blockquote class="ldsp-melon-quote">/g, '<br>');
-
-    html = html.replace(/^[-*] (.+)$/gm, '<li class="ldsp-melon-li">$1</li>');
-    html = html.replace(/((?:<li class="ldsp-melon-li">[^<]*<\/li>\n?)+)/g, '<ul class="ldsp-melon-ul">$1</ul>');
-
-    html = html.replace(/^\d+\. (.+)$/gm, '<li class="ldsp-melon-oli">$1</li>');
-    html = html.replace(/((?:<li class="ldsp-melon-oli">[^<]*<\/li>\n?)+)/g, '<ol class="ldsp-melon-ol">$1</ol>');
-
-    html = html.replace(/^---+$/gm, '<hr class="ldsp-melon-hr">');
-    html = html.replace(/^\*\*\*+$/gm, '<hr class="ldsp-melon-hr">');
-
-    html = html.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/__([^_]+?)__/g, '<strong>$1</strong>');
-    html = html.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
-    html = html.replace(/(?<!_)_([^_\n]+?)_(?!_)/g, '<em>$1</em>');
-
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, url) => {
-        const safe = sanitizeHref(url);
-        if (!safe) return text;
-        return `<a href="${escapeHtml(safe)}" target="_blank" rel="noopener noreferrer" class="ldsp-melon-link">${text}</a>`;
-    });
-
-    html = html.replace(/\n\n+/g, '</p><p class="ldsp-melon-p">');
-    html = html.replace(/\n/g, '<br>');
-
-    html = html.replace(/<p class="ldsp-melon-p"><\/p>/g, '');
-    html = html.replace(/<p class="ldsp-melon-p">(<h[2-5])/g, '$1');
-    html = html.replace(/(<\/h[2-5]>)<\/p>/g, '$1');
-    html = html.replace(/<p class="ldsp-melon-p">(<ul)/g, '$1');
-    html = html.replace(/(<\/ul>)<\/p>/g, '$1');
-    html = html.replace(/<p class="ldsp-melon-p">(<ol)/g, '$1');
-    html = html.replace(/(<\/ol>)<\/p>/g, '$1');
-    html = html.replace(/<p class="ldsp-melon-p">(<blockquote)/g, '$1');
-    html = html.replace(/(<\/blockquote>)<\/p>/g, '$1');
-    html = html.replace(/<p class="ldsp-melon-p">(<pre)/g, '$1');
-    html = html.replace(/(<\/pre>)<\/p>/g, '$1');
-    html = html.replace(/<br><(h[2-5]|ul|ol|blockquote|pre)/g, '<$1');
-    html = html.replace(/<\/(h[2-5]|ul|ol|blockquote|pre)><br>/g, '</$1>');
-
-    codeBlocks.forEach((block, i) => {
-        html = html.replace(cbPh(i), block);
-    });
-    inlineCodes.forEach((code, i) => {
-        html = html.replace(icPh(i), code);
-    });
-
-    return `<div class="ldsp-melon-markdown"><p class="ldsp-melon-p">${html}</p></div>`;
+    return `<div class="ldsp-melon-markdown">${markdown.render(String(md), context).replace(/<h([1-6])>/g, (_match, level) => `<h${Math.min(Number(level) + 1, 6)} class="ldsp-melon-h${Math.min(Number(level) + 1, 6)}">`).replace(/<\/h([1-6])>/g, (_match, level) => `</h${Math.min(Number(level) + 1, 6)}>` )}</div>`;
 }
