@@ -26,7 +26,11 @@ LDStatusPro 插件与 LD 士多的双产品入口，生产地址 `https://ldspro
 
 动效方向参考 [Apple 产品页](https://www.apple.com/iphone-18-pro/) 的分层展开、[Linear](https://linear.app/) 的界面展示节奏，以及 [Pure Music](https://qingyueyin.github.io/Pure-music/) 的浅深主题展示；没有复制它们的代码或素材。
 
-首页的 GSAP / ScrollTrigger 编排集中在 `src/hooks/useHomepageMotion.ts`：标题逐行展开，双产品画面随滚动进入最终位置，插件浅深面板舒展，士多截图从轻微缩小状态进入后保持平整。段落仅进入一次；滚动只改变展示外层的 transform / opacity，不接管滚轮、不固定页面，也不运行插件业务代码。没有常驻循环动画、动态模糊滤镜或截图 3D 旋转。
+首页的 GSAP / ScrollTrigger 编排集中在 `src/hooks/useHomepageMotion.ts`：标题逐行展开，双产品画面随滚动进入最终位置，插件浅深面板舒展，士多截图从轻微缩小状态进入后保持平整。段落仅进入一次；滚动只改变展示外层的 transform / opacity，不接管滚轮、不固定页面，也不运行插件业务代码。没有动态模糊滤镜或截图 3D 旋转。
+
+首屏额外提供松绿／靛蓝流体背景，入口 `src/components/FluidBackground.tsx`，颜色读取 `brand/identity.json`。模拟组件按需加载，使用原生 WebGL2，没有新增依赖。支持鼠标／触屏扰动和闲置流动，文字区域有浅色遮罩；暂停时卸载模拟，系统减少动态效果时仅显示静态底色。离开首屏或隐藏标签页时停止绘制，卸载回收 GPU 资源与监听。≤800px 降低分辨率与像素比；真实手机帧率／耗电仍需真机验证。
+
+流体组件适配自 [React Bits Liquid Ether](https://reactbits.dev/backgrounds/liquid-ether)，来源版本 `496968c4117e21278f13917201b7d615bc5e7450`，原实现为 MIT + Commons Clause；完整声明在 `public/licenses/react-bits.txt`，随构建分发，页脚提供入口。本地适配包括低功耗上下文、分配失败清理、立即暂停离屏绘制和手机 30fps／桌面 60fps 上限。
 
 组件反馈由 CSS 驱动：分段选项的指示块滑动，预加载的插件图片交叉淡入，士多截图切换淡入，按钮按下缩放。装饰箭头仅保留首屏的向下浏览提示。FAQ 保留原生 details / summary 及键盘操作；支持 `::details-content` 与 `interpolate-size` 的浏览器平滑展开高度，旧浏览器保留正常折叠与进入淡入。
 
