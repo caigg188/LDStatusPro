@@ -1,9 +1,9 @@
 {
-  "capturedOn": "2026-10-11",
-  "sha256": "f5fd8fba605f54113aaa44fc09828700af67ab8b105a2911cf6a7818dc278f87",
+  "capturedOn": "2026-10-20",
+  "sha256": "d4941550295c3653edb9780a4db555c9b1ee63f0a818a92f5fc0191d45abe9ae",
   "fixtureSha256": "c535b3b960a82580aac2564fc6f7a8e559b3b4b9353e91c85f743ea55bf89da4",
   "presentationRevision": "compact-380x660-incomplete-no-level-badge-settled-v1",
-  "method": "Browser rendering of original source UI with synthetic signed-in fixtures, captured at CSS scale 2 in a 1440x900 desktop iframe; cropped to panel bounds",
+  "method": "Browser rendering of original source UI with synthetic signed-in fixtures, captured from a bound tab at CSS scale 2 in a 1440x900 desktop iframe; clipped to verified DOM panel bounds",
   "images": {
     "reqs": {
       "width": 760,
