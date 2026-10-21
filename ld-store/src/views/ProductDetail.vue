@@ -8,7 +8,7 @@
       
       <!-- 物品详情 -->
       <template v-else-if="product">
-        <!-- 顶部导航：宽屏单行为「返回 …… 类别徽章+操作按钮」，窄屏固定两行：返回+按钮组、类别徽章左对齐 -->
+        <!-- 顶部导航：宽屏优先单行，窄屏为返回+按钮组、左对齐标签组；长标签允许继续换行 -->
         <div class="detail-nav">
           <button class="back-btn" @click="goBack">
             <ArrowLeft :size="16" aria-hidden="true" />
@@ -1983,13 +1983,13 @@ async function handleOpenStore() {
   border-color: var(--border-hover);
 }
 
-/* 宽屏单行：徽章组靠右、位于按钮组左侧，两组内部均不折行 */
+/* 宽屏徽章组靠右、位于按钮组左侧；空间不足时标签可换行，操作按钮保持一组 */
 .nav-tags {
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .nav-actions {
@@ -1999,7 +1999,7 @@ async function handleOpenStore() {
   flex-wrap: nowrap;
 }
 
-/* 窄屏固定两行：第一行返回+按钮组靠右，第二行类别徽章左对齐；
+/* 窄屏第一行返回+按钮组靠右，后续类别徽章左对齐；
    flex-basis 100% 强制徽章组换行，避免临界宽度时挤回单行 */
 @media (max-width: 767px) {
   .nav-actions {
@@ -2085,6 +2085,8 @@ async function handleOpenStore() {
 }
 
 .nav-category {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   display: inline-flex;
   align-items: center;
   gap: 6px;
