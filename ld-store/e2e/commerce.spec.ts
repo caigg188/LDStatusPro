@@ -134,6 +134,8 @@ test('blocked payment popup still leads to an actionable order detail', async ({
 
 test('catalog filters recover from errors and survive a detail round trip', async ({ page, scenario }, testInfo) => {
   await page.goto('/')
+  // Initial catalog hydration restores filter inputs; edit once the list is ready.
+  await expect(page.locator('.product-card').first()).toBeVisible()
   const mobile = testInfo.project.name === 'mobile'
   if (mobile) {
     await page.getByRole('button', { name: '筛选物品', exact: true }).click()
