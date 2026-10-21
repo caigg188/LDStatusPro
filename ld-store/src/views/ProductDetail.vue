@@ -8,27 +8,27 @@
       
       <!-- 物品详情 -->
       <template v-else-if="product">
-        <!-- 顶部导航 -->
+        <!-- 顶部导航：宽屏优先单行，窄屏为返回+按钮组、左对齐标签组；长标签允许继续换行 -->
         <div class="detail-nav">
           <button class="back-btn" @click="goBack">
             <ArrowLeft :size="16" aria-hidden="true" />
             <span>返回</span>
           </button>
-          <div class="nav-right">
-            <div class="nav-tags">
-              <span class="nav-category">
-                <component :is="categoryIconComponent" :size="15" aria-hidden="true" />
-                <span>{{ categoryName }}</span>
-              </span>
-              <span v-if="isCdk" class="nav-type cdk">
-                <Ticket :size="14" aria-hidden="true" />
-                <span>CDK自动发货</span>
-              </span>
-              <span v-else-if="isStore" class="nav-type store">
-                <Store :size="14" aria-hidden="true" />
-                <span>友情小店</span>
-              </span>
-            </div>
+          <div class="nav-tags">
+            <span class="nav-category">
+              <component :is="categoryIconComponent" :size="15" aria-hidden="true" />
+              <span>{{ categoryName }}</span>
+            </span>
+            <span v-if="isCdk" class="nav-type cdk">
+              <Ticket :size="14" aria-hidden="true" />
+              <span>CDK自动发货</span>
+            </span>
+            <span v-else-if="isStore" class="nav-type store">
+              <Store :size="14" aria-hidden="true" />
+              <span>友情小店</span>
+            </span>
+          </div>
+          <div class="nav-actions">
             <ProductInteractionPanel
               :favorited="isFavorited"
               :busy="favoriteSubmitting"
@@ -1983,19 +1983,35 @@ async function handleOpenStore() {
   border-color: var(--border-hover);
 }
 
+/* 宽屏徽章组靠右、位于按钮组左侧；空间不足时标签可换行，操作按钮保持一组 */
 .nav-tags {
+  margin-left: auto;
   display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.nav-right {
-  margin-left: auto;
+.nav-actions {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+/* 窄屏第一行返回+按钮组靠右，后续类别徽章左对齐；
+   flex-basis 100% 强制徽章组换行，避免临界宽度时挤回单行 */
+@media (max-width: 767px) {
+  .nav-actions {
+    order: 1;
+    margin-left: auto;
+  }
+
+  .nav-tags {
+    order: 2;
+    margin-left: 0;
+    flex-basis: 100%;
+  }
 }
 
 .nav-favorite-btn,
@@ -2069,6 +2085,8 @@ async function handleOpenStore() {
 }
 
 .nav-category {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -3865,6 +3883,25 @@ async function handleOpenStore() {
   
   .detail-nav {
     margin-bottom: 16px;
+  }
+
+  .back-btn {
+    align-self: flex-start;
+    padding: 12px 14px;
+    min-height: 44px;
+  }
+
+  /* 手机端仅展示图标，文字改用 sr-only 保留给屏幕阅读器 */
+  .back-btn span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .nav-favorite-btn,
