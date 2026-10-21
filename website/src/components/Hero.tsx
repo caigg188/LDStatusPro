@@ -2,10 +2,12 @@ import { ArrowDown } from 'lucide-react'
 import { Logo } from './Logo'
 import { PluginPanel } from './PluginPreview'
 import { links, pluginVersion } from '../config/links'
+import FluidBackground from './FluidBackground'
 
 export default function Hero() {
   return (
     <section className="hero" aria-labelledby="hero-heading">
+      <FluidBackground />
       <div className="hero-copy site-width">
         <p className="eyebrow">
           <span className="brand-dot" />

@@ -198,6 +198,59 @@
 .hero {
   padding-top: 78px;
   position: relative;
+  isolation: isolate;
+}
+.hero-fluid {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 15% 25%, rgb(50 102 92 / 8%), transparent 50%),
+    radial-gradient(ellipse at 85% 40%, rgb(75 94 168 / 7%), transparent 50%);
+  mask-image: linear-gradient(to bottom, black 65%, transparent);
+}
+.hero-fluid .liquid-ether,
+.hero-fluid .liquid-ether__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.hero-fluid .liquid-ether {
+  opacity: 0.45;
+}
+.hero-fluid::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 42% 35% at 50% 23%, rgb(246 248 245 / 94%) 20%, rgb(246 248 245 / 70%) 50%, transparent);
+}
+.fluid-toggle {
+  position: absolute;
+  top: 12px;
+  right: max(18px, calc((100% - 1180px) / 2));
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--brand-line);
+  border-radius: 22px;
+  color: var(--brand-muted);
+  background: rgb(246 248 245 / 85%);
+  font-size: 11px;
+}
+.fluid-toggle:hover {
+  color: var(--brand-ink);
+  background: white;
+}
+@media (max-width: 800px) {
+  .hero:has(.fluid-toggle) {
+    padding-top: 78px;
+  }
 }
 .hero-copy {
   text-align: center;

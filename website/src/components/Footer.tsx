@@ -30,7 +30,9 @@ export default function Footer() {
           </nav>
         </div>
         <div className="footer-bottom">
-          <p>© {new Date().getFullYear()} Jacky · 公开代码采用 MIT 许可</p>
+          <p>
+            © {new Date().getFullYear()} Jacky · 项目源码 MIT · <a href="/licenses/react-bits.txt">第三方动效许可</a>
+          </p>
           <p>独立社区项目，与 Linux.do、IDCFlare 官方无隶属关系。</p>
           <a href="/brand/identity-sheet.svg" target="_blank" rel="noopener noreferrer">
             品牌标志
