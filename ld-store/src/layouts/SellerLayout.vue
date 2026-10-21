@@ -591,6 +591,7 @@ html.dark .seller-fulfillment-load-error a { border-color: var(--seller-jade); c
   .seller-nav-item > span:not(.seller-nav-badge),
   .seller-market-link,
   .seller-account-main span { display: none; }
+  .seller-brand-row,
   .seller-brand { justify-content: center; }
   .seller-nav-item { grid-template-columns: 20px; justify-content: center; padding: 10px 0; }
   .seller-nav-item.active { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--seller-jade) 55%, transparent); }

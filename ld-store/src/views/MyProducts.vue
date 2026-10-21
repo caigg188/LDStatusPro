@@ -2144,7 +2144,7 @@ watch(
 .product-ledger-badges { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 7px; }
 .product-id-badge,
 .product-archive-badge { min-width: 0; min-height: 24px; display: inline-flex; align-items: center; gap: 4px; padding: 3px 7px; border: 1px solid var(--seller-border); border-radius: 7px; font-size: 10px; font-weight: 650; line-height: 1; white-space: nowrap; }
-.product-id-badge { max-width: 100%; color: var(--seller-muted); background: var(--seller-surface-soft); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; cursor: copy; transition: color 160ms ease, border-color 160ms ease, background 160ms ease; }
+.product-id-badge { position: relative; max-width: 100%; color: var(--seller-muted); background: var(--seller-surface-soft); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; cursor: copy; transition: color 160ms ease, border-color 160ms ease, background 160ms ease; }
 .product-id-badge > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .product-id-badge:hover { color: var(--seller-ink); border-color: var(--seller-jade); background: var(--seller-jade-soft); }
 .product-id-badge.copied { color: var(--palette-hex-54745e); border-color: color-mix(in srgb, var(--seller-jade) 48%, var(--seller-border)); background: var(--seller-jade-soft); }
@@ -2203,8 +2203,10 @@ watch(
   .product-ledger-image { width: 52px; height: 52px; }
   .product-ledger-main { grid-template-columns: 52px minmax(0, 1fr); gap: 10px; }
   .product-ledger-name { min-height: 44px; display: flex; align-items: center; }
-  .product-id-badge { min-height: 44px; padding: 5px 8px; }
+  .product-id-badge,
   .product-archive-badge { min-height: 26px; }
+  /* 视觉高度与标签一致，命中区域向外扩到 44px 触控目标。 */
+  .product-id-badge::after { content: ""; position: absolute; inset: -9px; }
 }
 
 @media (min-width: 768px) and (max-width: 1199px) {

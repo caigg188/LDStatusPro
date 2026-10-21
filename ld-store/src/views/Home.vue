@@ -14,21 +14,16 @@
             兑换物品吧
           </p>
         </div>
-        <div class="banner-stats" aria-label="商城概览">
-          <div class="stat-group">
-            <div class="stat-item"><span class="stat-value">{{ stats.products?.online || 0 }}</span><span class="stat-label">在售物品</span></div>
-            <div class="stat-item"><span class="stat-value">{{ stats.products?.total || 0 }}</span><span class="stat-label">累计上架</span></div>
-          </div>
+        <div ref="bannerStatsEl" class="banner-stats" :class="{ 'stats-split-rows': statsSplitRows }" aria-label="商城概览">
+          <div class="stat-item"><span class="stat-value">{{ stats.products?.online || 0 }}</span><span class="stat-label">在售物品</span></div>
+          <div class="stat-item"><span class="stat-value">{{ stats.products?.total || 0 }}</span><span class="stat-label">累计上架</span></div>
           <div class="stat-divider" aria-hidden="true"></div>
-          <div class="stat-group">
-            <div class="stat-item"><span class="stat-value">{{ stats.orders?.today || 0 }}</span><span class="stat-label">今日成交</span></div>
-            <div class="stat-item"><span class="stat-value">{{ stats.orders?.week || 0 }}</span><span class="stat-label">7日成交</span></div>
-            <div class="stat-item"><span class="stat-value">{{ stats.orders?.total || 0 }}</span><span class="stat-label">累计成交</span></div>
-          </div>
+          <div class="stat-item"><span class="stat-value">{{ stats.orders?.today || 0 }}</span><span class="stat-label">今日成交</span></div>
+          <div class="stat-row-divider" aria-hidden="true"></div>
+          <div class="stat-item"><span class="stat-value">{{ stats.orders?.week || 0 }}</span><span class="stat-label">7日成交</span></div>
+          <div class="stat-item"><span class="stat-value">{{ stats.orders?.total || 0 }}</span><span class="stat-label">累计成交</span></div>
           <div class="stat-divider" aria-hidden="true"></div>
-          <div class="stat-group">
-            <div class="stat-item"><span class="stat-value">{{ stats.stores || 0 }}</span><span class="stat-label">入驻小店</span></div>
-          </div>
+          <div class="stat-item"><span class="stat-value">{{ stats.stores || 0 }}</span><span class="stat-label">入驻小店</span></div>
         </div>
       </section>
 
@@ -59,7 +54,7 @@
 
 <script setup>
 import { ChartNoAxesColumnIncreasing, ClipboardPenLine, ShoppingBag, Store } from '@lucide/vue'
-import { computed, defineAsyncComponent, nextTick, onActivated, onDeactivated, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
@@ -81,6 +76,37 @@ const route = useRoute()
 const userStore = useUserStore()
 const toast = useToast()
 const { stats, refreshStats } = useHomeStats()
+
+const bannerStatsEl = ref(null)
+const statsSplitRows = ref(true)
+let statsRowObserver = null
+let statsRowObserverWidth = 0
+
+async function evaluateStatsRowFit() {
+  const el = bannerStatsEl.value
+  const banner = el?.parentElement
+  if (!el || !banner) return
+  statsSplitRows.value = false
+  await nextTick()
+  const bannerStyle = getComputedStyle(banner)
+  const available = banner.clientWidth - parseFloat(bannerStyle.paddingLeft) - parseFloat(bannerStyle.paddingRight)
+  statsSplitRows.value = el.scrollWidth > available + 1
+}
+
+function connectStatsRowObserver() {
+  if (typeof window === 'undefined' || !window.ResizeObserver) return
+  const banner = bannerStatsEl.value?.parentElement
+  if (!banner) return
+  statsRowObserver?.disconnect()
+  statsRowObserver = new window.ResizeObserver((entries) => {
+    const width = entries[0].contentRect.width
+    if (Math.abs(width - statsRowObserverWidth) < 1) return
+    statsRowObserverWidth = width
+    evaluateStatsRowFit()
+  })
+  statsRowObserver.observe(banner)
+}
+
 const sectionScrollPositions = new Map()
 let savedRouteScrollPosition = 0
 
@@ -140,6 +166,9 @@ watch(sectionTabs, (tabs) => {
 })
 
 onMounted(async () => {
+  evaluateStatsRowFit()
+  connectStatsRowObserver()
+  watch(stats, () => evaluateStatsRowFit())
   const result = await refreshStats()
   if (!result.success) toast.warning(result.error)
   const rawSection = String(route.query.section || '').trim()
@@ -147,6 +176,8 @@ onMounted(async () => {
     await router.replace({ query: { ...route.query, section: activeSection.value } }).catch(() => {})
   }
 })
+
+onBeforeUnmount(() => statsRowObserver?.disconnect())
 
 onActivated(async () => {
   if (savedRouteScrollPosition > 0) {
@@ -166,9 +197,10 @@ onDeactivated(() => {
 .home-banner { position: relative; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--section-gap); margin: 12px 0 var(--section-gap); padding: var(--banner-pad); overflow: hidden; border: 1px solid var(--glass-border-light); border-radius: var(--card-radius); background: var(--glass-bg-heavy); box-shadow: 0 8px 32px var(--glass-shadow), 0 2px 8px var(--glass-shadow-light), inset 0 1px 0 var(--glass-shine-strong); }
 .home-banner::before { content: ''; position: absolute; inset: 0 0 auto; height: 50%; border-radius: inherit; background: linear-gradient(180deg, var(--glass-shine), var(--palette-rgba-255-255-255-p05) 60%, transparent); pointer-events: none; }
 .banner-content, .banner-stats { position: relative; z-index: 1; }.banner-content { flex-shrink: 0; }.banner-title { margin: 0 0 4px; color: var(--text-primary); font-size: var(--text-display); font-weight: 700; }.banner-subtitle { margin: 0; color: var(--text-tertiary); font-size: 14px; }.highlight-yellow { color: var(--color-warning); font-weight: 700; }.highlight-red { color: var(--color-danger); font-weight: 700; }.link-credit, .link-linuxdo { text-decoration: none; }.link-linuxdo { color: var(--text-primary); font-weight: 700; }.link-linuxdo:hover { color: var(--color-primary); }
-.banner-stats, .stat-group, .stat-item { display: flex; align-items: center; }.banner-stats { gap: 20px; flex-wrap: wrap; justify-content: flex-end; }.stat-group { gap: 16px; }.stat-divider { width: 1px; height: 36px; background: var(--border-light); }.stat-item { min-width: 50px; flex-direction: column; }.stat-value { color: var(--color-primary); font-size: var(--text-stat); font-weight: 700; line-height: 1.2; }.stat-label { color: var(--text-tertiary); font-size: 11px; white-space: nowrap; }
+.banner-stats, .stat-item { display: flex; align-items: center; }.banner-stats { gap: 16px; flex-wrap: wrap; justify-content: flex-end; }.stat-divider { width: 1px; height: 36px; margin: 0 4px; background: var(--border-light); }.stat-row-divider { display: none; }.stat-item { min-width: 50px; flex-direction: column; }.stat-value { color: var(--color-primary); font-size: var(--text-stat); font-weight: 700; line-height: 1.2; }.stat-label { color: var(--text-tertiary); font-size: 11px; white-space: nowrap; }
 .section-tabs-wrapper { display: flex; justify-content: center; margin-bottom: var(--section-gap); }.section-loading-shell { min-height: 420px; padding: 20px 0; }.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
-@media (max-width: 767px) { .home-banner { flex-direction: column; align-items: stretch; gap: 16px; }.banner-stats { justify-content: center; gap: 12px; padding-top: 16px; border-top: 1px solid var(--border-light); }.stat-group { gap: 12px; } }
-@media (max-width: 639px) { .banner-stats { gap: 8px; }.stat-group { gap: 8px; } }
+@media (max-width: 767px) { .home-banner { flex-direction: column; align-items: stretch; gap: 16px; }.banner-stats { justify-content: center; gap: 12px; padding-top: 16px; border-top: 1px solid var(--border-light); } }
+/* ≤639px 保持单行 nowrap 且子项不收缩，脚本用 scrollWidth 溢出判断是否切换 stats-split-rows 两行 */
+@media (max-width: 639px) { .banner-stats { flex-wrap: nowrap; gap: 8px; min-width: 0; }.stat-item, .stat-divider { flex-shrink: 0; }.banner-stats.stats-split-rows { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 8px; }.stats-split-rows .stat-divider { display: none; }.stats-split-rows .stat-row-divider { display: block; grid-column: 1 / -1; height: 1px; background: var(--border-light); } }
 @media (prefers-reduced-motion: reduce) { .link-credit, .link-linuxdo { transition: none; } }
 </style>

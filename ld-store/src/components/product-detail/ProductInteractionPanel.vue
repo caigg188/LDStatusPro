@@ -31,5 +31,7 @@ button:focus-visible { outline: 3px solid var(--palette-rgba-99-102-241-0p2); ou
 .nav-report-btn:hover { color: var(--palette-hex-6f5200); background: var(--palette-rgba-250-204-21-0p24); border-color: var(--palette-rgba-234-179-8-0p5); }
 @media (max-width: 639px) {
   button { min-height: 44px; }
+  /* 手机端仅展示图标，文字改用 sr-only 保留给屏幕阅读器 */
+  button span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 }
 </style>
