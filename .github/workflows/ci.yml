@@ -58,7 +58,7 @@ jobs:
               echo "$1=false" >> "$GITHUB_OUTPUT"
             fi
           }
-          set_flag userscript '^(LDStatusPro\.user\.js|eslint\.config\.js|package\.json|package-lock\.json)$|^src/core/|^tests/|^scripts/(embed-core|release-notes)\.mjs$'
+          set_flag userscript '^(LDStatusPro\.user\.js|eslint\.config\.js|package\.json|package-lock\.json)$|^src/(core|i18n)/|^tests/|^scripts/(embed-core|embed-i18n|check-i18n|release-notes)\.mjs$'
           set_flag website '^website/|^LDStatusPro\.user\.js$'
           set_flag storefront '^ld-store/'
 

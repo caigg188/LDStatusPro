@@ -97,6 +97,11 @@
             ${R}`}],signal:o,maxTokens:C?i.maxTokens||2048:Math.min(i.maxTokens||2048,768),onChunk:N=>{U(o);this.partial+=N;u(this.partial,{phase:C?"final":"part",partial:true})}});U(o);if(y.truncated)throw new Error("AI 输出达到长度上限，已保留部分内容；请提高输出上限后重试");this.completed.set(k,y.text);return y.text}catch(y){if(y.contextOverflow&&!this.partial&&v<2&&R.length>1e3){const N=Ht(R,Math.ceil(R.length/2));const M=[];for(let B=0;B<N.length;B++)M.push(await x(N[B],`${k}/split${B}`,false,v+1));return x(M.join("\n\n"),`${k}/merge`,C,v+1)}throw y}};const w=h.length;let E=0;while(h.length>1){const R=[];for(let C=0;C<h.length;C++){a(`分段汇总 ${C+1}/${h.length}${E?`（第${E+1}层）`:""}；初始预计至少 ${w+1} 次调用`);R.push(await x(h[C],`${E}/${C}`,false));this.digests=[...R]}const k=Qn(R,d);if(k.length>=h.length&&k.length>1)throw new Error("分段摘要未能压缩到输入预算，请增大输入预算或缩短自定义提示词；已保留完成的摘要");h=k;E++;if(E>8)throw new Error("汇总层级过多，已停止并保留分段结果，请缩小楼层范围")}a(w>1?"正在生成最终总结…":"正在总结（预计 1 次调用）…");const D=await x(h[0],`final/${E}`,true);u(D,{phase:"final",partial:false});return D}};return Zo(tu);})();
         // @@CORE_SANITIZE_END
 
+        // @@I18N_BEGIN
+        // prettier-ignore
+            var I18n=(()=>{var d=Object.defineProperty;var O=Object.getOwnPropertyDescriptor;var k=Object.getOwnPropertyNames;var R=Object.prototype.hasOwnProperty;var U=(t,e)=>{for(var n in e)d(t,n,{get:e[n],enumerable:true})};var P=(t,e,n,r)=>{if(e&&typeof e==="object"||typeof e==="function"){for(let l of k(e))if(!R.call(t,l)&&l!==n)d(t,l,{get:()=>e[l],enumerable:!(r=O(e,l))||r.enumerable})}return t};var j=t=>P(d({},"__esModule",{value:true}),t);var J={};U(J,{CATALOGS:()=>L,DEFAULT_LOCALE:()=>i,PLURAL_CATEGORIES:()=>D,SUPPORTED_LOCALES:()=>B,createTranslator:()=>m,escapeHtmlText:()=>N,formatDateTime:()=>V,formatNumber:()=>M,formatRelativeTime:()=>Z,getLocale:()=>G,isPluralForms:()=>p,normalizeLocale:()=>z,setLocale:()=>H,t:()=>K,tHtml:()=>_});var b={ariaLabel:"{site} 信任级别面板",header:{checkUpdate:"检查更新",updateAvailable:"新版本 v{version}",upToDate:"已是最新版本",upToDateToast:"✅ 已是最新版本",updateCheckFailed:"检查失败",updateCheckFailedToast:"❌ 检查更新失败",cloudSync:"云同步",cloudSyncing:"同步中...",refresh:"刷新数据",settings:"设置",collapsePanel:"折叠面板",expandPanel:"展开面板"},updateBubble:{closeAria:"关闭",title:"发现新版本",updateNow:"🚀 立即更新",updating:"⏳ 更新中...",confirmInTab:"✅ 请在弹出窗口确认更新"}};var y={title:"设置",backAria:"返回",nav:{theme:"🎨 外观设置",readingGoal:"🎯 阅读目标",fontSize:"🔤 字体调节",actions:"🔘 功能按钮",requirements:"📋 要求展示",language:"🌐 界面语言"},theme:{title:"外观设置",auto:"跟随系统",autoDesc:"根据系统外观自动切换",light:"浅色",lightDesc:"高亮清爽，适合白天阅读",dark:"深色",darkDesc:"夜间护眼，减少眩光干扰"},readingGoal:{title:"阅读目标设置",label:"目标时长",unit:"小时",summary:{other:"{hours}小时"},hint:"范围 0.5 - 20 小时，步进 0.5 小时"},fontSize:{title:"字体调节",currentLevel:"当前档位",levels:{compact:"紧凑",small:"偏小",standard:"标准",comfortable:"舒适",large:"宽大"},hint:"五档梯度重新拉开：更适合小屏压缩阅读，也能在大屏下获得更明显放大效果"},actions:{title:"功能按钮",summary:"{enabled}/{total} 开启",orderNav:"↕️ 按钮排序",toggleNav:"✅ 功能启用",toggleTitle:"功能启用",orderTitle:"按钮排序",orderTip:"可拖动调整：士多、LDC、CDK、总结、导出、工单。登录和注销顺序固定。",buttons:{login:"登录按钮",logout:"注销按钮",ticket:"工单按钮",melon:"总结按钮",export:"导出按钮",ldc:"LDC 按钮",shop:"士多按钮",cdk:"CDK 按钮"},resetOrder:"恢复默认顺序",resetOrderToast:"✅ 已恢复默认顺序"},requirements:{title:"要求展示",summaryAll:"展示全部",summaryIncomplete:"只显示未完成",allLabel:"展示所有升级数据",allDesc:"默认展示已完成和未完成的升级要求",incompleteLabel:"只显示未完成",incompleteDesc:"要求板块仅保留尚未达成的项目"},language:{title:"界面语言",zhCN:"简体中文",zhCNSummary:"简体中文",zhCNDesc:"默认中文界面",enUS:"English (US)",enUSSummary:"English (US)",enUSDesc:"英文界面，刷新页面后生效",hint:"语言偏好会立即保存在当前站点本地；存在进行中的总结或导出任务时不会强制刷新。",reloadNow:"刷新页面以应用语言",savedPendingReload:"✅ 语言已保存，刷新页面后生效",persistFailed:"⚠️ 无法保存语言偏好，刷新后将恢复之前的设置",busyCannotReload:"⏳ 当前有正在运行的任务，请等待完成后再刷新页面"}};var S={ariaLabel:"{site} Trust Level Panel",header:{checkUpdate:"Check for updates",updateAvailable:"New version v{version}",upToDate:"Up to date",upToDateToast:"✅ Already on the latest version",updateCheckFailed:"Update check failed",updateCheckFailedToast:"❌ Failed to check for updates",cloudSync:"Cloud sync",cloudSyncing:"Syncing...",refresh:"Refresh data",settings:"Settings",collapsePanel:"Collapse panel",expandPanel:"Expand panel"},updateBubble:{closeAria:"Close",title:"New version available",updateNow:"🚀 Update now",updating:"⏳ Updating...",confirmInTab:"✅ Confirm update in the opened tab"}};var T={title:"Settings",backAria:"Back",nav:{theme:"🎨 Appearance",readingGoal:"🎯 Reading Goal",fontSize:"🔤 Font Size",actions:"🔘 Actions",requirements:"📋 Requirements",language:"🌐 Language"},theme:{title:"Appearance",auto:"System",autoDesc:"Match system light or dark mode",light:"Light",lightDesc:"Bright and crisp for daytime reading",dark:"Dark",darkDesc:"Easy on the eyes in low light"},readingGoal:{title:"Reading Goal",label:"Target",unit:"hrs",summary:{one:"{hours} hr",other:"{hours} hrs"},hint:"Range: 0.5–20 hours, in 0.5-hour steps"},fontSize:{title:"Font Size",currentLevel:"Current",levels:{compact:"Compact",small:"Small",standard:"Default",comfortable:"Large",large:"Extra"},hint:"Five scale steps for compact mobile panels or larger desktop reading"},actions:{title:"Action Buttons",summary:"{enabled}/{total} on",orderNav:"↕️ Button Order",toggleNav:"✅ Visible Buttons",toggleTitle:"Visible Buttons",orderTitle:"Button Order",orderTip:"Drag to reorder Store, LDC, CDK, Summary, Export, and Tickets. Sign-in and sign-out stay fixed.",buttons:{login:"Sign-in button",logout:"Sign-out button",ticket:"Tickets button",melon:"AI Summary button",export:"Export button",ldc:"LDC button",shop:"LD Store button",cdk:"CDK button"},resetOrder:"Reset default order",resetOrderToast:"✅ Restored default button order"},requirements:{title:"Requirements",summaryAll:"All",summaryIncomplete:"Unmet",allLabel:"Show all requirements",allDesc:"Display both completed and incomplete requirements",incompleteLabel:"Incomplete only",incompleteDesc:"Only display requirements not yet met"},language:{title:"Language",zhCN:"简体中文",zhCNSummary:"简体中文",zhCNDesc:"Default Simplified Chinese interface",enUS:"English (US)",enUSSummary:"English",enUSDesc:"English interface, applied after reload",hint:"Saved locally per site. Active summaries or exports are never interrupted automatically.",reloadNow:"Reload page to apply",savedPendingReload:"✅ Language saved — reload the page to apply",persistFailed:"⚠️ Could not save language preference; previous setting will remain after reload",busyCannotReload:"⏳ Finish or stop the active task before reloading"}};var i="zh-CN";var B=Object.freeze(["zh-CN","en-US"]);var D=Object.freeze(["zero","one","two","few","many","other"]);var L=Object.freeze({"zh-CN":Object.freeze({panel:b,settings:y}),"en-US":Object.freeze({panel:S,settings:T})});function z(t){if(typeof t!=="string")return i;const e=t.trim().toLowerCase();if(e==="en-us"||e==="en")return"en-US";if(e==="zh-cn"||e==="zh")return"zh-CN";return i}function N(t){return String(t??"").replace(/[&<>"']/g,e=>e==="&"?"&amp;":e==="<"?"&lt;":e===">"?"&gt;":e==='"'?"&quot;":"&#39;")}function p(t){if(!t||typeof t!=="object"||Array.isArray(t))return false;const e=Object.keys(t);return e.length>0&&Object.prototype.hasOwnProperty.call(t,"other")&&e.every(n=>D.includes(n)&&typeof t[n]==="string")}function C(t,e){if(typeof e!=="string"||!e)return void 0;const n=e.split(".");let r=t;for(const l of n){if(!r||typeof r!=="object"||!Object.prototype.hasOwnProperty.call(r,l)){return void 0}r=r[l]}return typeof r==="string"||p(r)?r:void 0}function v(t,e){if(!e||typeof e!=="object")return t;return t.replace(/\{([a-zA-Z0-9_]+)\}/g,(n,r)=>Object.prototype.hasOwnProperty.call(e,r)&&e[r]!==void 0&&e[r]!==null?String(e[r]):n)}function m(t=i,{catalogs:e=L,onFallback:n}={}){const r=z(t);const l=new Map;const x=o=>{if(!l.has(o))l.set(o,new globalThis.Intl.PluralRules(o));return l.get(o)};function f(o,a={}){const c=C(e[r],o);let s=c;let g=r;if(s===void 0&&r!==i){s=C(e[i],o);g=i;if(s!==void 0)n?.({key:o,locale:r,fallbackLocale:i,missing:false})}if(s===void 0){n?.({key:o,locale:r,fallbackLocale:null,missing:true});return String(o??"")}if(p(s)){const h=Number(a?.count??0);const A=Number.isFinite(h)?x(g).select(h):"other";const w=s[A]??s.other;return v(w,a)}return v(s,a)}return Object.freeze({locale:r,t:(o,a)=>f(o,a),tHtml:(o,a)=>N(f(o,a)),formatNumber:(o,a)=>new globalThis.Intl.NumberFormat(r,a).format(o),formatDateTime:(o,a)=>new globalThis.Intl.DateTimeFormat(r,a).format(o),formatRelativeTime:(o,a,c)=>new globalThis.Intl.RelativeTimeFormat(r,{numeric:"auto",...c}).format(o,a)})}var u=m(i);function G(){return u.locale}function H(t){u=m(t);return u.locale}function K(t,e){return u.t(t,e)}function _(t,e){return u.tHtml(t,e)}function M(t,e){return u.formatNumber(t,e)}function V(t,e){return u.formatDateTime(t,e)}function Z(t,e,n){return u.formatRelativeTime(t,e,n)}return j(J);})();
+        // @@I18N_END
+
         // ==================== CDK/LDC 桥接页面 ====================
         // 在 cdk.linux.do 或 credit.linux.do 运行时作为数据桥接，用原生 fetch 请求 API（同域自动带 cookie）
         if (location.hostname === 'cdk.linux.do') {
@@ -607,7 +612,8 @@
                 fontSizeLevel: 'font_size_level',
                 readingLevels: 'reading_levels', readingLevelsTime: 'reading_levels_time',
                 websiteUrl: 'website_url', websiteUrlDate: 'website_url_date',
-                requirementsDisplayMode: 'requirements_display_mode'
+                requirementsDisplayMode: 'requirements_display_mode',
+                locale: 'locale'
             },
             // 用户特定的存储键
             USER_KEYS: new Set(['history', 'milestones', 'lastVisit', 'todayData', 'userAvatar', 'readingTime']),
@@ -4177,9 +4183,9 @@
     .ldsp-settings-head-title{font-size:12px;font-weight:700;color:var(--txt)}
     .ldsp-settings-back{width:24px;height:24px;border:none;border-radius:7px;background:var(--bg-el);color:var(--txt-sec);font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s}
     .ldsp-settings-back:hover{background:var(--bg-hover);color:var(--accent)}
-    .ldsp-settings-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:9px 10px;margin-bottom:6px;border:1px solid transparent;border-radius:9px;background:var(--bg-el);color:var(--txt);font-size:11px;text-align:left;transition:background .15s,border-color .15s,transform .15s}
+    .ldsp-settings-nav{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;padding:9px 10px;margin-bottom:6px;border:1px solid transparent;border-radius:9px;background:var(--bg-el);color:var(--txt);font-size:11px;text-align:left;transition:background .15s,border-color .15s,transform .15s}
     .ldsp-settings-nav:hover{background:var(--bg-hover);border-color:var(--border2);transform:translateY(-1px)}
-    .ldsp-settings-nav-main{display:flex;align-items:center;gap:8px;font-weight:600;min-width:0;flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ldsp-settings-nav-main{display:flex;align-items:center;gap:6px;font-weight:600;min-width:0;flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .ldsp-settings-nav-value{font-size:10px;color:var(--txt-mut);max-width:132px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto}
     .ldsp-settings-nav-arrow{font-size:13px;color:var(--txt-mut)}
     .ldsp-settings-title{font-size:11px;font-weight:700;color:var(--txt-sec);margin:2px 0 8px;padding:0 2px}
@@ -4223,8 +4229,14 @@
     .ldsp-settings-order-label{font-size:11px;font-weight:600;color:var(--txt);min-width:0;flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .ldsp-settings-order-reset{width:100%;margin-top:10px;padding:8px 10px;border:1px solid var(--border2);border-radius:9px;background:var(--bg-el);color:var(--txt-sec);font-size:11px;font-weight:600;transition:background .15s,border-color .15s,color .15s}
     .ldsp-settings-order-reset:hover{background:var(--bg-hover);border-color:var(--accent);color:var(--accent)}
-    @media (max-width:480px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{left:4px;right:auto;width:calc(100% - 8px);min-width:0;max-width:calc(100% - 8px);max-height:min(320px,calc(var(--h) - 48px));padding:6px}.ldsp-settings-view{max-height:calc(var(--h) - 64px);padding:1px}.ldsp-settings-head{padding:5px 2px 8px;margin-bottom:6px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:7px 8px;font-size:10px}.ldsp-settings-nav-value{max-width:76px;font-size:9px}.ldsp-settings-option-label{font-size:10px}.ldsp-settings-option-desc,.ldsp-settings-order-tip,.ldsp-settings-goal-hint,.ldsp-settings-font-hint{font-size:9px}.ldsp-settings-goal-row{padding:7px 8px;gap:6px}.ldsp-settings-goal-number{width:64px;padding:4px 6px;font-size:10px}}
-    @media (max-width:320px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{left:2px;right:auto;width:calc(100% - 4px);min-width:0;max-width:calc(100% - 4px);max-height:min(280px,calc(var(--h) - 40px));padding:5px}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}.ldsp-settings-head-title{font-size:11px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px;font-size:9px}.ldsp-settings-nav-main{gap:6px}.ldsp-settings-goal-label{min-width:46px;font-size:10px}.ldsp-settings-goal-number{width:56px;font-size:9px}.ldsp-settings-order-reset{padding:7px 8px;font-size:10px}}
+    .ldsp-settings-lang-hint{font-size:10px;color:var(--txt-mut);line-height:1.35;margin-top:8px;padding:0 2px}
+    .ldsp-settings-lang-notice{display:none;margin-top:6px;padding:6px 8px;border-radius:8px;font-size:10px;line-height:1.35;background:var(--warn-bg);color:var(--warn)}
+    .ldsp-settings-lang-notice.show{display:block}
+    .ldsp-settings-lang-reload{display:none;width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--accent);border-radius:9px;background:rgba(107,140,239,.16);color:var(--accent);font-size:11px;font-weight:600;transition:background .15s,border-color .15s,color .15s}
+    .ldsp-settings-lang-reload.show{display:block}
+    .ldsp-settings-lang-reload:hover{background:rgba(107,140,239,.24)}
+    @media (max-width:480px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{left:4px;right:auto;width:calc(100% - 8px);min-width:0;max-width:calc(100% - 8px);max-height:min(320px,calc(var(--h) - 48px));padding:6px}.ldsp-settings-view{max-height:calc(var(--h) - 64px);padding:1px}.ldsp-settings-head{padding:5px 2px 8px;margin-bottom:6px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:7px 8px;font-size:10px}.ldsp-settings-nav-value{max-width:76px;font-size:9px}.ldsp-settings-option-label{font-size:10px}.ldsp-settings-option-desc,.ldsp-settings-order-tip,.ldsp-settings-goal-hint,.ldsp-settings-font-hint,.ldsp-settings-lang-hint,.ldsp-settings-lang-notice{font-size:9px}.ldsp-settings-goal-row{padding:7px 8px;gap:6px}.ldsp-settings-goal-number{width:64px;padding:4px 6px;font-size:10px}}
+    @media (max-width:320px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{left:2px;right:auto;width:calc(100% - 4px);min-width:0;max-width:calc(100% - 4px);max-height:min(280px,calc(var(--h) - 40px));padding:5px}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}.ldsp-settings-head-title{font-size:11px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px;font-size:9px}.ldsp-settings-nav-main{gap:6px}.ldsp-settings-goal-label{min-width:46px;font-size:10px}.ldsp-settings-goal-number{width:56px;font-size:9px}.ldsp-settings-order-reset,.ldsp-settings-lang-reload{padding:7px 8px;font-size:10px}}
     @media (max-height:620px){.ldsp-settings-menu{max-height:min(280px,calc(var(--h) - 40px))}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}}
     @media (max-height:500px){.ldsp-settings-menu{max-height:min(240px,calc(var(--h) - 28px))}.ldsp-settings-head{padding:4px 2px 6px;margin-bottom:5px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px}}
     #ldsp-panel.collapsed .ldsp-settings-menu{display:none!important}
@@ -11757,16 +11769,20 @@ a:hover{text-decoration:underline;}
                 this._pendingIndicatorImmediate = false;
                 this._indicatorResizeObserver = null;
                 this._indicatorResizeObserverHandler = null;
+                this.locale = this._loadLocale();
+                this._selectedLocale = this.locale;
+                this._localePersistFailed = false;
+                I18n.setLocale(this.locale);
 
                 this._actionOptions = [
-                    { key: 'login', label: '登录按钮', ref: 'loginBtn' },
-                    { key: 'logout', label: '注销按钮', ref: 'logoutBtn' },
-                    { key: 'ticket', label: '工单按钮', ref: 'ticketBtn' },
-                    { key: 'melon', label: '总结按钮', ref: 'melonBtn' },
-                    { key: 'export', label: '导出按钮', ref: 'exportBtn' },
-                    { key: 'ldc', label: 'LDC 按钮', ref: 'ldcBtn' },
-                    { key: 'shop', label: '士多按钮', ref: 'shopBtn' },
-                    { key: 'cdk', label: 'CDK 按钮', ref: 'cdkBtn' }
+                    { key: 'login', labelKey: 'settings.actions.buttons.login', label: I18n.t('settings.actions.buttons.login'), ref: 'loginBtn' },
+                    { key: 'logout', labelKey: 'settings.actions.buttons.logout', label: I18n.t('settings.actions.buttons.logout'), ref: 'logoutBtn' },
+                    { key: 'ticket', labelKey: 'settings.actions.buttons.ticket', label: I18n.t('settings.actions.buttons.ticket'), ref: 'ticketBtn' },
+                    { key: 'melon', labelKey: 'settings.actions.buttons.melon', label: I18n.t('settings.actions.buttons.melon'), ref: 'melonBtn' },
+                    { key: 'export', labelKey: 'settings.actions.buttons.export', label: I18n.t('settings.actions.buttons.export'), ref: 'exportBtn' },
+                    { key: 'ldc', labelKey: 'settings.actions.buttons.ldc', label: I18n.t('settings.actions.buttons.ldc'), ref: 'ldcBtn' },
+                    { key: 'shop', labelKey: 'settings.actions.buttons.shop', label: I18n.t('settings.actions.buttons.shop'), ref: 'shopBtn' },
+                    { key: 'cdk', labelKey: 'settings.actions.buttons.cdk', label: I18n.t('settings.actions.buttons.cdk'), ref: 'cdkBtn' }
                 ];
                 this._actionOrderDefaults = ['shop', 'ldc', 'cdk', 'melon', 'export', 'ticket'];
                 this._actionVisibility = this._loadActionVisibility();
@@ -11774,11 +11790,11 @@ a:hover{text-decoration:underline;}
                 this._orderDragDirty = false;
                 this.themeMode = 'light';
                 this._fontSizeLevels = [
-                    { level: 1, label: '紧凑', scale: 0.82 },
-                    { level: 2, label: '偏小', scale: 0.92 },
-                    { level: 3, label: '标准', scale: 1.00 },
-                    { level: 4, label: '舒适', scale: 1.14 },
-                    { level: 5, label: '宽大', scale: 1.30 }
+                    { level: 1, key: 'compact', labelKey: 'settings.fontSize.levels.compact', label: I18n.t('settings.fontSize.levels.compact'), scale: 0.82 },
+                    { level: 2, key: 'small', labelKey: 'settings.fontSize.levels.small', label: I18n.t('settings.fontSize.levels.small'), scale: 0.92 },
+                    { level: 3, key: 'standard', labelKey: 'settings.fontSize.levels.standard', label: I18n.t('settings.fontSize.levels.standard'), scale: 1.00 },
+                    { level: 4, key: 'comfortable', labelKey: 'settings.fontSize.levels.comfortable', label: I18n.t('settings.fontSize.levels.comfortable'), scale: 1.14 },
+                    { level: 5, key: 'large', labelKey: 'settings.fontSize.levels.large', label: I18n.t('settings.fontSize.levels.large'), scale: 1.30 }
                 ];
                 this.fontSizeLevel = this._loadFontSizeLevel();
                 this.readingGoalHours = this._loadReadingGoalHours();
@@ -11893,7 +11909,9 @@ a:hover{text-decoration:underline;}
                     if (this.$.btnCloudSync) {
                         this.$.btnCloudSync.disabled = syncing;
                         this.$.btnCloudSync.textContent = syncing ? '⏳' : '☁️';
-                        this.$.btnCloudSync.title = syncing ? '同步中...' : '云同步';
+                        const syncLabel = I18n.t(syncing ? 'panel.header.cloudSyncing' : 'panel.header.cloudSync');
+                        this.$.btnCloudSync.title = syncLabel;
+                        this.$.btnCloudSync.setAttribute('aria-label', syncLabel);
                     }
                     // 云同步完成时检查未读工单
                     if (!syncing) this.ticketManager?._checkUnread();
@@ -12019,8 +12037,9 @@ a:hover{text-decoration:underline;}
             _createPanel() {
                 this.el = document.createElement('div');
                 this.el.id = 'ldsp-panel';
+                this.el.setAttribute('lang', this.locale || I18n.getLocale());
                 this.el.setAttribute('role', 'complementary');
-                this.el.setAttribute('aria-label', `${CURRENT_SITE.name} 信任级别面板`);
+                this.el.setAttribute('aria-label', I18n.t('panel.ariaLabel', { site: CURRENT_SITE.name }));
 
                 this.el.innerHTML = `
                     <div class="ldsp-hdr">
@@ -12035,174 +12054,202 @@ a:hover{text-decoration:underline;}
                             </div>
                         </div>
                         <div class="ldsp-hdr-btns">
-                            <button class="ldsp-update" title="检查更新" aria-label="检查更新">🔍</button>
-                            <button class="ldsp-cloud-sync" title="云同步" aria-label="云同步" style="display:none">☁️</button>
-                            <button class="ldsp-refresh" title="刷新数据" aria-label="刷新数据">🔄</button>
-                            <button class="ldsp-settings" title="设置" aria-label="设置">⚙️</button>
-                            <button class="ldsp-toggle" title="折叠面板" aria-label="折叠面板"><span class="ldsp-toggle-arrow">◀</span><img class="ldsp-toggle-logo" src="${COLLAPSED_LOGO_DATA_URI}" alt="" aria-hidden="true" draggable="false"></button>
+                            <button class="ldsp-update" title="${I18n.tHtml('panel.header.checkUpdate')}" aria-label="${I18n.tHtml('panel.header.checkUpdate')}">🔍</button>
+                            <button class="ldsp-cloud-sync" title="${I18n.tHtml('panel.header.cloudSync')}" aria-label="${I18n.tHtml('panel.header.cloudSync')}" style="display:none">☁️</button>
+                            <button class="ldsp-refresh" title="${I18n.tHtml('panel.header.refresh')}" aria-label="${I18n.tHtml('panel.header.refresh')}">🔄</button>
+                            <button class="ldsp-settings" title="${I18n.tHtml('panel.header.settings')}" aria-label="${I18n.tHtml('panel.header.settings')}">⚙️</button>
+                            <button class="ldsp-toggle" title="${I18n.tHtml('panel.header.collapsePanel')}" aria-label="${I18n.tHtml('panel.header.collapsePanel')}"><span class="ldsp-toggle-arrow">◀</span><img class="ldsp-toggle-logo" src="${COLLAPSED_LOGO_DATA_URI}" alt="" aria-hidden="true" draggable="false"></button>
                         </div>
                         <div class="ldsp-settings-menu" aria-hidden="true">
                             <div class="ldsp-settings-view active" data-settings-view="root">
                                 <div class="ldsp-settings-head">
-                                    <span class="ldsp-settings-head-title">设置</span>
+                                    <span class="ldsp-settings-head-title">${I18n.tHtml('settings.title')}</span>
                                 </div>
                                 <button class="ldsp-settings-nav" data-settings-open="theme">
-                                    <span class="ldsp-settings-nav-main">🎨 外观设置</span>
+                                    <span class="ldsp-settings-nav-main">${I18n.tHtml('settings.nav.theme')}</span>
                                     <span class="ldsp-settings-nav-value" data-settings-theme-value></span>
                                     <span class="ldsp-settings-nav-arrow">›</span>
                                 </button>
                                 <button class="ldsp-settings-nav" data-settings-open="reading-goal">
-                                    <span class="ldsp-settings-nav-main">🎯 阅读目标</span>
+                                    <span class="ldsp-settings-nav-main">${I18n.tHtml('settings.nav.readingGoal')}</span>
                                     <span class="ldsp-settings-nav-value" data-settings-goal-value></span>
                                     <span class="ldsp-settings-nav-arrow">›</span>
                                 </button>
                                 <button class="ldsp-settings-nav" data-settings-open="font-size">
-                                    <span class="ldsp-settings-nav-main">🔤 字体调节</span>
+                                    <span class="ldsp-settings-nav-main">${I18n.tHtml('settings.nav.fontSize')}</span>
                                     <span class="ldsp-settings-nav-value" data-settings-font-value></span>
                                     <span class="ldsp-settings-nav-arrow">›</span>
                                 </button>
                                 <button class="ldsp-settings-nav" data-settings-open="actions-root">
-                                    <span class="ldsp-settings-nav-main">🔘 功能按钮</span>
+                                    <span class="ldsp-settings-nav-main">${I18n.tHtml('settings.nav.actions')}</span>
                                     <span class="ldsp-settings-nav-value" data-settings-actions-value></span>
                                     <span class="ldsp-settings-nav-arrow">›</span>
                                 </button>
                                 <button class="ldsp-settings-nav" data-settings-open="requirements-display">
-                                    <span class="ldsp-settings-nav-main">📋 要求展示</span>
+                                    <span class="ldsp-settings-nav-main">${I18n.tHtml('settings.nav.requirements')}</span>
                                     <span class="ldsp-settings-nav-value" data-settings-requirements-value></span>
+                                    <span class="ldsp-settings-nav-arrow">›</span>
+                                </button>
+                                <button class="ldsp-settings-nav" data-settings-open="language">
+                                    <span class="ldsp-settings-nav-main">${I18n.tHtml('settings.nav.language')}</span>
+                                    <span class="ldsp-settings-nav-value" data-settings-language-value></span>
                                     <span class="ldsp-settings-nav-arrow">›</span>
                                 </button>
                             </div>
                             <div class="ldsp-settings-view" data-settings-view="theme">
                                 <div class="ldsp-settings-head">
-                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
-                                    <span class="ldsp-settings-head-title">外观设置</span>
+                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="${I18n.tHtml('settings.backAria')}">‹</button>
+                                    <span class="ldsp-settings-head-title">${I18n.tHtml('settings.theme.title')}</span>
                                 </div>
                                 <button class="ldsp-settings-option" data-theme-mode="auto">
                                     <span class="ldsp-settings-option-main">
-                                        <span class="ldsp-settings-option-label">跟随系统</span>
-                                        <span class="ldsp-settings-option-desc">根据系统外观自动切换</span>
+                                        <span class="ldsp-settings-option-label">${I18n.tHtml('settings.theme.auto')}</span>
+                                        <span class="ldsp-settings-option-desc">${I18n.tHtml('settings.theme.autoDesc')}</span>
                                     </span>
                                     <span class="ldsp-settings-option-check">✔</span>
                                 </button>
                                 <button class="ldsp-settings-option" data-theme-mode="light">
                                     <span class="ldsp-settings-option-main">
-                                        <span class="ldsp-settings-option-label">浅色</span>
-                                        <span class="ldsp-settings-option-desc">高亮清爽，适合白天阅读</span>
+                                        <span class="ldsp-settings-option-label">${I18n.tHtml('settings.theme.light')}</span>
+                                        <span class="ldsp-settings-option-desc">${I18n.tHtml('settings.theme.lightDesc')}</span>
                                     </span>
                                     <span class="ldsp-settings-option-check">✔</span>
                                 </button>
                                 <button class="ldsp-settings-option" data-theme-mode="dark">
                                     <span class="ldsp-settings-option-main">
-                                        <span class="ldsp-settings-option-label">深色</span>
-                                        <span class="ldsp-settings-option-desc">夜间护眼，减少眩光干扰</span>
+                                        <span class="ldsp-settings-option-label">${I18n.tHtml('settings.theme.dark')}</span>
+                                        <span class="ldsp-settings-option-desc">${I18n.tHtml('settings.theme.darkDesc')}</span>
                                     </span>
                                     <span class="ldsp-settings-option-check">✔</span>
                                 </button>
                             </div>
                             <div class="ldsp-settings-view" data-settings-view="reading-goal">
                                 <div class="ldsp-settings-head">
-                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
-                                    <span class="ldsp-settings-head-title">阅读目标设置</span>
+                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="${I18n.tHtml('settings.backAria')}">‹</button>
+                                    <span class="ldsp-settings-head-title">${I18n.tHtml('settings.readingGoal.title')}</span>
                                 </div>
                                 <div class="ldsp-settings-goal-wrap">
                                     <div class="ldsp-settings-goal-row">
-                                        <span class="ldsp-settings-goal-label">目标时长</span>
+                                        <span class="ldsp-settings-goal-label">${I18n.tHtml('settings.readingGoal.label')}</span>
                                         <input class="ldsp-settings-goal-number" type="number" min="0.5" max="20" step="0.5" data-reading-goal-input="number">
-                                        <span class="ldsp-settings-goal-unit">小时</span>
+                                        <span class="ldsp-settings-goal-unit">${I18n.tHtml('settings.readingGoal.unit')}</span>
                                     </div>
                                     <input class="ldsp-settings-goal-range" type="range" min="0.5" max="20" step="0.5" data-reading-goal-input="range">
-                                    <div class="ldsp-settings-goal-hint">范围 0.5 - 20 小时，步进 0.5 小时</div>
+                                    <div class="ldsp-settings-goal-hint">${I18n.tHtml('settings.readingGoal.hint')}</div>
                                 </div>
                             </div>
                             <div class="ldsp-settings-view" data-settings-view="font-size">
                                 <div class="ldsp-settings-head">
-                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
-                                    <span class="ldsp-settings-head-title">字体调节</span>
+                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="${I18n.tHtml('settings.backAria')}">‹</button>
+                                    <span class="ldsp-settings-head-title">${I18n.tHtml('settings.fontSize.title')}</span>
                                 </div>
                                 <div class="ldsp-settings-font-wrap">
                                     <div class="ldsp-settings-font-row">
-                                        <span class="ldsp-settings-font-label">当前档位</span>
-                                        <span class="ldsp-settings-font-value" data-settings-font-name>标准</span>
+                                        <span class="ldsp-settings-font-label">${I18n.tHtml('settings.fontSize.currentLevel')}</span>
+                                        <span class="ldsp-settings-font-value" data-settings-font-name>${I18n.tHtml('settings.fontSize.levels.standard')}</span>
                                     </div>
                                     <input class="ldsp-settings-font-range" type="range" min="1" max="5" step="1" data-font-level-input="range">
                                     <div class="ldsp-settings-font-levels">
-                                        <span>紧凑</span>
-                                        <span>偏小</span>
-                                        <span>标准</span>
-                                        <span>舒适</span>
-                                        <span>宽大</span>
+                                        <span>${I18n.tHtml('settings.fontSize.levels.compact')}</span>
+                                        <span>${I18n.tHtml('settings.fontSize.levels.small')}</span>
+                                        <span>${I18n.tHtml('settings.fontSize.levels.standard')}</span>
+                                        <span>${I18n.tHtml('settings.fontSize.levels.comfortable')}</span>
+                                        <span>${I18n.tHtml('settings.fontSize.levels.large')}</span>
                                     </div>
-                                    <div class="ldsp-settings-font-hint">五档梯度重新拉开：更适合小屏压缩阅读，也能在大屏下获得更明显放大效果</div>
+                                    <div class="ldsp-settings-font-hint">${I18n.tHtml('settings.fontSize.hint')}</div>
                                 </div>
                             </div>
                             <div class="ldsp-settings-view" data-settings-view="actions-root">
                                 <div class="ldsp-settings-head">
-                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
-                                    <span class="ldsp-settings-head-title">功能按钮</span>
+                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="${I18n.tHtml('settings.backAria')}">‹</button>
+                                    <span class="ldsp-settings-head-title">${I18n.tHtml('settings.actions.title')}</span>
                                 </div>
                                 <button class="ldsp-settings-nav" data-settings-open="actions-order">
-                                    <span class="ldsp-settings-nav-main">↕️ 按钮排序</span>
+                                    <span class="ldsp-settings-nav-main">${I18n.tHtml('settings.actions.orderNav')}</span>
                                     <span class="ldsp-settings-nav-arrow">›</span>
                                 </button>
                                 <button class="ldsp-settings-nav" data-settings-open="actions-toggle">
-                                    <span class="ldsp-settings-nav-main">✅ 功能启用</span>
+                                    <span class="ldsp-settings-nav-main">${I18n.tHtml('settings.actions.toggleNav')}</span>
                                     <span class="ldsp-settings-nav-arrow">›</span>
                                 </button>
                             </div>
                             <div class="ldsp-settings-view" data-settings-view="actions-toggle">
                                 <div class="ldsp-settings-head">
-                                    <button class="ldsp-settings-back" data-settings-back="actions-root" aria-label="返回">‹</button>
-                                    <span class="ldsp-settings-head-title">功能启用</span>
+                                    <button class="ldsp-settings-back" data-settings-back="actions-root" aria-label="${I18n.tHtml('settings.backAria')}">‹</button>
+                                    <span class="ldsp-settings-head-title">${I18n.tHtml('settings.actions.toggleTitle')}</span>
                                 </div>
-                                <label class="ldsp-settings-toggle"><span>工单按钮</span><input type="checkbox" data-action-key="ticket" checked></label>
-                                <label class="ldsp-settings-toggle"><span>总结按钮</span><input type="checkbox" data-action-key="melon" checked></label>
-                                <label class="ldsp-settings-toggle"><span>导出按钮</span><input type="checkbox" data-action-key="export" checked></label>
-                                ${CURRENT_SITE.domain === 'linux.do' ? '<label class="ldsp-settings-toggle"><span>LDC 按钮</span><input type="checkbox" data-action-key="ldc" checked></label><label class="ldsp-settings-toggle"><span>士多按钮</span><input type="checkbox" data-action-key="shop" checked></label><label class="ldsp-settings-toggle"><span>CDK 按钮</span><input type="checkbox" data-action-key="cdk" checked></label>' : ''}
+                                <label class="ldsp-settings-toggle"><span>${I18n.tHtml('settings.actions.buttons.ticket')}</span><input type="checkbox" data-action-key="ticket" checked></label>
+                                <label class="ldsp-settings-toggle"><span>${I18n.tHtml('settings.actions.buttons.melon')}</span><input type="checkbox" data-action-key="melon" checked></label>
+                                <label class="ldsp-settings-toggle"><span>${I18n.tHtml('settings.actions.buttons.export')}</span><input type="checkbox" data-action-key="export" checked></label>
+                                ${CURRENT_SITE.domain === 'linux.do' ? `<label class="ldsp-settings-toggle"><span>${I18n.tHtml('settings.actions.buttons.ldc')}</span><input type="checkbox" data-action-key="ldc" checked></label><label class="ldsp-settings-toggle"><span>${I18n.tHtml('settings.actions.buttons.shop')}</span><input type="checkbox" data-action-key="shop" checked></label><label class="ldsp-settings-toggle"><span>${I18n.tHtml('settings.actions.buttons.cdk')}</span><input type="checkbox" data-action-key="cdk" checked></label>` : ''}
                             </div>
                             <div class="ldsp-settings-view" data-settings-view="actions-order">
                                 <div class="ldsp-settings-head">
-                                    <button class="ldsp-settings-back" data-settings-back="actions-root" aria-label="返回">‹</button>
-                                    <span class="ldsp-settings-head-title">按钮排序</span>
+                                    <button class="ldsp-settings-back" data-settings-back="actions-root" aria-label="${I18n.tHtml('settings.backAria')}">‹</button>
+                                    <span class="ldsp-settings-head-title">${I18n.tHtml('settings.actions.orderTitle')}</span>
                                 </div>
-                                <div class="ldsp-settings-order-tip">可拖动调整：士多、LDC、CDK、总结、导出、工单。登录和注销顺序固定。</div>
+                                <div class="ldsp-settings-order-tip">${I18n.tHtml('settings.actions.orderTip')}</div>
                                 <div class="ldsp-settings-order-list">
-                                    ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-settings-order-item" draggable="true" data-order-key="shop"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">士多按钮</span></div>' : ''}
-                                    ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-settings-order-item" draggable="true" data-order-key="ldc"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">LDC 按钮</span></div>' : ''}
-                                    ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-settings-order-item" draggable="true" data-order-key="cdk"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">CDK 按钮</span></div>' : ''}
-                                    <div class="ldsp-settings-order-item" draggable="true" data-order-key="melon"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">总结按钮</span></div>
-                                    <div class="ldsp-settings-order-item" draggable="true" data-order-key="export"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">导出按钮</span></div>
-                                    <div class="ldsp-settings-order-item" draggable="true" data-order-key="ticket"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">工单按钮</span></div>
+                                    ${CURRENT_SITE.domain === 'linux.do' ? `<div class="ldsp-settings-order-item" draggable="true" data-order-key="shop"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">${I18n.tHtml('settings.actions.buttons.shop')}</span></div>` : ''}
+                                    ${CURRENT_SITE.domain === 'linux.do' ? `<div class="ldsp-settings-order-item" draggable="true" data-order-key="ldc"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">${I18n.tHtml('settings.actions.buttons.ldc')}</span></div>` : ''}
+                                    ${CURRENT_SITE.domain === 'linux.do' ? `<div class="ldsp-settings-order-item" draggable="true" data-order-key="cdk"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">${I18n.tHtml('settings.actions.buttons.cdk')}</span></div>` : ''}
+                                    <div class="ldsp-settings-order-item" draggable="true" data-order-key="melon"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">${I18n.tHtml('settings.actions.buttons.melon')}</span></div>
+                                    <div class="ldsp-settings-order-item" draggable="true" data-order-key="export"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">${I18n.tHtml('settings.actions.buttons.export')}</span></div>
+                                    <div class="ldsp-settings-order-item" draggable="true" data-order-key="ticket"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">${I18n.tHtml('settings.actions.buttons.ticket')}</span></div>
                                 </div>
-                                <button class="ldsp-settings-order-reset" type="button">恢复默认顺序</button>
+                                <button class="ldsp-settings-order-reset" type="button">${I18n.tHtml('settings.actions.resetOrder')}</button>
                             </div>
                             <div class="ldsp-settings-view" data-settings-view="requirements-display">
                                 <div class="ldsp-settings-head">
-                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
-                                    <span class="ldsp-settings-head-title">要求展示</span>
+                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="${I18n.tHtml('settings.backAria')}">‹</button>
+                                    <span class="ldsp-settings-head-title">${I18n.tHtml('settings.requirements.title')}</span>
                                 </div>
                                 <button class="ldsp-settings-option" data-requirements-display-mode="all">
                                     <span class="ldsp-settings-option-main">
-                                        <span class="ldsp-settings-option-label">展示所有升级数据</span>
-                                        <span class="ldsp-settings-option-desc">默认展示已完成和未完成的升级要求</span>
+                                        <span class="ldsp-settings-option-label">${I18n.tHtml('settings.requirements.allLabel')}</span>
+                                        <span class="ldsp-settings-option-desc">${I18n.tHtml('settings.requirements.allDesc')}</span>
                                     </span>
                                     <span class="ldsp-settings-option-check">✔</span>
                                 </button>
                                 <button class="ldsp-settings-option" data-requirements-display-mode="incomplete">
                                     <span class="ldsp-settings-option-main">
-                                        <span class="ldsp-settings-option-label">只显示未完成</span>
-                                        <span class="ldsp-settings-option-desc">要求板块仅保留尚未达成的项目</span>
+                                        <span class="ldsp-settings-option-label">${I18n.tHtml('settings.requirements.incompleteLabel')}</span>
+                                        <span class="ldsp-settings-option-desc">${I18n.tHtml('settings.requirements.incompleteDesc')}</span>
                                     </span>
                                     <span class="ldsp-settings-option-check">✔</span>
                                 </button>
                             </div>
+                            <div class="ldsp-settings-view" data-settings-view="language">
+                                <div class="ldsp-settings-head">
+                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="${I18n.tHtml('settings.backAria')}">‹</button>
+                                    <span class="ldsp-settings-head-title">${I18n.tHtml('settings.language.title')}</span>
+                                </div>
+                                <button class="ldsp-settings-option" data-locale-option="zh-CN">
+                                    <span class="ldsp-settings-option-main">
+                                        <span class="ldsp-settings-option-label">${I18n.tHtml('settings.language.zhCN')}</span>
+                                        <span class="ldsp-settings-option-desc">${I18n.tHtml('settings.language.zhCNDesc')}</span>
+                                    </span>
+                                    <span class="ldsp-settings-option-check">✔</span>
+                                </button>
+                                <button class="ldsp-settings-option" data-locale-option="en-US">
+                                    <span class="ldsp-settings-option-main">
+                                        <span class="ldsp-settings-option-label">${I18n.tHtml('settings.language.enUS')}</span>
+                                        <span class="ldsp-settings-option-desc">${I18n.tHtml('settings.language.enUSDesc')}</span>
+                                    </span>
+                                    <span class="ldsp-settings-option-check">✔</span>
+                                </button>
+                                <div class="ldsp-settings-lang-hint">${I18n.tHtml('settings.language.hint')}</div>
+                                <div class="ldsp-settings-lang-notice" data-settings-lang-notice role="status"></div>
+                                <button class="ldsp-settings-lang-reload" data-settings-lang-reload type="button">${I18n.tHtml('settings.language.reloadNow')}</button>
+                            </div>
                         </div>
                     </div>
                     <div class="ldsp-update-bubble" style="display:none">
-                        <div class="ldsp-update-bubble-close">×</div>
+                        <div class="ldsp-update-bubble-close" role="button" aria-label="${I18n.tHtml('panel.updateBubble.closeAria')}">×</div>
                         <div class="ldsp-update-bubble-icon">🎉</div>
-                        <div class="ldsp-update-bubble-title">发现新版本</div>
+                        <div class="ldsp-update-bubble-title">${I18n.tHtml('panel.updateBubble.title')}</div>
                         <div class="ldsp-update-bubble-ver"></div>
-                        <button class="ldsp-update-bubble-btn">🚀 立即更新</button>
+                        <button class="ldsp-update-bubble-btn">${I18n.tHtml('panel.updateBubble.updateNow')}</button>
                     </div>
                     <div class="ldsp-body">
                         <div class="ldsp-announcement">
@@ -12331,6 +12378,10 @@ a:hover{text-decoration:underline;}
                     settingsActionsValues: this.el.querySelectorAll('[data-settings-actions-value]'),
                     settingsRequirementsValues: this.el.querySelectorAll('[data-settings-requirements-value]'),
                     settingsRequirementsOptions: this.el.querySelectorAll('.ldsp-settings-option[data-requirements-display-mode]'),
+                    settingsLanguageValues: this.el.querySelectorAll('[data-settings-language-value]'),
+                    settingsLanguageOptions: this.el.querySelectorAll('.ldsp-settings-option[data-locale-option]'),
+                    settingsLanguageNotice: this.el.querySelector('[data-settings-lang-notice]'),
+                    settingsLanguageReload: this.el.querySelector('[data-settings-lang-reload]'),
                     settingsThemeOptions: this.el.querySelectorAll('.ldsp-settings-option[data-theme-mode]'),
                     settingsActionInputs: this.el.querySelectorAll('.ldsp-settings-toggle input[data-action-key]'),
                     settingsGoalRange: this.el.querySelector('.ldsp-settings-goal-range'),
@@ -12514,6 +12565,17 @@ a:hover{text-decoration:underline;}
                         this._refreshReqsFromCache();
                         return;
                     }
+
+                    const localeOption = e.target.closest('.ldsp-settings-option[data-locale-option]');
+                    if (localeOption) {
+                        this._setLocalePreference(localeOption.dataset.localeOption);
+                        return;
+                    }
+
+                    if (e.target.closest('[data-settings-lang-reload]')) {
+                        this._reloadForLocaleChange();
+                        return;
+                    }
                 });
                 this.$.settingsMenu?.addEventListener('change', e => {
                     const goalInput = e.target.closest('input[data-reading-goal-input]');
@@ -12589,7 +12651,7 @@ a:hover{text-decoration:underline;}
                     this._renderActionOrderList();
                     this._applyActionOrder();
                     this._scheduleActionsOverflowCheck();
-                    this.renderer?.showToast('✅ 已恢复默认顺序');
+                    this.renderer?.showToast(I18n.t('settings.actions.resetOrderToast'));
                 });
                 this._docClickHandler = e => {
                     if (!this.$.settingsMenu?.classList.contains('show')) return;
@@ -13345,13 +13407,86 @@ a:hover{text-decoration:underline;}
                 this._applyActionOrder();
             }
 
+            _loadLocale() {
+                try {
+                    const saved = this.storage.getGlobal('locale', I18n.DEFAULT_LOCALE);
+                    return I18n.normalizeLocale(saved);
+                } catch {
+                    return I18n.DEFAULT_LOCALE;
+                }
+            }
+
+            _getLocaleLabel(locale = this._selectedLocale || this.locale) {
+                const normalized = I18n.normalizeLocale(locale);
+                return I18n.t(normalized === 'en-US' ? 'settings.language.enUSSummary' : 'settings.language.zhCNSummary');
+            }
+
+            _hasActiveOperationBeforeReload() {
+                if (this.melonHelper?._abortController) return true;
+                if (this.topicExporter?._abort) return true;
+                const openTicketInputs = this.ticketManager?.overlay?.classList?.contains('show')
+                    ? Array.from(this.ticketManager.overlay.querySelectorAll('input[type="text"], textarea'))
+                    : [];
+                return openTicketInputs.some(el => el.value && el.value.trim().length > 0);
+            }
+
+            _setLocalePreference(nextLocale) {
+                const normalized = I18n.normalizeLocale(nextLocale);
+                const chosenTranslator = I18n.createTranslator(normalized);
+                this._localePersistFailed = false;
+
+                try {
+                    this.storage.setGlobalNow('locale', normalized);
+                    const verify = this.storage.getGlobal('locale', null);
+                    if (I18n.normalizeLocale(verify) !== normalized && verify !== normalized) {
+                        throw new Error('storage readback mismatch');
+                    }
+                    this._selectedLocale = normalized;
+                } catch {
+                    this._localePersistFailed = true;
+                    this._syncSettingsMenuState();
+                    const failMsg = chosenTranslator.t('settings.language.persistFailed');
+                    if (this.$.settingsLanguageNotice) {
+                        this.$.settingsLanguageNotice.textContent = failMsg;
+                        this.$.settingsLanguageNotice.classList.add('show');
+                    }
+                    this.renderer?.showToast(failMsg);
+                    return false;
+                }
+
+                this._syncSettingsMenuState();
+                if (normalized !== this.locale) {
+                    this.renderer?.showToast(chosenTranslator.t('settings.language.savedPendingReload'));
+                }
+                return true;
+            }
+
+            _reloadForLocaleChange() {
+                const chosenTranslator = I18n.createTranslator(this._selectedLocale || this.locale);
+                if (this._hasActiveOperationBeforeReload()) {
+                    const busyMsg = chosenTranslator.t('settings.language.busyCannotReload');
+                    if (this.$.settingsLanguageNotice) {
+                        this.$.settingsLanguageNotice.textContent = busyMsg;
+                        this.$.settingsLanguageNotice.classList.add('show');
+                    }
+                    this.renderer?.showToast(busyMsg);
+                    return false;
+                }
+                if (typeof this._performPageReload === 'function') {
+                    this._performPageReload();
+                } else {
+                    location.reload();
+                }
+                return true;
+            }
+
             _getThemeModeLabel(mode = this.themeMode) {
-                const labelMap = {
-                    auto: '跟随系统',
-                    light: '浅色',
-                    dark: '深色'
+                const keyMap = {
+                    auto: 'settings.theme.auto',
+                    light: 'settings.theme.light',
+                    dark: 'settings.theme.dark'
                 };
-                return labelMap[mode] || labelMap.light;
+                return I18n.t(keyMap[mode] || keyMap.light);
             }
 
             _getDefaultFontSizeLevel() {
@@ -13376,7 +13511,8 @@ a:hover{text-decoration:underline;}
             }
 
             _getFontSizeLabel(level = this.fontSizeLevel) {
-                return this._getFontSizeLevelMeta(level).label;
+                const meta = this._getFontSizeLevelMeta(level);
+                return meta.labelKey ? I18n.t(meta.labelKey) : meta.label;
             }
 
             _loadFontSizeLevel() {
@@ -13471,7 +13607,11 @@ a:hover{text-decoration:underline;}
                     el.textContent = themeLabel;
                 });
 
-                const goalLabel = `${this._formatReadingGoalHours()}小时`;
+                const formattedHours = this._formatReadingGoalHours();
+                const goalLabel = I18n.t('settings.readingGoal.summary', {
+                    hours: formattedHours,
+                    count: Number(formattedHours)
+                });
                 this.$.settingsGoalValues?.forEach(el => {
                     el.textContent = goalLabel;
                 });
@@ -13502,7 +13642,9 @@ a:hover{text-decoration:underline;}
                     totalCount++;
                     if (enabled) enabledCount++;
                 });
-                const actionSummary = totalCount > 0 ? `${enabledCount}/${totalCount} 开启` : '';
+                const actionSummary = totalCount > 0
+                    ? I18n.t('settings.actions.summary', { enabled: enabledCount, total: totalCount })
+                    : '';
                 this.$.settingsActionsValues?.forEach(el => {
                     el.textContent = actionSummary;
                 });
@@ -13512,8 +13654,31 @@ a:hover{text-decoration:underline;}
                     btn.classList.toggle('active', btn.dataset.requirementsDisplayMode === rdm);
                 });
                 this.$.settingsRequirementsValues?.forEach(el => {
-                    el.textContent = rdm === 'incomplete' ? '只显示未完成' : '展示全部';
+                    el.textContent = I18n.t(
+                        rdm === 'incomplete'
+                            ? 'settings.requirements.summaryIncomplete'
+                            : 'settings.requirements.summaryAll'
+                    );
                 });
+
+                const selectedLocale = I18n.normalizeLocale(this._selectedLocale || this.locale);
+                this.$.settingsLanguageOptions?.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.localeOption === selectedLocale);
+                });
+                const localeLabel = this._getLocaleLabel(selectedLocale);
+                this.$.settingsLanguageValues?.forEach(el => {
+                    el.textContent = localeLabel;
+                });
+                const pendingReload = !this._localePersistFailed && selectedLocale !== this.locale;
+                if (this.$.settingsLanguageReload) {
+                    const chosenTranslator = I18n.createTranslator(selectedLocale);
+                    this.$.settingsLanguageReload.textContent = chosenTranslator.t('settings.language.reloadNow');
+                    this.$.settingsLanguageReload.classList.toggle('show', pendingReload);
+                }
+                if (this.$.settingsLanguageNotice && !this._localePersistFailed) {
+                    this.$.settingsLanguageNotice.textContent = '';
+                    this.$.settingsLanguageNotice.classList.remove('show');
+                }
 
                 this._renderActionOrderList();
             }
@@ -13565,7 +13730,12 @@ a:hover{text-decoration:underline;}
             _updateArrow() {
                 const isCollapsed = this.el.classList.contains('collapsed');
                 const alignRight = this.el.classList.contains('expand-left');
-                const arrow = this.$.btnToggle.querySelector('.ldsp-toggle-arrow');
+                const toggleLabel = I18n.t(isCollapsed ? 'panel.header.expandPanel' : 'panel.header.collapsePanel');
+                if (this.$.btnToggle) {
+                    this.$.btnToggle.title = toggleLabel;
+                    this.$.btnToggle.setAttribute('aria-label', toggleLabel);
+                }
+                const arrow = this.$.btnToggle?.querySelector('.ldsp-toggle-arrow');
                 if (arrow) {
                     // 折叠时箭头指向展开方向，展开时箭头指向折叠方向
                     if (isCollapsed) {
@@ -15776,8 +15946,10 @@ a:hover{text-decoration:underline;}
                         const remote = match[1];
                         const current = GM_info.script.version;
                         if (Utils.compareVersion(remote, current) > 0) {
+                            const updateLabel = I18n.t('panel.header.updateAvailable', { version: remote });
                             this.$.btnUpdate.textContent = '🆕';
-                            this.$.btnUpdate.title = `新版本 v${remote}`;
+                            this.$.btnUpdate.title = updateLabel;
+                            this.$.btnUpdate.setAttribute('aria-label', updateLabel);
                             this.$.btnUpdate.classList.add('has-update');
                             this._remoteVersion = remote;
                             this._updateUrl = url;
@@ -15794,27 +15966,35 @@ a:hover{text-decoration:underline;}
                             
                             this.$.btnUpdate.onclick = () => this._showUpdateBubble(current, remote);
                         } else {
+                            const latestLabel = I18n.t('panel.header.upToDate');
                             this.$.btnUpdate.textContent = '✅';
-                            this.$.btnUpdate.title = '已是最新版本';
+                            this.$.btnUpdate.title = latestLabel;
+                            this.$.btnUpdate.setAttribute('aria-label', latestLabel);
                             this.$.btnUpdate.classList.remove('has-update');
                             if (!autoCheck) {
-                                this.renderer.showToast('✅ 已是最新版本');
+                                this.renderer.showToast(I18n.t('panel.header.upToDateToast'));
                             }
                             setTimeout(() => {
+                                const checkLabel = I18n.t('panel.header.checkUpdate');
                                 this.$.btnUpdate.textContent = '🔍';
-                                this.$.btnUpdate.title = '检查更新';
+                                this.$.btnUpdate.title = checkLabel;
+                                this.$.btnUpdate.setAttribute('aria-label', checkLabel);
                             }, 2000);
                         }
                     }
                 } catch (e) {
+                    const failedLabel = I18n.t('panel.header.updateCheckFailed');
                     this.$.btnUpdate.textContent = '❌';
-                    this.$.btnUpdate.title = '检查失败';
+                    this.$.btnUpdate.title = failedLabel;
+                    this.$.btnUpdate.setAttribute('aria-label', failedLabel);
                     if (!autoCheck) {
-                        this.renderer.showToast('❌ 检查更新失败');
+                        this.renderer.showToast(I18n.t('panel.header.updateCheckFailedToast'));
                     }
                     setTimeout(() => {
+                        const checkLabel = I18n.t('panel.header.checkUpdate');
                         this.$.btnUpdate.textContent = '🔍';
-                        this.$.btnUpdate.title = '检查更新';
+                        this.$.btnUpdate.title = checkLabel;
+                        this.$.btnUpdate.setAttribute('aria-label', checkLabel);
                     }, 2000);
                 }
             }
@@ -15848,18 +16028,18 @@ a:hover{text-decoration:underline;}
 
             _doUpdate() {
                 this.$.updateBubbleBtn.disabled = true;
-                this.$.updateBubbleBtn.textContent = '⏳ 更新中...';
+                this.$.updateBubbleBtn.textContent = I18n.t('panel.updateBubble.updating');
                 
                 // 打开更新链接，Tampermonkey 会自动弹出更新确认
                 window.open(this._updateUrl || 'https://raw.githubusercontent.com/caigg188/LDStatusPro/main/LDStatusPro.user.js');
                 
                 // 提示用户
                 setTimeout(() => {
-                    this.$.updateBubbleBtn.textContent = '✅ 请在弹出窗口确认更新';
+                    this.$.updateBubbleBtn.textContent = I18n.t('panel.updateBubble.confirmInTab');
                     setTimeout(() => {
                         this._hideUpdateBubble();
                         this.$.updateBubbleBtn.disabled = false;
-                        this.$.updateBubbleBtn.textContent = '🚀 立即更新';
+                        this.$.updateBubbleBtn.textContent = I18n.t('panel.updateBubble.updateNow');
                     }, 3000);
                 }, 1000);
             }

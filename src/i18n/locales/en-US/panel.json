@@ -1,0 +1,24 @@
+{
+  "ariaLabel": "{site} Trust Level Panel",
+  "header": {
+    "checkUpdate": "Check for updates",
+    "updateAvailable": "New version v{version}",
+    "upToDate": "Up to date",
+    "upToDateToast": "✅ Already on the latest version",
+    "updateCheckFailed": "Update check failed",
+    "updateCheckFailedToast": "❌ Failed to check for updates",
+    "cloudSync": "Cloud sync",
+    "cloudSyncing": "Syncing...",
+    "refresh": "Refresh data",
+    "settings": "Settings",
+    "collapsePanel": "Collapse panel",
+    "expandPanel": "Expand panel"
+  },
+  "updateBubble": {
+    "closeAria": "Close",
+    "title": "New version available",
+    "updateNow": "🚀 Update now",
+    "updating": "⏳ Updating...",
+    "confirmInTab": "✅ Confirm update in the opened tab"
+  }
+}

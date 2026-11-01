@@ -1,0 +1,24 @@
+{
+  "ariaLabel": "{site} 信任级别面板",
+  "header": {
+    "checkUpdate": "检查更新",
+    "updateAvailable": "新版本 v{version}",
+    "upToDate": "已是最新版本",
+    "upToDateToast": "✅ 已是最新版本",
+    "updateCheckFailed": "检查失败",
+    "updateCheckFailedToast": "❌ 检查更新失败",
+    "cloudSync": "云同步",
+    "cloudSyncing": "同步中...",
+    "refresh": "刷新数据",
+    "settings": "设置",
+    "collapsePanel": "折叠面板",
+    "expandPanel": "展开面板"
+  },
+  "updateBubble": {
+    "closeAria": "关闭",
+    "title": "发现新版本",
+    "updateNow": "🚀 立即更新",
+    "updating": "⏳ 更新中...",
+    "confirmInTab": "✅ 请在弹出窗口确认更新"
+  }
+}

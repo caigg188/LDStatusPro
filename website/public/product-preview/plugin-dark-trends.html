@@ -63,9 +63,9 @@
     .ldsp-settings-head-title{font-size:calc(12px * var(--ldsp-font-scale,1));font-weight:700;color:var(--txt)}
     .ldsp-settings-back{width:24px;height:24px;border:none;border-radius:7px;background:var(--bg-el);color:var(--txt-sec);font-size:calc(14px * var(--ldsp-font-scale,1));display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s}
     .ldsp-settings-back:hover{background:var(--bg-hover);color:var(--accent)}
-    .ldsp-settings-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:9px 10px;margin-bottom:6px;border:1px solid transparent;border-radius:9px;background:var(--bg-el);color:var(--txt);font-size:calc(11px * var(--ldsp-font-scale,1));text-align:left;transition:background .15s,border-color .15s,transform .15s}
+    .ldsp-settings-nav{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;padding:9px 10px;margin-bottom:6px;border:1px solid transparent;border-radius:9px;background:var(--bg-el);color:var(--txt);font-size:calc(11px * var(--ldsp-font-scale,1));text-align:left;transition:background .15s,border-color .15s,transform .15s}
     .ldsp-settings-nav:hover{background:var(--bg-hover);border-color:var(--border2);transform:translateY(-1px)}
-    .ldsp-settings-nav-main{display:flex;align-items:center;gap:8px;font-weight:600;min-width:0;flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ldsp-settings-nav-main{display:flex;align-items:center;gap:6px;font-weight:600;min-width:0;flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .ldsp-settings-nav-value{font-size:calc(10px * var(--ldsp-font-scale,1));color:var(--txt-mut);max-width:132px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto}
     .ldsp-settings-nav-arrow{font-size:calc(13px * var(--ldsp-font-scale,1));color:var(--txt-mut)}
     .ldsp-settings-title{font-size:calc(11px * var(--ldsp-font-scale,1));font-weight:700;color:var(--txt-sec);margin:2px 0 8px;padding:0 2px}
@@ -109,8 +109,14 @@
     .ldsp-settings-order-label{font-size:calc(11px * var(--ldsp-font-scale,1));font-weight:600;color:var(--txt);min-width:0;flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .ldsp-settings-order-reset{width:100%;margin-top:10px;padding:8px 10px;border:1px solid var(--border2);border-radius:9px;background:var(--bg-el);color:var(--txt-sec);font-size:calc(11px * var(--ldsp-font-scale,1));font-weight:600;transition:background .15s,border-color .15s,color .15s}
     .ldsp-settings-order-reset:hover{background:var(--bg-hover);border-color:var(--accent);color:var(--accent)}
-    @media (max-width:480px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{left:4px;right:auto;width:calc(100% - 8px);min-width:0;max-width:calc(100% - 8px);max-height:min(320px,calc(var(--h) - 48px));padding:6px}.ldsp-settings-view{max-height:calc(var(--h) - 64px);padding:1px}.ldsp-settings-head{padding:5px 2px 8px;margin-bottom:6px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:7px 8px;font-size:calc(10px * var(--ldsp-font-scale,1))}.ldsp-settings-nav-value{max-width:76px;font-size:calc(9px * var(--ldsp-font-scale,1))}.ldsp-settings-option-label{font-size:calc(10px * var(--ldsp-font-scale,1))}.ldsp-settings-option-desc,.ldsp-settings-order-tip,.ldsp-settings-goal-hint,.ldsp-settings-font-hint{font-size:calc(9px * var(--ldsp-font-scale,1))}.ldsp-settings-goal-row{padding:7px 8px;gap:6px}.ldsp-settings-goal-number{width:64px;padding:4px 6px;font-size:calc(10px * var(--ldsp-font-scale,1))}}
-    @media (max-width:320px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{left:2px;right:auto;width:calc(100% - 4px);min-width:0;max-width:calc(100% - 4px);max-height:min(280px,calc(var(--h) - 40px));padding:5px}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}.ldsp-settings-head-title{font-size:calc(11px * var(--ldsp-font-scale,1))}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px;font-size:calc(9px * var(--ldsp-font-scale,1))}.ldsp-settings-nav-main{gap:6px}.ldsp-settings-goal-label{min-width:46px;font-size:calc(10px * var(--ldsp-font-scale,1))}.ldsp-settings-goal-number{width:56px;font-size:calc(9px * var(--ldsp-font-scale,1))}.ldsp-settings-order-reset{padding:7px 8px;font-size:calc(10px * var(--ldsp-font-scale,1))}}
+    .ldsp-settings-lang-hint{font-size:calc(10px * var(--ldsp-font-scale,1));color:var(--txt-mut);line-height:1.35;margin-top:8px;padding:0 2px}
+    .ldsp-settings-lang-notice{display:none;margin-top:6px;padding:6px 8px;border-radius:8px;font-size:calc(10px * var(--ldsp-font-scale,1));line-height:1.35;background:var(--warn-bg);color:var(--warn)}
+    .ldsp-settings-lang-notice.show{display:block}
+    .ldsp-settings-lang-reload{display:none;width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--accent);border-radius:9px;background:rgba(107,140,239,.16);color:var(--accent);font-size:calc(11px * var(--ldsp-font-scale,1));font-weight:600;transition:background .15s,border-color .15s,color .15s}
+    .ldsp-settings-lang-reload.show{display:block}
+    .ldsp-settings-lang-reload:hover{background:rgba(107,140,239,.24)}
+    @media (max-width:480px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{left:4px;right:auto;width:calc(100% - 8px);min-width:0;max-width:calc(100% - 8px);max-height:min(320px,calc(var(--h) - 48px));padding:6px}.ldsp-settings-view{max-height:calc(var(--h) - 64px);padding:1px}.ldsp-settings-head{padding:5px 2px 8px;margin-bottom:6px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:7px 8px;font-size:calc(10px * var(--ldsp-font-scale,1))}.ldsp-settings-nav-value{max-width:76px;font-size:calc(9px * var(--ldsp-font-scale,1))}.ldsp-settings-option-label{font-size:calc(10px * var(--ldsp-font-scale,1))}.ldsp-settings-option-desc,.ldsp-settings-order-tip,.ldsp-settings-goal-hint,.ldsp-settings-font-hint,.ldsp-settings-lang-hint,.ldsp-settings-lang-notice{font-size:calc(9px * var(--ldsp-font-scale,1))}.ldsp-settings-goal-row{padding:7px 8px;gap:6px}.ldsp-settings-goal-number{width:64px;padding:4px 6px;font-size:calc(10px * var(--ldsp-font-scale,1))}}
+    @media (max-width:320px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{left:2px;right:auto;width:calc(100% - 4px);min-width:0;max-width:calc(100% - 4px);max-height:min(280px,calc(var(--h) - 40px));padding:5px}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}.ldsp-settings-head-title{font-size:calc(11px * var(--ldsp-font-scale,1))}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px;font-size:calc(9px * var(--ldsp-font-scale,1))}.ldsp-settings-nav-main{gap:6px}.ldsp-settings-goal-label{min-width:46px;font-size:calc(10px * var(--ldsp-font-scale,1))}.ldsp-settings-goal-number{width:56px;font-size:calc(9px * var(--ldsp-font-scale,1))}.ldsp-settings-order-reset,.ldsp-settings-lang-reload{padding:7px 8px;font-size:calc(10px * var(--ldsp-font-scale,1))}}
     @media (max-height:620px){.ldsp-settings-menu{max-height:min(280px,calc(var(--h) - 40px))}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}}
     @media (max-height:500px){.ldsp-settings-menu{max-height:min(240px,calc(var(--h) - 28px))}.ldsp-settings-head{padding:4px 2px 6px;margin-bottom:5px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px}}
     #ldsp-panel.collapsed .ldsp-settings-menu{display:none!important}
@@ -1795,6 +1801,11 @@ html,body{margin:0;background:transparent;overflow:hidden}#ldsp-panel{left:24px;
                                     <span class="ldsp-settings-nav-value" data-settings-requirements-value=""></span>
                                     <span class="ldsp-settings-nav-arrow">›</span>
                                 </button>
+                                <button class="ldsp-settings-nav" data-settings-open="language" tabindex="-1">
+                                    <span class="ldsp-settings-nav-main">🌐 界面语言</span>
+                                    <span class="ldsp-settings-nav-value" data-settings-language-value=""></span>
+                                    <span class="ldsp-settings-nav-arrow">›</span>
+                                </button>
                             </div>
                             <div class="ldsp-settings-view" data-settings-view="theme">
                                 <div class="ldsp-settings-head">
@@ -1919,10 +1930,33 @@ html,body{margin:0;background:transparent;overflow:hidden}#ldsp-panel{left:24px;
                                     <span class="ldsp-settings-option-check">✔</span>
                                 </button>
                             </div>
+                            <div class="ldsp-settings-view" data-settings-view="language">
+                                <div class="ldsp-settings-head">
+                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回" tabindex="-1">‹</button>
+                                    <span class="ldsp-settings-head-title">界面语言</span>
+                                </div>
+                                <button class="ldsp-settings-option" data-locale-option="zh-CN" tabindex="-1">
+                                    <span class="ldsp-settings-option-main">
+                                        <span class="ldsp-settings-option-label">简体中文</span>
+                                        <span class="ldsp-settings-option-desc">默认中文界面</span>
+                                    </span>
+                                    <span class="ldsp-settings-option-check">✔</span>
+                                </button>
+                                <button class="ldsp-settings-option" data-locale-option="en-US" tabindex="-1">
+                                    <span class="ldsp-settings-option-main">
+                                        <span class="ldsp-settings-option-label">English (US)</span>
+                                        <span class="ldsp-settings-option-desc">英文界面，刷新页面后生效</span>
+                                    </span>
+                                    <span class="ldsp-settings-option-check">✔</span>
+                                </button>
+                                <div class="ldsp-settings-lang-hint">语言偏好会立即保存在当前站点本地；存在进行中的总结或导出任务时不会强制刷新。</div>
+                                <div class="ldsp-settings-lang-notice" data-settings-lang-notice="" role="status"></div>
+                                <button class="ldsp-settings-lang-reload" data-settings-lang-reload="" type="button" tabindex="-1">刷新页面以应用语言</button>
+                            </div>
                         </div>
                     </div>
                     <div class="ldsp-update-bubble" style="display:none">
-                        <div class="ldsp-update-bubble-close">×</div>
+                        <div class="ldsp-update-bubble-close" role="button" aria-label="关闭">×</div>
                         <div class="ldsp-update-bubble-icon">🎉</div>
                         <div class="ldsp-update-bubble-title">发现新版本</div>
                         <div class="ldsp-update-bubble-ver"></div>

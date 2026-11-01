@@ -85,6 +85,7 @@ for (const theme of ['light', 'dark'])
       'CURRENT_SITE',
       'CONFIG',
       'SafeDom',
+      'I18n',
       'Utils',
       'Screen',
       'Styles',

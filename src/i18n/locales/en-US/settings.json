@@ -1,0 +1,87 @@
+{
+  "title": "Settings",
+  "backAria": "Back",
+  "nav": {
+    "theme": "🎨 Appearance",
+    "readingGoal": "🎯 Reading Goal",
+    "fontSize": "🔤 Font Size",
+    "actions": "🔘 Actions",
+    "requirements": "📋 Requirements",
+    "language": "🌐 Language"
+  },
+  "theme": {
+    "title": "Appearance",
+    "auto": "System",
+    "autoDesc": "Match system light or dark mode",
+    "light": "Light",
+    "lightDesc": "Bright and crisp for daytime reading",
+    "dark": "Dark",
+    "darkDesc": "Easy on the eyes in low light"
+  },
+  "readingGoal": {
+    "title": "Reading Goal",
+    "label": "Target",
+    "unit": "hrs",
+    "summary": {
+      "one": "{hours} hr",
+      "other": "{hours} hrs"
+    },
+    "hint": "Range: 0.5–20 hours, in 0.5-hour steps"
+  },
+  "fontSize": {
+    "title": "Font Size",
+    "currentLevel": "Current",
+    "levels": {
+      "compact": "Compact",
+      "small": "Small",
+      "standard": "Default",
+      "comfortable": "Large",
+      "large": "Extra"
+    },
+    "hint": "Five scale steps for compact mobile panels or larger desktop reading"
+  },
+  "actions": {
+    "title": "Action Buttons",
+    "summary": "{enabled}/{total} on",
+    "orderNav": "↕️ Button Order",
+    "toggleNav": "✅ Visible Buttons",
+    "toggleTitle": "Visible Buttons",
+    "orderTitle": "Button Order",
+    "orderTip": "Drag to reorder Store, LDC, CDK, Summary, Export, and Tickets. Sign-in and sign-out stay fixed.",
+    "buttons": {
+      "login": "Sign-in button",
+      "logout": "Sign-out button",
+      "ticket": "Tickets button",
+      "melon": "AI Summary button",
+      "export": "Export button",
+      "ldc": "LDC button",
+      "shop": "LD Store button",
+      "cdk": "CDK button"
+    },
+    "resetOrder": "Reset default order",
+    "resetOrderToast": "✅ Restored default button order"
+  },
+  "requirements": {
+    "title": "Requirements",
+    "summaryAll": "All",
+    "summaryIncomplete": "Unmet",
+    "allLabel": "Show all requirements",
+    "allDesc": "Display both completed and incomplete requirements",
+    "incompleteLabel": "Incomplete only",
+    "incompleteDesc": "Only display requirements not yet met"
+  },
+  "language": {
+    "title": "Language",
+    "zhCN": "简体中文",
+    "zhCNSummary": "简体中文",
+    "zhCNDesc": "Default Simplified Chinese interface",
+    "enUS": "English (US)",
+    "enUSSummary": "English",
+    "enUSDesc": "English interface, applied after reload",
+    "hint": "Saved locally per site. Active summaries or exports are never interrupted automatically.",
+    "reloadNow": "Reload page to apply",
+    "savedPendingReload": "✅ Language saved — reload the page to apply",
+    "persistFailed": "⚠️ Could not save language preference; previous setting will remain after reload",
+    "busyCannotReload": "⏳ Finish or stop the active task before reloading"
+  }
+}
