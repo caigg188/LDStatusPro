@@ -1,7 +1,15 @@
+import zhCommon from './locales/zh-CN/common.json' with { type: 'json' };
 import zhPanel from './locales/zh-CN/panel.json' with { type: 'json' };
 import zhSettings from './locales/zh-CN/settings.json' with { type: 'json' };
+import zhMetrics from './locales/zh-CN/metrics.json' with { type: 'json' };
+import zhTrends from './locales/zh-CN/trends.json' with { type: 'json' };
+import zhLeaderboard from './locales/zh-CN/leaderboard.json' with { type: 'json' };
+import enCommon from './locales/en-US/common.json' with { type: 'json' };
 import enPanel from './locales/en-US/panel.json' with { type: 'json' };
 import enSettings from './locales/en-US/settings.json' with { type: 'json' };
+import enMetrics from './locales/en-US/metrics.json' with { type: 'json' };
+import enTrends from './locales/en-US/trends.json' with { type: 'json' };
+import enLeaderboard from './locales/en-US/leaderboard.json' with { type: 'json' };
 
 export const DEFAULT_LOCALE = 'zh-CN';
 export const SUPPORTED_LOCALES = Object.freeze(['zh-CN', 'en-US']);
@@ -9,12 +17,20 @@ export const PLURAL_CATEGORIES = Object.freeze(['zero', 'one', 'two', 'few', 'ma
 
 export const CATALOGS = Object.freeze({
     'zh-CN': Object.freeze({
+        common: zhCommon,
         panel: zhPanel,
-        settings: zhSettings
+        settings: zhSettings,
+        metrics: zhMetrics,
+        trends: zhTrends,
+        leaderboard: zhLeaderboard
     }),
     'en-US': Object.freeze({
+        common: enCommon,
         panel: enPanel,
-        settings: enSettings
+        settings: enSettings,
+        metrics: enMetrics,
+        trends: enTrends,
+        leaderboard: enLeaderboard
     })
 });
 

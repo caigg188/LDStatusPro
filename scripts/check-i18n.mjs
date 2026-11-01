@@ -16,6 +16,7 @@ const CJK_RE = /[\u3400-\u9FFF]/;
 // Panel methods migrated to semantic i18n keys. Adding methods here as slices land
 // prevents uncataloged Chinese UI strings from regressing inside migrated areas.
 export const MIGRATED_PANEL_METHODS = Object.freeze([
+    '_createPanel',
     '_getThemeModeLabel',
     '_getFontSizeLabel',
     '_getLocaleLabel',
@@ -24,11 +25,50 @@ export const MIGRATED_PANEL_METHODS = Object.freeze([
     '_reloadForLocaleChange',
     '_checkUpdate',
     '_doUpdate',
-    '_updateArrow'
+    '_updateArrow',
+    '_applyActionsToggleState',
+    '_formatHomeError',
+    '_showError',
+    '_showFallbackStats',
+    '_renderTrendContent',
+    '_handlePendingLoginResult',
+    '_doLogin',
+    '_bindLoginPrompt',
+    '_renderLeaderboard',
+    '_renderLeaderboardContent',
+    '_bindLeaderboardEvents'
 ]);
 
-// Explicit non-UI tokens allowed inside migrated methods (internal keys, site code).
-const ALLOWED_CJK_LITERALS = new Set([]);
+export const MIGRATED_RENDERER_METHODS = Object.freeze([
+    'renderUser',
+    'renderReqs',
+    'renderReading',
+    'renderAvatar',
+    'renderTrends',
+    'getTrendFields',
+    'renderTodayTrend',
+    'renderWeekTrend',
+    'renderMonthTrend',
+    'renderYearTrend',
+    'renderAllTrend',
+    '_renderSparkRows',
+    '_renderWeekChart',
+    '_renderMonthChart',
+    '_renderYearChart',
+    '_calcAbsoluteMonthlyTrend',
+    '_calcMonthlyTrend',
+    'showLoginPrompt',
+    'renderLeaderboard',
+    'renderLeaderboardLogin',
+    'renderLeaderboardJoin',
+    'renderRegistrationPaused',
+    'renderLeaderboardData',
+    'renderLeaderboardLoading',
+    'renderLeaderboardError'
+]);
+
+// Explicit non-UI tokens allowed inside migrated methods (parser sentinels, server error matchers, punctuation).
+const ALLOWED_CJK_LITERALS = new Set(['未知', '；', '已暂停新用户注册']);
 
 export function hashSourceEntry(key, value) {
     const canonical = typeof value === 'string'
@@ -205,10 +245,22 @@ export function validateI18n({
     const ast = parse(userscriptSource, { ecmaVersion: 'latest' });
 
     let panelClass = null;
+    let rendererClass = null;
+    let notifierClass = null;
+    let leaderboardClass = null;
+    let uiDecl = null;
+    let dialogDecl = null;
     walkAst(ast, node => {
         if (node.start < scanOffset) return;
-        if (node.type === 'ClassDeclaration' && node.id?.name === 'Panel') {
-            panelClass = node;
+        if (node.type === 'ClassDeclaration') {
+            if (node.id?.name === 'Panel') panelClass = node;
+            if (node.id?.name === 'Renderer') rendererClass = node;
+            if (node.id?.name === 'Notifier') notifierClass = node;
+            if (node.id?.name === 'LeaderboardManager') leaderboardClass = node;
+        }
+        if (node.type === 'VariableDeclarator' && node.id?.type === 'Identifier') {
+            if (node.id.name === 'UI') uiDecl = node;
+            if (node.id.name === 'LDSPDialog') dialogDecl = node;
         }
         if (
             node.type === 'CallExpression'
@@ -225,51 +277,49 @@ export function validateI18n({
         }
     });
 
-    if (panelClass && migratedMethods.length > 0) {
+    const scanNodeForUncatalogedCjk = (label, rootNode) => {
+        if (!rootNode) return;
+        walkAst(rootNode, node => {
+            if (node.type === 'Literal' && typeof node.value === 'string') {
+                // Skip raw unicode escape sequences used intentionally as canonical parser tokens
+                const rawSrc = userscriptSource.slice(node.start, node.end);
+                if (/\\u[0-9a-fA-F]{4}/.test(rawSrc) && !CJK_RE.test(rawSrc)) return;
+                if (CJK_RE.test(node.value) && !ALLOWED_CJK_LITERALS.has(node.value)) {
+                    errors.push(`Uncataloged CJK literal in ${label}: ${JSON.stringify(node.value)}`);
+                }
+            } else if (node.type === 'TemplateElement') {
+                const rawText = node.value?.raw || '';
+                if (CJK_RE.test(rawText)) {
+                    errors.push(`Uncataloged CJK template text in ${label}: ${JSON.stringify(rawText.trim().slice(0, 40))}`);
+                }
+            }
+        });
+    };
+
+    const checkClassMethods = (className, classNode, methods) => {
+        if (!classNode || !methods?.length) return;
         const methodMap = new Map(
-            panelClass.body.body
+            classNode.body.body
                 .filter(member => member.type === 'MethodDefinition' && member.key?.type === 'Identifier')
                 .map(member => [member.key.name, member])
         );
-        for (const methodName of migratedMethods) {
+        for (const methodName of methods) {
             const methodNode = methodMap.get(methodName);
             if (!methodNode) {
-                errors.push(`Migrated Panel method missing: ${methodName}`);
+                errors.push(`Migrated ${className} method missing: ${methodName}`);
                 continue;
             }
-            walkAst(methodNode.value, node => {
-                if (node.type === 'Literal' && typeof node.value === 'string') {
-                    if (CJK_RE.test(node.value) && !ALLOWED_CJK_LITERALS.has(node.value)) {
-                        errors.push(`Uncataloged CJK literal in Panel.${methodName}: ${JSON.stringify(node.value)}`);
-                    }
-                } else if (node.type === 'TemplateElement') {
-                    const cooked = node.value?.cooked || '';
-                    if (CJK_RE.test(cooked)) {
-                        errors.push(`Uncataloged CJK template text in Panel.${methodName}: ${JSON.stringify(cooked.trim().slice(0, 40))}`);
-                    }
-                }
-            });
+            scanNodeForUncatalogedCjk(`${className}.${methodName}`, methodNode.value);
         }
-        // Also enforce zero uncataloged CJK inside the migrated header + settings + update-bubble slice of _createPanel.
-        const createPanelNode = methodMap.get('_createPanel');
-        if (createPanelNode) {
-            const methodSrc = userscriptSource.slice(createPanelNode.start, createPanelNode.end);
-            const bodyMarker = methodSrc.indexOf('<div class="ldsp-body">');
-            if (bodyMarker > 0) {
-                const sliceEnd = createPanelNode.start + bodyMarker;
-                walkAst(createPanelNode.value, node => {
-                    if (node.start >= sliceEnd) return;
-                    if (node.type === 'Literal' && typeof node.value === 'string' && CJK_RE.test(node.value)) {
-                        errors.push(`Uncataloged CJK literal in Panel._createPanel header/settings: ${JSON.stringify(node.value)}`);
-                    } else if (node.type === 'TemplateElement') {
-                        const checked = userscriptSource.slice(node.start, Math.min(node.end, sliceEnd));
-                        if (CJK_RE.test(checked)) {
-                            errors.push(`Uncataloged CJK template text in Panel._createPanel header/settings: ${JSON.stringify(checked.trim().slice(0, 40))}`);
-                        }
-                    }
-                });
-            }
-        }
+    };
+
+    checkClassMethods('Panel', panelClass, migratedMethods);
+    if (migratedMethods === MIGRATED_PANEL_METHODS) {
+        checkClassMethods('Renderer', rendererClass, MIGRATED_RENDERER_METHODS);
+        scanNodeForUncatalogedCjk('Notifier', notifierClass);
+        scanNodeForUncatalogedCjk('LeaderboardManager', leaderboardClass);
+        scanNodeForUncatalogedCjk('UI', uiDecl);
+        scanNodeForUncatalogedCjk('LDSPDialog', dialogDecl);
     }
 
     return {

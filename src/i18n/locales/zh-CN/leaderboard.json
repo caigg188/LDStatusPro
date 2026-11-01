@@ -1,0 +1,56 @@
+{
+  "tabs": {
+    "daily": "日榜",
+    "weekly": "周榜",
+    "monthly": "月榜"
+  },
+  "loading": "加载排行榜...",
+  "login": {
+    "title": "需要登录",
+    "descLine1": "登录后可以：",
+    "descLine2": "☁️ 阅读数据云端同步",
+    "descLine3": "🏆 查看/加入排行榜",
+    "btn": "🚀 立即登录",
+    "redirecting": "⏳ 跳转中...",
+    "privacy": "仅获取基本信息，用于数据同步"
+  },
+  "join": {
+    "title": "加入阅读排行榜",
+    "descLine1": "加入后可以查看排行榜，你的阅读时间将与其他用户一起展示",
+    "descLine2": "这是完全可选的，随时可以退出",
+    "btn": "✨ 加入排行榜",
+    "joining": "⏳ 加入中...",
+    "joinedToast": "✅ 已成功加入排行榜",
+    "privacy": "仅展示用户名和阅读时间"
+  },
+  "paused": {
+    "title": "已暂停新用户注册",
+    "desc": "由于后端服务压力，暂不开放新用户注册。已注册用户可正常登录使用。"
+  },
+  "data": {
+    "emptyLine1": "暂无排行数据",
+    "emptyLine2": "成为第一个上榜的人吧！",
+    "updateMinutes": "每 {m} 分钟更新",
+    "updateHours": "每 {h} 小时更新",
+    "refreshTitle": "手动刷新",
+    "period": "📅 统计周期: ",
+    "myRank": "我的排名",
+    "notInTop": "（未入榜）",
+    "meTag": "(我)",
+    "quitBtn": "退出排行榜",
+    "quittingBtn": "退出中...",
+    "quitConfirmTitle": "退出排行榜",
+    "quitConfirmMsg": "确定要退出排行榜吗？",
+    "quitToast": "✅ 已退出排行榜",
+    "cooldownToast": "⏳ 请等待 {seconds} 秒后再刷新",
+    "fromCacheToast": "📦 获取缓存数据",
+    "refreshedToast": "✅ 已刷新排行榜"
+  },
+  "errors": {
+    "fetchFailed": "获取排行榜失败",
+    "cooldown": "刷新冷却中",
+    "authExpired": "登录已失效，请重新登录",
+    "joinFailed": "加入失败",
+    "quitFailed": "退出失败"
+  }
+}

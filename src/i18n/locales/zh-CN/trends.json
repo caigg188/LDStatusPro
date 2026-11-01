@@ -1,0 +1,54 @@
+{
+  "tabs": {
+    "today": "今日",
+    "week": "本周",
+    "month": "本月",
+    "year": "本年",
+    "all": "全部"
+  },
+  "prevDay": "前一日",
+  "weekNum": "第{num}周",
+  "today": {
+    "firstVisitLine1": "今日首次访问",
+    "firstVisitLine2": "数据将从现在开始统计",
+    "timeRange": "今日 00:00 ~ {now} (首次记录于 {start})",
+    "totalReading": "今日累计阅读",
+    "goalTitle": "📖 阅读目标 ({goal}小时)",
+    "upItems": "📈 增长项",
+    "downItems": "📉 下降项",
+    "changesTitle": "📊 今日变化明细",
+    "comparedTo": "较{label}",
+    "noChanges": "相比{label}暂无数据变化"
+  },
+  "week": {
+    "readingTitle": "⏱️ 7天阅读时间",
+    "readingSub": "共 {total} · 日均 {avg}",
+    "metricsTitle": "📈 本周每日数据",
+    "metricsSub": "对应日期阅读数据"
+  },
+  "month": {
+    "readingTitle": "⏱️ 本月阅读时间",
+    "readingSub": "共 {total} · 日均 {avg}",
+    "dayFutureTip": "{day}日: 0分钟 (未到)",
+    "dayTip": "{day}日: {time}",
+    "metricsTitle": "📈 本月每周数据",
+    "metricsSub": "对应周阅读数据"
+  },
+  "year": {
+    "readingTitle": "⏱️ 本年阅读时间",
+    "readingSub": "共 {total}",
+    "legendMin": "<1分",
+    "legendMax": ">5小时",
+    "metricsTitle": "📊 本年每月数据",
+    "metricsSub": "对应月份阅读数据"
+  },
+  "all": {
+    "recordedReadingDays": "共记录 {days} 天阅读数据",
+    "recordedDataDays": "共记录 {rec} 天数据",
+    "recordedDataSpan": "共记录 {rec} 天数据 · 跨度 {span} 天",
+    "totalAndDailyAvg": "累计阅读时间 · 日均 {avg}",
+    "cumulativeChanges": "📊 累计变化",
+    "daysSuffix": "({rec}天)",
+    "dailyAvgIncrement": "📈 日均增量"
+  }
+}

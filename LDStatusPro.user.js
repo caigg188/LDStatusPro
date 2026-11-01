@@ -99,7 +99,7 @@
 
         // @@I18N_BEGIN
         // prettier-ignore
-            var I18n=(()=>{var d=Object.defineProperty;var O=Object.getOwnPropertyDescriptor;var k=Object.getOwnPropertyNames;var R=Object.prototype.hasOwnProperty;var U=(t,e)=>{for(var n in e)d(t,n,{get:e[n],enumerable:true})};var P=(t,e,n,r)=>{if(e&&typeof e==="object"||typeof e==="function"){for(let l of k(e))if(!R.call(t,l)&&l!==n)d(t,l,{get:()=>e[l],enumerable:!(r=O(e,l))||r.enumerable})}return t};var j=t=>P(d({},"__esModule",{value:true}),t);var J={};U(J,{CATALOGS:()=>L,DEFAULT_LOCALE:()=>i,PLURAL_CATEGORIES:()=>D,SUPPORTED_LOCALES:()=>B,createTranslator:()=>m,escapeHtmlText:()=>N,formatDateTime:()=>V,formatNumber:()=>M,formatRelativeTime:()=>Z,getLocale:()=>G,isPluralForms:()=>p,normalizeLocale:()=>z,setLocale:()=>H,t:()=>K,tHtml:()=>_});var b={ariaLabel:"{site} 信任级别面板",header:{checkUpdate:"检查更新",updateAvailable:"新版本 v{version}",upToDate:"已是最新版本",upToDateToast:"✅ 已是最新版本",updateCheckFailed:"检查失败",updateCheckFailedToast:"❌ 检查更新失败",cloudSync:"云同步",cloudSyncing:"同步中...",refresh:"刷新数据",settings:"设置",collapsePanel:"折叠面板",expandPanel:"展开面板"},updateBubble:{closeAria:"关闭",title:"发现新版本",updateNow:"🚀 立即更新",updating:"⏳ 更新中...",confirmInTab:"✅ 请在弹出窗口确认更新"}};var y={title:"设置",backAria:"返回",nav:{theme:"🎨 外观设置",readingGoal:"🎯 阅读目标",fontSize:"🔤 字体调节",actions:"🔘 功能按钮",requirements:"📋 要求展示",language:"🌐 界面语言"},theme:{title:"外观设置",auto:"跟随系统",autoDesc:"根据系统外观自动切换",light:"浅色",lightDesc:"高亮清爽，适合白天阅读",dark:"深色",darkDesc:"夜间护眼，减少眩光干扰"},readingGoal:{title:"阅读目标设置",label:"目标时长",unit:"小时",summary:{other:"{hours}小时"},hint:"范围 0.5 - 20 小时，步进 0.5 小时"},fontSize:{title:"字体调节",currentLevel:"当前档位",levels:{compact:"紧凑",small:"偏小",standard:"标准",comfortable:"舒适",large:"宽大"},hint:"五档梯度重新拉开：更适合小屏压缩阅读，也能在大屏下获得更明显放大效果"},actions:{title:"功能按钮",summary:"{enabled}/{total} 开启",orderNav:"↕️ 按钮排序",toggleNav:"✅ 功能启用",toggleTitle:"功能启用",orderTitle:"按钮排序",orderTip:"可拖动调整：士多、LDC、CDK、总结、导出、工单。登录和注销顺序固定。",buttons:{login:"登录按钮",logout:"注销按钮",ticket:"工单按钮",melon:"总结按钮",export:"导出按钮",ldc:"LDC 按钮",shop:"士多按钮",cdk:"CDK 按钮"},resetOrder:"恢复默认顺序",resetOrderToast:"✅ 已恢复默认顺序"},requirements:{title:"要求展示",summaryAll:"展示全部",summaryIncomplete:"只显示未完成",allLabel:"展示所有升级数据",allDesc:"默认展示已完成和未完成的升级要求",incompleteLabel:"只显示未完成",incompleteDesc:"要求板块仅保留尚未达成的项目"},language:{title:"界面语言",zhCN:"简体中文",zhCNSummary:"简体中文",zhCNDesc:"默认中文界面",enUS:"English (US)",enUSSummary:"English (US)",enUSDesc:"英文界面，刷新页面后生效",hint:"语言偏好会立即保存在当前站点本地；存在进行中的总结或导出任务时不会强制刷新。",reloadNow:"刷新页面以应用语言",savedPendingReload:"✅ 语言已保存，刷新页面后生效",persistFailed:"⚠️ 无法保存语言偏好，刷新后将恢复之前的设置",busyCannotReload:"⏳ 当前有正在运行的任务，请等待完成后再刷新页面"}};var S={ariaLabel:"{site} Trust Level Panel",header:{checkUpdate:"Check for updates",updateAvailable:"New version v{version}",upToDate:"Up to date",upToDateToast:"✅ Already on the latest version",updateCheckFailed:"Update check failed",updateCheckFailedToast:"❌ Failed to check for updates",cloudSync:"Cloud sync",cloudSyncing:"Syncing...",refresh:"Refresh data",settings:"Settings",collapsePanel:"Collapse panel",expandPanel:"Expand panel"},updateBubble:{closeAria:"Close",title:"New version available",updateNow:"🚀 Update now",updating:"⏳ Updating...",confirmInTab:"✅ Confirm update in the opened tab"}};var T={title:"Settings",backAria:"Back",nav:{theme:"🎨 Appearance",readingGoal:"🎯 Reading Goal",fontSize:"🔤 Font Size",actions:"🔘 Actions",requirements:"📋 Requirements",language:"🌐 Language"},theme:{title:"Appearance",auto:"System",autoDesc:"Match system light or dark mode",light:"Light",lightDesc:"Bright and crisp for daytime reading",dark:"Dark",darkDesc:"Easy on the eyes in low light"},readingGoal:{title:"Reading Goal",label:"Target",unit:"hrs",summary:{one:"{hours} hr",other:"{hours} hrs"},hint:"Range: 0.5–20 hours, in 0.5-hour steps"},fontSize:{title:"Font Size",currentLevel:"Current",levels:{compact:"Compact",small:"Small",standard:"Default",comfortable:"Large",large:"Extra"},hint:"Five scale steps for compact mobile panels or larger desktop reading"},actions:{title:"Action Buttons",summary:"{enabled}/{total} on",orderNav:"↕️ Button Order",toggleNav:"✅ Visible Buttons",toggleTitle:"Visible Buttons",orderTitle:"Button Order",orderTip:"Drag to reorder Store, LDC, CDK, Summary, Export, and Tickets. Sign-in and sign-out stay fixed.",buttons:{login:"Sign-in button",logout:"Sign-out button",ticket:"Tickets button",melon:"AI Summary button",export:"Export button",ldc:"LDC button",shop:"LD Store button",cdk:"CDK button"},resetOrder:"Reset default order",resetOrderToast:"✅ Restored default button order"},requirements:{title:"Requirements",summaryAll:"All",summaryIncomplete:"Unmet",allLabel:"Show all requirements",allDesc:"Display both completed and incomplete requirements",incompleteLabel:"Incomplete only",incompleteDesc:"Only display requirements not yet met"},language:{title:"Language",zhCN:"简体中文",zhCNSummary:"简体中文",zhCNDesc:"Default Simplified Chinese interface",enUS:"English (US)",enUSSummary:"English",enUSDesc:"English interface, applied after reload",hint:"Saved locally per site. Active summaries or exports are never interrupted automatically.",reloadNow:"Reload page to apply",savedPendingReload:"✅ Language saved — reload the page to apply",persistFailed:"⚠️ Could not save language preference; previous setting will remain after reload",busyCannotReload:"⏳ Finish or stop the active task before reloading"}};var i="zh-CN";var B=Object.freeze(["zh-CN","en-US"]);var D=Object.freeze(["zero","one","two","few","many","other"]);var L=Object.freeze({"zh-CN":Object.freeze({panel:b,settings:y}),"en-US":Object.freeze({panel:S,settings:T})});function z(t){if(typeof t!=="string")return i;const e=t.trim().toLowerCase();if(e==="en-us"||e==="en")return"en-US";if(e==="zh-cn"||e==="zh")return"zh-CN";return i}function N(t){return String(t??"").replace(/[&<>"']/g,e=>e==="&"?"&amp;":e==="<"?"&lt;":e===">"?"&gt;":e==='"'?"&quot;":"&#39;")}function p(t){if(!t||typeof t!=="object"||Array.isArray(t))return false;const e=Object.keys(t);return e.length>0&&Object.prototype.hasOwnProperty.call(t,"other")&&e.every(n=>D.includes(n)&&typeof t[n]==="string")}function C(t,e){if(typeof e!=="string"||!e)return void 0;const n=e.split(".");let r=t;for(const l of n){if(!r||typeof r!=="object"||!Object.prototype.hasOwnProperty.call(r,l)){return void 0}r=r[l]}return typeof r==="string"||p(r)?r:void 0}function v(t,e){if(!e||typeof e!=="object")return t;return t.replace(/\{([a-zA-Z0-9_]+)\}/g,(n,r)=>Object.prototype.hasOwnProperty.call(e,r)&&e[r]!==void 0&&e[r]!==null?String(e[r]):n)}function m(t=i,{catalogs:e=L,onFallback:n}={}){const r=z(t);const l=new Map;const x=o=>{if(!l.has(o))l.set(o,new globalThis.Intl.PluralRules(o));return l.get(o)};function f(o,a={}){const c=C(e[r],o);let s=c;let g=r;if(s===void 0&&r!==i){s=C(e[i],o);g=i;if(s!==void 0)n?.({key:o,locale:r,fallbackLocale:i,missing:false})}if(s===void 0){n?.({key:o,locale:r,fallbackLocale:null,missing:true});return String(o??"")}if(p(s)){const h=Number(a?.count??0);const A=Number.isFinite(h)?x(g).select(h):"other";const w=s[A]??s.other;return v(w,a)}return v(s,a)}return Object.freeze({locale:r,t:(o,a)=>f(o,a),tHtml:(o,a)=>N(f(o,a)),formatNumber:(o,a)=>new globalThis.Intl.NumberFormat(r,a).format(o),formatDateTime:(o,a)=>new globalThis.Intl.DateTimeFormat(r,a).format(o),formatRelativeTime:(o,a,c)=>new globalThis.Intl.RelativeTimeFormat(r,{numeric:"auto",...c}).format(o,a)})}var u=m(i);function G(){return u.locale}function H(t){u=m(t);return u.locale}function K(t,e){return u.t(t,e)}function _(t,e){return u.tHtml(t,e)}function M(t,e){return u.formatNumber(t,e)}function V(t,e){return u.formatDateTime(t,e)}function Z(t,e,n){return u.formatRelativeTime(t,e,n)}return j(J);})();
+            var I18n=(()=>{var c=Object.defineProperty;var q=Object.getOwnPropertyDescriptor;var j=Object.getOwnPropertyNames;var _=Object.prototype.hasOwnProperty;var H=(t,e)=>{for(var a in e)c(t,a,{get:e[a],enumerable:true})};var z=(t,e,a,i)=>{if(e&&typeof e==="object"||typeof e==="function"){for(let n of j(e))if(!_.call(t,n)&&n!==a)c(t,n,{get:()=>e[n],enumerable:!(i=q(e,n))||i.enumerable})}return t};var G=t=>z(c({},"__esModule",{value:true}),t);var ue={};H(ue,{CATALOGS:()=>N,DEFAULT_LOCALE:()=>s,PLURAL_CATEGORIES:()=>E,SUPPORTED_LOCALES:()=>ie,createTranslator:()=>g,escapeHtmlText:()=>O,formatDateTime:()=>le,formatNumber:()=>se,formatRelativeTime:()=>de,getLocale:()=>oe,isPluralForms:()=>m,normalizeLocale:()=>I,setLocale:()=>ae,t:()=>re,tHtml:()=>ne});var f={ui:{loading:"加载中...",loadingData:"加载数据中...",loadingMore:"加载更多...",empty:"暂无数据",noHistory:"暂无历史数据",selectCategory:"选择一个分类查看",error:"加载失败",unknownError:"未知错误",retry:"🔄 重试",goLogin:"去登录 →"},dialog:{successTitle:"成功",errorTitle:"错误",warningTitle:"警告",infoTitle:"提示",confirmTitle:"确认操作",ok:"确认",cancel:"取消",gotIt:"知道了"},time:{lessThanOneMin:"< 1分钟",minutes:"{m}分钟",hours:"{h}小时",hoursMinutes:"{h}小时{m}分",justNow:"刚刚",minutesAgo:"{n}分钟前",hoursAgo:"{n}小时前",daysAgo:"{n}天前",monthDay:"{m}月{d}日",yearMonth:"{y}年{m}月",weekdays:{"0":"周日","1":"周一","2":"周二","3":"周三","4":"周四","5":"周五","6":"周六"},months:{"0":"1月","1":"2月","2":"3月","3":"4月","4":"5月","5":"6月","6":"7月","7":"8月","8":"9月","9":"10月","10":"11月","11":"12月"}},errors:{codes:{NETWORK_ERROR:"网络连接失败，请检查网络",TIMEOUT:"请求超时，请稍后重试",IP_BANNED:"IP 已被封禁，请更换网络节点",IP_PERMANENTLY_BANNED:"IP 已被永久封禁，请联系管理员",RATE_LIMITED:"请求过于频繁，请稍后重试",NOT_LOGGED_IN:"请先登录",AUTH_EXPIRED:"登录已过期，请重新登录",INVALID_TOKEN:"登录已失效，请重新登录",TOKEN_EXPIRED:"登录已过期，请重新登录",NOT_JOINED:"请先加入排行榜",REGISTRATION_PAUSED:"已暂停新用户注册",UNAUTHORIZED:"没有访问权限",NOT_FOUND:"请求的资源不存在",SERVER_ERROR:"服务器暂时不可用，请稍后重试",VALIDATION_FAILED:"数据验证失败",SYNC_FAILED:"同步失败，请稍后重试",HTTP_ERROR:"请求失败"},http401_403:"没有访问权限，请确认已登录论坛（HTTP {status}）",http404:"请求的页面不存在（HTTP 404）",http429:"请求过于频繁，请稍后重试（HTTP 429）",http5xx:"服务器暂时不可用（HTTP {status}）",http4xx:"请求失败（HTTP {status}）",rateLimitWaitSeconds:"请求过于频繁，请等待 {n} 秒后重试",rateLimitWaitMinutes:"请求过于频繁，请等待 {n} 分钟后重试",operationFailed:"操作失败，请稍后重试"}};var h={ariaLabel:"{site} 信任级别面板",header:{checkUpdate:"检查更新",updateAvailable:"新版本 v{version}",upToDate:"已是最新版本",upToDateToast:"✅ 已是最新版本",updateCheckFailed:"检查失败",updateCheckFailedToast:"❌ 检查更新失败",cloudSync:"云同步",cloudSyncing:"同步中...",refresh:"刷新数据",settings:"设置",collapsePanel:"折叠面板",expandPanel:"展开面板"},updateBubble:{closeAria:"关闭",title:"发现新版本",updateNow:"🚀 立即更新",updating:"⏳ 更新中...",confirmInTab:"✅ 请在弹出窗口确认更新"},user:{loading:"加载中...",followingTitle:"查看关注列表",followingPrefix:"关注 ",followingSuffix:"",followersTitle:"查看粉丝列表",followersPrefix:"",followersSuffix:" 粉丝",joinDaysPrefix:"来",joinDaysSuffix:"天",siteShortLinuxDo:"L站",siteShortIdc:"IF站",joinedTooltip:"于{year}年{month}月{day}日加入{site}"},actions:{loginText:"点击登录",loginTitle:"点击登录",logoutText:"注销",logoutTitle:"注销登录",ldcText:"LDC",ldcTitle:"Linux Do Credit",shopText:"士多",shopTitle:"LD士多",cdkText:"CDK",cdkTitle:"CDK 系统",melonText:"总结",melonTitle:"AI 帖子总结",exportText:"导出",exportTitle:"导出帖子为PDF/HTML/Markdown",ticketText:"工单",ticketTitle:"工单系统",expandMore:"展开更多",expandMoreTitle:"展开更多按钮",collapse:"收起",collapseTitle:"收起按钮"},tabs:{reqs:"要求",trends:"趋势",leaderboard:"排行",activity:"我的"},logoutConfirm:{title:"确认注销登录吗？",message:"退出后排行榜和云同步功能将不可用",cancel:"取消",confirm:"确认注销"},loginModal:{upgradeTitle:"升级到 v3.0",welcomeTitle:"欢迎使用 LDStatus Pro",upgradeP1Prefix:"v3.0 版本新增了 ",upgradeP1Strong:"云同步",upgradeP1Suffix:" 功能！",upgradeP2:"登录后，你的阅读数据将自动同步到云端，支持跨浏览器、跨设备访问。",welcomeLead:"登录 Linux.do 账号后可以：",welcomeItem1:"☁️ 阅读数据云端同步",welcomeItem2:"🔄 跨浏览器/设备同步",welcomeItem3:"🏆 查看/加入阅读排行榜",loginNow:"🚀 立即登录",redirecting:"⏳ 跳转中...",later:"稍后再说",note:"登录仅用于云同步，不登录也可正常使用本地功能"},toasts:{notLoggedIn:"ℹ️ 当前未登录",loggedOut:"✅ 已退出登录",syncComplete:"✅ 数据同步完成",loginRequiredForTickets:"⚠️ 请先登录后使用工单功能",popupBlocked:"⚠️ 浏览器拦截了新标签页，请允许弹窗后重试",loginSuccess:"✅ 登录成功",redirectingAuth:"⏳ 正在跳转到授权页面..."},notifications:{milestoneTitle:"🎉 达成里程碑！"},homeErrors:{emptyConnect:"信任等级页返回空内容",http401_403:"当前未登录论坛，或没有权限访问信任等级页（HTTP {status}）",http404:"信任等级页不存在（HTTP 404）",http429:"请求过于频繁，请稍后重试（HTTP 429）",http5xx:"信任等级页暂时不可用（HTTP {status}）",http4xx:"信任等级页请求失败（HTTP {status}）",timeout:"请求超时，无法连接信任等级页，请检查网络后重试",network:"网络连接失败，无法获取升级数据，请检查网络后重试",loadFailedTitle:"升级数据加载失败",fetchingSummary:"正在获取统计数据...",summaryEmpty:"用户统计接口未返回有效数据",summaryPrefix:"用户统计：{reason}",userUnidentified:"未能识别当前用户",fetchingCloud:"正在获取云端数据...",cloudEmpty:"云端没有已同步的升级数据",cloudPrefix:"云端：{reason}",currentTrustLevel:"当前信任等级：{level}",noProgressData:"暂无升级进度数据",viewTrustGuide:"📖 查看完整信任等级说明",connectAuthFailed:"信任等级页认证失败，返回了论坛首页",connectTableMissing:"信任等级页未找到升级要求表格",connectNoReqs:"信任等级页没有可解析的升级要求",noSummaryPermission:"没有权限查看用户统计数据",summaryReturnedHtml:"用户统计接口返回了网页而不是数据",summaryPageEmpty:"用户统计页返回空内容"}};var S={title:"设置",backAria:"返回",nav:{theme:"🎨 外观设置",readingGoal:"🎯 阅读目标",fontSize:"🔤 字体调节",actions:"🔘 功能按钮",requirements:"📋 要求展示",language:"🌐 界面语言"},theme:{title:"外观设置",auto:"跟随系统",autoDesc:"根据系统外观自动切换",light:"浅色",lightDesc:"高亮清爽，适合白天阅读",dark:"深色",darkDesc:"夜间护眼，减少眩光干扰"},readingGoal:{title:"阅读目标设置",label:"目标时长",unit:"小时",summary:{other:"{hours}小时"},hint:"范围 0.5 - 20 小时，步进 0.5 小时"},fontSize:{title:"字体调节",currentLevel:"当前档位",levels:{compact:"紧凑",small:"偏小",standard:"标准",comfortable:"舒适",large:"宽大"},hint:"五档梯度重新拉开：更适合小屏压缩阅读，也能在大屏下获得更明显放大效果"},actions:{title:"功能按钮",summary:"{enabled}/{total} 开启",orderNav:"↕️ 按钮排序",toggleNav:"✅ 功能启用",toggleTitle:"功能启用",orderTitle:"按钮排序",orderTip:"可拖动调整：士多、LDC、CDK、总结、导出、工单。登录和注销顺序固定。",buttons:{login:"登录按钮",logout:"注销按钮",ticket:"工单按钮",melon:"总结按钮",export:"导出按钮",ldc:"LDC 按钮",shop:"士多按钮",cdk:"CDK 按钮"},resetOrder:"恢复默认顺序",resetOrderToast:"✅ 已恢复默认顺序"},requirements:{title:"要求展示",summaryAll:"展示全部",summaryIncomplete:"只显示未完成",allLabel:"展示所有升级数据",allDesc:"默认展示已完成和未完成的升级要求",incompleteLabel:"只显示未完成",incompleteDesc:"要求板块仅保留尚未达成的项目"},language:{title:"界面语言",zhCN:"简体中文",zhCNSummary:"简体中文",zhCNDesc:"默认中文界面",enUS:"English (US)",enUSSummary:"English (US)",enUSDesc:"英文界面，刷新页面后生效",hint:"语言偏好会立即保存在当前站点本地；存在进行中的总结或导出任务时不会强制刷新。",reloadNow:"刷新页面以应用语言",savedPendingReload:"✅ 语言已保存，刷新页面后生效",persistFailed:"⚠️ 无法保存语言偏好，刷新后将恢复之前的设置",busyCannotReload:"⏳ 当前有正在运行的任务，请等待完成后再刷新页面"}};var b={ring:{met:"已达标",completion:"完成度",remaining:"待完成",maxAdminLevel:"🏆 已达最高等级",maxUserLevel:"🎖️ 已达普通用户最高等级",remainingTip:{other:"⏳ 距升级还需完成 {count} 项要求"},readyTip:"🎉 已满足升级条件",allMetEmpty:"所有升级要求都已完成",learnTrust:"了解论坛信任等级 →"},reading:{todayLabel:"今日阅读",visitWebsiteTitle:"点击访问 LDStatus Pro 官网",pausedStatus:"未活动 已停止记录",trackingStatus:"阅读时间记录中...",levels:{starter:"刚起步",warmup:"热身中",steady:"渐入佳境",focused:"沉浸阅读",deep:"深度学习",master:"LD达人",super:"超级水怪",diamond:"钻石级",legend:"传奇级",mythic:"神话级",fallback:"等级{level}"}},trends:{topicsEntered:"浏览话题",postsRead:"已读帖子",likesGiven:"点赞",replies:"回复",likesReceived:"获赞"},names:{daysVisited:"访问天数",visits:"访问次数",topicsEntered:"浏览话题",topicsEnteredAllTime:"浏览话题(所有时间)",postsRead:"已读帖子",postsReadAllTime:"已读帖子(所有时间)",replies:"回复",topicsReplied:"回复话题",postsCreated:"发帖",topicsCreated:"创建话题",likesGiven:"点赞",likesSent:"送出赞",likesReceived:"获赞",likesReceivedDays:"获赞天数",likesReceivedUsers:"点赞用户",likedUsersAlt:"获赞用户",flaggedPosts:"被举报帖子",flaggingUsers:"发起举报",silenced6m:"被禁言(近6个月)",suspended6m:"被封禁(近6个月)",silenced:"被禁言",suspended:"被封禁",readingTime:"阅读时间",readingTimeMin:"阅读时间(分钟)",solutions:"解决方案"}};var v={tabs:{today:"今日",week:"本周",month:"本月",year:"本年",all:"全部"},prevDay:"前一日",weekNum:"第{num}周",today:{firstVisitLine1:"今日首次访问",firstVisitLine2:"数据将从现在开始统计",timeRange:"今日 00:00 ~ {now} (首次记录于 {start})",totalReading:"今日累计阅读",goalTitle:"📖 阅读目标 ({goal}小时)",upItems:"📈 增长项",downItems:"📉 下降项",changesTitle:"📊 今日变化明细",comparedTo:"较{label}",noChanges:"相比{label}暂无数据变化"},week:{readingTitle:"⏱️ 7天阅读时间",readingSub:"共 {total} · 日均 {avg}",metricsTitle:"📈 本周每日数据",metricsSub:"对应日期阅读数据"},month:{readingTitle:"⏱️ 本月阅读时间",readingSub:"共 {total} · 日均 {avg}",dayFutureTip:"{day}日: 0分钟 (未到)",dayTip:"{day}日: {time}",metricsTitle:"📈 本月每周数据",metricsSub:"对应周阅读数据"},year:{readingTitle:"⏱️ 本年阅读时间",readingSub:"共 {total}",legendMin:"<1分",legendMax:">5小时",metricsTitle:"📊 本年每月数据",metricsSub:"对应月份阅读数据"},all:{recordedReadingDays:"共记录 {days} 天阅读数据",recordedDataDays:"共记录 {rec} 天数据",recordedDataSpan:"共记录 {rec} 天数据 · 跨度 {span} 天",totalAndDailyAvg:"累计阅读时间 · 日均 {avg}",cumulativeChanges:"📊 累计变化",daysSuffix:"({rec}天)",dailyAvgIncrement:"📈 日均增量"}};var w={tabs:{daily:"日榜",weekly:"周榜",monthly:"月榜"},loading:"加载排行榜...",login:{title:"需要登录",descLine1:"登录后可以：",descLine2:"☁️ 阅读数据云端同步",descLine3:"🏆 查看/加入排行榜",btn:"🚀 立即登录",redirecting:"⏳ 跳转中...",privacy:"仅获取基本信息，用于数据同步"},join:{title:"加入阅读排行榜",descLine1:"加入后可以查看排行榜，你的阅读时间将与其他用户一起展示",descLine2:"这是完全可选的，随时可以退出",btn:"✨ 加入排行榜",joining:"⏳ 加入中...",joinedToast:"✅ 已成功加入排行榜",privacy:"仅展示用户名和阅读时间"},paused:{title:"已暂停新用户注册",desc:"由于后端服务压力，暂不开放新用户注册。已注册用户可正常登录使用。"},data:{emptyLine1:"暂无排行数据",emptyLine2:"成为第一个上榜的人吧！",updateMinutes:"每 {m} 分钟更新",updateHours:"每 {h} 小时更新",refreshTitle:"手动刷新",period:"📅 统计周期: ",myRank:"我的排名",notInTop:"（未入榜）",meTag:"(我)",quitBtn:"退出排行榜",quittingBtn:"退出中...",quitConfirmTitle:"退出排行榜",quitConfirmMsg:"确定要退出排行榜吗？",quitToast:"✅ 已退出排行榜",cooldownToast:"⏳ 请等待 {seconds} 秒后再刷新",fromCacheToast:"📦 获取缓存数据",refreshedToast:"✅ 已刷新排行榜"},errors:{fetchFailed:"获取排行榜失败",cooldown:"刷新冷却中",authExpired:"登录已失效，请重新登录",joinFailed:"加入失败",quitFailed:"退出失败"}};var L={ui:{loading:"Loading...",loadingData:"Loading data...",loadingMore:"Load more...",empty:"No data",noHistory:"No history yet",selectCategory:"Select a category to view",error:"Failed to load",unknownError:"Unknown error",retry:"🔄 Retry",goLogin:"Sign in →"},dialog:{successTitle:"Success",errorTitle:"Error",warningTitle:"Warning",infoTitle:"Notice",confirmTitle:"Confirm Action",ok:"Confirm",cancel:"Cancel",gotIt:"Got it"},time:{lessThanOneMin:"< 1m",minutes:"{m}m",hours:"{h}h",hoursMinutes:"{h}h {m}m",justNow:"Just now",minutesAgo:"{n}m ago",hoursAgo:"{n}h ago",daysAgo:"{n}d ago",monthDay:"{m}/{d}",yearMonth:"{y}-{m}",weekdays:{"0":"Sun","1":"Mon","2":"Tue","3":"Wed","4":"Thu","5":"Fri","6":"Sat"},months:{"0":"Jan","1":"Feb","2":"Mar","3":"Apr","4":"May","5":"Jun","6":"Jul","7":"Aug","8":"Sep","9":"Oct","10":"Nov","11":"Dec"}},errors:{codes:{NETWORK_ERROR:"Network connection failed. Check your connection.",TIMEOUT:"Request timed out. Please try again later.",IP_BANNED:"IP address blocked. Try switching networks.",IP_PERMANENTLY_BANNED:"IP address permanently blocked. Contact support.",RATE_LIMITED:"Too many requests. Please try again shortly.",NOT_LOGGED_IN:"Please sign in first",AUTH_EXPIRED:"Session expired. Please sign in again.",INVALID_TOKEN:"Invalid session. Please sign in again.",TOKEN_EXPIRED:"Session expired. Please sign in again.",NOT_JOINED:"Join the leaderboard first",REGISTRATION_PAUSED:"New user registration is temporarily paused",UNAUTHORIZED:"Access denied",NOT_FOUND:"Requested resource not found",SERVER_ERROR:"Server temporarily unavailable. Try again later.",VALIDATION_FAILED:"Data validation failed",SYNC_FAILED:"Sync failed. Please try again later.",HTTP_ERROR:"Request failed"},http401_403:"Access denied. Confirm you are signed into the forum (HTTP {status})",http404:"Requested page not found (HTTP 404)",http429:"Too many requests. Please try again later (HTTP 429)",http5xx:"Server temporarily unavailable (HTTP {status})",http4xx:"Request failed (HTTP {status})",rateLimitWaitSeconds:"Too many requests. Wait {n}s and try again.",rateLimitWaitMinutes:"Too many requests. Wait {n}m and try again.",operationFailed:"Action failed. Please try again later."}};var R={ariaLabel:"{site} Trust Level Panel",header:{checkUpdate:"Check for updates",updateAvailable:"New version v{version}",upToDate:"Up to date",upToDateToast:"✅ Already on the latest version",updateCheckFailed:"Update check failed",updateCheckFailedToast:"❌ Failed to check for updates",cloudSync:"Cloud sync",cloudSyncing:"Syncing...",refresh:"Refresh data",settings:"Settings",collapsePanel:"Collapse panel",expandPanel:"Expand panel"},updateBubble:{closeAria:"Close",title:"New version available",updateNow:"🚀 Update now",updating:"⏳ Updating...",confirmInTab:"✅ Confirm update in the opened tab"},user:{loading:"Loading...",followingTitle:"View following list",followingPrefix:"Following ",followingSuffix:"",followersTitle:"View followers list",followersPrefix:"",followersSuffix:" Followers",joinDaysPrefix:"",joinDaysSuffix:"d",siteShortLinuxDo:"Joined ",siteShortIdc:"Joined ",joinedTooltip:"Joined {site} on {year}-{month}-{day}"},actions:{loginText:"Sign in",loginTitle:"Sign in to cloud sync",logoutText:"Sign out",logoutTitle:"Sign out of cloud sync",ldcText:"LDC",ldcTitle:"Linux Do Credit",shopText:"Store",shopTitle:"LD Store",cdkText:"CDK",cdkTitle:"CDK Center",melonText:"Summary",melonTitle:"AI Topic Summary",exportText:"Export",exportTitle:"Export topic as PDF / HTML / Markdown",ticketText:"Tickets",ticketTitle:"Support Tickets",expandMore:"More",expandMoreTitle:"Show more action buttons",collapse:"Less",collapseTitle:"Collapse action buttons"},tabs:{reqs:"Reqs",trends:"Trends",leaderboard:"Ranks",activity:"Profile"},logoutConfirm:{title:"Sign out now?",message:"Leaderboards and cloud sync will be unavailable after signing out.",cancel:"Cancel",confirm:"Sign out"},loginModal:{upgradeTitle:"Upgraded to v3.0",welcomeTitle:"Welcome to LDStatus Pro",upgradeP1Prefix:"v3.0 introduces ",upgradeP1Strong:"Cloud Sync",upgradeP1Suffix:"!",upgradeP2:"Sign in to sync your reading stats across browsers and devices automatically.",welcomeLead:"Sign in with your Linux.do account to:",welcomeItem1:"☁️ Sync reading data to the cloud",welcomeItem2:"🔄 Access stats across browsers & devices",welcomeItem3:"🏆 View and join reading leaderboards",loginNow:"🚀 Sign in now",redirecting:"⏳ Redirecting...",later:"Maybe later",note:"Sign-in is only used for cloud sync; local tracking works without signing in"},toasts:{notLoggedIn:"ℹ️ Not signed in",loggedOut:"✅ Signed out",syncComplete:"✅ Cloud sync complete",loginRequiredForTickets:"⚠️ Sign in first to use support tickets",popupBlocked:"⚠️ Pop-up blocked by browser — allow pop-ups and try again",loginSuccess:"✅ Signed in successfully",redirectingAuth:"⏳ Redirecting to authorization..."},notifications:{milestoneTitle:"🎉 Milestone Reached!"},homeErrors:{emptyConnect:"Trust level page returned empty content",http401_403:"Not signed into the forum or no access to trust level page (HTTP {status})",http404:"Trust level page not found (HTTP 404)",http429:"Too many requests. Please try again later (HTTP 429)",http5xx:"Trust level page temporarily unavailable (HTTP {status})",http4xx:"Trust level request failed (HTTP {status})",timeout:"Request timed out while loading trust level data. Check your network and retry.",network:"Network error while loading upgrade requirements. Check your connection and retry.",loadFailedTitle:"Failed to load upgrade data",fetchingSummary:"Fetching profile stats...",summaryEmpty:"User summary endpoint returned no valid stats",summaryPrefix:"Profile stats: {reason}",userUnidentified:"Could not identify current forum user",fetchingCloud:"Fetching synced cloud data...",cloudEmpty:"No synced upgrade data found in cloud",cloudPrefix:"Cloud: {reason}",currentTrustLevel:"Current Trust Level: {level}",noProgressData:"No upgrade progress data available",viewTrustGuide:"📖 View full trust level guide",connectAuthFailed:"Connect page authentication failed and returned the forum home page",connectTableMissing:"Upgrade requirements table not found on Connect page",connectNoReqs:"No parseable upgrade requirements found on Connect page",noSummaryPermission:"No permission to view user summary stats",summaryReturnedHtml:"User summary endpoint returned HTML instead of JSON",summaryPageEmpty:"User summary page returned empty content"}};var D={title:"Settings",backAria:"Back",nav:{theme:"🎨 Appearance",readingGoal:"🎯 Reading Goal",fontSize:"🔤 Font Size",actions:"🔘 Actions",requirements:"📋 Requirements",language:"🌐 Language"},theme:{title:"Appearance",auto:"System",autoDesc:"Match system light or dark mode",light:"Light",lightDesc:"Bright and crisp for daytime reading",dark:"Dark",darkDesc:"Easy on the eyes in low light"},readingGoal:{title:"Reading Goal",label:"Target",unit:"hrs",summary:{one:"{hours} hr",other:"{hours} hrs"},hint:"Range: 0.5–20 hours, in 0.5-hour steps"},fontSize:{title:"Font Size",currentLevel:"Current",levels:{compact:"Compact",small:"Small",standard:"Default",comfortable:"Large",large:"Extra"},hint:"Five scale steps for compact mobile panels or larger desktop reading"},actions:{title:"Action Buttons",summary:"{enabled}/{total} on",orderNav:"↕️ Button Order",toggleNav:"✅ Visible Buttons",toggleTitle:"Visible Buttons",orderTitle:"Button Order",orderTip:"Drag to reorder Store, LDC, CDK, Summary, Export, and Tickets. Sign-in and sign-out stay fixed.",buttons:{login:"Sign-in button",logout:"Sign-out button",ticket:"Tickets button",melon:"AI Summary button",export:"Export button",ldc:"LDC button",shop:"LD Store button",cdk:"CDK button"},resetOrder:"Reset default order",resetOrderToast:"✅ Restored default button order"},requirements:{title:"Requirements",summaryAll:"All",summaryIncomplete:"Unmet",allLabel:"Show all requirements",allDesc:"Display both completed and incomplete requirements",incompleteLabel:"Incomplete only",incompleteDesc:"Only display requirements not yet met"},language:{title:"Language",zhCN:"简体中文",zhCNSummary:"简体中文",zhCNDesc:"Default Simplified Chinese interface",enUS:"English (US)",enUSSummary:"English",enUSDesc:"English interface, applied after reload",hint:"Saved locally per site. Active summaries or exports are never interrupted automatically.",reloadNow:"Reload page to apply",savedPendingReload:"✅ Language saved — reload the page to apply",persistFailed:"⚠️ Could not save language preference; previous setting will remain after reload",busyCannotReload:"⏳ Finish or stop the active task before reloading"}};var P={ring:{met:"Met",completion:"Progress",remaining:"Left",maxAdminLevel:"🏆 Maximum trust level reached",maxUserLevel:"🎖️ Maximum regular trust level reached",remainingTip:{one:"⏳ {count} requirement left to advance",other:"⏳ {count} requirements left to advance"},readyTip:"🎉 All upgrade requirements met",allMetEmpty:"All upgrade requirements are met",learnTrust:"About forum trust levels →"},reading:{todayLabel:"Today",visitWebsiteTitle:"Visit LDStatus Pro website",pausedStatus:"Idle · Paused",trackingStatus:"Tracking reading...",levels:{starter:"Starter",warmup:"Warming Up",steady:"In the Zone",focused:"Deep Focus",deep:"Deep Study",master:"LD Master",super:"Super Reader",diamond:"Diamond",legend:"Legendary",mythic:"Mythic",fallback:"Lv.{level}"}},trends:{topicsEntered:"Topics",postsRead:"Read",likesGiven:"Likes",replies:"Replies",likesReceived:"Liked"},names:{daysVisited:"Days visited",visits:"Days visited",topicsEntered:"Topics entered",topicsEnteredAllTime:"Topics entered (all time)",postsRead:"Posts read",postsReadAllTime:"Posts read (all time)",replies:"Replies",topicsReplied:"Topics replied",postsCreated:"Posts created",topicsCreated:"Topics created",likesGiven:"Likes given",likesSent:"Likes given",likesReceived:"Likes received",likesReceivedDays:"Days with likes",likesReceivedUsers:"Users who liked",likedUsersAlt:"Users who liked",flaggedPosts:"Flagged posts",flaggingUsers:"Users who flagged",silenced6m:"Silenced (last 6m)",suspended6m:"Suspended (last 6m)",silenced:"Silenced",suspended:"Suspended",readingTime:"Read time (min)",readingTimeMin:"Read time (min)",solutions:"Solutions"}};var k={tabs:{today:"Today",week:"Week",month:"Month",year:"Year",all:"All"},prevDay:"prev. day",weekNum:"Wk {num}",today:{firstVisitLine1:"First visit today",firstVisitLine2:"Tracking starts from now",timeRange:"Today 00:00–{now} (first recorded at {start})",totalReading:"Read today",goalTitle:"📖 Daily Goal ({goal}h)",upItems:"📈 Gains",downItems:"📉 Drops",changesTitle:"📊 Today's Changes",comparedTo:"vs {label}",noChanges:"No metric changes vs {label}"},week:{readingTitle:"⏱️ 7-Day Reading",readingSub:"Total {total} · Avg {avg}/d",metricsTitle:"📈 Daily Progress",metricsSub:"Recorded metrics by day"},month:{readingTitle:"⏱️ Monthly Reading",readingSub:"Total {total} · Avg {avg}/d",dayFutureTip:"Day {day}: 0m (upcoming)",dayTip:"Day {day}: {time}",metricsTitle:"📈 Weekly Progress",metricsSub:"Recorded metrics by week"},year:{readingTitle:"⏱️ Yearly Reading",readingSub:"Total {total}",legendMin:"<1m",legendMax:">5h",metricsTitle:"📊 Monthly Progress",metricsSub:"Recorded metrics by month"},all:{recordedReadingDays:"Recorded {days} days of reading",recordedDataDays:"Recorded {rec} days of stats",recordedDataSpan:"Recorded {rec} days · Span {span}d",totalAndDailyAvg:"Total reading · Avg {avg}/d",cumulativeChanges:"📊 Overall Change",daysSuffix:"({rec}d)",dailyAvgIncrement:"📈 Avg Daily Gain"}};var x={tabs:{daily:"Daily",weekly:"Weekly",monthly:"Monthly"},loading:"Loading leaderboard...",login:{title:"Sign In Required",descLine1:"Sign in to unlock:",descLine2:"☁️ Cloud reading sync",descLine3:"🏆 Reading leaderboards",btn:"🚀 Sign in now",redirecting:"⏳ Redirecting...",privacy:"Only basic profile info is used for sync"},join:{title:"Join Reading Leaderboard",descLine1:"Compare your reading time with the community",descLine2:"Completely optional — you can leave anytime",btn:"✨ Join leaderboard",joining:"⏳ Joining...",joinedToast:"✅ Joined the leaderboard",privacy:"Only your username and reading time are shown"},paused:{title:"Registrations Paused",desc:"New leaderboard registrations are temporarily paused due to server load. Existing members can sign in as usual."},data:{emptyLine1:"No rankings yet",emptyLine2:"Be the first on the board!",updateMinutes:"Updates every {m}m",updateHours:"Updates every {h}h",refreshTitle:"Refresh now",period:"📅 Period: ",myRank:"My Rank",notInTop:" (Unranked)",meTag:"(You)",quitBtn:"Leave leaderboard",quittingBtn:"Leaving...",quitConfirmTitle:"Leave Leaderboard",quitConfirmMsg:"Are you sure you want to leave the leaderboard?",quitToast:"✅ Left the leaderboard",cooldownToast:"⏳ Wait {seconds}s before refreshing again",fromCacheToast:"📦 Loaded cached rankings",refreshedToast:"✅ Leaderboard refreshed"},errors:{fetchFailed:"Failed to fetch leaderboard",cooldown:"Refresh on cooldown",authExpired:"Session expired. Please sign in again.",joinFailed:"Failed to join leaderboard",quitFailed:"Failed to leave leaderboard"}};var s="zh-CN";var ie=Object.freeze(["zh-CN","en-US"]);var E=Object.freeze(["zero","one","two","few","many","other"]);var N=Object.freeze({"zh-CN":Object.freeze({common:f,panel:h,settings:S,metrics:b,trends:v,leaderboard:w}),"en-US":Object.freeze({common:L,panel:R,settings:D,metrics:P,trends:k,leaderboard:x})});function I(t){if(typeof t!=="string")return s;const e=t.trim().toLowerCase();if(e==="en-us"||e==="en")return"en-US";if(e==="zh-cn"||e==="zh")return"zh-CN";return s}function O(t){return String(t??"").replace(/[&<>"']/g,e=>e==="&"?"&amp;":e==="<"?"&lt;":e===">"?"&gt;":e==='"'?"&quot;":"&#39;")}function m(t){if(!t||typeof t!=="object"||Array.isArray(t))return false;const e=Object.keys(t);return e.length>0&&Object.prototype.hasOwnProperty.call(t,"other")&&e.every(a=>E.includes(a)&&typeof t[a]==="string")}function C(t,e){if(typeof e!=="string"||!e)return void 0;const a=e.split(".");let i=t;for(const n of a){if(!i||typeof i!=="object"||!Object.prototype.hasOwnProperty.call(i,n)){return void 0}i=i[n]}return typeof i==="string"||m(i)?i:void 0}function A(t,e){if(!e||typeof e!=="object")return t;return t.replace(/\{([a-zA-Z0-9_]+)\}/g,(a,i)=>Object.prototype.hasOwnProperty.call(e,i)&&e[i]!==void 0&&e[i]!==null?String(e[i]):a)}function g(t=s,{catalogs:e=N,onFallback:a}={}){const i=I(t);const n=new Map;const M=o=>{if(!n.has(o))n.set(o,new globalThis.Intl.PluralRules(o));return n.get(o)};function p(o,r={}){const u=C(e[i],o);let l=u;let y=i;if(l===void 0&&i!==s){l=C(e[s],o);y=s;if(l!==void 0)a?.({key:o,locale:i,fallbackLocale:s,missing:false})}if(l===void 0){a?.({key:o,locale:i,fallbackLocale:null,missing:true});return String(o??"")}if(m(l)){const T=Number(r?.count??0);const U=Number.isFinite(T)?M(y).select(T):"other";const F=l[U]??l.other;return A(F,r)}return A(l,r)}return Object.freeze({locale:i,t:(o,r)=>p(o,r),tHtml:(o,r)=>O(p(o,r)),formatNumber:(o,r)=>new globalThis.Intl.NumberFormat(i,r).format(o),formatDateTime:(o,r)=>new globalThis.Intl.DateTimeFormat(i,r).format(o),formatRelativeTime:(o,r,u)=>new globalThis.Intl.RelativeTimeFormat(i,{numeric:"auto",...u}).format(o,r)})}var d=g(s);function oe(){return d.locale}function ae(t){d=g(t);return d.locale}function re(t,e){return d.t(t,e)}function ne(t,e){return d.tHtml(t,e)}function se(t,e){return d.formatNumber(t,e)}function le(t,e){return d.formatDateTime(t,e)}function de(t,e,a){return d.formatRelativeTime(t,e,a)}return G(ue);})();
         // @@I18N_END
 
         // ==================== CDK/LDC 桥接页面 ====================
@@ -545,11 +545,11 @@
             },
             // 趋势字段配置
             TREND_FIELDS: [
-                { key: '浏览话题', search: '浏览的话题', label: '浏览话题' },
-                { key: '已读帖子', search: '已读帖子', label: '已读帖子' },
-                { key: '点赞', search: '送出赞', label: '点赞' },
-                { key: '回复', search: '回复', label: '回复' },
-                { key: '获赞', search: '获赞', label: '获赞' }
+                { key: '浏览话题', search: '浏览的话题', label: '浏览话题', labelKey: 'metrics.trends.topicsEntered' },
+                { key: '已读帖子', search: '已读帖子', label: '已读帖子', labelKey: 'metrics.trends.postsRead' },
+                { key: '点赞', search: '送出赞', label: '点赞', labelKey: 'metrics.trends.likesGiven' },
+                { key: '回复', search: '回复', label: '回复', labelKey: 'metrics.trends.replies' },
+                { key: '获赞', search: '获赞', label: '获赞', labelKey: 'metrics.trends.likesReceived' }
             ],
             // 阅读等级预设样式（图标、颜色、背景色固定，按索引匹配，共10级）
             READING_LEVEL_PRESETS: [
@@ -770,7 +770,48 @@
                 return `rgba(${rgb.r},${rgb.g},${rgb.b},${a})`;
             },
 
-            // 简化名称
+            _metricLabelKeys: new Map([
+                ['访问天数', 'metrics.names.daysVisited'],
+                ['访问次数', 'metrics.names.visits'],
+                ['浏览话题', 'metrics.names.topicsEntered'],
+                ['浏览话题(所有时间)', 'metrics.names.topicsEnteredAllTime'],
+                ['已读帖子', 'metrics.names.postsRead'],
+                ['已读帖子(所有时间)', 'metrics.names.postsReadAllTime'],
+                ['回复', 'metrics.names.replies'],
+                ['回复话题', 'metrics.names.topicsReplied'],
+                ['发帖', 'metrics.names.postsCreated'],
+                ['创建话题', 'metrics.names.topicsCreated'],
+                ['点赞', 'metrics.names.likesGiven'],
+                ['送出赞', 'metrics.names.likesSent'],
+                ['获赞', 'metrics.names.likesReceived'],
+                ['获赞天数', 'metrics.names.likesReceivedDays'],
+                ['点赞用户', 'metrics.names.likesReceivedUsers'],
+                ['获赞用户', 'metrics.names.likedUsersAlt'],
+                ['被举报帖子', 'metrics.names.flaggedPosts'],
+                ['发起举报', 'metrics.names.flaggingUsers'],
+                ['被禁言(近6个月)', 'metrics.names.silenced6m'],
+                ['被封禁(近6个月)', 'metrics.names.suspended6m'],
+                ['被禁言', 'metrics.names.silenced'],
+                ['被封禁', 'metrics.names.suspended'],
+                ['阅读时间', 'metrics.names.readingTime'],
+                ['阅读时间(分钟)', 'metrics.names.readingTimeMin'],
+                ['解决方案', 'metrics.names.solutions']
+            ]),
+
+            _readingLevelKeys: new Map([
+                ['刚起步', 'metrics.reading.levels.starter'],
+                ['热身中', 'metrics.reading.levels.warmup'],
+                ['渐入佳境', 'metrics.reading.levels.steady'],
+                ['沉浸阅读', 'metrics.reading.levels.focused'],
+                ['深度学习', 'metrics.reading.levels.deep'],
+                ['LD达人', 'metrics.reading.levels.master'],
+                ['超级水怪', 'metrics.reading.levels.super'],
+                ['钻石级', 'metrics.reading.levels.diamond'],
+                ['传奇级', 'metrics.reading.levels.legend'],
+                ['神话级', 'metrics.reading.levels.mythic']
+            ]),
+
+            // 简化名称（保持中文规范名，供内部映射与缓存使用）
             simplifyName(name) {
                 if (this._nameCache.has(name)) return this._nameCache.get(name);
                 let result = CONFIG.NAME_MAP.get(name);
@@ -785,6 +826,29 @@
                 result = result || name;
                 this._nameCache.set(name, result);
                 return result;
+            },
+
+            formatMetricName(name) {
+                const simplified = this.simplifyName(name);
+                const labelKey = this._metricLabelKeys.get(simplified) || this._metricLabelKeys.get(name);
+                return labelKey ? I18n.t(labelKey) : simplified;
+            },
+
+            formatReadingLevelLabel(rawLabel) {
+                const text = String(rawLabel || '').trim();
+                const labelKey = this._readingLevelKeys.get(text);
+                if (labelKey) return I18n.t(labelKey);
+                const fallbackMatch = text.match(/^等级(\d+)$/);
+                if (fallbackMatch) return I18n.t('metrics.reading.levels.fallback', { level: fallbackMatch[1] });
+                return text;
+            },
+
+            getWeekdayLabel(dayIdx) {
+                return I18n.t(`common.time.weekdays.${dayIdx}`);
+            },
+
+            getMonthLabel(monthIdx) {
+                return I18n.t(`common.time.months.${monthIdx}`);
             },
 
             // 指标名称规范化（用于跨来源字段兼容）
@@ -846,7 +910,7 @@
                 const [m, day] = [d.getMonth() + 1, d.getDate()];
                 if (format === 'short') return `${m}/${day}`;
                 if (format === 'time') return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-                return `${m}月${day}日`;
+                return I18n.t('common.time.monthDay', { m, d: day });
             },
 
             // 格式化相对时间（将UTC时间转为本地时间并显示为xx前）
@@ -855,12 +919,12 @@
                 const d = new Date(utcStr); // 自动转换UTC到本地时区
                 const now = new Date();
                 const diff = (now - d) / 1000;
-                if (diff < 60) return '刚刚';
-                if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`;
-                if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`;
-                if (diff < 2592000) return `${Math.floor(diff / 86400)}天前`;
-                if (diff < 31536000) return `${d.getMonth() + 1}月${d.getDate()}日`;
-                return `${d.getFullYear()}年${d.getMonth() + 1}月`;
+                if (diff < 60) return I18n.t('common.time.justNow');
+                if (diff < 3600) return I18n.t('common.time.minutesAgo', { n: Math.floor(diff / 60) });
+                if (diff < 86400) return I18n.t('common.time.hoursAgo', { n: Math.floor(diff / 3600) });
+                if (diff < 2592000) return I18n.t('common.time.daysAgo', { n: Math.floor(diff / 86400) });
+                if (diff < 31536000) return I18n.t('common.time.monthDay', { m: d.getMonth() + 1, d: d.getDate() });
+                return I18n.t('common.time.yearMonth', { y: d.getFullYear(), m: d.getMonth() + 1 });
             },
 
             // 格式化完整日期时间（年月日时分）
@@ -880,11 +944,11 @@
 
             // 格式化阅读时间
             formatReadingTime(minutes) {
-                if (minutes < 1) return '< 1分钟';
-                if (minutes < 60) return `${Math.round(minutes)}分钟`;
+                if (minutes < 1) return I18n.t('common.time.lessThanOneMin');
+                if (minutes < 60) return I18n.t('common.time.minutes', { m: Math.round(minutes) });
                 const h = Math.floor(minutes / 60);
                 const m = Math.round(minutes % 60);
-                return m > 0 ? `${h}小时${m}分` : `${h}小时`;
+                return m > 0 ? I18n.t('common.time.hoursMinutes', { h, m }) : I18n.t('common.time.hours', { h });
             },
 
             // 获取阅读等级（合并服务端配置和预设样式）
@@ -896,10 +960,11 @@
                     if (minutes >= levels[i].min) {
                         const level = levels[i];
                         const preset = presets[i] || presets[presets.length - 1];
-                        // 合并：使用服务端的 min/label，预设的 icon/color/bg
+                        // 合并：保留服务端规范 label，展示时按当前语言格式化
                         return {
                             min: level.min,
-                            label: level.label,
+                            canonicalLabel: level.label,
+                            label: this.formatReadingLevelLabel(level.label),
                             icon: preset.icon,
                             color: preset.color,
                             bg: preset.bg
@@ -910,7 +975,8 @@
                 const preset = presets[0];
                 return {
                     min: first.min,
-                    label: first.label,
+                    canonicalLabel: first.label,
+                    label: this.formatReadingLevelLabel(first.label),
                     icon: preset.icon,
                     color: preset.color,
                     bg: preset.bg
@@ -1429,26 +1495,12 @@
         // ==================== 错误消息格式化工具 ====================
         // v3.5.2.9: 统一的用户友好错误消息
         const ErrorFormatter = {
-            // 错误码到友好消息的映射
-            _codeMap: {
-                'NETWORK_ERROR': '网络连接失败，请检查网络',
-                'TIMEOUT': '请求超时，请稍后重试',
-                'IP_BANNED': 'IP 已被封禁，请更换网络节点',
-                'IP_PERMANENTLY_BANNED': 'IP 已被永久封禁，请联系管理员',
-                'RATE_LIMITED': '请求过于频繁，请稍后重试',
-                'NOT_LOGGED_IN': '请先登录',
-                'AUTH_EXPIRED': '登录已过期，请重新登录',
-                'INVALID_TOKEN': '登录已失效，请重新登录',
-                'TOKEN_EXPIRED': '登录已过期，请重新登录',
-                'NOT_JOINED': '请先加入排行榜',
-                'REGISTRATION_PAUSED': '已暂停新用户注册',
-                'UNAUTHORIZED': '没有访问权限',
-                'NOT_FOUND': '请求的资源不存在',
-                'SERVER_ERROR': '服务器暂时不可用，请稍后重试',
-                'VALIDATION_FAILED': '数据验证失败',
-                'SYNC_FAILED': '同步失败，请稍后重试',
-                'HTTP_ERROR': '请求失败'
-            },
+            _knownCodes: new Set([
+                'NETWORK_ERROR', 'TIMEOUT', 'IP_BANNED', 'IP_PERMANENTLY_BANNED',
+                'RATE_LIMITED', 'NOT_LOGGED_IN', 'AUTH_EXPIRED', 'INVALID_TOKEN',
+                'TOKEN_EXPIRED', 'NOT_JOINED', 'REGISTRATION_PAUSED', 'UNAUTHORIZED',
+                'NOT_FOUND', 'SERVER_ERROR', 'VALIDATION_FAILED', 'SYNC_FAILED', 'HTTP_ERROR'
+            ]),
 
             extractStatus(error) {
                 const status = Number(error?.status) || 0;
@@ -1460,17 +1512,17 @@
 
             fromStatus(status) {
                 if (!status) return '';
-                if (status === 401 || status === 403) return `没有访问权限，请确认已登录论坛（HTTP ${status}）`;
-                if (status === 404) return '请求的页面不存在（HTTP 404）';
-                if (status === 429) return '请求过于频繁，请稍后重试（HTTP 429）';
-                if (status >= 500) return `服务器暂时不可用（HTTP ${status}）`;
-                if (status >= 400) return `请求失败（HTTP ${status}）`;
+                if (status === 401 || status === 403) return I18n.t('common.errors.http401_403', { status });
+                if (status === 404) return I18n.t('common.errors.http404');
+                if (status === 429) return I18n.t('common.errors.http429');
+                if (status >= 500) return I18n.t('common.errors.http5xx', { status });
+                if (status >= 400) return I18n.t('common.errors.http4xx', { status });
                 return '';
             },
             
             // 将错误对象转换为用户友好的消息
             format(error) {
-                if (!error) return '未知错误';
+                if (!error) return I18n.t('common.ui.unknownError');
                 
                 // 字符串直接返回
                 if (typeof error === 'string') {
@@ -1487,8 +1539,8 @@
                     const statusMsg = this.fromStatus(status);
                     if (statusMsg) return statusMsg;
                 }
-                if (code && this._codeMap[code] && code !== 'HTTP_ERROR') {
-                    return this._codeMap[code];
+                if (code && this._knownCodes.has(code) && code !== 'HTTP_ERROR') {
+                    return I18n.t(`common.errors.codes.${code}`);
                 }
                 
                 // 2. 检查消息中的关键词
@@ -1496,43 +1548,48 @@
                 
                 // 网络相关
                 if (lowerMsg.includes('network') || lowerMsg.includes('网络')) {
-                    return '网络连接失败，请检查网络';
+                    return I18n.t('common.errors.codes.NETWORK_ERROR');
                 }
                 if (lowerMsg.includes('timeout') || lowerMsg.includes('超时')) {
-                    return '请求超时，请稍后重试';
+                    return I18n.t('common.errors.codes.TIMEOUT');
                 }
                 
                 // 认证相关
-                if (lowerMsg.includes('登录') || lowerMsg.includes('login') || 
-                    lowerMsg.includes('token') || lowerMsg.includes('auth')) {
-                    if (lowerMsg.includes('过期') || lowerMsg.includes('expire') || lowerMsg.includes('失效')) {
-                        return '登录已过期，请重新登录';
+                if (lowerMsg.includes('登录') || lowerMsg.includes('login') || lowerMsg.includes('sign in') ||
+                    lowerMsg.includes('token') || lowerMsg.includes('session') || lowerMsg.includes('auth')) {
+                    if (lowerMsg.includes('过期') || lowerMsg.includes('expire') || lowerMsg.includes('失效') || lowerMsg.includes('invalid')) {
+                        return I18n.t('common.errors.codes.AUTH_EXPIRED');
                     }
-                    return '请先登录';
+                    return I18n.t('common.errors.codes.NOT_LOGGED_IN');
                 }
                 
                 // IP 封禁
                 if (lowerMsg.includes('ip') && (lowerMsg.includes('ban') || lowerMsg.includes('封禁') || lowerMsg.includes('block'))) {
-                    return 'IP 已被封禁，请更换网络节点';
+                    return I18n.t('common.errors.codes.IP_BANNED');
                 }
                 
                 // 频率限制
-                if (lowerMsg.includes('频繁') || lowerMsg.includes('rate') || lowerMsg.includes('429')) {
-                    // 尝试提取等待时间
-                    const waitMatch = msg.match(/(\d+)\s*(秒|分钟|second|minute)/i);
+                if (lowerMsg.includes('频繁') || lowerMsg.includes('rate') || lowerMsg.includes('too many') || lowerMsg.includes('429')) {
+                    const waitMatch = msg.match(/(\d+)\s*(秒|分钟|seconds?|minutes?)/i);
                     if (waitMatch) {
-                        return `请求过于频繁，请等待 ${waitMatch[1]} ${waitMatch[2]}后重试`;
+                        const isMinutes = /分钟|minute/i.test(waitMatch[2]);
+                        return I18n.t(
+                            isMinutes ? 'common.errors.rateLimitWaitMinutes' : 'common.errors.rateLimitWaitSeconds',
+                            { n: waitMatch[1] }
+                        );
                     }
-                    return '请求过于频繁，请稍后重试';
+                    return I18n.t('common.errors.codes.RATE_LIMITED');
                 }
                 
                 // 服务器错误
                 if (status >= 500 || lowerMsg.includes('server') || lowerMsg.includes('服务器')) {
-                    return status >= 500 ? `服务器暂时不可用（HTTP ${status}）` : '服务器暂时不可用，请稍后重试';
+                    return status >= 500
+                        ? I18n.t('common.errors.http5xx', { status })
+                        : I18n.t('common.errors.codes.SERVER_ERROR');
                 }
                 
                 // 3. 简化并返回原始消息
-                return this._simplify(msg) || '操作失败，请稍后重试';
+                return this._simplify(msg) || I18n.t('common.errors.operationFailed');
             },
             
             // 简化错误消息（移除技术细节）
@@ -1554,13 +1611,13 @@
             // 获取带图标的错误消息
             withIcon(error) {
                 const msg = this.format(error);
-                // 根据错误类型选择图标
-                if (msg.includes('网络') || msg.includes('连接')) return `📡 ${msg}`;
-                if (msg.includes('登录') || msg.includes('权限')) return `🔐 ${msg}`;
-                if (msg.includes('封禁')) return `🚫 ${msg}`;
-                if (msg.includes('频繁') || msg.includes('等待')) return `⏳ ${msg}`;
-                if (msg.includes('服务器')) return `🔧 ${msg}`;
-                if (msg.includes('超时')) return `⏱️ ${msg}`;
+                const lower = msg.toLowerCase();
+                if (msg.includes('封禁') || lower.includes('blocked')) return `🚫 ${msg}`;
+                if (msg.includes('登录') || msg.includes('权限') || lower.includes('sign in') || lower.includes('session') || lower.includes('access denied')) return `🔐 ${msg}`;
+                if (msg.includes('频繁') || msg.includes('等待') || lower.includes('too many') || lower.includes('wait')) return `⏳ ${msg}`;
+                if (msg.includes('超时') || lower.includes('timed out')) return `⏱️ ${msg}`;
+                if (msg.includes('服务器') || lower.includes('server')) return `🔧 ${msg}`;
+                if (msg.includes('网络') || msg.includes('连接') || lower.includes('network') || lower.includes('connection')) return `📡 ${msg}`;
                 return `❌ ${msg}`;
             }
         };
@@ -2366,7 +2423,7 @@
             // 聚合每周新增（当周相对前一周的变化）
             aggregateWeekly(history, reqs) {
                 const normalizedHistory = Array.isArray(history) && history.length ? history : this.getHistory();
-                const cacheKey = `weekly_${normalizedHistory.length}`;
+                const cacheKey = `weekly_${normalizedHistory.length}_${I18n.getLocale()}`;
                 if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
 
                 const sorted = this._sortAndTrimHistory(normalizedHistory.map(record => this._normalizeRecord(record)));
@@ -2394,7 +2451,7 @@
                     if (weekRecord?.endData) {
                         prevWeekEndData = { ...weekRecord.endData };
                     }
-                    result.set(i, { weekNum: i + 1, start: week.start, end: week.end, label: `第${i + 1}周`, data: weekData, endData: weekRecord?.endData ? { ...weekRecord.endData } : null });
+                    result.set(i, { weekNum: i + 1, start: week.start, end: week.end, label: I18n.t('trends.weekNum', { num: i + 1 }), data: weekData, endData: weekRecord?.endData ? { ...weekRecord.endData } : null });
                 });
 
                 this.cache.set(cacheKey, result);
@@ -2748,7 +2805,7 @@
                     result.push({
                         date: key,
                         label: Utils.formatDate(d.getTime()),
-                        day: CONFIG.WEEKDAYS[d.getDay()],
+                        day: Utils.getWeekdayLabel(d.getDay()),
                         minutes: i === 0 ? this.getTodayTime() : this.getTimeForDate(key),
                         isToday: i === 0
                     });
@@ -2884,12 +2941,13 @@
                 if (Date.now() - last < 60000) return;
                 
                 this.storage.set('lastNotify', Date.now());
-                const msg = milestones.slice(0, 3).map(m => 
-                    m.type === 'req' ? `✅ ${m.name}` : `🏆 ${m.name} → ${m.threshold}`
-                ).join('\n');
+                const msg = milestones.slice(0, 3).map(m => {
+                    const displayName = Utils.formatMetricName(m.name);
+                    return m.type === 'req' ? `✅ ${displayName}` : `🏆 ${displayName} → ${m.threshold}`;
+                }).join('\n');
 
                 typeof GM_notification !== 'undefined' && GM_notification({
-                    title: '🎉 达成里程碑！',
+                    title: I18n.t('panel.notifications.milestoneTitle'),
                     text: msg,
                     timeout: 5000
                 });
@@ -3180,7 +3238,7 @@
                         this.cache.set(key, { data, time: now });
                         return data;
                     }
-                    throw new Error(result.error || '获取排行榜失败');
+                    throw new Error(result.error || I18n.t('leaderboard.errors.fetchFailed'));
                 } catch (e) {
                     if (cached) return cached.data;
                     throw e;
@@ -3198,7 +3256,7 @@
                     // 冷却中，返回缓存
                     const cached = this.cache.get(key);
                     if (cached) return { data: cached.data, fromCache: true };
-                    throw new Error('刷新冷却中');
+                    throw new Error(I18n.t('leaderboard.errors.cooldown'));
                 }
 
                 try {
@@ -3213,7 +3271,7 @@
                         this._manualRefreshTime.set(type, now);
                         return { data, fromCache: false };
                     }
-                    throw new Error(result.error || '获取排行榜失败');
+                    throw new Error(result.error || I18n.t('leaderboard.errors.fetchFailed'));
                 } catch (e) {
                     const cached = this.cache.get(key);
                     if (cached) return { data: cached.data, fromCache: true };
@@ -3238,9 +3296,9 @@
                 // 检测登录失效情况
                 const errCode = result.error?.code;
                 if (errCode === 'NOT_LOGGED_IN' || errCode === 'AUTH_EXPIRED' || errCode === 'INVALID_TOKEN') {
-                    throw new Error('登录已失效，请重新登录');
+                    throw new Error(I18n.t('leaderboard.errors.authExpired'));
                 }
-                throw new Error(result.error?.message || result.error || '加入失败');
+                throw new Error(result.error?.message || result.error || I18n.t('leaderboard.errors.joinFailed'));
             }
 
             async quit() {
@@ -3252,9 +3310,9 @@
                 // 检测登录失效情况
                 const errCode = result.error?.code;
                 if (errCode === 'NOT_LOGGED_IN' || errCode === 'AUTH_EXPIRED' || errCode === 'INVALID_TOKEN') {
-                    throw new Error('登录已失效，请重新登录');
+                    throw new Error(I18n.t('leaderboard.errors.authExpired'));
                 }
-                throw new Error(result.error?.message || result.error || '退出失败');
+                throw new Error(result.error?.message || result.error || I18n.t('leaderboard.errors.quitFailed'));
             }
 
             async syncReadingTime() {
@@ -4306,9 +4364,9 @@
     .ldsp-reading-time{font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.1;margin-bottom:5px}
     .ldsp-reading-label{display:inline-flex;align-items:center;justify-content:center;min-height:18px;padding:0 8px;border-radius:999px;background:color-mix(in srgb,var(--rc) 16%,rgba(255,255,255,.08));border:1px solid color-mix(in srgb,var(--rc) 24%,rgba(255,255,255,.12));box-shadow:inset 0 1px 0 rgba(255,255,255,.12);font-size:9px;opacity:.95;font-weight:700;letter-spacing:.08em;line-height:1;text-transform:uppercase;margin-bottom:8px}
     .ldsp-reading{--rc:#94a3b8}
-    .ldsp-reading::after{content:'未活动 已停止记录';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--err);white-space:nowrap;font-weight:600;letter-spacing:.02em;opacity:.8}
+    .ldsp-reading::after{content:'${I18n.t('metrics.reading.pausedStatus').replace(/'/g, "\\'")}';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--err);white-space:nowrap;font-weight:600;letter-spacing:.02em;opacity:.8}
     .ldsp-reading.tracking{animation:reading-glow 3.5s ease-in-out infinite;will-change:box-shadow}
-    .ldsp-reading.tracking::after{content:'阅读时间记录中...';color:var(--rc);opacity:1}
+    .ldsp-reading.tracking::after{content:'${I18n.t('metrics.reading.trackingStatus').replace(/'/g, "\\'")}';color:var(--rc);opacity:1}
     @keyframes reading-glow{0%,100%{box-shadow:0 0 8px color-mix(in srgb,var(--rc) 40%,transparent),0 0 16px color-mix(in srgb,var(--rc) 20%,transparent),0 0 24px color-mix(in srgb,var(--rc) 10%,transparent)}50%{box-shadow:0 0 16px color-mix(in srgb,var(--rc) 60%,transparent),0 0 32px color-mix(in srgb,var(--rc) 35%,transparent),0 0 48px color-mix(in srgb,var(--rc) 15%,transparent)}}
     .ldsp-reading-ripple{position:absolute;inset:-2px;border-radius:inherit;pointer-events:none;z-index:-1;opacity:0}
     .ldsp-reading.tracking .ldsp-reading-ripple{opacity:1}
@@ -7050,7 +7108,12 @@ a:hover{text-decoration:underline;}
             // Toast 通知
             toast(message, type = 'info', duration = 3000) {
                 const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-                const titles = { success: '成功', error: '错误', warning: '警告', info: '提示' };
+                const titles = {
+                    success: I18n.t('common.dialog.successTitle'),
+                    error: I18n.t('common.dialog.errorTitle'),
+                    warning: I18n.t('common.dialog.warningTitle'),
+                    info: I18n.t('common.dialog.infoTitle')
+                };
                 const colors = { success: 'var(--ok)', error: 'var(--err)', warning: 'var(--warn)', info: 'var(--accent)' };
                 const toast = document.createElement('div');
                 toast.className = `ldsp-toast ${type}`;
@@ -7095,17 +7158,23 @@ a:hover{text-decoration:underline;}
                 return toast;
             },
             // 成功提示 - 使用系统原生 alert
-            success(message) { alert('✅ 成功\n\n' + message.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')); },
+            success(message) { alert(`✅ ${I18n.t('common.dialog.successTitle')}\n\n` + message.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')); },
             // 错误提示 - 使用系统原生 alert
-            error(message) { alert('❌ 错误\n\n' + message.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')); },
+            error(message) { alert(`❌ ${I18n.t('common.dialog.errorTitle')}\n\n` + message.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')); },
             // 警告提示 - 使用系统原生 alert
-            warning(message) { alert('⚠️ 警告\n\n' + message.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')); },
+            warning(message) { alert(`⚠️ ${I18n.t('common.dialog.warningTitle')}\n\n` + message.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')); },
             // 信息提示 - 使用系统原生 alert
-            info(message) { alert('ℹ️ 提示\n\n' + message.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')); },
+            info(message) { alert(`ℹ️ ${I18n.t('common.dialog.infoTitle')}\n\n` + message.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')); },
             // 确认对话框 (返回 Promise)
             confirm(message, options = {}) {
                 return new Promise((resolve) => {
-                    const { title = '确认操作', icon = '⚠️', okText = '确认', cancelText = '取消', danger = false } = options;
+                    const {
+                        title = I18n.t('common.dialog.confirmTitle'),
+                        icon = '⚠️',
+                        okText = I18n.t('common.dialog.ok'),
+                        cancelText = I18n.t('common.dialog.cancel'),
+                        danger = false
+                    } = options;
                     const overlay = document.createElement('div');
                     overlay.className = 'ldsp-dialog-overlay';
                     overlay.innerHTML = `
@@ -7135,7 +7204,11 @@ a:hover{text-decoration:underline;}
             // 警告框 (单按钮)
             alert(message, options = {}) {
                 return new Promise((resolve) => {
-                    const { title = '提示', icon = 'ℹ️', okText = '知道了' } = options;
+                    const {
+                        title = I18n.t('common.dialog.infoTitle'),
+                        icon = 'ℹ️',
+                        okText = I18n.t('common.dialog.gotIt')
+                    } = options;
                     const overlay = document.createElement('div');
                     overlay.className = 'ldsp-dialog-overlay';
                     overlay.innerHTML = `
@@ -7171,40 +7244,40 @@ a:hover{text-decoration:underline;}
                 const cls = mini ? 'ldsp-mini-spin' : 'ldsp-spinner';
                 return `<div class="${cls}" style="width:${size}px;height:${size}px;border-width:${mini ? 2 : 3}px;margin:0"></div>`;
             },
-            loading({ text = '加载中...', className = 'ldsp-loading', wrap = false, minHeight } = {}) {
+            loading({ text = I18n.t('common.ui.loading'), className = 'ldsp-loading', wrap = false, minHeight } = {}) {
                 const inner = `<div class="${className}">${this.spinner()}<div>${Utils.escapeHtml(text)}</div></div>`;
                 if (!wrap) return inner;
                 const mh = minHeight === 0 ? 'min-height:0;' : '';
                 return `<div class="ldsp-state-fill"${mh ? ` style="${mh}"` : ''}>${inner}</div>`;
             },
-            miniLoading(text = '加载中...') {
+            miniLoading(text = I18n.t('common.ui.loading')) {
                 return `<div class="ldsp-mini-loader">${this.spinner(32)}<div class="ldsp-mini-txt">${Utils.escapeHtml(text)}</div></div>`;
             },
-            loadingMore(text = '加载中...', className = 'ldsp-loading-more') {
+            loadingMore(text = I18n.t('common.ui.loading'), className = 'ldsp-loading-more') {
                 return `<div class="${className}">${this.spinner(14)}<span>${Utils.escapeHtml(text)}</span></div>`;
             },
-            empty({ icon = '📭', text = '暂无数据', hint = '', extra = '', className = 'ldsp-empty', iconClass = 'ldsp-empty-icon', textClass = 'ldsp-empty-txt', hintClass = 'ldsp-empty-hint', raw = false } = {}) {
+            empty({ icon = '📭', text = I18n.t('common.ui.empty'), hint = '', extra = '', className = 'ldsp-empty', iconClass = 'ldsp-empty-icon', textClass = 'ldsp-empty-txt', hintClass = 'ldsp-empty-hint', raw = false } = {}) {
                 const body = raw ? text : Utils.escapeHtml(text);
                 const box = (cls, html) => cls ? `<div class="${cls}">${html}</div>` : `<div>${html}</div>`;
                 const iconHtml = icon ? box(iconClass, icon) : '';
                 const hintHtml = hint ? box(hintClass, raw ? hint : Utils.escapeHtml(hint)) : '';
                 return `<div class="${className}">${iconHtml}${box(textClass, body)}${hintHtml}${extra}</div>`;
             },
-            error({ icon = '❌', text = '加载失败', className = 'ldsp-empty', iconClass = 'ldsp-empty-icon', textClass = 'ldsp-empty-txt', retry = false, retryText = '🔄 重试', retryClass = 'ldsp-lb-btn secondary', retryId = '', retryStyle = 'margin-top:12px', loginHref = '', loginText = '去登录 →', loginClass = '' } = {}) {
+            error({ icon = '❌', text = I18n.t('common.ui.error'), className = 'ldsp-empty', iconClass = 'ldsp-empty-icon', textClass = 'ldsp-empty-txt', retry = false, retryText = I18n.t('common.ui.retry'), retryClass = 'ldsp-lb-btn secondary', retryId = '', retryStyle = 'margin-top:12px', loginHref = '', loginText = I18n.t('common.ui.goLogin'), loginClass = '' } = {}) {
                 const idAttr = retryId ? ` id="${Utils.escapeHtml(retryId)}"` : '';
                 const styleAttr = retryStyle ? ` style="${retryStyle}"` : '';
                 const retryBtn = retry ? `<button class="${retryClass}"${idAttr}${styleAttr}>${retryText}</button>` : '';
                 const loginBtn = loginHref ? `<a href="${Utils.escapeHtml(loginHref)}" target="_blank" class="${loginClass}">${loginText}</a>` : '';
                 return `<div class="${className}"><div class="${iconClass}">${icon}</div><div class="${textClass}">${Utils.escapeHtml(text)}</div>${loginBtn}${retryBtn}</div>`;
             },
-            loadMore({ hasMore = false, loading = false, text = '加载更多...' } = {}) {
+            loadMore({ hasMore = false, loading = false, text = I18n.t('common.ui.loadingMore') } = {}) {
                 if (!hasMore) return '';
                 return `<div class="ldsp-load-more${loading ? ' loading' : ''}"><div class="ldsp-load-more-spinner"></div><span>${Utils.escapeHtml(text)}</span></div>`;
             },
-            overlay(text = '加载中...') {
+            overlay(text = I18n.t('common.ui.loading')) {
                 return `<div class="ldsp-loading-overlay">${this.spinner(24)}<div class="ldsp-loading-overlay-text">${Utils.escapeHtml(text)}</div></div>`;
             },
-            showOverlay(target, text = '加载中...') {
+            showOverlay(target, text = I18n.t('common.ui.loading')) {
                 if (!target) return () => {};
                 const wrap = document.createElement('div');
                 wrap.innerHTML = this.overlay(text);
@@ -10208,17 +10281,16 @@ a:hover{text-decoration:underline;}
                     const now = new Date();
                     const diffTime = Math.abs(now - joinDate);
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    const siteShort = CURRENT_SITE.domain === 'linux.do' ? 'L站' : 'IF站';
+                    const siteShort = I18n.t(CURRENT_SITE.domain === 'linux.do' ? 'panel.user.siteShortLinuxDo' : 'panel.user.siteShortIdc');
                     const siteFull = CURRENT_SITE.domain === 'linux.do' ? 'Linux.do' : 'IDCFlare';
                     if (siteEl) siteEl.textContent = siteShort;
                     if (daysNumEl) daysNumEl.textContent = diffDays;
                     if (joinDaysEl) {
                         joinDaysEl.style.display = '';
-                        // 设置悬浮提示：于xxxx年xx月xx日加入xx站
                         const year = joinDate.getFullYear();
                         const month = joinDate.getMonth() + 1;
                         const day = joinDate.getDate();
-                        joinDaysEl.title = `于${year}年${month}月${day}日加入${siteFull}`;
+                        joinDaysEl.title = I18n.t('panel.user.joinedTooltip', { year, month, day, site: siteFull });
                     }
                 } catch (e) {
                     if (joinDaysEl) joinDaysEl.style.display = 'none';
@@ -10381,7 +10453,11 @@ a:hover{text-decoration:underline;}
                 if (level !== null && !isNaN(pl)) this.panel.cachedLevel = lv;
 
                 const canUp = lv < 3, tgt = canUp ? lv + 1 : lv;
-                const [tipText, tipClass] = !canUp ? [lv >= 4 ? '🏆 已达最高等级' : '🎖️ 已达普通用户最高等级', 'max'] : remain > 0 ? [`⏳ 距升级还需完成 ${remain} 项要求`, 'progress'] : ['🎉 已满足升级条件', 'ok'];
+                const [tipText, tipClass] = !canUp
+                    ? [I18n.tHtml(lv >= 4 ? 'metrics.ring.maxAdminLevel' : 'metrics.ring.maxUserLevel'), 'max']
+                    : remain > 0
+                        ? [I18n.tHtml('metrics.ring.remainingTip', { count: remain }), 'progress']
+                        : [I18n.tHtml('metrics.ring.readyTip'), 'ok'];
 
                 // Filter items for display only; ring stats always reflect full data
                 const rdm = this.panel.storage.getGlobal('requirementsDisplayMode', 'all');
@@ -10392,23 +10468,23 @@ a:hover{text-decoration:underline;}
                 const confetti = pct === 100 ? Array.from({length:28},(_,i)=>{const a=(i/28)*360+(Math.random()-.5)*25,rad=a*Math.PI/180,d=55+Math.random()*45;return`<span class="ldsp-confetti-piece" style="color:${colors[i%8]};--tx:${Math.cos(rad)*d}px;--ty:${Math.sin(rad)*d*.7}px;--drift:${(Math.random()-.5)*40}px;--rot:${(Math.random()-.5)*900}deg;animation-delay:${Math.random()*.06}s">${shapes[Math.floor(Math.random()*6)]}</span>`}).join('') : '';
 
                 const h = [`<div class="ldsp-ring${pct===100?' complete':''}">`, pct===100?`<div class="ldsp-confetti">${confetti}</div>`:''];
-                h.push(`<div class="ldsp-ring-stat"><div class="ldsp-ring-stat-val ok">✓${done}</div><div class="ldsp-ring-stat-lbl">已达标</div></div>`,
-                    `<div class="ldsp-ring-center"><div class="ldsp-ring-wrap"><svg width="${cfg.ringSize}" height="${cfg.ringSize}" viewBox="0 0 ${cfg.ringSize} ${cfg.ringSize}"><defs><linearGradient id="ldsp-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#5070d0"/><stop offset="100%" style="stop-color:#5bb5a6"/></linearGradient></defs><circle class="ldsp-ring-bg" cx="${cfg.ringSize/2}" cy="${cfg.ringSize/2}" r="${r}"/><circle class="ldsp-ring-fill${anim?' anim':''}" cx="${cfg.ringSize/2}" cy="${cfg.ringSize/2}" r="${r}" stroke-dasharray="${circ}" stroke-dashoffset="${anim?circ:off}" style="--circ:${circ};--off:${off}"/></svg><div class="ldsp-ring-txt"><div class="ldsp-ring-val${anim?' anim':''}">${pct}%</div><div class="ldsp-ring-lbl">完成度</div></div></div><div class="ldsp-ring-lvl-hitbox"><div class="ldsp-ring-lvl lv${lv}">${canUp?`Lv${lv} → Lv${tgt}`:`Lv${lv} ★`}</div></div></div>`,
-                    `<div class="ldsp-ring-stat"><div class="ldsp-ring-stat-val fail">○${remain}</div><div class="ldsp-ring-stat-lbl">待完成</div></div></div>`,
+                h.push(`<div class="ldsp-ring-stat"><div class="ldsp-ring-stat-val ok">✓${done}</div><div class="ldsp-ring-stat-lbl">${I18n.tHtml('metrics.ring.met')}</div></div>`,
+                    `<div class="ldsp-ring-center"><div class="ldsp-ring-wrap"><svg width="${cfg.ringSize}" height="${cfg.ringSize}" viewBox="0 0 ${cfg.ringSize} ${cfg.ringSize}"><defs><linearGradient id="ldsp-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#5070d0"/><stop offset="100%" style="stop-color:#5bb5a6"/></linearGradient></defs><circle class="ldsp-ring-bg" cx="${cfg.ringSize/2}" cy="${cfg.ringSize/2}" r="${r}"/><circle class="ldsp-ring-fill${anim?' anim':''}" cx="${cfg.ringSize/2}" cy="${cfg.ringSize/2}" r="${r}" stroke-dasharray="${circ}" stroke-dashoffset="${anim?circ:off}" style="--circ:${circ};--off:${off}"/></svg><div class="ldsp-ring-txt"><div class="ldsp-ring-val${anim?' anim':''}">${pct}%</div><div class="ldsp-ring-lbl">${I18n.tHtml('metrics.ring.completion')}</div></div></div><div class="ldsp-ring-lvl-hitbox"><div class="ldsp-ring-lvl lv${lv}">${canUp?`Lv${lv} → Lv${tgt}`:`Lv${lv} ★`}</div></div></div>`,
+                    `<div class="ldsp-ring-stat"><div class="ldsp-ring-stat-val fail">○${remain}</div><div class="ldsp-ring-stat-lbl">${I18n.tHtml('metrics.ring.remaining')}</div></div></div>`,
                     `<div class="ldsp-ring-tip ${tipClass}">${tipText}</div>`);
 
                 if (displayReqs.length === 0 && rdm === 'incomplete') {
-                    h.push(UI.empty({ icon: '🎉', text: '所有升级要求都已完成' }));
+                    h.push(UI.empty({ icon: '🎉', text: I18n.t('metrics.ring.allMetEmpty') }));
                 } else {
                     for (const req of displayReqs) {
-                        const name = Utils.simplifyName(req.name), prev = this.prevValues.get(req.name);
+                        const name = Utils.escapeHtml(Utils.formatMetricName(req.name)), prev = this.prevValues.get(req.name);
                         const upd = prev !== undefined && prev !== req.currentValue;
                         const chg = req.change ? `<span class="ldsp-item-chg ${req.change>0?'up':'down'}">${req.change>0?'+':''}${req.change}</span>` : '';
                         h.push(`<div class="ldsp-item ${req.isSuccess?'ok':'fail'}"><span class="ldsp-item-icon">${req.isSuccess?'✓':'○'}</span><span class="ldsp-item-name">${name}</span><div class="ldsp-item-vals"><span class="ldsp-item-cur${upd?' upd':''}">${req.currentValue}</span><span class="ldsp-item-sep">/</span><span class="ldsp-item-req">${req.requiredValue}</span></div>${chg}</div>`);
                     }
                 }
                 this.prevValues = new Map(reqs.map(req => [req.name, req.currentValue]));
-                h.push(`<a class="ldsp-learn-trust" href="https://linux.do/t/topic/2460" target="_blank" rel="noopener">了解论坛信任等级 →</a>`);
+                h.push(`<a class="ldsp-learn-trust" href="https://linux.do/t/topic/2460" target="_blank" rel="noopener">${I18n.tHtml('metrics.ring.learnTrust')}</a>`);
                 this.panel.$.reqs.innerHTML = h.join('');
 
                 if (pct === 100) setTimeout(() => this.panel.$.reqs.querySelector('.ldsp-ring.complete')?.classList.add('anim-done'), anim ? 950 : 50);
@@ -10465,7 +10541,13 @@ a:hover{text-decoration:underline;}
             }
 
             renderTrends(tab) {
-                const tabs = [['today','☀️','今日'],['week','📅','本周'],['month','📊','本月'],['year','📈','本年'],['all','🌐','全部']];
+                const tabs = [
+                    ['today', '☀️', I18n.tHtml('trends.tabs.today')],
+                    ['week', '📅', I18n.tHtml('trends.tabs.week')],
+                    ['month', '📊', I18n.tHtml('trends.tabs.month')],
+                    ['year', '📈', I18n.tHtml('trends.tabs.year')],
+                    ['all', '🌐', I18n.tHtml('trends.tabs.all')]
+                ];
                 this.panel.$.trends.innerHTML = `<div class="ldsp-subtabs ldsp-trend-subtabs ldsp-trend-subtabs-auto"><div class="ldsp-subtab-indicator"><div class="ldsp-subtab-indicator-glass"></div><div class="ldsp-subtab-indicator-shine"></div></div>${tabs.map(([id,i,l])=>`<div class="ldsp-subtab${tab===id?' active':''}" data-tab="${id}"><span class="ldsp-trend-tab-icon">${i}</span><span class="ldsp-trend-tab-text">${l}</span></div>`).join('')}</div><div class="ldsp-trend-content"></div>`;
             }
 
@@ -10482,34 +10564,37 @@ a:hover{text-decoration:underline;}
                                 let s = 0;
                                 if (Utils.getTrendKey(item.name) === f.key) s += 2;
                                 if (item.name.includes(f.search)) s += 1;
-                                if (!item.name.includes('所有时间')) s += 1;
+                                // Exclude all-time variant when 100-day metric exists (canonical parser token)
+                                if (!item.name.includes('\u6240\u6709\u65f6\u95f4')) s += 1;
                                 return s;
                             };
                             return score(b) - score(a);
                         })[0];
-                        return r ? { ...f, req: r, name: r.name } : null;
+                        const displayLabel = f.labelKey ? I18n.t(f.labelKey) : f.label;
+                        return r ? { ...f, label: displayLabel, req: r, name: r.name } : null;
                     })
                     .filter(Boolean);
             }
 
             renderTodayTrend(reqs, rt, td, goalHours = 3, yesterdayBase = null) {
-                if (!td) return UI.empty({ icon: '☀️', text: '今日首次访问<br>数据将从现在开始统计', raw: true });
+                if (!td) return UI.empty({ icon: '☀️', text: `${I18n.tHtml('trends.today.firstVisitLine1')}<br>${I18n.tHtml('trends.today.firstVisitLine2')}`, raw: true });
                 const normalizedGoal = Math.min(20, Math.max(0.5, Math.round(Utils.toSafeNumber(goalHours, 3) * 2) / 2));
                 const targetMinutes = Math.max(1, normalizedGoal * 60);
                 const now = new Date(), start = new Date(td.startTs), lv = Utils.getReadingLevel(rt), pct = Math.min(rt / targetMinutes * 100, 100);
                 const goalText = Number.isInteger(normalizedGoal) ? `${normalizedGoal}` : normalizedGoal.toFixed(1);
                 const startStr = `${start.getHours()}:${String(start.getMinutes()).padStart(2,'0')}`, nowStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
-                let h = `<div class="ldsp-time-info">今日 00:00 ~ ${nowStr} (首次记录于 ${startStr})</div><div class="ldsp-rd-stats" style="background:${lv.bg.replace('0.15','0.08')}"><div class="ldsp-rd-stats-icon">${lv.icon}</div><div class="ldsp-rd-stats-info"><div class="ldsp-rd-stats-val">${Utils.formatReadingTime(rt)}</div><div class="ldsp-rd-stats-lbl">今日累计阅读</div></div><div class="ldsp-rd-stats-badge" style="background:${lv.bg};color:${lv.color};box-shadow:0 3px 12px ${lv.bg.replace('0.15','0.4')},inset 0 1px 0 rgba(255,255,255,.25)">${lv.label}</div></div><div class="ldsp-rd-prog"><div class="ldsp-rd-prog-hdr"><span class="ldsp-rd-prog-title">📖 阅读目标 (${goalText}小时)</span><span class="ldsp-rd-prog-val">${Math.round(pct)}%</span></div><div class="ldsp-rd-prog-bar"><div class="ldsp-rd-prog-fill" style="width:${pct}%;background:${lv.bg.replace('0.15','1')}"></div></div></div>`;
+                let h = `<div class="ldsp-time-info">${I18n.tHtml('trends.today.timeRange', { now: nowStr, start: startStr })}</div><div class="ldsp-rd-stats" style="background:${lv.bg.replace('0.15','0.08')}"><div class="ldsp-rd-stats-icon">${lv.icon}</div><div class="ldsp-rd-stats-info"><div class="ldsp-rd-stats-val">${Utils.escapeHtml(Utils.formatReadingTime(rt))}</div><div class="ldsp-rd-stats-lbl">${I18n.tHtml('trends.today.totalReading')}</div></div><div class="ldsp-rd-stats-badge" style="background:${lv.bg};color:${lv.color};box-shadow:0 3px 12px ${lv.bg.replace('0.15','0.4')},inset 0 1px 0 rgba(255,255,255,.25)">${Utils.escapeHtml(lv.label)}</div></div><div class="ldsp-rd-prog"><div class="ldsp-rd-prog-hdr"><span class="ldsp-rd-prog-title">${I18n.tHtml('trends.today.goalTitle', { goal: goalText })}</span><span class="ldsp-rd-prog-val">${Math.round(pct)}%</span></div><div class="ldsp-rd-prog-bar"><div class="ldsp-rd-prog-fill" style="width:${pct}%;background:${lv.bg.replace('0.15','1')}"></div></div></div>`;
                 if (reqs?.length) {
                     const baselineData = td.baselineData || yesterdayBase?.data || {};
-                    const compareLabel = td.compareLabel || yesterdayBase?.label || '前一日';
+                    const rawCompare = td.compareLabel || yesterdayBase?.label || '';
+                    const compareLabel = (!rawCompare || rawCompare === '\u524d\u4e00\u65e5') ? I18n.t('trends.prevDay') : rawCompare;
                     const chgs = reqs.map(r=>({
-                        name: Utils.simplifyName(r.name),
+                        name: Utils.escapeHtml(Utils.formatMetricName(r.name)),
                         diff: Utils.toSafeNumber(r.currentValue, 0) - Utils.getMetricValue(baselineData, r.name, 0)
                     })).filter(c=>c.diff!==0).sort((a,b)=>b.diff-a.diff);
                     const pos = chgs.filter(c=>c.diff>0).length, neg = chgs.filter(c=>c.diff<0).length;
-                    h += `<div class="ldsp-today-stats"><div class="ldsp-today-stat"><div class="ldsp-today-stat-val">${pos}</div><div class="ldsp-today-stat-lbl">📈 增长项</div></div><div class="ldsp-today-stat"><div class="ldsp-today-stat-val">${neg}</div><div class="ldsp-today-stat-lbl">📉 下降项</div></div></div>`;
-                    h += chgs.length ? `<div class="ldsp-chart"><div class="ldsp-chart-title">📊 今日变化明细<span class="ldsp-chart-sub">较${compareLabel}</span></div><div class="ldsp-changes">${chgs.map(c=>`<div class="ldsp-chg-row"><span class="ldsp-chg-name">${c.name}</span><span class="ldsp-chg-val ${c.diff>0?'up':'down'}">${c.diff>0?'+':''}${c.diff}</span></div>`).join('')}</div></div>` : `<div class="ldsp-no-chg">相比${compareLabel}暂无数据变化</div>`;
+                    h += `<div class="ldsp-today-stats"><div class="ldsp-today-stat"><div class="ldsp-today-stat-val">${pos}</div><div class="ldsp-today-stat-lbl">${I18n.tHtml('trends.today.upItems')}</div></div><div class="ldsp-today-stat"><div class="ldsp-today-stat-val">${neg}</div><div class="ldsp-today-stat-lbl">${I18n.tHtml('trends.today.downItems')}</div></div></div>`;
+                    h += chgs.length ? `<div class="ldsp-chart"><div class="ldsp-chart-title">${I18n.tHtml('trends.today.changesTitle')}<span class="ldsp-chart-sub">${I18n.tHtml('trends.today.comparedTo', { label: compareLabel })}</span></div><div class="ldsp-changes">${chgs.map(c=>`<div class="ldsp-chg-row"><span class="ldsp-chg-name">${c.name}</span><span class="ldsp-chg-val ${c.diff>0?'up':'down'}">${c.diff>0?'+':''}${c.diff}</span></div>`).join('')}</div></div>` : `<div class="ldsp-no-chg">${I18n.tHtml('trends.today.noChanges', { label: compareLabel })}</div>`;
                 }
                 return h;
             }
@@ -10523,7 +10608,7 @@ a:hover{text-decoration:underline;}
                         if (d.values.some(v => v !== 0)) trends.push({label: f.label, ...d, current: f.req.currentValue});
                     }
                     if (trends.length) {
-                        h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 本周每日数据<span class="ldsp-chart-sub">对应日期阅读数据</span></div>${this._renderSparkRows(trends,false,true)}${trends[0].dates.length?`<div class="ldsp-date-labels">${trends[0].dates.map(d=>`<span class="ldsp-date-lbl">${d}</span>`).join('')}</div>`:''}</div>`;
+                        h += `<div class="ldsp-chart"><div class="ldsp-chart-title">${I18n.tHtml('trends.week.metricsTitle')}<span class="ldsp-chart-sub">${I18n.tHtml('trends.week.metricsSub')}</span></div>${this._renderSparkRows(trends,false,true)}${trends[0].dates.length?`<div class="ldsp-date-labels">${trends[0].dates.map(d=>`<span class="ldsp-date-lbl">${d}</span>`).join('')}</div>`:''}</div>`;
                     }
                 }
                 return h;
@@ -10538,7 +10623,7 @@ a:hover{text-decoration:underline;}
                         if (d.values.some(v => v !== 0)) trends.push({label: f.label, ...d, current: f.req.currentValue});
                     }
                     if (trends.length) {
-                        h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 本月每周数据<span class="ldsp-chart-sub">对应周阅读数据</span></div>${this._renderSparkRows(trends,true,true)}${trends[0].labels?.length?`<div class="ldsp-date-labels" style="padding-left:60px">${trends[0].labels.map(l=>`<span class="ldsp-date-lbl">${l}</span>`).join('')}</div>`:''}</div>`;
+                        h += `<div class="ldsp-chart"><div class="ldsp-chart-title">${I18n.tHtml('trends.month.metricsTitle')}<span class="ldsp-chart-sub">${I18n.tHtml('trends.month.metricsSub')}</span></div>${this._renderSparkRows(trends,true,true)}${trends[0].labels?.length?`<div class="ldsp-date-labels" style="padding-left:60px">${trends[0].labels.map(l=>`<span class="ldsp-date-lbl">${l}</span>`).join('')}</div>`:''}</div>`;
                     }
                 }
                 return h;
@@ -10555,7 +10640,7 @@ a:hover{text-decoration:underline;}
                             if (d.values.some(v => v !== 0)) trends.push({label: f.label, ...d, current: f.req.currentValue});
                         }
                         if (trends.length) {
-                            h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📊 本年每月数据<span class="ldsp-chart-sub">对应月份阅读数据</span></div>${this._renderSparkRows(trends,false,true)}</div>`;
+                            h += `<div class="ldsp-chart"><div class="ldsp-chart-title">${I18n.tHtml('trends.year.metricsTitle')}<span class="ldsp-chart-sub">${I18n.tHtml('trends.year.metricsSub')}</span></div>${this._renderSparkRows(trends,false,true)}</div>`;
                         }
                     }
                 }
@@ -10567,24 +10652,32 @@ a:hover{text-decoration:underline;}
                 const rd = tracker.storage.get('readingTime', null);
                 const days = rd?.dailyData ? Object.keys(rd.dailyData).length : 1;
                 const avg = Math.round(total / Math.max(days, 1)), lv = Utils.getReadingLevel(avg);
-                let h = `<div class="ldsp-time-info">共记录 <span>${days}</span> 天阅读数据</div>`;
-                if (total > 0) h += `<div class="ldsp-rd-stats" style="background:${lv.bg.replace('0.15','0.08')}"><div class="ldsp-rd-stats-icon">${lv.icon}</div><div class="ldsp-rd-stats-info"><div class="ldsp-rd-stats-val">${Utils.formatReadingTime(total)}</div><div class="ldsp-rd-stats-lbl">累计阅读时间 · 日均 ${Utils.formatReadingTime(avg)}</div></div><div class="ldsp-rd-stats-badge" style="background:${lv.bg};color:${lv.color};box-shadow:0 3px 12px ${lv.bg.replace('0.15','0.4')},inset 0 1px 0 rgba(255,255,255,.25)">${lv.label}</div></div>`;
+                let timeInfoHtml = I18n.tHtml('trends.all.recordedReadingDays', { days: '__DAYS__' }).replace('__DAYS__', `<span>${days}</span>`);
                 if (reqs?.length && hist.length >= 1) {
-                    const oldest = hist[0], newest = hist.at(-1), rec = hist.length, span = Math.ceil((Date.now()-oldest.ts)/86400000);
-                    if (span > days) h = h.replace(`共记录 <span>${days}</span> 天阅读数据`, `共记录 <span>${rec}</span> 天数据${span>rec?` · 跨度 ${span} 天`:''}`);
+                    const oldest = hist[0], rec = hist.length, span = Math.ceil((Date.now() - oldest.ts) / 86400000);
+                    if (span > days) {
+                        timeInfoHtml = span > rec
+                            ? I18n.tHtml('trends.all.recordedDataSpan', { rec: '__REC__', span }).replace('__REC__', `<span>${rec}</span>`)
+                            : I18n.tHtml('trends.all.recordedDataDays', { rec: '__REC__' }).replace('__REC__', `<span>${rec}</span>`);
+                    }
+                }
+                let h = `<div class="ldsp-time-info">${timeInfoHtml}</div>`;
+                if (total > 0) h += `<div class="ldsp-rd-stats" style="background:${lv.bg.replace('0.15','0.08')}"><div class="ldsp-rd-stats-icon">${lv.icon}</div><div class="ldsp-rd-stats-info"><div class="ldsp-rd-stats-val">${Utils.escapeHtml(Utils.formatReadingTime(total))}</div><div class="ldsp-rd-stats-lbl">${I18n.tHtml('trends.all.totalAndDailyAvg', { avg: Utils.formatReadingTime(avg) })}</div></div><div class="ldsp-rd-stats-badge" style="background:${lv.bg};color:${lv.color};box-shadow:0 3px 12px ${lv.bg.replace('0.15','0.4')},inset 0 1px 0 rgba(255,255,255,.25)">${Utils.escapeHtml(lv.label)}</div></div>`;
+                if (reqs?.length && hist.length >= 1) {
+                    const oldest = hist[0], newest = hist.at(-1), rec = hist.length;
                     const chgs = reqs.map(r=>({
-                        name: Utils.simplifyName(r.name),
+                        name: Utils.escapeHtml(Utils.formatMetricName(r.name)),
                         diff: Utils.getMetricValue(newest.data, r.name, 0) - Utils.getMetricValue(oldest.data, r.name, 0),
                         current: r.currentValue,
                         required: r.requiredValue
                     })).filter(c=>c.diff!==0||c.current>0);
-                    if (chgs.length) h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📊 累计变化 <span style="font-size:9px;color:var(--txt-mut);font-weight:normal">(${rec}天)</span></div><div class="ldsp-changes">${chgs.map(c=>`<div class="ldsp-chg-row"><span class="ldsp-chg-name">${c.name}</span><span class="ldsp-chg-cur">${c.current}/${c.required}</span>${c.diff?`<span class="ldsp-chg-val ${c.diff>0?'up':'down'}">${c.diff>0?'+':''}${c.diff}</span>`:''}</div>`).join('')}</div></div>`;
+                    if (chgs.length) h += `<div class="ldsp-chart"><div class="ldsp-chart-title">${I18n.tHtml('trends.all.cumulativeChanges')} <span style="font-size:9px;color:var(--txt-mut);font-weight:normal">${I18n.tHtml('trends.all.daysSuffix', { rec })}</span></div><div class="ldsp-changes">${chgs.map(c=>`<div class="ldsp-chg-row"><span class="ldsp-chg-name">${c.name}</span><span class="ldsp-chg-cur">${c.current}/${c.required}</span>${c.diff?`<span class="ldsp-chg-val ${c.diff>0?'up':'down'}">${c.diff>0?'+':''}${c.diff}</span>`:''}</div>`).join('')}</div></div>`;
                     if (rec >= 2) {
                         const avgChgs = reqs.map(r=>({
-                            name: Utils.simplifyName(r.name),
+                            name: Utils.escapeHtml(Utils.formatMetricName(r.name)),
                             avg: Math.round((Utils.getMetricValue(newest.data, r.name, 0) - Utils.getMetricValue(oldest.data, r.name, 0)) / Math.max(rec-1,1) * 10) / 10
                         })).filter(c=>c.avg!==0);
-                        if (avgChgs.length) h += `<div class="ldsp-chart"><div class="ldsp-chart-title">📈 日均增量</div><div class="ldsp-changes">${avgChgs.map(c=>`<div class="ldsp-chg-row"><span class="ldsp-chg-name">${c.name}</span><span class="ldsp-chg-val ${c.avg>0?'up':'down'}">${c.avg>0?'+':''}${c.avg}</span></div>`).join('')}</div></div>`;
+                        if (avgChgs.length) h += `<div class="ldsp-chart"><div class="ldsp-chart-title">${I18n.tHtml('trends.all.dailyAvgIncrement')}</div><div class="ldsp-changes">${avgChgs.map(c=>`<div class="ldsp-chg-row"><span class="ldsp-chg-name">${c.name}</span><span class="ldsp-chg-val ${c.avg>0?'up':'down'}">${c.avg>0?'+':''}${c.avg}</span></div>`).join('')}</div></div>`;
                     }
                 }
                 return h;
@@ -10628,7 +10721,7 @@ a:hover{text-decoration:underline;}
 
             _renderWeekChart(tracker) {
                 const days = tracker.getWeekHistory(), max = Math.max(...days.map(d=>d.minutes),60), total = days.reduce((s,d)=>s+d.minutes,0);
-                return `<div class="ldsp-chart"><div class="ldsp-chart-title">⏱️ 7天阅读时间<span class="ldsp-chart-sub">共 ${Utils.formatReadingTime(total)} · 日均 ${Utils.formatReadingTime(Math.round(total/7))}</span></div><div class="ldsp-rd-week">${days.map(d=>`<div class="ldsp-rd-day"><div class="ldsp-rd-day-bar" style="height:${Math.max(d.minutes/max*45,3)}px;opacity:${d.isToday?1:0.7}" data-t="${Utils.formatReadingTime(d.minutes)}"></div><span class="ldsp-rd-day-lbl">${d.day}</span></div>`).join('')}</div></div>`;
+                return `<div class="ldsp-chart"><div class="ldsp-chart-title">${I18n.tHtml('trends.week.readingTitle')}<span class="ldsp-chart-sub">${I18n.tHtml('trends.week.readingSub', { total: Utils.formatReadingTime(total), avg: Utils.formatReadingTime(Math.round(total/7)) })}</span></div><div class="ldsp-rd-week">${days.map(d=>`<div class="ldsp-rd-day"><div class="ldsp-rd-day-bar" style="height:${Math.max(d.minutes/max*45,3)}px;opacity:${d.isToday?1:0.7}" data-t="${Utils.escapeHtml(Utils.formatReadingTime(d.minutes))}"></div><span class="ldsp-rd-day-lbl">${Utils.escapeHtml(d.day)}</span></div>`).join('')}</div></div>`;
             }
 
             _renderMonthChart(tracker) {
@@ -10640,7 +10733,12 @@ a:hover{text-decoration:underline;}
                     days.push({d, mins: Math.max(mins,0), isT, isFut});
                 }
                 const fs = dim>=31?'7px':(dim>=28?'8px':'9px');
-                return `<div class="ldsp-chart"><div class="ldsp-chart-title">⏱️ 本月阅读时间<span class="ldsp-chart-sub">共 ${Utils.formatReadingTime(total)} · 日均 ${Utils.formatReadingTime(cd>0?Math.round(total/cd):0)}</span></div><div class="ldsp-rd-week" style="height:100px;align-items:flex-end;gap:1px">${days.map(dy=>`<div class="ldsp-rd-day" style="margin:0 1px;flex:1;min-width:2px"><div class="ldsp-rd-day-bar" style="height:${max>0?(dy.mins>0?Math.max(dy.mins/max*45,2):1):1}px;opacity:${dy.isFut?0.35:(dy.isT?1:0.75)};background:var(--accent2);width:100%;border-radius:3px 3px 0 0" data-t="${dy.d}日: ${dy.isFut?'0分钟 (未到)':Utils.formatReadingTime(dy.mins)}"></div><div class="ldsp-rd-day-lbl" style="margin-top:3px;font-size:${fs}">${dy.d}</div></div>`).join('')}</div></div>`;
+                return `<div class="ldsp-chart"><div class="ldsp-chart-title">${I18n.tHtml('trends.month.readingTitle')}<span class="ldsp-chart-sub">${I18n.tHtml('trends.month.readingSub', { total: Utils.formatReadingTime(total), avg: Utils.formatReadingTime(cd>0?Math.round(total/cd):0) })}</span></div><div class="ldsp-rd-week" style="height:100px;align-items:flex-end;gap:1px">${days.map(dy=>{
+                    const tip = dy.isFut
+                        ? I18n.tHtml('trends.month.dayFutureTip', { day: dy.d })
+                        : I18n.tHtml('trends.month.dayTip', { day: dy.d, time: Utils.formatReadingTime(dy.mins) });
+                    return `<div class="ldsp-rd-day" style="margin:0 1px;flex:1;min-width:2px"><div class="ldsp-rd-day-bar" style="height:${max>0?(dy.mins>0?Math.max(dy.mins/max*45,2):1):1}px;opacity:${dy.isFut?0.35:(dy.isT?1:0.75)};background:var(--accent2);width:100%;border-radius:3px 3px 0 0" data-t="${tip}"></div><div class="ldsp-rd-day-lbl" style="margin-top:3px;font-size:${fs}">${dy.d}</div></div>`;
+                }).join('')}</div></div>`;
             }
 
             _renderYearChart(tracker) {
@@ -10688,16 +10786,16 @@ a:hover{text-decoration:underline;}
                 const labels = new Map();
                 monthRows.forEach((info, m) => {
                     const mid = Math.floor((info.start + info.end) / 2);
-                    if (!labels.has(mid)) labels.set(mid, CONFIG.MONTHS[m]);
+                    if (!labels.has(mid)) labels.set(mid, Utils.getMonthLabel(m));
                 });
 
                 const getTipText = (day) => Utils
                     .escapeHtml(`${day.month + 1}/${day.day}\n${Utils.formatReadingTime(day.mins)}`)
                     .replace(/\n/g, '&#10;');
-                let html = `<div class="ldsp-chart"><div class="ldsp-chart-title">⏱️ 本年阅读时间<span class="ldsp-chart-sub">共 ${Utils.formatReadingTime(total)}</span></div><div class="ldsp-year-heatmap"><div class="ldsp-year-wrap">`;
+                let html = `<div class="ldsp-chart"><div class="ldsp-chart-title">${I18n.tHtml('trends.year.readingTitle')}<span class="ldsp-chart-sub">${I18n.tHtml('trends.year.readingSub', { total: Utils.formatReadingTime(total) })}</span></div><div class="ldsp-year-heatmap"><div class="ldsp-year-wrap">`;
 
                 rows.forEach((row, i) => {
-                    const lbl = labels.get(i) || '';
+                    const lbl = Utils.escapeHtml(labels.get(i) || '');
                     html += `<div class="ldsp-year-row"><span class="ldsp-year-month">${lbl}</span><div class="ldsp-year-cells">`;
                     row.forEach(day => {
                         if (day.empty) {
@@ -10710,10 +10808,10 @@ a:hover{text-decoration:underline;}
                     html += `</div></div>`;
                 });
 
-                html += `</div><div class="ldsp-heatmap-legend"><span>&lt;1分</span>`;
+                html += `</div><div class="ldsp-heatmap-legend"><span>${I18n.tHtml('trends.year.legendMin')}</span>`;
                 const legendColors = ['rgba(107,140,239,.1)', 'rgba(180,230,210,.35)', 'rgba(130,215,180,.5)', 'rgba(90,195,155,.65)', 'linear-gradient(135deg,#6dcfa5,#50c090)'];
                 for (let i = 0; i <= 4; i++) html += `<div class="ldsp-heatmap-legend-cell" style="background:${legendColors[i]}"></div>`;
-                html += `<span>&gt;5小时</span></div></div></div>`;
+                html += `<span>${I18n.tHtml('trends.year.legendMax')}</span></div></div></div>`;
 
                 return html;
             }
@@ -10768,7 +10866,7 @@ a:hover{text-decoration:underline;}
                         const item = monthly.get(m);
                         return Math.max(0, Utils.toSafeNumber(Utils.getMetricValue(item?.endData, name, 0), 0));
                     }),
-                    dates: sorted.map(m => `${new Date(m).getMonth() + 1}月`)
+                    dates: sorted.map(m => Utils.getMonthLabel(new Date(m).getMonth()))
                 };
             }
 
@@ -10786,7 +10884,7 @@ a:hover{text-decoration:underline;}
                     .filter(m => year === null || new Date(m).getFullYear() === year);
                 return {
                     values: sorted.map(m => Utils.toSafeNumber(monthly.get(m).data?.[name], 0)),
-                    dates: sorted.map(m => `${new Date(m).getMonth() + 1}月`)
+                    dates: sorted.map(m => Utils.getMonthLabel(new Date(m).getMonth()))
                 };
             }
 
@@ -10815,15 +10913,17 @@ a:hover{text-decoration:underline;}
                 }
                 overlay.innerHTML = `
                     <div class="ldsp-modal">
-                        <div class="ldsp-modal-hdr"><span class="ldsp-modal-icon">${isUpgrade ? '🎉' : '👋'}</span><span class="ldsp-modal-title">${isUpgrade ? '升级到 v3.0' : '欢迎使用 LDStatus Pro'}</span></div>
+                        <div class="ldsp-modal-hdr"><span class="ldsp-modal-icon">${isUpgrade ? '🎉' : '👋'}</span><span class="ldsp-modal-title">${I18n.tHtml(isUpgrade ? 'panel.loginModal.upgradeTitle' : 'panel.loginModal.welcomeTitle')}</span></div>
                         <div class="ldsp-modal-body">
-                            ${isUpgrade ? `<p>v3.0 版本新增了 <strong>云同步</strong> 功能！</p><p>登录后，你的阅读数据将自动同步到云端，支持跨浏览器、跨设备访问。</p>` : `<p>登录 Linux.do 账号后可以：</p><ul><li>☁️ 阅读数据云端同步</li><li>🔄 跨浏览器/设备同步</li><li>🏆 查看/加入阅读排行榜</li></ul>`}
+                            ${isUpgrade
+                                ? `<p>${I18n.tHtml('panel.loginModal.upgradeP1Prefix')}<strong>${I18n.tHtml('panel.loginModal.upgradeP1Strong')}</strong>${I18n.tHtml('panel.loginModal.upgradeP1Suffix')}</p><p>${I18n.tHtml('panel.loginModal.upgradeP2')}</p>`
+                                : `<p>${I18n.tHtml('panel.loginModal.welcomeLead')}</p><ul><li>${I18n.tHtml('panel.loginModal.welcomeItem1')}</li><li>${I18n.tHtml('panel.loginModal.welcomeItem2')}</li><li>${I18n.tHtml('panel.loginModal.welcomeItem3')}</li></ul>`}
                         </div>
                         <div class="ldsp-modal-footer">
-                            <button class="ldsp-modal-btn primary" id="ldsp-modal-login">🚀 立即登录</button>
-                            <button class="ldsp-modal-btn secondary" id="ldsp-modal-skip">稍后再说</button>
+                            <button class="ldsp-modal-btn primary" id="ldsp-modal-login">${I18n.tHtml('panel.loginModal.loginNow')}</button>
+                            <button class="ldsp-modal-btn secondary" id="ldsp-modal-skip">${I18n.tHtml('panel.loginModal.later')}</button>
                         </div>
-                        <div class="ldsp-modal-note">登录仅用于云同步，不登录也可正常使用本地功能</div>
+                        <div class="ldsp-modal-note">${I18n.tHtml('panel.loginModal.note')}</div>
                     </div>`;
                 this.panel.el.appendChild(overlay);
                 requestAnimationFrame(() => {
@@ -10834,26 +10934,35 @@ a:hover{text-decoration:underline;}
             }
 
             renderLeaderboard(tab) {
-                const tabs = [['daily','📅','日榜'],['weekly','📊','周榜'],['monthly','📈','月榜']];
+                const tabs = [
+                    ['daily', '📅', I18n.tHtml('leaderboard.tabs.daily')],
+                    ['weekly', '📊', I18n.tHtml('leaderboard.tabs.weekly')],
+                    ['monthly', '📈', I18n.tHtml('leaderboard.tabs.monthly')]
+                ];
                 this.panel.$.leaderboard.innerHTML = `<div class="ldsp-subtabs ldsp-trend-subtabs ldsp-subtabs-scroll"><div class="ldsp-subtab-indicator"><div class="ldsp-subtab-indicator-glass"></div><div class="ldsp-subtab-indicator-shine"></div></div>${tabs.map(([id,i,l])=>`<div class="ldsp-subtab${tab===id?' active':''}" data-lb="${id}"><span class="ldsp-trend-tab-icon">${i}</span><span class="ldsp-trend-tab-text">${l}</span></div>`).join('')}</div><div class="ldsp-lb-content"></div>`;
             }
-            renderLeaderboardLogin() { return `<div class="ldsp-lb-login"><div class="ldsp-lb-login-icon">🔐</div><div class="ldsp-lb-login-title">需要登录</div><div class="ldsp-lb-login-desc">登录后可以：<br>☁️ 阅读数据云端同步<br>🏆 查看/加入排行榜</div><button class="ldsp-lb-btn primary" id="ldsp-lb-login">🚀 立即登录</button><div class="ldsp-privacy-note"><span>🔒</span><span>仅获取基本信息，用于数据同步</span></div></div>`; }
-            renderLeaderboardJoin() { return `<div class="ldsp-join-prompt"><div class="ldsp-join-prompt-icon">🏆</div><div class="ldsp-join-prompt-title">加入阅读排行榜</div><div class="ldsp-join-prompt-desc">加入后可以查看排行榜，你的阅读时间将与其他用户一起展示<br>这是完全可选的，随时可以退出</div><button class="ldsp-lb-btn primary" id="ldsp-lb-join">✨ 加入排行榜</button><div class="ldsp-privacy-note"><span>🔒</span><span>仅展示用户名和阅读时间</span></div></div>`; }
-            renderRegistrationPaused() { return `<div class="ldsp-join-prompt paused"><div class="ldsp-join-prompt-icon">🚧</div><div class="ldsp-join-prompt-title">已暂停新用户注册</div><div class="ldsp-join-prompt-desc">由于后端服务压力，暂不开放新用户注册。已注册用户可正常登录使用。</div></div>`; }
+            renderLeaderboardLogin() { return `<div class="ldsp-lb-login"><div class="ldsp-lb-login-icon">🔐</div><div class="ldsp-lb-login-title">${I18n.tHtml('leaderboard.login.title')}</div><div class="ldsp-lb-login-desc">${I18n.tHtml('leaderboard.login.descLine1')}<br>${I18n.tHtml('leaderboard.login.descLine2')}<br>${I18n.tHtml('leaderboard.login.descLine3')}</div><button class="ldsp-lb-btn primary" id="ldsp-lb-login">${I18n.tHtml('leaderboard.login.btn')}</button><div class="ldsp-privacy-note"><span>🔒</span><span>${I18n.tHtml('leaderboard.login.privacy')}</span></div></div>`; }
+            renderLeaderboardJoin() { return `<div class="ldsp-join-prompt"><div class="ldsp-join-prompt-icon">🏆</div><div class="ldsp-join-prompt-title">${I18n.tHtml('leaderboard.join.title')}</div><div class="ldsp-join-prompt-desc">${I18n.tHtml('leaderboard.join.descLine1')}<br>${I18n.tHtml('leaderboard.join.descLine2')}</div><button class="ldsp-lb-btn primary" id="ldsp-lb-join">${I18n.tHtml('leaderboard.join.btn')}</button><div class="ldsp-privacy-note"><span>🔒</span><span>${I18n.tHtml('leaderboard.join.privacy')}</span></div></div>`; }
+            renderRegistrationPaused() { return `<div class="ldsp-join-prompt paused"><div class="ldsp-join-prompt-icon">🚧</div><div class="ldsp-join-prompt-title">${I18n.tHtml('leaderboard.paused.title')}</div><div class="ldsp-join-prompt-desc">${I18n.tHtml('leaderboard.paused.desc')}</div></div>`; }
 
             renderLeaderboardData(data, uid, joined, type = 'daily') {
-                const fmtInt = ms => { const m = Math.round(ms/60000); return m < 60 ? `每 ${m} 分钟更新` : `每 ${Math.round(m/60)} 小时更新`; };
+                const fmtInt = ms => {
+                    const m = Math.round(ms / 60000);
+                    return m < 60
+                        ? I18n.tHtml('leaderboard.data.updateMinutes', { m })
+                        : I18n.tHtml('leaderboard.data.updateHours', { h: Math.round(m / 60) });
+                };
                 const rules = { daily: fmtInt(CONFIG.CACHE.LEADERBOARD_DAILY_TTL), weekly: fmtInt(CONFIG.CACHE.LEADERBOARD_WEEKLY_TTL), monthly: fmtInt(CONFIG.CACHE.LEADERBOARD_MONTHLY_TTL) };
                 if (!data?.rankings?.length) return UI.empty({
                     icon: '📭',
-                    text: '暂无排行数据<br>成为第一个上榜的人吧！',
+                    text: `${I18n.tHtml('leaderboard.data.emptyLine1')}<br>${I18n.tHtml('leaderboard.data.emptyLine2')}`,
                     className: 'ldsp-lb-empty',
                     iconClass: 'ldsp-lb-empty-icon',
                     textClass: 'ldsp-lb-empty-txt',
                     raw: true
                 });
-                let h = `<div class="ldsp-lb-period"><button class="ldsp-lb-refresh" data-type="${type}" title="手动刷新">🔄</button>${data.period?`📅 统计周期: <span>${data.period}</span>`:''}<span class="ldsp-update-rule">🔄 ${rules[type]}</span></div>`;
-                if (data.myRank && joined) h += `<div class="ldsp-my-rank${data.myRank.in_top?'':' not-in-top'}"><div><div class="ldsp-my-rank-lbl">我的排名${data.myRank.in_top?'':'<span class="ldsp-not-in-top-hint">（未入榜）</span>'}</div><div class="ldsp-my-rank-val">${data.myRank.rank?`#${data.myRank.rank}`:(data.myRank.rank_display||'--')}</div></div><div class="ldsp-my-rank-time">${Utils.formatReadingTime(data.myRank.minutes)}</div></div>`;
+                let h = `<div class="ldsp-lb-period"><button class="ldsp-lb-refresh" data-type="${type}" title="${I18n.tHtml('leaderboard.data.refreshTitle')}">🔄</button>${data.period?`${I18n.tHtml('leaderboard.data.period')}<span>${Utils.escapeHtml(String(data.period))}</span>`:''}<span class="ldsp-update-rule">🔄 ${rules[type]}</span></div>`;
+                if (data.myRank && joined) h += `<div class="ldsp-my-rank${data.myRank.in_top?'':' not-in-top'}"><div><div class="ldsp-my-rank-lbl">${I18n.tHtml('leaderboard.data.myRank')}${data.myRank.in_top?'':`<span class="ldsp-not-in-top-hint">${I18n.tHtml('leaderboard.data.notInTop')}</span>`}</div><div class="ldsp-my-rank-val">${data.myRank.rank?`#${data.myRank.rank}`:(data.myRank.rank_display||'--')}</div></div><div class="ldsp-my-rank-time">${Utils.escapeHtml(Utils.formatReadingTime(data.myRank.minutes))}</div></div>`;
                 h += '<div class="ldsp-rank-list">';
                 const base = `https://${CURRENT_SITE.domain}`;
                 data.rankings.forEach((u,i) => {
@@ -10865,13 +10974,13 @@ a:hover{text-decoration:underline;}
                     const su = Utils.escapeHtml(Utils.sanitize(u.username,30)), sn = Utils.escapeHtml(Utils.sanitize(u.name,100));
                     const nm = sn?.trim() ? `<span class="ldsp-rank-display-name">${sn}</span><span class="ldsp-rank-username">@${su}</span>` : `<span class="ldsp-rank-name-only">${su}</span>`;
                     const avatarHtml = `<img class="ldsp-rank-avatar" src="${Utils.escapeHtml(avatarSrc)}" alt="${Utils.escapeHtml(avatarSeed)}" data-fallback-src="${Utils.escapeHtml(avatarFallback)}" onerror="if(this.dataset.fallbackApplied==='1'){this.onerror=null;return;}this.dataset.fallbackApplied='1';this.src=this.dataset.fallbackSrc;">`;
-                    h += `<div class="ldsp-rank-item ${cls}" style="animation-delay:${i*30}ms"><div class="ldsp-rank-num">${r<=3?['🥇','🥈','🥉'][r-1]:r}</div>${avatarHtml}<div class="ldsp-rank-info">${nm}${me?'<span class="ldsp-rank-me-tag">(我)</span>':''}</div><div class="ldsp-rank-time">${Utils.formatReadingTime(u.minutes)}</div></div>`;
+                    h += `<div class="ldsp-rank-item ${cls}" style="animation-delay:${i*30}ms"><div class="ldsp-rank-num">${r<=3?['🥇','🥈','🥉'][r-1]:r}</div>${avatarHtml}<div class="ldsp-rank-info">${nm}${me?`<span class="ldsp-rank-me-tag">${I18n.tHtml('leaderboard.data.meTag')}</span>`:''}</div><div class="ldsp-rank-time">${Utils.escapeHtml(Utils.formatReadingTime(u.minutes))}</div></div>`;
                 });
                 h += '</div>';
-                if (joined) h += `<div style="margin-top:12px;text-align:center"><button class="ldsp-lb-btn danger" id="ldsp-lb-quit" style="font-size:9px;padding:4px 8px">退出排行榜</button></div>`;
+                if (joined) h += `<div style="margin-top:12px;text-align:center"><button class="ldsp-lb-btn danger" id="ldsp-lb-quit" style="font-size:9px;padding:4px 8px">${I18n.tHtml('leaderboard.data.quitBtn')}</button></div>`;
                 return h;
             }
-            renderLeaderboardLoading() { return UI.miniLoading('加载排行榜...'); }
+            renderLeaderboardLoading() { return UI.miniLoading(I18n.t('leaderboard.loading')); }
             renderLeaderboardError(msg) {
                 return UI.error({
                     text: msg,
@@ -12262,60 +12371,60 @@ a:hover{text-decoration:underline;}
                                 <div class="ldsp-user-row">
                                     <div class="ldsp-avatar-wrap" data-clickable><div class="ldsp-avatar-ph">👤</div></div>
                                     <div class="ldsp-user-info">
-                                        <div class="ldsp-user-display-name">加载中...</div>
+                                        <div class="ldsp-user-display-name">${I18n.tHtml('panel.user.loading')}</div>
                                         <div class="ldsp-user-handle"></div>
                                     </div>
                                 </div>
                                 <div class="ldsp-user-meta">
                                     <div class="ldsp-follow-combined">
-                                        <span class="ldsp-follow-part ldsp-follow-following" data-clickable data-tab="following" title="查看关注列表">关注 <span class="ldsp-follow-num-following">-</span></span>
+                                        <span class="ldsp-follow-part ldsp-follow-following" data-clickable data-tab="following" title="${I18n.tHtml('panel.user.followingTitle')}">${I18n.tHtml('panel.user.followingPrefix')}<span class="ldsp-follow-num-following">-</span>${I18n.tHtml('panel.user.followingSuffix')}</span>
                                         <span class="ldsp-follow-sep">·</span>
-                                        <span class="ldsp-follow-part ldsp-follow-followers" data-clickable data-tab="followers" title="查看粉丝列表"><span class="ldsp-follow-num-followers">-</span> 粉丝</span>
+                                        <span class="ldsp-follow-part ldsp-follow-followers" data-clickable data-tab="followers" title="${I18n.tHtml('panel.user.followersTitle')}">${I18n.tHtml('panel.user.followersPrefix')}<span class="ldsp-follow-num-followers">-</span>${I18n.tHtml('panel.user.followersSuffix')}</span>
                                     </div>
-                                    <span class="ldsp-join-days">来<span class="ldsp-join-days-site"></span><span class="ldsp-join-days-num">-</span>天</span>
+                                    <span class="ldsp-join-days">${I18n.tHtml('panel.user.joinDaysPrefix')}<span class="ldsp-join-days-site"></span><span class="ldsp-join-days-num">-</span>${I18n.tHtml('panel.user.joinDaysSuffix')}</span>
                                 </div>
                                 <div class="ldsp-user-actions-wrap">
                                     <div class="ldsp-user-actions collapsed">
-                                        <div class="ldsp-action-btn ldsp-login-btn" data-clickable title="点击登录"><span class="ldsp-action-icon">🔑</span><span class="ldsp-action-text">点击登录</span></div>
-                                        <div class="ldsp-action-btn ldsp-logout-btn" data-clickable title="注销登录"><span class="ldsp-action-icon">⏻</span><span class="ldsp-action-text">注销</span></div>
-                                        ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-action-btn ldsp-ldc-btn" data-clickable title="Linux Do Credit"><span class="ldsp-action-icon">🍟</span><span class="ldsp-action-text">LDC</span></div>' : ''}
-                                        ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-action-btn ldsp-shop-btn" data-clickable title="LD士多"><span class="ldsp-action-icon">🍔</span><span class="ldsp-action-text">士多</span></div>' : ''}
-                                        ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-action-btn ldsp-cdk-btn" data-clickable title="CDK 系统"><span class="ldsp-action-icon">🎁</span><span class="ldsp-action-text">CDK</span></div>' : ''}
-                                        <div class="ldsp-action-btn ldsp-melon-btn" data-clickable title="AI 帖子总结"><span class="ldsp-action-icon">🍉</span><span class="ldsp-action-text">总结</span></div>
-                                        <div class="ldsp-action-btn ldsp-export-btn" data-clickable title="导出帖子为PDF/HTML/Markdown"><span class="ldsp-action-icon">📥</span><span class="ldsp-action-text">导出</span></div>
-                                        <div class="ldsp-action-btn ldsp-ticket-btn" data-clickable title="工单系统"><span class="ldsp-action-icon">📪</span><span class="ldsp-action-text">工单</span></div>
+                                        <div class="ldsp-action-btn ldsp-login-btn" data-clickable title="${I18n.tHtml('panel.actions.loginTitle')}"><span class="ldsp-action-icon">🔑</span><span class="ldsp-action-text">${I18n.tHtml('panel.actions.loginText')}</span></div>
+                                        <div class="ldsp-action-btn ldsp-logout-btn" data-clickable title="${I18n.tHtml('panel.actions.logoutTitle')}"><span class="ldsp-action-icon">⏻</span><span class="ldsp-action-text">${I18n.tHtml('panel.actions.logoutText')}</span></div>
+                                        ${CURRENT_SITE.domain === 'linux.do' ? `<div class="ldsp-action-btn ldsp-ldc-btn" data-clickable title="${I18n.tHtml('panel.actions.ldcTitle')}"><span class="ldsp-action-icon">🍟</span><span class="ldsp-action-text">${I18n.tHtml('panel.actions.ldcText')}</span></div>` : ''}
+                                        ${CURRENT_SITE.domain === 'linux.do' ? `<div class="ldsp-action-btn ldsp-shop-btn" data-clickable title="${I18n.tHtml('panel.actions.shopTitle')}"><span class="ldsp-action-icon">🍔</span><span class="ldsp-action-text">${I18n.tHtml('panel.actions.shopText')}</span></div>` : ''}
+                                        ${CURRENT_SITE.domain === 'linux.do' ? `<div class="ldsp-action-btn ldsp-cdk-btn" data-clickable title="${I18n.tHtml('panel.actions.cdkTitle')}"><span class="ldsp-action-icon">🎁</span><span class="ldsp-action-text">${I18n.tHtml('panel.actions.cdkText')}</span></div>` : ''}
+                                        <div class="ldsp-action-btn ldsp-melon-btn" data-clickable title="${I18n.tHtml('panel.actions.melonTitle')}"><span class="ldsp-action-icon">🍉</span><span class="ldsp-action-text">${I18n.tHtml('panel.actions.melonText')}</span></div>
+                                        <div class="ldsp-action-btn ldsp-export-btn" data-clickable title="${I18n.tHtml('panel.actions.exportTitle')}"><span class="ldsp-action-icon">📥</span><span class="ldsp-action-text">${I18n.tHtml('panel.actions.exportText')}</span></div>
+                                        <div class="ldsp-action-btn ldsp-ticket-btn" data-clickable title="${I18n.tHtml('panel.actions.ticketTitle')}"><span class="ldsp-action-icon">📪</span><span class="ldsp-action-text">${I18n.tHtml('panel.actions.ticketText')}</span></div>
                                     </div>
-                                    <div class="ldsp-user-actions-toggle" data-clickable title="展开更多按钮"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg><span class="ldsp-toggle-text">展开更多</span></div>
+                                    <div class="ldsp-user-actions-toggle" data-clickable title="${I18n.tHtml('panel.actions.expandMoreTitle')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg><span class="ldsp-toggle-text">${I18n.tHtml('panel.actions.expandMore')}</span></div>
                                 </div>
                             </div>
-                            <div class="ldsp-reading" data-clickable title="点击访问 LDStatus Pro 官网">
+                            <div class="ldsp-reading" data-clickable title="${I18n.tHtml('metrics.reading.visitWebsiteTitle')}">
                                 <div class="ldsp-reading-ripple"></div>
                                 <span class="ldsp-reading-icon">🌱</span>
                                 <span class="ldsp-reading-time">--</span>
-                                <span class="ldsp-reading-label">今日阅读</span>
+                                <span class="ldsp-reading-label">${I18n.tHtml('metrics.reading.todayLabel')}</span>
                             </div>
                         </div>
                         <div class="ldsp-tabs ldsp-tabs-auto">
                             <div class="ldsp-tab-indicator"><div class="ldsp-tab-indicator-glass"></div><div class="ldsp-tab-indicator-shine"></div></div>
-                            <button class="ldsp-tab active" data-tab="reqs"><span class="ldsp-tab-icon">📋</span><span class="ldsp-tab-text">要求</span></button>
-                            <button class="ldsp-tab" data-tab="trends"><span class="ldsp-tab-icon">📈</span><span class="ldsp-tab-text">趋势</span></button>
-                            ${this.hasLeaderboard ? '<button class="ldsp-tab" data-tab="leaderboard"><span class="ldsp-tab-icon">🏆</span><span class="ldsp-tab-text">排行</span></button>' : ''}
-                            <button class="ldsp-tab" data-tab="activity"><span class="ldsp-tab-icon">👤</span><span class="ldsp-tab-text">我的</span></button>
+                            <button class="ldsp-tab active" data-tab="reqs"><span class="ldsp-tab-icon">📋</span><span class="ldsp-tab-text">${I18n.tHtml('panel.tabs.reqs')}</span></button>
+                            <button class="ldsp-tab" data-tab="trends"><span class="ldsp-tab-icon">📈</span><span class="ldsp-tab-text">${I18n.tHtml('panel.tabs.trends')}</span></button>
+                            ${this.hasLeaderboard ? `<button class="ldsp-tab" data-tab="leaderboard"><span class="ldsp-tab-icon">🏆</span><span class="ldsp-tab-text">${I18n.tHtml('panel.tabs.leaderboard')}</span></button>` : ''}
+                            <button class="ldsp-tab" data-tab="activity"><span class="ldsp-tab-icon">👤</span><span class="ldsp-tab-text">${I18n.tHtml('panel.tabs.activity')}</span></button>
                         </div>
                         <div class="ldsp-content">
                             <div id="ldsp-reqs" class="ldsp-section active">${UI.loading()}</div>
-                            <div id="ldsp-trends" class="ldsp-section">${UI.empty({ icon: '📊', text: '暂无历史数据' })}</div>
+                            <div id="ldsp-trends" class="ldsp-section">${UI.empty({ icon: '📊', text: I18n.t('common.ui.noHistory') })}</div>
                             ${this.hasLeaderboard ? `<div id="ldsp-leaderboard" class="ldsp-section">${UI.loading()}</div>` : ''}
-                            <div id="ldsp-activity" class="ldsp-section">${UI.empty({ icon: '👤', text: '选择一个分类查看' })}</div>
+                            <div id="ldsp-activity" class="ldsp-section">${UI.empty({ icon: '👤', text: I18n.t('common.ui.selectCategory') })}</div>
                         </div>
                         <div class="ldsp-confirm-overlay">
                             <div class="ldsp-confirm-box">
                                 <div class="ldsp-confirm-icon">⏻</div>
-                                <div class="ldsp-confirm-title">确认注销登录吗？</div>
-                                <div class="ldsp-confirm-msg">退出后排行榜和云同步功能将不可用</div>
+                                <div class="ldsp-confirm-title">${I18n.tHtml('panel.logoutConfirm.title')}</div>
+                                <div class="ldsp-confirm-msg">${I18n.tHtml('panel.logoutConfirm.message')}</div>
                                 <div class="ldsp-confirm-btns">
-                                    <button class="ldsp-confirm-btn cancel">取消</button>
-                                    <button class="ldsp-confirm-btn confirm">确认注销</button>
+                                    <button class="ldsp-confirm-btn cancel">${I18n.tHtml('panel.logoutConfirm.cancel')}</button>
+                                    <button class="ldsp-confirm-btn confirm">${I18n.tHtml('panel.logoutConfirm.confirm')}</button>
                                 </div>
                             </div>
                         </div>
@@ -12678,7 +12787,7 @@ a:hover{text-decoration:underline;}
                 // 注销登录按钮与确认弹窗
                 const showLogoutConfirm = () => {
                     if (!this.hasLeaderboard || !this.oauth?.isLoggedIn()) {
-                        this.renderer.showToast('ℹ️ 当前未登录');
+                        this.renderer.showToast(I18n.t('panel.toasts.notLoggedIn'));
                         return;
                     }
                     this.$.confirmOverlay?.classList.add('show');
@@ -12692,7 +12801,7 @@ a:hover{text-decoration:underline;}
                     this.leaderboard?.stopSync();
                     this.registrationPaused = false;
                     this.hasJoinedBefore = false;
-                    this.renderer.showToast('✅ 已退出登录');
+                    this.renderer.showToast(I18n.t('panel.toasts.loggedOut'));
                     this._updateLoginUI();
                     this._renderLeaderboard();
                 };
@@ -12715,7 +12824,7 @@ a:hover{text-decoration:underline;}
                     if (this.cloudSync.isSyncing()) return;  // 正在同步中，忽略点击
                     try {
                         await this.cloudSync.fullSync();
-                        this.renderer.showToast('✅ 数据同步完成');
+                        this.renderer.showToast(I18n.t('panel.toasts.syncComplete'));
                         this.renderer.renderReading(this.tracker.getTodayTime(), this.tracker.isActive);
                         // 显示成功状态
                         if (this.$.btnCloudSync) {
@@ -12741,7 +12850,7 @@ a:hover{text-decoration:underline;}
                 this.$.ticketBtn?.addEventListener('click', e => {
                     e.stopPropagation();
                     if (!this.hasLeaderboard || !this.oauth?.isLoggedIn()) {
-                        this.renderer.showToast('⚠️ 请先登录后使用工单功能');
+                        this.renderer.showToast(I18n.t('panel.toasts.loginRequiredForTickets'));
                         return;
                     }
                     const mgr = this._ensureTicketManager();
@@ -12782,7 +12891,7 @@ a:hover{text-decoration:underline;}
                         try { popup.opener = null; } catch (_) {}
                         return;
                     }
-                    this.renderer.showToast('⚠️ 浏览器拦截了新标签页，请允许弹窗后重试');
+                    this.renderer.showToast(I18n.t('panel.toasts.popupBlocked'));
                 });
 
                 // CDK 按钮（仅 linux.do）
@@ -13128,7 +13237,8 @@ a:hover{text-decoration:underline;}
                 }
                 
                 const textEl = toggle.querySelector('.ldsp-toggle-text');
-                if (textEl) textEl.textContent = expanded ? '收起' : '展开更多';
+                if (textEl) textEl.textContent = I18n.t(expanded ? 'panel.actions.collapse' : 'panel.actions.expandMore');
+                toggle.title = I18n.t(expanded ? 'panel.actions.collapseTitle' : 'panel.actions.expandMoreTitle');
                 toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
                 toggle.setAttribute('aria-hidden', showToggle ? 'false' : 'true');
             }
@@ -14365,7 +14475,9 @@ a:hover{text-decoration:underline;}
                     }
 
                     if (!html || !String(html).trim()) {
-                        throw new Error('信任等级页返回空内容');
+                        const emptyErr = new Error(I18n.t('panel.homeErrors.emptyConnect'));
+                        emptyErr.code = 'EMPTY_CONNECT_PAGE';
+                        throw emptyErr;
                     }
 
                     await this._parse(html);
@@ -14415,27 +14527,29 @@ a:hover{text-decoration:underline;}
                 const status = ErrorFormatter.extractStatus(error);
                 const raw = error?.message || '';
                 if (status === 401 || status === 403) {
-                    return `当前未登录论坛，或没有权限访问信任等级页（HTTP ${status}）`;
+                    return I18n.t('panel.homeErrors.http401_403', { status });
                 }
-                if (status === 404) return '信任等级页不存在（HTTP 404）';
-                if (status === 429) return '请求过于频繁，请稍后重试（HTTP 429）';
-                if (status >= 500) return `信任等级页暂时不可用（HTTP ${status}）`;
-                if (status >= 400) return `信任等级页请求失败（HTTP ${status}）`;
-                if (error?.isTimeout || /timeout|超时/i.test(raw)) {
-                    return '请求超时，无法连接信任等级页，请检查网络后重试';
+                if (status === 404) return I18n.t('panel.homeErrors.http404');
+                if (status === 429) return I18n.t('panel.homeErrors.http429');
+                if (status >= 500) return I18n.t('panel.homeErrors.http5xx', { status });
+                if (status >= 400) return I18n.t('panel.homeErrors.http4xx', { status });
+                if (error?.isTimeout || /timeout|\u8d85\u65f6/i.test(raw)) {
+                    return I18n.t('panel.homeErrors.timeout');
                 }
-                if (error?.code === 'NETWORK_ERROR' || /network|网络/i.test(raw)) {
-                    return '网络连接失败，无法获取升级数据，请检查网络后重试';
+                if (error?.code === 'NETWORK_ERROR' || /network|\u7f51\u7edc/i.test(raw)) {
+                    return I18n.t('panel.homeErrors.network');
                 }
-                if (/空内容/.test(raw)) return '信任等级页返回空内容';
+                if (error?.code === 'EMPTY_CONNECT_PAGE' || /\u7a7a\u5185\u5bb9|empty content/i.test(raw)) {
+                    return I18n.t('panel.homeErrors.emptyConnect');
+                }
                 return ErrorFormatter.format(error);
             }
 
             _showError(msg) {
                 this.$.reqs.innerHTML = UI.empty({
                     icon: '❌',
-                    text: '升级数据加载失败',
-                    hint: msg || '未知错误'
+                    text: I18n.t('panel.homeErrors.loadFailedTitle'),
+                    hint: msg || I18n.t('common.ui.unknownError')
                 });
             }
 
@@ -14524,40 +14638,41 @@ a:hover{text-decoration:underline;}
 
                 // === 方案1：优先从 summary API 获取实时统计数据 ===
                 // 访问天数等字段优先以 LinuxDo 实时数据为准，避免云端缓存导致显示滞后
-                if (effectiveUsername && effectiveUsername !== '未知') {
-                    this.$.reqs.innerHTML = UI.loading({ text: '正在获取统计数据...' });
+                if (effectiveUsername && effectiveUsername !== '\u672a\u77e5') {
+                    this.$.reqs.innerHTML = UI.loading({ text: I18n.t('panel.homeErrors.fetchingSummary') });
                     try {
                         const summaryData = await this._fetchSummaryData(effectiveUsername);
                         if (summaryData && Object.keys(summaryData).length > 0) {
                             return this._renderSummaryData(summaryData, effectiveUsername, numLevel);
                         }
-                        failHints.push('用户统计接口未返回有效数据');
+                        failHints.push(I18n.t('panel.homeErrors.summaryEmpty'));
                     } catch (e) {
-                        failHints.push(`用户统计：${ErrorFormatter.format(e)}`);
+                        failHints.push(I18n.t('panel.homeErrors.summaryPrefix', { reason: ErrorFormatter.format(e) }));
                     }
                 } else {
-                    failHints.push('未能识别当前用户');
+                    failHints.push(I18n.t('panel.homeErrors.userUnidentified'));
                 }
 
                 // === 方案2：回退到云端已同步数据（兜底） ===
                 if (this.oauth?.isLoggedIn() && this.cloudSync) {
-                    this.$.reqs.innerHTML = UI.loading({ text: '正在获取云端数据...' });
+                    this.$.reqs.innerHTML = UI.loading({ text: I18n.t('panel.homeErrors.fetchingCloud') });
                     try {
                         const cloudData = await this._fetchCloudRequirements();
                         if (cloudData && cloudData.length > 0) {
                             return this._renderCloudRequirements(cloudData, effectiveUsername, numLevel);
                         }
-                        failHints.push('云端没有已同步的升级数据');
+                        failHints.push(I18n.t('panel.homeErrors.cloudEmpty'));
                     } catch (e) {
-                        failHints.push(`云端：${ErrorFormatter.format(e)}`);
+                        failHints.push(I18n.t('panel.homeErrors.cloudPrefix', { reason: ErrorFormatter.format(e) }));
                     }
                 }
                 
+                const hintSeparator = I18n.getLocale() === 'en-US' ? '; ' : '；';
                 this.$.reqs.innerHTML = UI.empty({
                     icon: '📊',
-                    text: `当前信任等级：${numLevel}`,
-                    hint: failHints.length ? failHints.join('；') : '暂无升级进度数据',
-                    extra: '<div style="margin-top:10px;font-size:11px;color:#9ca3af;"><a href="https://linux.do/t/topic/2460" target="_blank" style="color:#5a7de0;text-decoration:none;">📖 查看完整信任等级说明</a></div>'
+                    text: I18n.t('panel.homeErrors.currentTrustLevel', { level: numLevel }),
+                    hint: failHints.length ? failHints.join(hintSeparator) : I18n.t('panel.homeErrors.noProgressData'),
+                    extra: `<div style="margin-top:10px;font-size:11px;color:#9ca3af;"><a href="https://linux.do/t/topic/2460" target="_blank" style="color:#5a7de0;text-decoration:none;">${I18n.tHtml('panel.homeErrors.viewTrustGuide')}</a></div>`
                 });
                 
                 // 初始化 todayData（用于今日趋势显示）
@@ -14755,7 +14870,7 @@ a:hover{text-decoration:underline;}
                         if (!stats || typeof stats !== 'object') return false;
                         // 显式无权限时直接返回 false（避免误用空数据）
                         if (stats.can_see_summary_stats === false) {
-                            remember(new Error('没有权限查看用户统计数据'));
+                            remember(new Error(I18n.t('panel.homeErrors.noSummaryPermission')));
                             return false;
                         }
 
@@ -14825,7 +14940,7 @@ a:hover{text-decoration:underline;}
                     if (jsonText) {
                         try {
                             if (/<!doctype|<html[\s>]/i.test(jsonText)) {
-                                throw new Error('用户统计接口返回了网页而不是数据');
+                                throw new Error(I18n.t('panel.homeErrors.summaryReturnedHtml'));
                             }
                             const json = JSON.parse(jsonText);
                             const stats = extractSummaryStats(json);
@@ -14857,7 +14972,7 @@ a:hover{text-decoration:underline;}
                     
                     if (!html) {
                         if (lastError) throw lastError;
-                        throw new Error('用户统计页返回空内容');
+                        throw new Error(I18n.t('panel.homeErrors.summaryPageEmpty'));
                     }
                     
                     const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -15464,10 +15579,10 @@ a:hover{text-decoration:underline;}
                         
                         // 直接使用 fallback 显示，不弹窗打扰用户
                         Logger.warn('Connect page auth failed, using summary data');
-                        return await this._showFallbackStats(oauthUsername, oauthLevel, '信任等级页认证失败，返回了论坛首页');
+                        return await this._showFallbackStats(oauthUsername, oauthLevel, I18n.t('panel.homeErrors.connectAuthFailed'));
                     }
                     
-                    return await this._showFallbackStats(username, level, '信任等级页未找到升级要求表格');
+                    return await this._showFallbackStats(username, level, I18n.t('panel.homeErrors.connectTableMissing'));
                 }
                 
                 if (section) {
@@ -15521,7 +15636,7 @@ a:hover{text-decoration:underline;}
                 
                 const reqs = this._ensureRequirementTargets(this._extractConnectRequirements(section), level);
                 if (!reqs.length) {
-                    return await this._showFallbackStats(username, level, '信任等级页没有可解析的升级要求');
+                    return await this._showFallbackStats(username, level, I18n.t('panel.homeErrors.connectNoReqs'));
                 }
                 Logger.log('parsed requirements count:', reqs.length);
                 const orderedReqs = Utils.reorderRequirements(reqs);
@@ -15683,7 +15798,7 @@ a:hover{text-decoration:underline;}
                 const scrollState = this._captureTrendScrollState();
 
                 if (this.trendTab === 'year') {
-                    container.innerHTML = UI.miniLoading('加载数据中...');
+                    container.innerHTML = UI.miniLoading(I18n.t('common.ui.loadingData'));
                     requestAnimationFrame(() => {
                         setTimeout(() => {
                             container.innerHTML = this.renderer.renderYearTrend(history, reqs, this.historyMgr, this.tracker);
@@ -16137,7 +16252,7 @@ a:hover{text-decoration:underline;}
             // 处理待处理的登录结果（登录信息已在 _checkPendingOAuthLogin 中同步保存）
             async _handlePendingLoginResult(result) {
                 try {
-                    this.renderer.showToast('✅ 登录成功');
+                    this.renderer.showToast(I18n.t('panel.toasts.loginSuccess'));
                     
                     // 同步用户名到 storage
                     if (result.user?.username) {
@@ -16170,7 +16285,7 @@ a:hover{text-decoration:underline;}
 
             async _doLogin() {
                 try {
-                    this.renderer.showToast('⏳ 正在跳转到授权页面...');
+                    this.renderer.showToast(I18n.t('panel.toasts.redirectingAuth'));
                     // 统一同窗口登录：login() 会跳转页面，不会返回
                     // 登录成功后页面会跳转回来，由 _checkPendingOAuthLogin 处理结果
                     await this.oauth.login();
@@ -16229,7 +16344,7 @@ a:hover{text-decoration:underline;}
                 const loginBtn = overlay.querySelector('#ldsp-modal-login');
                 loginBtn?.addEventListener('click', async () => {
                     loginBtn.disabled = true;
-                    loginBtn.textContent = '⏳ 跳转中...';
+                    loginBtn.textContent = I18n.t('panel.loginModal.redirecting');
                     try {
                         // 统一同窗口登录：会跳转到授权页面
                         // 登录成功后返回此页面，由 _checkPendingOAuthLogin 处理
@@ -16238,7 +16353,7 @@ a:hover{text-decoration:underline;}
                     } catch (e) {
                         this.renderer.showToast(`❌ ${e.message}`);
                         loginBtn.disabled = false;
-                        loginBtn.textContent = '🚀 立即登录';
+                        loginBtn.textContent = I18n.t('panel.loginModal.loginNow');
                     }
                 });
 
@@ -17455,7 +17570,7 @@ a:hover{text-decoration:underline;}
                     if (loginBtn) {
                         loginBtn.onclick = async () => {
                             loginBtn.disabled = true;
-                            loginBtn.textContent = '⏳ 跳转中...';
+                            loginBtn.textContent = I18n.t('leaderboard.login.redirecting');
                             try {
                                 // 统一同窗口登录：会跳转到授权页面
                                 await this.oauth.login();
@@ -17463,7 +17578,7 @@ a:hover{text-decoration:underline;}
                             } catch (e) {
                                 this.renderer.showToast(`❌ ${e.message}`);
                                 loginBtn.disabled = false;
-                                loginBtn.textContent = '🚀 立即登录';
+                                loginBtn.textContent = I18n.t('leaderboard.login.btn');
                             }
                         };
                     }
@@ -17481,24 +17596,26 @@ a:hover{text-decoration:underline;}
                     if (joinBtn) {
                         joinBtn.onclick = async () => {
                             joinBtn.disabled = true;
-                            joinBtn.textContent = '⏳ 加入中...';
+                            joinBtn.textContent = I18n.t('leaderboard.join.joining');
                             try {
                                 await this.leaderboard.join();
                                 this.hasJoinedBefore = true;
                                 this.leaderboard.startSync();
-                                this.renderer.showToast('✅ 已成功加入排行榜');
+                                this.renderer.showToast(I18n.t('leaderboard.join.joinedToast'));
                                 await this._renderLeaderboardContent();
                             } catch (e) {
                                 const msg = ErrorFormatter.withIcon(e);
                                 this.renderer.showToast(msg);
-                                const paused = e?.code === 'REGISTRATION_PAUSED' || (e?.message || '').includes('已暂停新用户注册');
+                                const paused = e?.code === 'REGISTRATION_PAUSED'
+                                    || (e?.message || '').includes('已暂停新用户注册')
+                                    || /registration.*paused/i.test(e?.message || '');
                                 if (paused) {
                                     this.registrationPaused = true;
                                     await this._renderLeaderboardContent();
                                     return;
                                 }
                                 joinBtn.disabled = false;
-                                joinBtn.textContent = '✨ 加入排行榜';
+                                joinBtn.textContent = I18n.t('leaderboard.join.btn');
                             }
                         };
                     }
@@ -17534,7 +17651,7 @@ a:hover{text-decoration:underline;}
                         
                         const cooldown = this.leaderboard.getRefreshCooldown(type);
                         if (cooldown > 0) {
-                            this.renderer.showToast(`⏳ 请等待 ${cooldown} 秒后再刷新`);
+                            this.renderer.showToast(I18n.t('leaderboard.data.cooldownToast', { seconds: cooldown }));
                             return;
                         }
                         
@@ -17543,7 +17660,7 @@ a:hover{text-decoration:underline;}
                         
                         try {
                             const result = await this.leaderboard.forceRefresh(type);
-                            this.renderer.showToast(result.fromCache ? '📦 获取缓存数据' : '✅ 已刷新排行榜');
+                            this.renderer.showToast(I18n.t(result.fromCache ? 'leaderboard.data.fromCacheToast' : 'leaderboard.data.refreshedToast'));
                             const userData = this.oauth.getUserInfo();
                             container.innerHTML = this.renderer.renderLeaderboardData(result.data, userData?.id, joined, type);
                             this._bindLeaderboardEvents(container, joined);
@@ -17560,20 +17677,24 @@ a:hover{text-decoration:underline;}
                 const quitBtn = container.querySelector('#ldsp-lb-quit');
                 if (quitBtn) {
                     quitBtn.onclick = async () => {
-                        const confirmed = await LDSPDialog.confirm('确定要退出排行榜吗？', { title: '退出排行榜', icon: '🚪', danger: true });
+                        const confirmed = await LDSPDialog.confirm(I18n.t('leaderboard.data.quitConfirmMsg'), {
+                            title: I18n.t('leaderboard.data.quitConfirmTitle'),
+                            icon: '🚪',
+                            danger: true
+                        });
                         if (!confirmed) return;
                         quitBtn.disabled = true;
-                        quitBtn.textContent = '退出中...';
+                        quitBtn.textContent = I18n.t('leaderboard.data.quittingBtn');
                         try {
                             await this.leaderboard.quit();
                             this.leaderboard.stopSync();
-                            this.renderer.showToast('✅ 已退出排行榜');
+                            this.renderer.showToast(I18n.t('leaderboard.data.quitToast'));
                             await this._renderLeaderboardContent();
                         } catch (e) {
                             // v3.5.2.9: 使用统一的错误格式化
                             this.renderer.showToast(ErrorFormatter.withIcon(e));
                             quitBtn.disabled = false;
-                            quitBtn.textContent = '退出排行榜';
+                            quitBtn.textContent = I18n.t('leaderboard.data.quitBtn');
                         }
                     };
                 }

@@ -1,0 +1,56 @@
+{
+  "tabs": {
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly"
+  },
+  "loading": "Loading leaderboard...",
+  "login": {
+    "title": "Sign In Required",
+    "descLine1": "Sign in to unlock:",
+    "descLine2": "☁️ Cloud reading sync",
+    "descLine3": "🏆 Reading leaderboards",
+    "btn": "🚀 Sign in now",
+    "redirecting": "⏳ Redirecting...",
+    "privacy": "Only basic profile info is used for sync"
+  },
+  "join": {
+    "title": "Join Reading Leaderboard",
+    "descLine1": "Compare your reading time with the community",
+    "descLine2": "Completely optional — you can leave anytime",
+    "btn": "✨ Join leaderboard",
+    "joining": "⏳ Joining...",
+    "joinedToast": "✅ Joined the leaderboard",
+    "privacy": "Only your username and reading time are shown"
+  },
+  "paused": {
+    "title": "Registrations Paused",
+    "desc": "New leaderboard registrations are temporarily paused due to server load. Existing members can sign in as usual."
+  },
+  "data": {
+    "emptyLine1": "No rankings yet",
+    "emptyLine2": "Be the first on the board!",
+    "updateMinutes": "Updates every {m}m",
+    "updateHours": "Updates every {h}h",
+    "refreshTitle": "Refresh now",
+    "period": "📅 Period: ",
+    "myRank": "My Rank",
+    "notInTop": " (Unranked)",
+    "meTag": "(You)",
+    "quitBtn": "Leave leaderboard",
+    "quittingBtn": "Leaving...",
+    "quitConfirmTitle": "Leave Leaderboard",
+    "quitConfirmMsg": "Are you sure you want to leave the leaderboard?",
+    "quitToast": "✅ Left the leaderboard",
+    "cooldownToast": "⏳ Wait {seconds}s before refreshing again",
+    "fromCacheToast": "📦 Loaded cached rankings",
+    "refreshedToast": "✅ Leaderboard refreshed"
+  },
+  "errors": {
+    "fetchFailed": "Failed to fetch leaderboard",
+    "cooldown": "Refresh on cooldown",
+    "authExpired": "Session expired. Please sign in again.",
+    "joinFailed": "Failed to join leaderboard",
+    "quitFailed": "Failed to leave leaderboard"
+  }
+}

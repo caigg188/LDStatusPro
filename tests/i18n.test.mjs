@@ -148,6 +148,6 @@ test('check-i18n passes on current repository and catches missing keys, placehol
 test('embedded i18n bundle stays compact with zero external runtime dependencies', async () => {
     const { rawBytes, gzipBytes } = await buildI18nSnippet();
     assert.ok(CATALOGS['zh-CN'] && CATALOGS['en-US']);
-    assert.ok(rawBytes < 20_000, `Expected raw I18n bundle < 20 KB, got ${rawBytes} B`);
-    assert.ok(gzipBytes < 8_000, `Expected gzipped I18n bundle < 8 KB, got ${gzipBytes} B`);
+    assert.ok(rawBytes < 45_000, `Expected raw I18n bundle < 45 KB, got ${rawBytes} B`);
+    assert.ok(gzipBytes < 18_000, `Expected gzipped I18n bundle < 18 KB, got ${gzipBytes} B`);
 });
