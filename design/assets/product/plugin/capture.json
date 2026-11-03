@@ -1,6 +1,6 @@
 {
   "capturedOn": "2026-10-20",
-  "sha256": "0c02ee1a93c7fc52e84a4a43068fb479967861e3f65021216b3c8d4360baf496",
+  "sha256": "d4af69062dd741ab24705fc3b82c6b6a49ba916e9f4cd10eae333a4ac58fdc5d",
   "fixtureSha256": "c535b3b960a82580aac2564fc6f7a8e559b3b4b9353e91c85f743ea55bf89da4",
   "presentationRevision": "compact-380x660-incomplete-no-level-badge-settled-v1",
   "method": "Browser rendering of original source UI with synthetic signed-in fixtures, captured from a bound tab at CSS scale 2 in a 1440x900 desktop iframe; clipped to verified DOM panel bounds",

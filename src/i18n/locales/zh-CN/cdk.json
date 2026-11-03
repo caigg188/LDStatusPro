@@ -4,5 +4,57 @@
   "tabs": {
     "home": "🏠 首页",
     "received": "📋 领取记录"
+  },
+  "home": {
+    "scoreLabel": "CDK 分数",
+    "aboutTitle": "关于 CDK 分数",
+    "aboutDesc": "CDK 分数用于参与社区项目的抽奖和领取活动，很多项目会设置CDK分数要求。",
+    "aboutTip": "🥇 通过获取徽章来提高CDK分数",
+    "openFull": "访问 CDK 系统完整功能"
+  },
+  "received": {
+    "loading": "加载中...",
+    "searchPlaceholder": "搜索项目名称或创建者...",
+    "statsTotal": "📦 共 <strong>{total}</strong> 条记录",
+    "statsLoaded": "已加载 {loaded} 条",
+    "emptySearch": "未找到匹配的记录",
+    "empty": "暂无领取记录",
+    "loadMore": "⬇️ 滚动加载更多",
+    "loadedAll": "✅ 已全部加载",
+    "copyTitle": "复制内容",
+    "loadingDetail": "加载详情..."
+  },
+  "detail": {
+    "statusOngoing": "进行中",
+    "statusEnded": "已结束",
+    "back": "← 返回",
+    "creator": "创建者: {name}",
+    "distribution": "🎁 分发内容",
+    "remaining": "剩余数量",
+    "total": "总数量",
+    "requirements": "📋 领取要求",
+    "timeInfo": "📅 时间信息",
+    "reqTrustLevel": "🏅 最低信任等级",
+    "reqRiskScore": "⭐ 最低用户分数",
+    "reqSameIp": "🌐 IP限制",
+    "sameIpRestricted": "限制同一IP",
+    "noRequirements": "无特殊要求",
+    "claimed": " · ✅ 已领取",
+    "startTime": "开始时间",
+    "endTime": "结束时间",
+    "createdTime": "创建时间"
+  },
+  "errors": {
+    "loginRequired": "请先登录 cdk.linux.do 后刷新",
+    "timeoutLogin": "请求超时，请确认已登录 cdk.linux.do 后重试",
+    "networkRetry": "网络错误，请稍后重试",
+    "loginShort": "请先登录 cdk.linux.do",
+    "network": "网络错误",
+    "detailFailed": "获取详情失败",
+    "invalidRequest": "非法请求",
+    "bridgeNotReady": "桥接未就绪",
+    "timeout": "请求超时",
+    "requestFailed": "请求失败 ({status})",
+    "sendFailed": "发送请求失败"
   }
 }

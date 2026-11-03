@@ -29,9 +29,11 @@ function buildWorkflowBundle() {
     });
     const code = node => source.slice(node.start, node.end);
     const declNames = ['SITE_CONFIGS', 'CURRENT_SITE', 'CONFIG', 'Logger', 'SafeDom', 'I18n', 'Utils', 'UI', 'LDSPDialog'];
-    const classNames = ['FollowManager', 'TicketManager', 'ActivityManager', 'Renderer'];
+    const classNames = ['FollowManager', 'TicketManager', 'ActivityManager', 'LDCManager', 'CDKManager', 'Renderer'];
     return `
         const GM_info = { script: { version: ${JSON.stringify(source.match(/@version\s+(\S+)/)[1])} } };
+        const GM_getValue = (_key, fallback) => fallback;
+        const GM_setValue = () => {};
         ${declNames.map(name => `const ${code(declarations.get(name))};`).join('\n')}
         ${classNames.map(name => code(classes.get(name))).join('\n')}
         function createWorkflowHarness(locale) {
@@ -69,7 +71,11 @@ function buildWorkflowBundle() {
             tickets.tickets = [];
             tickets._createOverlay();
             const activity = new ActivityManager(null);
-            return { el, panelBody, renderer, toasts, follow, tickets, rendererInstance, panel, activity };
+            const ldc = new LDCManager(panelBody);
+            ldc.init();
+            const cdk = new CDKManager(panelBody, renderer);
+            cdk.init();
+            return { el, panelBody, renderer, toasts, follow, tickets, rendererInstance, panel, activity, ldc, cdk };
         }
         Object.assign(globalThis, { I18n, createWorkflowHarness, LDSPDialog, UI, Utils });
     `;
@@ -106,7 +112,13 @@ test('follow, tickets, activity and LDC/CDK structural labels render in both loc
             const ticketEmpty = h.tickets.overlay.querySelector('.ldsp-ticket-empty')?.textContent.trim();
             h.rendererInstance.renderActivity('read');
             const activityTabs = [...h.panel.$.activity.querySelectorAll('.ldsp-trend-tab-text')].map(el => el.textContent.trim());
-            return { followTitle, followTabs, followEmpty, ticketTabs, ticketEmpty, activityTabs };
+            const ldcTitle = h.ldc.overlay.querySelector('.ldsp-ldc-title').textContent.trim();
+            const ldcTabs = [...h.ldc.overlay.querySelectorAll('.ldsp-ldc-tab')].map(el => el.textContent.trim());
+            const ldcFilterChips = [...h.ldc._getFilterHtml().matchAll(/data-time="[^"]*">([^<]*)</g)].map(m => m[1]);
+            const ldcTypeChips = [...h.ldc._getFilterHtml().matchAll(/data-type="[^"]*">([^<]*)</g)].map(m => m[1]);
+            const cdkTitle = h.cdk.overlay.querySelector('.ldsp-cdk-title').textContent.trim();
+            const cdkTabs = [...h.cdk.overlay.querySelectorAll('.ldsp-cdk-tab')].map(el => el.textContent.trim());
+            return { followTitle, followTabs, followEmpty, ticketTabs, ticketEmpty, activityTabs, ldcTitle, ldcTabs, ldcFilterChips, ldcTypeChips, cdkTitle, cdkTabs };
         });
         assert.equal(report.followTitle, '关注与粉丝');
         assert.deepEqual(report.followTabs, ['关注', '粉丝']);
@@ -114,6 +126,12 @@ test('follow, tickets, activity and LDC/CDK structural labels render in both loc
         assert.deepEqual(report.ticketTabs, ['我的工单', '提交工单']);
         assert.ok(report.ticketEmpty.includes('暂无工单记录'));
         assert.deepEqual(report.activityTabs, ['已读', '收藏', '回复', '互动', '赞过', '我的话题']);
+        assert.equal(report.ldcTitle, '🍟 LDC 积分');
+        assert.deepEqual(report.ldcTabs, ['📊 概览', '📜 记录', '❤️ 支持']);
+        assert.deepEqual(report.ldcFilterChips, ['今日', '近7天', '近30天', '所有']);
+        assert.deepEqual(report.ldcTypeChips, ['📋 全部', '📥 收益', '📤 支出', '🔄 转移', '🏛️ 社区划转', '🌐 在线流转', '📦 商户分发']);
+        assert.equal(report.cdkTitle, '🎁 CDK 系统');
+        assert.deepEqual(report.cdkTabs, ['🏠 首页', '📋 领取记录']);
     });
 
     await t.test('en-US renders English for follow overlay, ticket form, activity tabs and bookmark toolbar', async () => {
@@ -132,16 +150,21 @@ test('follow, tickets, activity and LDC/CDK structural labels render in both loc
             const createPlaceholders = [...h.tickets.overlay.querySelectorAll('.ldsp-ticket-form input, .ldsp-ticket-form textarea')].map(el => el.placeholder);
             h.rendererInstance.renderActivity('read');
             const activityTabs = [...h.panel.$.activity.querySelectorAll('.ldsp-trend-tab-text')].map(el => el.textContent.trim());
+            const ldcTitle = h.ldc.overlay.querySelector('.ldsp-ldc-title').textContent.trim();
+            const ldcTabs = [...h.ldc.overlay.querySelectorAll('.ldsp-ldc-tab')].map(el => el.textContent.trim());
+            const ldcFilterHtml = h.ldc._getFilterHtml();
+            const cdkTitle = h.cdk.overlay.querySelector('.ldsp-cdk-title').textContent.trim();
+            const cdkTabs = [...h.cdk.overlay.querySelectorAll('.ldsp-cdk-tab')].map(el => el.textContent.trim());
             const topicToolbar = h.rendererInstance.renderTopicListWithSearch([], false, '', 20, 0);
             const bookmarkToolbar = h.rendererInstance.renderBookmarkListWithSearch([], false, '', 20, 0, {});
             const residualCjk = [];
-            for (const [surface, html] of Object.entries({ topicToolbar, bookmarkToolbar })) {
+            for (const [surface, html] of Object.entries({ topicToolbar, bookmarkToolbar, ldcFilterHtml })) {
                 const tmp = document.createElement('div');
                 tmp.innerHTML = html;
                 if (cjk.test(tmp.textContent)) residualCjk.push({ surface, sample: tmp.textContent.slice(0, 80) });
             }
             if (cjk.test(createText)) residualCjk.push({ surface: 'ticketCreate', sample: createText.slice(0, 80) });
-            return { followTitle, followTabs, followEmpty, ticketTabs, ticketEmpty, createText, createPlaceholders, activityTabs, residualCjk };
+            return { followTitle, followTabs, followEmpty, ticketTabs, ticketEmpty, createText, createPlaceholders, activityTabs, residualCjk, ldcTitle, ldcTabs, cdkTitle, cdkTabs };
         }, { cjkPattern: cjk });
 
         assert.equal(report.followTitle, 'Following & Followers');
@@ -150,6 +173,10 @@ test('follow, tickets, activity and LDC/CDK structural labels render in both loc
         assert.deepEqual(report.ticketTabs, ['My Tickets', 'New Ticket']);
         assert.ok(report.ticketEmpty.includes('No tickets yet'));
         assert.deepEqual(report.activityTabs, ['Read', 'Bookmarks', 'Replies', 'Reactions', 'Liked', 'My Topics']);
+        assert.equal(report.ldcTitle, '🍟 LDC Credits');
+        assert.deepEqual(report.ldcTabs, ['📊 Overview', '📜 History', '❤️ Support']);
+        assert.equal(report.cdkTitle, '🎁 CDK Center');
+        assert.deepEqual(report.cdkTabs, ['🏠 Home', '📋 Claimed']);
         assert.deepEqual(report.residualCjk, []);
         assert.match(report.createText, /Ticket type/);
         assert.match(report.createText, /Submit ticket/);

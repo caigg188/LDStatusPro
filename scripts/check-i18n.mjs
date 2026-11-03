@@ -83,7 +83,9 @@ export const MIGRATED_RENDERER_METHODS = Object.freeze([
 
 export const MIGRATED_STANDALONE_CLASSES = Object.freeze([
     'FollowManager',
-    'TicketManager'
+    'TicketManager',
+    'LDCManager',
+    'CDKManager'
 ]);
 
 export const MIGRATED_PANEL_EXTRA_METHODS = Object.freeze([

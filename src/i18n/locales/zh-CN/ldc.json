@@ -24,5 +24,109 @@
     "community": "社区划转",
     "online": "在线流转",
     "distribute": "商户分发"
+  },
+  "loginGuide": {
+    "titleTimeout": "请求超时",
+    "titleNetwork": "网络错误",
+    "titleAuth": "需要登录",
+    "descTimeout": "获取数据超时，可能是网络问题或未登录 LDC 站点。请先访问 LDC 官网确认已登录，然后返回重试。",
+    "descNetwork": "网络连接失败，请检查网络后重试。如果问题持续，请尝试先访问 LDC 官网登录。",
+    "descAuth": "请先登录 LDC 官网，登录后返回此页面刷新即可获取数据。",
+    "solutionTitle": "✅ 解决方案",
+    "solutionDesc": "访问 LDC 官网完成登录",
+    "openSite": "打开 LDC 官网登录 ↗",
+    "retry": "🔄 重试",
+    "tip": "💡 登录后返回此页面点击重试即可"
+  },
+  "bridge": {
+    "connecting": "正在连接 LDC…",
+    "openTitle": "需要打开 LDC 页面",
+    "openDesc": "查看交易记录需要 LINUX DO CREDIT 页面保持打开。若刚才的标签被关闭或被浏览器拦截，请再打开一次。",
+    "openButton": "打开 LDC 通道",
+    "openedRetry": "🔄 我已打开，重试"
+  },
+  "overview": {
+    "estimateTooltip": "预估分数仅供参考，每日凌晨失效",
+    "estimateChange": "预估变化",
+    "chartIncome": "收入: +{amount}",
+    "chartExpense": "支出: -{amount}",
+    "legendIncome": "收入",
+    "legendExpense": "支出",
+    "balanceLabel": "🍟可用余额：",
+    "dailyLimitPrefix": "今日剩余额度",
+    "updatedAt": "数据更新于：{time}",
+    "totalIncome": "总收入",
+    "totalExpense": "总支出",
+    "weeklyChartTitle": "📊 近7天收支",
+    "noData": "暂无数据",
+    "faqTitle": "Credit FAQ & 积分规则",
+    "faqDesc": "了解 LDC 积分的获取方式、使用规则和常见问题"
+  },
+  "transactions": {
+    "refreshFailed": "获取交易记录失败，请刷新 credit.linux.do 标签页后重试",
+    "loginRequired": "请先登录 credit.linux.do",
+    "rejected": "请求被拒绝，请稍后重试",
+    "fetchFailed": "获取数据失败",
+    "empty": "暂无交易记录",
+    "filterConditions": "筛选条件：{time}{type}{more}",
+    "filterMore": " · 继续下滑加载更多",
+    "unknownOrder": "未知",
+    "filteredCount": "当前筛选显示 {count} 条",
+    "totalCount": "共 {total} 条记录",
+    "loadedCount": "，已加载 {count} 条",
+    "continueScroll": "，继续下滑加载更多",
+    "status": {
+      "success": "✓ 成功",
+      "refund": "↩ 已退回",
+      "expired": "⏱ 已过期",
+      "disputing": "⚠ 争议中",
+      "unknown": "未知"
+    }
+  },
+  "support": {
+    "title": "支持 LDStatus Pro",
+    "desc": "感谢您使用 LDStatus Pro！<br>您的支持是我持续开发的动力",
+    "starTitle": "在 GitHub 上 Star 一下",
+    "starDesc": "您的 Star 是对作者最好的鼓励",
+    "footer": "🙏 每一份支持都将用于<em>服务器维护</em>和<em>功能开发</em><br>感谢社区每一位用户的信任与陪伴",
+    "tiers": {
+      "tier1": "做的不错",
+      "tier2": "大力支持",
+      "tier3": "深得我心",
+      "tier4": "社区贡献者",
+      "badgeHot": "热门",
+      "badgeFire": "火爆",
+      "badgeVip": "尊享"
+    }
+  },
+  "detail": {
+    "back": "← 返回",
+    "title": "交易详情",
+    "status": "交易状态",
+    "type": "交易类型",
+    "orderName": "订单名称",
+    "appName": "应用名称",
+    "tradeTime": "交易时间",
+    "orderNo": "订单号",
+    "payee": "收款方",
+    "payer": "付款方",
+    "remark": "备注",
+    "appLink": "应用链接"
+  },
+  "errors": {
+    "fetchUserInfo": "获取用户信息失败",
+    "networkRetry": "网络错误，请稍后重试",
+    "csrfFailed": "CSRF 验证失败",
+    "notLoggedIn": "未登录",
+    "rejected": "请求被拒绝",
+    "badRequest": "请求参数错误",
+    "requestFailed": "请求失败 ({status})",
+    "invalidRequest": "非法请求",
+    "fetchFailed": "获取数据失败",
+    "openAndLogin": "请打开并登录 credit.linux.do 后重试",
+    "timeout": "请求超时",
+    "bridgeClosed": "LDC 数据通道已关闭",
+    "parseFailed": "解析失败",
+    "network": "网络错误"
   }
 }

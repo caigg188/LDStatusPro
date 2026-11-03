@@ -182,7 +182,7 @@
       "file": "assets/product/plugin/capture.json",
       "source": "website/public/product-preview/capture.json",
       "bytes": 724,
-      "sha256": "a2fd256ad9b20ad48e589040df7352fb0be5f84c231ba7a351c2812b3ae35d51"
+      "sha256": "9cf3565b92874a37c62d7f9d58a4f7ff4b94ff3570a2af4c8c5511384528096f"
     },
     {
       "file": "assets/product/plugin/plugin-dark-reqs.webp",
@@ -212,7 +212,7 @@
       "file": "assets/product/plugin/source.json",
       "source": "website/public/product-preview/source.json",
       "bytes": 816,
-      "sha256": "3877ab9ac5f90556ca26810b573a9151c2e5a9c81b2a148430d43fb10e42fd66"
+      "sha256": "cc6f8fb43a3ba4b5aa34025ab3edf7bf2105b4cc8b606c9a1d17b1a440a69b6c"
     },
     {
       "file": "assets/product/store/source.json",
