@@ -1,0 +1,28 @@
+{
+  "title": "🍟 LDC 积分",
+  "refreshTitle": "刷新",
+  "tabs": {
+    "overview": "📊 概览",
+    "transactions": "📜 记录",
+    "support": "❤️ 支持"
+  },
+  "filter": {
+    "time": "时间",
+    "type": "类型"
+  },
+  "timeRanges": {
+    "today": "今日",
+    "7days": "近7天",
+    "30days": "近30天",
+    "all": "所有"
+  },
+  "transTypes": {
+    "all": "全部",
+    "receive": "收益",
+    "payment": "支出",
+    "transfer": "转移",
+    "community": "社区划转",
+    "online": "在线流转",
+    "distribute": "商户分发"
+  }
+}

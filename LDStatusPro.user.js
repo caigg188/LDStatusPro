@@ -99,7 +99,7 @@
 
         // @@I18N_BEGIN
         // prettier-ignore
-            var I18n=(()=>{var c=Object.defineProperty;var q=Object.getOwnPropertyDescriptor;var j=Object.getOwnPropertyNames;var _=Object.prototype.hasOwnProperty;var H=(t,e)=>{for(var a in e)c(t,a,{get:e[a],enumerable:true})};var z=(t,e,a,i)=>{if(e&&typeof e==="object"||typeof e==="function"){for(let n of j(e))if(!_.call(t,n)&&n!==a)c(t,n,{get:()=>e[n],enumerable:!(i=q(e,n))||i.enumerable})}return t};var G=t=>z(c({},"__esModule",{value:true}),t);var ue={};H(ue,{CATALOGS:()=>N,DEFAULT_LOCALE:()=>s,PLURAL_CATEGORIES:()=>E,SUPPORTED_LOCALES:()=>ie,createTranslator:()=>g,escapeHtmlText:()=>O,formatDateTime:()=>le,formatNumber:()=>se,formatRelativeTime:()=>de,getLocale:()=>oe,isPluralForms:()=>m,normalizeLocale:()=>I,setLocale:()=>ae,t:()=>re,tHtml:()=>ne});var f={ui:{loading:"加载中...",loadingData:"加载数据中...",loadingMore:"加载更多...",empty:"暂无数据",noHistory:"暂无历史数据",selectCategory:"选择一个分类查看",error:"加载失败",unknownError:"未知错误",retry:"🔄 重试",goLogin:"去登录 →"},dialog:{successTitle:"成功",errorTitle:"错误",warningTitle:"警告",infoTitle:"提示",confirmTitle:"确认操作",ok:"确认",cancel:"取消",gotIt:"知道了"},time:{lessThanOneMin:"< 1分钟",minutes:"{m}分钟",hours:"{h}小时",hoursMinutes:"{h}小时{m}分",justNow:"刚刚",minutesAgo:"{n}分钟前",hoursAgo:"{n}小时前",daysAgo:"{n}天前",monthDay:"{m}月{d}日",yearMonth:"{y}年{m}月",weekdays:{"0":"周日","1":"周一","2":"周二","3":"周三","4":"周四","5":"周五","6":"周六"},months:{"0":"1月","1":"2月","2":"3月","3":"4月","4":"5月","5":"6月","6":"7月","7":"8月","8":"9月","9":"10月","10":"11月","11":"12月"}},errors:{codes:{NETWORK_ERROR:"网络连接失败，请检查网络",TIMEOUT:"请求超时，请稍后重试",IP_BANNED:"IP 已被封禁，请更换网络节点",IP_PERMANENTLY_BANNED:"IP 已被永久封禁，请联系管理员",RATE_LIMITED:"请求过于频繁，请稍后重试",NOT_LOGGED_IN:"请先登录",AUTH_EXPIRED:"登录已过期，请重新登录",INVALID_TOKEN:"登录已失效，请重新登录",TOKEN_EXPIRED:"登录已过期，请重新登录",NOT_JOINED:"请先加入排行榜",REGISTRATION_PAUSED:"已暂停新用户注册",UNAUTHORIZED:"没有访问权限",NOT_FOUND:"请求的资源不存在",SERVER_ERROR:"服务器暂时不可用，请稍后重试",VALIDATION_FAILED:"数据验证失败",SYNC_FAILED:"同步失败，请稍后重试",HTTP_ERROR:"请求失败"},http401_403:"没有访问权限，请确认已登录论坛（HTTP {status}）",http404:"请求的页面不存在（HTTP 404）",http429:"请求过于频繁，请稍后重试（HTTP 429）",http5xx:"服务器暂时不可用（HTTP {status}）",http4xx:"请求失败（HTTP {status}）",rateLimitWaitSeconds:"请求过于频繁，请等待 {n} 秒后重试",rateLimitWaitMinutes:"请求过于频繁，请等待 {n} 分钟后重试",operationFailed:"操作失败，请稍后重试"}};var h={ariaLabel:"{site} 信任级别面板",header:{checkUpdate:"检查更新",updateAvailable:"新版本 v{version}",upToDate:"已是最新版本",upToDateToast:"✅ 已是最新版本",updateCheckFailed:"检查失败",updateCheckFailedToast:"❌ 检查更新失败",cloudSync:"云同步",cloudSyncing:"同步中...",refresh:"刷新数据",settings:"设置",collapsePanel:"折叠面板",expandPanel:"展开面板"},updateBubble:{closeAria:"关闭",title:"发现新版本",updateNow:"🚀 立即更新",updating:"⏳ 更新中...",confirmInTab:"✅ 请在弹出窗口确认更新"},user:{loading:"加载中...",followingTitle:"查看关注列表",followingPrefix:"关注 ",followingSuffix:"",followersTitle:"查看粉丝列表",followersPrefix:"",followersSuffix:" 粉丝",joinDaysPrefix:"来",joinDaysSuffix:"天",siteShortLinuxDo:"L站",siteShortIdc:"IF站",joinedTooltip:"于{year}年{month}月{day}日加入{site}"},actions:{loginText:"点击登录",loginTitle:"点击登录",logoutText:"注销",logoutTitle:"注销登录",ldcText:"LDC",ldcTitle:"Linux Do Credit",shopText:"士多",shopTitle:"LD士多",cdkText:"CDK",cdkTitle:"CDK 系统",melonText:"总结",melonTitle:"AI 帖子总结",exportText:"导出",exportTitle:"导出帖子为PDF/HTML/Markdown",ticketText:"工单",ticketTitle:"工单系统",expandMore:"展开更多",expandMoreTitle:"展开更多按钮",collapse:"收起",collapseTitle:"收起按钮"},tabs:{reqs:"要求",trends:"趋势",leaderboard:"排行",activity:"我的"},logoutConfirm:{title:"确认注销登录吗？",message:"退出后排行榜和云同步功能将不可用",cancel:"取消",confirm:"确认注销"},loginModal:{upgradeTitle:"升级到 v3.0",welcomeTitle:"欢迎使用 LDStatus Pro",upgradeP1Prefix:"v3.0 版本新增了 ",upgradeP1Strong:"云同步",upgradeP1Suffix:" 功能！",upgradeP2:"登录后，你的阅读数据将自动同步到云端，支持跨浏览器、跨设备访问。",welcomeLead:"登录 Linux.do 账号后可以：",welcomeItem1:"☁️ 阅读数据云端同步",welcomeItem2:"🔄 跨浏览器/设备同步",welcomeItem3:"🏆 查看/加入阅读排行榜",loginNow:"🚀 立即登录",redirecting:"⏳ 跳转中...",later:"稍后再说",note:"登录仅用于云同步，不登录也可正常使用本地功能"},toasts:{notLoggedIn:"ℹ️ 当前未登录",loggedOut:"✅ 已退出登录",syncComplete:"✅ 数据同步完成",loginRequiredForTickets:"⚠️ 请先登录后使用工单功能",popupBlocked:"⚠️ 浏览器拦截了新标签页，请允许弹窗后重试",loginSuccess:"✅ 登录成功",redirectingAuth:"⏳ 正在跳转到授权页面..."},notifications:{milestoneTitle:"🎉 达成里程碑！"},homeErrors:{emptyConnect:"信任等级页返回空内容",http401_403:"当前未登录论坛，或没有权限访问信任等级页（HTTP {status}）",http404:"信任等级页不存在（HTTP 404）",http429:"请求过于频繁，请稍后重试（HTTP 429）",http5xx:"信任等级页暂时不可用（HTTP {status}）",http4xx:"信任等级页请求失败（HTTP {status}）",timeout:"请求超时，无法连接信任等级页，请检查网络后重试",network:"网络连接失败，无法获取升级数据，请检查网络后重试",loadFailedTitle:"升级数据加载失败",fetchingSummary:"正在获取统计数据...",summaryEmpty:"用户统计接口未返回有效数据",summaryPrefix:"用户统计：{reason}",userUnidentified:"未能识别当前用户",fetchingCloud:"正在获取云端数据...",cloudEmpty:"云端没有已同步的升级数据",cloudPrefix:"云端：{reason}",currentTrustLevel:"当前信任等级：{level}",noProgressData:"暂无升级进度数据",viewTrustGuide:"📖 查看完整信任等级说明",connectAuthFailed:"信任等级页认证失败，返回了论坛首页",connectTableMissing:"信任等级页未找到升级要求表格",connectNoReqs:"信任等级页没有可解析的升级要求",noSummaryPermission:"没有权限查看用户统计数据",summaryReturnedHtml:"用户统计接口返回了网页而不是数据",summaryPageEmpty:"用户统计页返回空内容"}};var S={title:"设置",backAria:"返回",nav:{theme:"🎨 外观设置",readingGoal:"🎯 阅读目标",fontSize:"🔤 字体调节",actions:"🔘 功能按钮",requirements:"📋 要求展示",language:"🌐 界面语言"},theme:{title:"外观设置",auto:"跟随系统",autoDesc:"根据系统外观自动切换",light:"浅色",lightDesc:"高亮清爽，适合白天阅读",dark:"深色",darkDesc:"夜间护眼，减少眩光干扰"},readingGoal:{title:"阅读目标设置",label:"目标时长",unit:"小时",summary:{other:"{hours}小时"},hint:"范围 0.5 - 20 小时，步进 0.5 小时"},fontSize:{title:"字体调节",currentLevel:"当前档位",levels:{compact:"紧凑",small:"偏小",standard:"标准",comfortable:"舒适",large:"宽大"},hint:"五档梯度重新拉开：更适合小屏压缩阅读，也能在大屏下获得更明显放大效果"},actions:{title:"功能按钮",summary:"{enabled}/{total} 开启",orderNav:"↕️ 按钮排序",toggleNav:"✅ 功能启用",toggleTitle:"功能启用",orderTitle:"按钮排序",orderTip:"可拖动调整：士多、LDC、CDK、总结、导出、工单。登录和注销顺序固定。",buttons:{login:"登录按钮",logout:"注销按钮",ticket:"工单按钮",melon:"总结按钮",export:"导出按钮",ldc:"LDC 按钮",shop:"士多按钮",cdk:"CDK 按钮"},resetOrder:"恢复默认顺序",resetOrderToast:"✅ 已恢复默认顺序"},requirements:{title:"要求展示",summaryAll:"展示全部",summaryIncomplete:"只显示未完成",allLabel:"展示所有升级数据",allDesc:"默认展示已完成和未完成的升级要求",incompleteLabel:"只显示未完成",incompleteDesc:"要求板块仅保留尚未达成的项目"},language:{title:"界面语言",zhCN:"简体中文",zhCNSummary:"简体中文",zhCNDesc:"默认中文界面",enUS:"English (US)",enUSSummary:"English (US)",enUSDesc:"英文界面，刷新页面后生效",hint:"语言偏好会立即保存在当前站点本地；存在进行中的总结或导出任务时不会强制刷新。",reloadNow:"刷新页面以应用语言",savedPendingReload:"✅ 语言已保存，刷新页面后生效",persistFailed:"⚠️ 无法保存语言偏好，刷新后将恢复之前的设置",busyCannotReload:"⏳ 当前有正在运行的任务，请等待完成后再刷新页面"}};var b={ring:{met:"已达标",completion:"完成度",remaining:"待完成",maxAdminLevel:"🏆 已达最高等级",maxUserLevel:"🎖️ 已达普通用户最高等级",remainingTip:{other:"⏳ 距升级还需完成 {count} 项要求"},readyTip:"🎉 已满足升级条件",allMetEmpty:"所有升级要求都已完成",learnTrust:"了解论坛信任等级 →"},reading:{todayLabel:"今日阅读",visitWebsiteTitle:"点击访问 LDStatus Pro 官网",pausedStatus:"未活动 已停止记录",trackingStatus:"阅读时间记录中...",levels:{starter:"刚起步",warmup:"热身中",steady:"渐入佳境",focused:"沉浸阅读",deep:"深度学习",master:"LD达人",super:"超级水怪",diamond:"钻石级",legend:"传奇级",mythic:"神话级",fallback:"等级{level}"}},trends:{topicsEntered:"浏览话题",postsRead:"已读帖子",likesGiven:"点赞",replies:"回复",likesReceived:"获赞"},names:{daysVisited:"访问天数",visits:"访问次数",topicsEntered:"浏览话题",topicsEnteredAllTime:"浏览话题(所有时间)",postsRead:"已读帖子",postsReadAllTime:"已读帖子(所有时间)",replies:"回复",topicsReplied:"回复话题",postsCreated:"发帖",topicsCreated:"创建话题",likesGiven:"点赞",likesSent:"送出赞",likesReceived:"获赞",likesReceivedDays:"获赞天数",likesReceivedUsers:"点赞用户",likedUsersAlt:"获赞用户",flaggedPosts:"被举报帖子",flaggingUsers:"发起举报",silenced6m:"被禁言(近6个月)",suspended6m:"被封禁(近6个月)",silenced:"被禁言",suspended:"被封禁",readingTime:"阅读时间",readingTimeMin:"阅读时间(分钟)",solutions:"解决方案"}};var v={tabs:{today:"今日",week:"本周",month:"本月",year:"本年",all:"全部"},prevDay:"前一日",weekNum:"第{num}周",today:{firstVisitLine1:"今日首次访问",firstVisitLine2:"数据将从现在开始统计",timeRange:"今日 00:00 ~ {now} (首次记录于 {start})",totalReading:"今日累计阅读",goalTitle:"📖 阅读目标 ({goal}小时)",upItems:"📈 增长项",downItems:"📉 下降项",changesTitle:"📊 今日变化明细",comparedTo:"较{label}",noChanges:"相比{label}暂无数据变化"},week:{readingTitle:"⏱️ 7天阅读时间",readingSub:"共 {total} · 日均 {avg}",metricsTitle:"📈 本周每日数据",metricsSub:"对应日期阅读数据"},month:{readingTitle:"⏱️ 本月阅读时间",readingSub:"共 {total} · 日均 {avg}",dayFutureTip:"{day}日: 0分钟 (未到)",dayTip:"{day}日: {time}",metricsTitle:"📈 本月每周数据",metricsSub:"对应周阅读数据"},year:{readingTitle:"⏱️ 本年阅读时间",readingSub:"共 {total}",legendMin:"<1分",legendMax:">5小时",metricsTitle:"📊 本年每月数据",metricsSub:"对应月份阅读数据"},all:{recordedReadingDays:"共记录 {days} 天阅读数据",recordedDataDays:"共记录 {rec} 天数据",recordedDataSpan:"共记录 {rec} 天数据 · 跨度 {span} 天",totalAndDailyAvg:"累计阅读时间 · 日均 {avg}",cumulativeChanges:"📊 累计变化",daysSuffix:"({rec}天)",dailyAvgIncrement:"📈 日均增量"}};var w={tabs:{daily:"日榜",weekly:"周榜",monthly:"月榜"},loading:"加载排行榜...",login:{title:"需要登录",descLine1:"登录后可以：",descLine2:"☁️ 阅读数据云端同步",descLine3:"🏆 查看/加入排行榜",btn:"🚀 立即登录",redirecting:"⏳ 跳转中...",privacy:"仅获取基本信息，用于数据同步"},join:{title:"加入阅读排行榜",descLine1:"加入后可以查看排行榜，你的阅读时间将与其他用户一起展示",descLine2:"这是完全可选的，随时可以退出",btn:"✨ 加入排行榜",joining:"⏳ 加入中...",joinedToast:"✅ 已成功加入排行榜",privacy:"仅展示用户名和阅读时间"},paused:{title:"已暂停新用户注册",desc:"由于后端服务压力，暂不开放新用户注册。已注册用户可正常登录使用。"},data:{emptyLine1:"暂无排行数据",emptyLine2:"成为第一个上榜的人吧！",updateMinutes:"每 {m} 分钟更新",updateHours:"每 {h} 小时更新",refreshTitle:"手动刷新",period:"📅 统计周期: ",myRank:"我的排名",notInTop:"（未入榜）",meTag:"(我)",quitBtn:"退出排行榜",quittingBtn:"退出中...",quitConfirmTitle:"退出排行榜",quitConfirmMsg:"确定要退出排行榜吗？",quitToast:"✅ 已退出排行榜",cooldownToast:"⏳ 请等待 {seconds} 秒后再刷新",fromCacheToast:"📦 获取缓存数据",refreshedToast:"✅ 已刷新排行榜"},errors:{fetchFailed:"获取排行榜失败",cooldown:"刷新冷却中",authExpired:"登录已失效，请重新登录",joinFailed:"加入失败",quitFailed:"退出失败"}};var L={ui:{loading:"Loading...",loadingData:"Loading data...",loadingMore:"Load more...",empty:"No data",noHistory:"No history yet",selectCategory:"Select a category to view",error:"Failed to load",unknownError:"Unknown error",retry:"🔄 Retry",goLogin:"Sign in →"},dialog:{successTitle:"Success",errorTitle:"Error",warningTitle:"Warning",infoTitle:"Notice",confirmTitle:"Confirm Action",ok:"Confirm",cancel:"Cancel",gotIt:"Got it"},time:{lessThanOneMin:"< 1m",minutes:"{m}m",hours:"{h}h",hoursMinutes:"{h}h {m}m",justNow:"Just now",minutesAgo:"{n}m ago",hoursAgo:"{n}h ago",daysAgo:"{n}d ago",monthDay:"{m}/{d}",yearMonth:"{y}-{m}",weekdays:{"0":"Sun","1":"Mon","2":"Tue","3":"Wed","4":"Thu","5":"Fri","6":"Sat"},months:{"0":"Jan","1":"Feb","2":"Mar","3":"Apr","4":"May","5":"Jun","6":"Jul","7":"Aug","8":"Sep","9":"Oct","10":"Nov","11":"Dec"}},errors:{codes:{NETWORK_ERROR:"Network connection failed. Check your connection.",TIMEOUT:"Request timed out. Please try again later.",IP_BANNED:"IP address blocked. Try switching networks.",IP_PERMANENTLY_BANNED:"IP address permanently blocked. Contact support.",RATE_LIMITED:"Too many requests. Please try again shortly.",NOT_LOGGED_IN:"Please sign in first",AUTH_EXPIRED:"Session expired. Please sign in again.",INVALID_TOKEN:"Invalid session. Please sign in again.",TOKEN_EXPIRED:"Session expired. Please sign in again.",NOT_JOINED:"Join the leaderboard first",REGISTRATION_PAUSED:"New user registration is temporarily paused",UNAUTHORIZED:"Access denied",NOT_FOUND:"Requested resource not found",SERVER_ERROR:"Server temporarily unavailable. Try again later.",VALIDATION_FAILED:"Data validation failed",SYNC_FAILED:"Sync failed. Please try again later.",HTTP_ERROR:"Request failed"},http401_403:"Access denied. Confirm you are signed into the forum (HTTP {status})",http404:"Requested page not found (HTTP 404)",http429:"Too many requests. Please try again later (HTTP 429)",http5xx:"Server temporarily unavailable (HTTP {status})",http4xx:"Request failed (HTTP {status})",rateLimitWaitSeconds:"Too many requests. Wait {n}s and try again.",rateLimitWaitMinutes:"Too many requests. Wait {n}m and try again.",operationFailed:"Action failed. Please try again later."}};var R={ariaLabel:"{site} Trust Level Panel",header:{checkUpdate:"Check for updates",updateAvailable:"New version v{version}",upToDate:"Up to date",upToDateToast:"✅ Already on the latest version",updateCheckFailed:"Update check failed",updateCheckFailedToast:"❌ Failed to check for updates",cloudSync:"Cloud sync",cloudSyncing:"Syncing...",refresh:"Refresh data",settings:"Settings",collapsePanel:"Collapse panel",expandPanel:"Expand panel"},updateBubble:{closeAria:"Close",title:"New version available",updateNow:"🚀 Update now",updating:"⏳ Updating...",confirmInTab:"✅ Confirm update in the opened tab"},user:{loading:"Loading...",followingTitle:"View following list",followingPrefix:"Following ",followingSuffix:"",followersTitle:"View followers list",followersPrefix:"",followersSuffix:" Followers",joinDaysPrefix:"",joinDaysSuffix:"d",siteShortLinuxDo:"Joined ",siteShortIdc:"Joined ",joinedTooltip:"Joined {site} on {year}-{month}-{day}"},actions:{loginText:"Sign in",loginTitle:"Sign in to cloud sync",logoutText:"Sign out",logoutTitle:"Sign out of cloud sync",ldcText:"LDC",ldcTitle:"Linux Do Credit",shopText:"Store",shopTitle:"LD Store",cdkText:"CDK",cdkTitle:"CDK Center",melonText:"Summary",melonTitle:"AI Topic Summary",exportText:"Export",exportTitle:"Export topic as PDF / HTML / Markdown",ticketText:"Tickets",ticketTitle:"Support Tickets",expandMore:"More",expandMoreTitle:"Show more action buttons",collapse:"Less",collapseTitle:"Collapse action buttons"},tabs:{reqs:"Reqs",trends:"Trends",leaderboard:"Ranks",activity:"Profile"},logoutConfirm:{title:"Sign out now?",message:"Leaderboards and cloud sync will be unavailable after signing out.",cancel:"Cancel",confirm:"Sign out"},loginModal:{upgradeTitle:"Upgraded to v3.0",welcomeTitle:"Welcome to LDStatus Pro",upgradeP1Prefix:"v3.0 introduces ",upgradeP1Strong:"Cloud Sync",upgradeP1Suffix:"!",upgradeP2:"Sign in to sync your reading stats across browsers and devices automatically.",welcomeLead:"Sign in with your Linux.do account to:",welcomeItem1:"☁️ Sync reading data to the cloud",welcomeItem2:"🔄 Access stats across browsers & devices",welcomeItem3:"🏆 View and join reading leaderboards",loginNow:"🚀 Sign in now",redirecting:"⏳ Redirecting...",later:"Maybe later",note:"Sign-in is only used for cloud sync; local tracking works without signing in"},toasts:{notLoggedIn:"ℹ️ Not signed in",loggedOut:"✅ Signed out",syncComplete:"✅ Cloud sync complete",loginRequiredForTickets:"⚠️ Sign in first to use support tickets",popupBlocked:"⚠️ Pop-up blocked by browser — allow pop-ups and try again",loginSuccess:"✅ Signed in successfully",redirectingAuth:"⏳ Redirecting to authorization..."},notifications:{milestoneTitle:"🎉 Milestone Reached!"},homeErrors:{emptyConnect:"Trust level page returned empty content",http401_403:"Not signed into the forum or no access to trust level page (HTTP {status})",http404:"Trust level page not found (HTTP 404)",http429:"Too many requests. Please try again later (HTTP 429)",http5xx:"Trust level page temporarily unavailable (HTTP {status})",http4xx:"Trust level request failed (HTTP {status})",timeout:"Request timed out while loading trust level data. Check your network and retry.",network:"Network error while loading upgrade requirements. Check your connection and retry.",loadFailedTitle:"Failed to load upgrade data",fetchingSummary:"Fetching profile stats...",summaryEmpty:"User summary endpoint returned no valid stats",summaryPrefix:"Profile stats: {reason}",userUnidentified:"Could not identify current forum user",fetchingCloud:"Fetching synced cloud data...",cloudEmpty:"No synced upgrade data found in cloud",cloudPrefix:"Cloud: {reason}",currentTrustLevel:"Current Trust Level: {level}",noProgressData:"No upgrade progress data available",viewTrustGuide:"📖 View full trust level guide",connectAuthFailed:"Connect page authentication failed and returned the forum home page",connectTableMissing:"Upgrade requirements table not found on Connect page",connectNoReqs:"No parseable upgrade requirements found on Connect page",noSummaryPermission:"No permission to view user summary stats",summaryReturnedHtml:"User summary endpoint returned HTML instead of JSON",summaryPageEmpty:"User summary page returned empty content"}};var D={title:"Settings",backAria:"Back",nav:{theme:"🎨 Appearance",readingGoal:"🎯 Reading Goal",fontSize:"🔤 Font Size",actions:"🔘 Actions",requirements:"📋 Requirements",language:"🌐 Language"},theme:{title:"Appearance",auto:"System",autoDesc:"Match system light or dark mode",light:"Light",lightDesc:"Bright and crisp for daytime reading",dark:"Dark",darkDesc:"Easy on the eyes in low light"},readingGoal:{title:"Reading Goal",label:"Target",unit:"hrs",summary:{one:"{hours} hr",other:"{hours} hrs"},hint:"Range: 0.5–20 hours, in 0.5-hour steps"},fontSize:{title:"Font Size",currentLevel:"Current",levels:{compact:"Compact",small:"Small",standard:"Default",comfortable:"Large",large:"Extra"},hint:"Five scale steps for compact mobile panels or larger desktop reading"},actions:{title:"Action Buttons",summary:"{enabled}/{total} on",orderNav:"↕️ Button Order",toggleNav:"✅ Visible Buttons",toggleTitle:"Visible Buttons",orderTitle:"Button Order",orderTip:"Drag to reorder Store, LDC, CDK, Summary, Export, and Tickets. Sign-in and sign-out stay fixed.",buttons:{login:"Sign-in button",logout:"Sign-out button",ticket:"Tickets button",melon:"AI Summary button",export:"Export button",ldc:"LDC button",shop:"LD Store button",cdk:"CDK button"},resetOrder:"Reset default order",resetOrderToast:"✅ Restored default button order"},requirements:{title:"Requirements",summaryAll:"All",summaryIncomplete:"Unmet",allLabel:"Show all requirements",allDesc:"Display both completed and incomplete requirements",incompleteLabel:"Incomplete only",incompleteDesc:"Only display requirements not yet met"},language:{title:"Language",zhCN:"简体中文",zhCNSummary:"简体中文",zhCNDesc:"Default Simplified Chinese interface",enUS:"English (US)",enUSSummary:"English",enUSDesc:"English interface, applied after reload",hint:"Saved locally per site. Active summaries or exports are never interrupted automatically.",reloadNow:"Reload page to apply",savedPendingReload:"✅ Language saved — reload the page to apply",persistFailed:"⚠️ Could not save language preference; previous setting will remain after reload",busyCannotReload:"⏳ Finish or stop the active task before reloading"}};var P={ring:{met:"Met",completion:"Progress",remaining:"Left",maxAdminLevel:"🏆 Maximum trust level reached",maxUserLevel:"🎖️ Maximum regular trust level reached",remainingTip:{one:"⏳ {count} requirement left to advance",other:"⏳ {count} requirements left to advance"},readyTip:"🎉 All upgrade requirements met",allMetEmpty:"All upgrade requirements are met",learnTrust:"About forum trust levels →"},reading:{todayLabel:"Today",visitWebsiteTitle:"Visit LDStatus Pro website",pausedStatus:"Idle · Paused",trackingStatus:"Tracking reading...",levels:{starter:"Starter",warmup:"Warming Up",steady:"In the Zone",focused:"Deep Focus",deep:"Deep Study",master:"LD Master",super:"Super Reader",diamond:"Diamond",legend:"Legendary",mythic:"Mythic",fallback:"Lv.{level}"}},trends:{topicsEntered:"Topics",postsRead:"Read",likesGiven:"Likes",replies:"Replies",likesReceived:"Liked"},names:{daysVisited:"Days visited",visits:"Days visited",topicsEntered:"Topics entered",topicsEnteredAllTime:"Topics entered (all time)",postsRead:"Posts read",postsReadAllTime:"Posts read (all time)",replies:"Replies",topicsReplied:"Topics replied",postsCreated:"Posts created",topicsCreated:"Topics created",likesGiven:"Likes given",likesSent:"Likes given",likesReceived:"Likes received",likesReceivedDays:"Days with likes",likesReceivedUsers:"Users who liked",likedUsersAlt:"Users who liked",flaggedPosts:"Flagged posts",flaggingUsers:"Users who flagged",silenced6m:"Silenced (last 6m)",suspended6m:"Suspended (last 6m)",silenced:"Silenced",suspended:"Suspended",readingTime:"Read time (min)",readingTimeMin:"Read time (min)",solutions:"Solutions"}};var k={tabs:{today:"Today",week:"Week",month:"Month",year:"Year",all:"All"},prevDay:"prev. day",weekNum:"Wk {num}",today:{firstVisitLine1:"First visit today",firstVisitLine2:"Tracking starts from now",timeRange:"Today 00:00–{now} (first recorded at {start})",totalReading:"Read today",goalTitle:"📖 Daily Goal ({goal}h)",upItems:"📈 Gains",downItems:"📉 Drops",changesTitle:"📊 Today's Changes",comparedTo:"vs {label}",noChanges:"No metric changes vs {label}"},week:{readingTitle:"⏱️ 7-Day Reading",readingSub:"Total {total} · Avg {avg}/d",metricsTitle:"📈 Daily Progress",metricsSub:"Recorded metrics by day"},month:{readingTitle:"⏱️ Monthly Reading",readingSub:"Total {total} · Avg {avg}/d",dayFutureTip:"Day {day}: 0m (upcoming)",dayTip:"Day {day}: {time}",metricsTitle:"📈 Weekly Progress",metricsSub:"Recorded metrics by week"},year:{readingTitle:"⏱️ Yearly Reading",readingSub:"Total {total}",legendMin:"<1m",legendMax:">5h",metricsTitle:"📊 Monthly Progress",metricsSub:"Recorded metrics by month"},all:{recordedReadingDays:"Recorded {days} days of reading",recordedDataDays:"Recorded {rec} days of stats",recordedDataSpan:"Recorded {rec} days · Span {span}d",totalAndDailyAvg:"Total reading · Avg {avg}/d",cumulativeChanges:"📊 Overall Change",daysSuffix:"({rec}d)",dailyAvgIncrement:"📈 Avg Daily Gain"}};var x={tabs:{daily:"Daily",weekly:"Weekly",monthly:"Monthly"},loading:"Loading leaderboard...",login:{title:"Sign In Required",descLine1:"Sign in to unlock:",descLine2:"☁️ Cloud reading sync",descLine3:"🏆 Reading leaderboards",btn:"🚀 Sign in now",redirecting:"⏳ Redirecting...",privacy:"Only basic profile info is used for sync"},join:{title:"Join Reading Leaderboard",descLine1:"Compare your reading time with the community",descLine2:"Completely optional — you can leave anytime",btn:"✨ Join leaderboard",joining:"⏳ Joining...",joinedToast:"✅ Joined the leaderboard",privacy:"Only your username and reading time are shown"},paused:{title:"Registrations Paused",desc:"New leaderboard registrations are temporarily paused due to server load. Existing members can sign in as usual."},data:{emptyLine1:"No rankings yet",emptyLine2:"Be the first on the board!",updateMinutes:"Updates every {m}m",updateHours:"Updates every {h}h",refreshTitle:"Refresh now",period:"📅 Period: ",myRank:"My Rank",notInTop:" (Unranked)",meTag:"(You)",quitBtn:"Leave leaderboard",quittingBtn:"Leaving...",quitConfirmTitle:"Leave Leaderboard",quitConfirmMsg:"Are you sure you want to leave the leaderboard?",quitToast:"✅ Left the leaderboard",cooldownToast:"⏳ Wait {seconds}s before refreshing again",fromCacheToast:"📦 Loaded cached rankings",refreshedToast:"✅ Leaderboard refreshed"},errors:{fetchFailed:"Failed to fetch leaderboard",cooldown:"Refresh on cooldown",authExpired:"Session expired. Please sign in again.",joinFailed:"Failed to join leaderboard",quitFailed:"Failed to leave leaderboard"}};var s="zh-CN";var ie=Object.freeze(["zh-CN","en-US"]);var E=Object.freeze(["zero","one","two","few","many","other"]);var N=Object.freeze({"zh-CN":Object.freeze({common:f,panel:h,settings:S,metrics:b,trends:v,leaderboard:w}),"en-US":Object.freeze({common:L,panel:R,settings:D,metrics:P,trends:k,leaderboard:x})});function I(t){if(typeof t!=="string")return s;const e=t.trim().toLowerCase();if(e==="en-us"||e==="en")return"en-US";if(e==="zh-cn"||e==="zh")return"zh-CN";return s}function O(t){return String(t??"").replace(/[&<>"']/g,e=>e==="&"?"&amp;":e==="<"?"&lt;":e===">"?"&gt;":e==='"'?"&quot;":"&#39;")}function m(t){if(!t||typeof t!=="object"||Array.isArray(t))return false;const e=Object.keys(t);return e.length>0&&Object.prototype.hasOwnProperty.call(t,"other")&&e.every(a=>E.includes(a)&&typeof t[a]==="string")}function C(t,e){if(typeof e!=="string"||!e)return void 0;const a=e.split(".");let i=t;for(const n of a){if(!i||typeof i!=="object"||!Object.prototype.hasOwnProperty.call(i,n)){return void 0}i=i[n]}return typeof i==="string"||m(i)?i:void 0}function A(t,e){if(!e||typeof e!=="object")return t;return t.replace(/\{([a-zA-Z0-9_]+)\}/g,(a,i)=>Object.prototype.hasOwnProperty.call(e,i)&&e[i]!==void 0&&e[i]!==null?String(e[i]):a)}function g(t=s,{catalogs:e=N,onFallback:a}={}){const i=I(t);const n=new Map;const M=o=>{if(!n.has(o))n.set(o,new globalThis.Intl.PluralRules(o));return n.get(o)};function p(o,r={}){const u=C(e[i],o);let l=u;let y=i;if(l===void 0&&i!==s){l=C(e[s],o);y=s;if(l!==void 0)a?.({key:o,locale:i,fallbackLocale:s,missing:false})}if(l===void 0){a?.({key:o,locale:i,fallbackLocale:null,missing:true});return String(o??"")}if(m(l)){const T=Number(r?.count??0);const U=Number.isFinite(T)?M(y).select(T):"other";const F=l[U]??l.other;return A(F,r)}return A(l,r)}return Object.freeze({locale:i,t:(o,r)=>p(o,r),tHtml:(o,r)=>O(p(o,r)),formatNumber:(o,r)=>new globalThis.Intl.NumberFormat(i,r).format(o),formatDateTime:(o,r)=>new globalThis.Intl.DateTimeFormat(i,r).format(o),formatRelativeTime:(o,r,u)=>new globalThis.Intl.RelativeTimeFormat(i,{numeric:"auto",...u}).format(o,r)})}var d=g(s);function oe(){return d.locale}function ae(t){d=g(t);return d.locale}function re(t,e){return d.t(t,e)}function ne(t,e){return d.tHtml(t,e)}function se(t,e){return d.formatNumber(t,e)}function le(t,e){return d.formatDateTime(t,e)}function de(t,e,a){return d.formatRelativeTime(t,e,a)}return G(ue);})();
+            var I18n=(()=>{var u=Object.defineProperty;var J=Object.getOwnPropertyDescriptor;var Y=Object.getOwnPropertyNames;var X=Object.prototype.hasOwnProperty;var Z=(t,e)=>{for(var r in e)u(t,r,{get:e[r],enumerable:true})};var Q=(t,e,r,o)=>{if(e&&typeof e==="object"||typeof e==="function"){for(let n of Y(e))if(!X.call(t,n)&&n!==r)u(t,n,{get:()=>e[n],enumerable:!(o=J(e,n))||o.enumerable})}return t};var $=t=>Q(u({},"__esModule",{value:true}),t);var Ae={};Z(Ae,{CATALOGS:()=>_,DEFAULT_LOCALE:()=>s,PLURAL_CATEGORIES:()=>B,SUPPORTED_LOCALES:()=>we,createTranslator:()=>p,escapeHtmlText:()=>G,formatDateTime:()=>Ce,formatNumber:()=>De,formatRelativeTime:()=>Pe,getLocale:()=>ve,isPluralForms:()=>m,normalizeLocale:()=>z,setLocale:()=>Le,t:()=>Re,tHtml:()=>xe});var h={ui:{loading:"加载中...",loadingData:"加载数据中...",loadingMore:"加载更多...",empty:"暂无数据",noHistory:"暂无历史数据",selectCategory:"选择一个分类查看",error:"加载失败",unknownError:"未知错误",retry:"🔄 重试",goLogin:"去登录 →"},dialog:{successTitle:"成功",errorTitle:"错误",warningTitle:"警告",infoTitle:"提示",confirmTitle:"确认操作",ok:"确认",cancel:"取消",gotIt:"知道了"},time:{lessThanOneMin:"< 1分钟",minutes:"{m}分钟",hours:"{h}小时",hoursMinutes:"{h}小时{m}分",justNow:"刚刚",minutesAgo:"{n}分钟前",hoursAgo:"{n}小时前",daysAgo:"{n}天前",monthDay:"{m}月{d}日",yearMonth:"{y}年{m}月",weekdays:{"0":"周日","1":"周一","2":"周二","3":"周三","4":"周四","5":"周五","6":"周六"},months:{"0":"1月","1":"2月","2":"3月","3":"4月","4":"5月","5":"6月","6":"7月","7":"8月","8":"9月","9":"10月","10":"11月","11":"12月"}},errors:{codes:{NETWORK_ERROR:"网络连接失败，请检查网络",TIMEOUT:"请求超时，请稍后重试",IP_BANNED:"IP 已被封禁，请更换网络节点",IP_PERMANENTLY_BANNED:"IP 已被永久封禁，请联系管理员",RATE_LIMITED:"请求过于频繁，请稍后重试",NOT_LOGGED_IN:"请先登录",AUTH_EXPIRED:"登录已过期，请重新登录",INVALID_TOKEN:"登录已失效，请重新登录",TOKEN_EXPIRED:"登录已过期，请重新登录",NOT_JOINED:"请先加入排行榜",REGISTRATION_PAUSED:"已暂停新用户注册",UNAUTHORIZED:"没有访问权限",NOT_FOUND:"请求的资源不存在",SERVER_ERROR:"服务器暂时不可用，请稍后重试",VALIDATION_FAILED:"数据验证失败",SYNC_FAILED:"同步失败，请稍后重试",HTTP_ERROR:"请求失败"},http401_403:"没有访问权限，请确认已登录论坛（HTTP {status}）",http404:"请求的页面不存在（HTTP 404）",http429:"请求过于频繁，请稍后重试（HTTP 429）",http5xx:"服务器暂时不可用（HTTP {status}）",http4xx:"请求失败（HTTP {status}）",rateLimitWaitSeconds:"请求过于频繁，请等待 {n} 秒后重试",rateLimitWaitMinutes:"请求过于频繁，请等待 {n} 分钟后重试",operationFailed:"操作失败，请稍后重试"}};var f={ariaLabel:"{site} 信任级别面板",header:{checkUpdate:"检查更新",updateAvailable:"新版本 v{version}",upToDate:"已是最新版本",upToDateToast:"✅ 已是最新版本",updateCheckFailed:"检查失败",updateCheckFailedToast:"❌ 检查更新失败",cloudSync:"云同步",cloudSyncing:"同步中...",refresh:"刷新数据",settings:"设置",collapsePanel:"折叠面板",expandPanel:"展开面板"},updateBubble:{closeAria:"关闭",title:"发现新版本",updateNow:"🚀 立即更新",updating:"⏳ 更新中...",confirmInTab:"✅ 请在弹出窗口确认更新"},user:{loading:"加载中...",followingTitle:"查看关注列表",followingPrefix:"关注 ",followingSuffix:"",followersTitle:"查看粉丝列表",followersPrefix:"",followersSuffix:" 粉丝",joinDaysPrefix:"来",joinDaysSuffix:"天",siteShortLinuxDo:"L站",siteShortIdc:"IF站",joinedTooltip:"于{year}年{month}月{day}日加入{site}"},actions:{loginText:"点击登录",loginTitle:"点击登录",logoutText:"注销",logoutTitle:"注销登录",ldcText:"LDC",ldcTitle:"Linux Do Credit",shopText:"士多",shopTitle:"LD士多",cdkText:"CDK",cdkTitle:"CDK 系统",melonText:"总结",melonTitle:"AI 帖子总结",exportText:"导出",exportTitle:"导出帖子为PDF/HTML/Markdown",ticketText:"工单",ticketTitle:"工单系统",expandMore:"展开更多",expandMoreTitle:"展开更多按钮",collapse:"收起",collapseTitle:"收起按钮"},tabs:{reqs:"要求",trends:"趋势",leaderboard:"排行",activity:"我的"},logoutConfirm:{title:"确认注销登录吗？",message:"退出后排行榜和云同步功能将不可用",cancel:"取消",confirm:"确认注销"},loginModal:{upgradeTitle:"升级到 v3.0",welcomeTitle:"欢迎使用 LDStatus Pro",upgradeP1Prefix:"v3.0 版本新增了 ",upgradeP1Strong:"云同步",upgradeP1Suffix:" 功能！",upgradeP2:"登录后，你的阅读数据将自动同步到云端，支持跨浏览器、跨设备访问。",welcomeLead:"登录 Linux.do 账号后可以：",welcomeItem1:"☁️ 阅读数据云端同步",welcomeItem2:"🔄 跨浏览器/设备同步",welcomeItem3:"🏆 查看/加入阅读排行榜",loginNow:"🚀 立即登录",redirecting:"⏳ 跳转中...",later:"稍后再说",note:"登录仅用于云同步，不登录也可正常使用本地功能"},toasts:{notLoggedIn:"ℹ️ 当前未登录",loggedOut:"✅ 已退出登录",syncComplete:"✅ 数据同步完成",loginRequiredForTickets:"⚠️ 请先登录后使用工单功能",popupBlocked:"⚠️ 浏览器拦截了新标签页，请允许弹窗后重试",loginSuccess:"✅ 登录成功",redirectingAuth:"⏳ 正在跳转到授权页面..."},notifications:{milestoneTitle:"🎉 达成里程碑！"},homeErrors:{emptyConnect:"信任等级页返回空内容",http401_403:"当前未登录论坛，或没有权限访问信任等级页（HTTP {status}）",http404:"信任等级页不存在（HTTP 404）",http429:"请求过于频繁，请稍后重试（HTTP 429）",http5xx:"信任等级页暂时不可用（HTTP {status}）",http4xx:"信任等级页请求失败（HTTP {status}）",timeout:"请求超时，无法连接信任等级页，请检查网络后重试",network:"网络连接失败，无法获取升级数据，请检查网络后重试",loadFailedTitle:"升级数据加载失败",fetchingSummary:"正在获取统计数据...",summaryEmpty:"用户统计接口未返回有效数据",summaryPrefix:"用户统计：{reason}",userUnidentified:"未能识别当前用户",fetchingCloud:"正在获取云端数据...",cloudEmpty:"云端没有已同步的升级数据",cloudPrefix:"云端：{reason}",currentTrustLevel:"当前信任等级：{level}",noProgressData:"暂无升级进度数据",viewTrustGuide:"📖 查看完整信任等级说明",connectAuthFailed:"信任等级页认证失败，返回了论坛首页",connectTableMissing:"信任等级页未找到升级要求表格",connectNoReqs:"信任等级页没有可解析的升级要求",noSummaryPermission:"没有权限查看用户统计数据",summaryReturnedHtml:"用户统计接口返回了网页而不是数据",summaryPageEmpty:"用户统计页返回空内容"}};var b={title:"设置",backAria:"返回",nav:{theme:"🎨 外观设置",readingGoal:"🎯 阅读目标",fontSize:"🔤 字体调节",actions:"🔘 功能按钮",requirements:"📋 要求展示",language:"🌐 界面语言"},theme:{title:"外观设置",auto:"跟随系统",autoDesc:"根据系统外观自动切换",light:"浅色",lightDesc:"高亮清爽，适合白天阅读",dark:"深色",darkDesc:"夜间护眼，减少眩光干扰"},readingGoal:{title:"阅读目标设置",label:"目标时长",unit:"小时",summary:{other:"{hours}小时"},hint:"范围 0.5 - 20 小时，步进 0.5 小时"},fontSize:{title:"字体调节",currentLevel:"当前档位",levels:{compact:"紧凑",small:"偏小",standard:"标准",comfortable:"舒适",large:"宽大"},hint:"五档梯度重新拉开：更适合小屏压缩阅读，也能在大屏下获得更明显放大效果"},actions:{title:"功能按钮",summary:"{enabled}/{total} 开启",orderNav:"↕️ 按钮排序",toggleNav:"✅ 功能启用",toggleTitle:"功能启用",orderTitle:"按钮排序",orderTip:"可拖动调整：士多、LDC、CDK、总结、导出、工单。登录和注销顺序固定。",buttons:{login:"登录按钮",logout:"注销按钮",ticket:"工单按钮",melon:"总结按钮",export:"导出按钮",ldc:"LDC 按钮",shop:"士多按钮",cdk:"CDK 按钮"},resetOrder:"恢复默认顺序",resetOrderToast:"✅ 已恢复默认顺序"},requirements:{title:"要求展示",summaryAll:"展示全部",summaryIncomplete:"只显示未完成",allLabel:"展示所有升级数据",allDesc:"默认展示已完成和未完成的升级要求",incompleteLabel:"只显示未完成",incompleteDesc:"要求板块仅保留尚未达成的项目"},language:{title:"界面语言",zhCN:"简体中文",zhCNSummary:"简体中文",zhCNDesc:"默认中文界面",enUS:"English (US)",enUSSummary:"English (US)",enUSDesc:"英文界面，刷新页面后生效",hint:"语言偏好会立即保存在当前站点本地；存在进行中的总结或导出任务时不会强制刷新。",reloadNow:"刷新页面以应用语言",savedPendingReload:"✅ 语言已保存，刷新页面后生效",persistFailed:"⚠️ 无法保存语言偏好，刷新后将恢复之前的设置",busyCannotReload:"⏳ 当前有正在运行的任务，请等待完成后再刷新页面"}};var k={ring:{met:"已达标",completion:"完成度",remaining:"待完成",maxAdminLevel:"🏆 已达最高等级",maxUserLevel:"🎖️ 已达普通用户最高等级",remainingTip:{other:"⏳ 距升级还需完成 {count} 项要求"},readyTip:"🎉 已满足升级条件",allMetEmpty:"所有升级要求都已完成",learnTrust:"了解论坛信任等级 →"},reading:{todayLabel:"今日阅读",visitWebsiteTitle:"点击访问 LDStatus Pro 官网",pausedStatus:"未活动 已停止记录",trackingStatus:"阅读时间记录中...",levels:{starter:"刚起步",warmup:"热身中",steady:"渐入佳境",focused:"沉浸阅读",deep:"深度学习",master:"LD达人",super:"超级水怪",diamond:"钻石级",legend:"传奇级",mythic:"神话级",fallback:"等级{level}"}},trends:{topicsEntered:"浏览话题",postsRead:"已读帖子",likesGiven:"点赞",replies:"回复",likesReceived:"获赞"},names:{daysVisited:"访问天数",visits:"访问次数",topicsEntered:"浏览话题",topicsEnteredAllTime:"浏览话题(所有时间)",postsRead:"已读帖子",postsReadAllTime:"已读帖子(所有时间)",replies:"回复",topicsReplied:"回复话题",postsCreated:"发帖",topicsCreated:"创建话题",likesGiven:"点赞",likesSent:"送出赞",likesReceived:"获赞",likesReceivedDays:"获赞天数",likesReceivedUsers:"点赞用户",likedUsersAlt:"获赞用户",flaggedPosts:"被举报帖子",flaggingUsers:"发起举报",silenced6m:"被禁言(近6个月)",suspended6m:"被封禁(近6个月)",silenced:"被禁言",suspended:"被封禁",readingTime:"阅读时间",readingTimeMin:"阅读时间(分钟)",solutions:"解决方案"}};var S={tabs:{today:"今日",week:"本周",month:"本月",year:"本年",all:"全部"},prevDay:"前一日",weekNum:"第{num}周",today:{firstVisitLine1:"今日首次访问",firstVisitLine2:"数据将从现在开始统计",timeRange:"今日 00:00 ~ {now} (首次记录于 {start})",totalReading:"今日累计阅读",goalTitle:"📖 阅读目标 ({goal}小时)",upItems:"📈 增长项",downItems:"📉 下降项",changesTitle:"📊 今日变化明细",comparedTo:"较{label}",noChanges:"相比{label}暂无数据变化"},week:{readingTitle:"⏱️ 7天阅读时间",readingSub:"共 {total} · 日均 {avg}",metricsTitle:"📈 本周每日数据",metricsSub:"对应日期阅读数据"},month:{readingTitle:"⏱️ 本月阅读时间",readingSub:"共 {total} · 日均 {avg}",dayFutureTip:"{day}日: 0分钟 (未到)",dayTip:"{day}日: {time}",metricsTitle:"📈 本月每周数据",metricsSub:"对应周阅读数据"},year:{readingTitle:"⏱️ 本年阅读时间",readingSub:"共 {total}",legendMin:"<1分",legendMax:">5小时",metricsTitle:"📊 本年每月数据",metricsSub:"对应月份阅读数据"},all:{recordedReadingDays:"共记录 {days} 天阅读数据",recordedDataDays:"共记录 {rec} 天数据",recordedDataSpan:"共记录 {rec} 天数据 · 跨度 {span} 天",totalAndDailyAvg:"累计阅读时间 · 日均 {avg}",cumulativeChanges:"📊 累计变化",daysSuffix:"({rec}天)",dailyAvgIncrement:"📈 日均增量"}};var w={tabs:{daily:"日榜",weekly:"周榜",monthly:"月榜"},loading:"加载排行榜...",login:{title:"需要登录",descLine1:"登录后可以：",descLine2:"☁️ 阅读数据云端同步",descLine3:"🏆 查看/加入排行榜",btn:"🚀 立即登录",redirecting:"⏳ 跳转中...",privacy:"仅获取基本信息，用于数据同步"},join:{title:"加入阅读排行榜",descLine1:"加入后可以查看排行榜，你的阅读时间将与其他用户一起展示",descLine2:"这是完全可选的，随时可以退出",btn:"✨ 加入排行榜",joining:"⏳ 加入中...",joinedToast:"✅ 已成功加入排行榜",privacy:"仅展示用户名和阅读时间"},paused:{title:"已暂停新用户注册",desc:"由于后端服务压力，暂不开放新用户注册。已注册用户可正常登录使用。"},data:{emptyLine1:"暂无排行数据",emptyLine2:"成为第一个上榜的人吧！",updateMinutes:"每 {m} 分钟更新",updateHours:"每 {h} 小时更新",refreshTitle:"手动刷新",period:"📅 统计周期: ",myRank:"我的排名",notInTop:"（未入榜）",meTag:"(我)",quitBtn:"退出排行榜",quittingBtn:"退出中...",quitConfirmTitle:"退出排行榜",quitConfirmMsg:"确定要退出排行榜吗？",quitToast:"✅ 已退出排行榜",cooldownToast:"⏳ 请等待 {seconds} 秒后再刷新",fromCacheToast:"📦 获取缓存数据",refreshedToast:"✅ 已刷新排行榜"},errors:{fetchFailed:"获取排行榜失败",cooldown:"刷新冷却中",authExpired:"登录已失效，请重新登录",joinFailed:"加入失败",quitFailed:"退出失败"}};var v={title:"关注与粉丝",tabFollowing:"关注",tabFollowers:"粉丝",emptyFollowing:"还没有关注任何人",emptyFollowers:"还没有粉丝"};var L={title:"📪 工单系统",tabList:"我的工单",tabCreate:"提交工单",empty:"暂无工单记录",emptyHint:'点击"提交工单"反馈建议或问题',statusOpen:"处理中",statusClosed:"已关闭",types:{featureRequest:"功能建议",bugReport:"BUG反馈"},create:{typeLabel:"工单类型",titleLabel:"标题",titleRange:"(4-50字)",titlePlaceholder:"简要描述您的问题或建议",contentLabel:"详细描述",contentRange:"(8-500字)",contentPlaceholderFeature:"请详细描述您的功能建议...",contentPlaceholderBug:"请详细描述您遇到的问题，建议包含以下信息：\n\n• 浏览器及版本（如 Chrome 120）\n• 操作系统（如 Windows 11）\n• 问题复现步骤\n• 预期行为与实际行为",submit:"提交工单",submitting:"提交中..."},detail:{back:"← 返回",me:"👤 我",adminFallback:"管理员",replyPlaceholder:"输入回复...",send:"发送",closedHint:"此工单已关闭"},errors:{titleTooShort:"标题至少需要4个字符",titleTooLong:"标题最多50个字符",contentTooShort:"描述至少需要8个字符",contentTooLong:"描述最多500个字符",sessionExpired:"登录已失效，请重新登录后再试",submitFailed:"提交失败",submitFailedWithReason:"提交失败: {reason}",networkError:"网络错误",loadFailed:"工单加载失败",sendFailed:"发送失败"}};var R={tabs:{read:"已读",bookmarks:"收藏",replies:"回复",reactions:"互动",likes:"赞过",topics:"我的话题"},loginRequired:{title:"需要登录",desc:"请先登录论坛后再查看您的活动数据"},toolbar:{searchTopics:"搜索标题或标签...",searchBookmarks:"搜索标题、标签或内容...",loadLabel:"加载",groupsLabel:"分组",allGroups:"全部分组",ungrouped:"未分组",select:"选择",exitSelect:"退出",selectModeTitle:"进入选择模式",exitSelectModeTitle:"退出选择模式",selectAll:"全选",selectAllTitle:"全选当前筛选结果",groupSet:"分组",groupSetTitle:"给已选收藏设置本地分组",groupClear:"移出",groupClearTitle:"移出已选收藏的本地分组",delete:"删除",deleteTitle:"从论坛收藏中批量取消收藏",export:"导出",exportRunTitle:"导出已选收藏；未选择时导出当前筛选结果"},stats:{loaded:"已加载 <strong>{count}</strong> 条",matched:"匹配 <strong>{count}</strong> 条",group:"分组 <strong>{name}</strong>",selected:"已选 <strong>{count}</strong> 条"},empty:{noTopics:"暂无已读话题",noMatchTopics:"未找到匹配的话题",noBookmarks:"暂无收藏",noMatchBookmarks:"未找到匹配的收藏",noReplies:"暂无回复",noLikes:"暂无赞过内容",noReactions:"暂无互动记录",noMyTopics:"暂无发布的话题",pickCategory:"请选择一个分类",loginFirst:"请先登录论坛"},titles:{untitled:"无标题",anonymous:"匿名",reply:"回复",read:"阅读",like:"点赞",bookmarkTime:"收藏时间",lastActivity:"最后活动",selectBookmark:"选择收藏",replyTime:"回复时间",replyFloor:"回复楼层",likeTime:"点赞时间",author:"作者：@{username}",createdTime:"创建时间",replyCount:"回复数",viewCount:"浏览量",likeCount:"点赞数",pinned:"已置顶",closed:"已关闭",localGroup:"本地分组",reactionTime:"互动时间",reactionCount:"共{count}人"},loading:{batchOverlay:"正在加载 {count} 条数据...",loadMoreFailed:"加载失败，向下滚动重试"},bookmarks:{noExportable:"⚠️ 没有可导出的收藏",exportTitle:"# LDStatus Pro 收藏导出",exportTime:"导出时间：{time}",exportCount:"数量：{count}",exportGroup:"分组：{group}",exportCategory:"分类：{category}",exportTags:"标签：{tags}",exportCreated:"收藏时间：{time}",exportBumped:"最后活动：{time}",exportLink:"链接：{url}",exportedToast:"✅ 已导出 {count} 条收藏",selectFirst:"⚠️ 请先选择收藏",deleteConfirm:"确定要从论坛收藏中取消这 {count} 条收藏吗？<br>这个操作会影响论坛收藏列表。",deleteTitle:"批量删除收藏",deleteOk:"删除",deleting:"⏳ 正在删除 {count} 条收藏...",deletedPartial:"⚠️ 已删除 {ok} 条，{failed} 条失败",deletedAll:"✅ 已删除 {count} 条收藏",groupPrompt:"输入分组名称{existing}",groupExisting:"\n已有：{existing}",groupEmpty:"⚠️ 分组名称不能为空",groupAdded:"✅ 已加入分组：{name}",groupRemoved:"✅ 已移出分组"},errors:{loadMoreFailed:"⚠️ 加载更多失败: {reason}"}};var x={title:"🍟 LDC 积分",refreshTitle:"刷新",tabs:{overview:"📊 概览",transactions:"📜 记录",support:"❤️ 支持"},filter:{time:"时间",type:"类型"},timeRanges:{today:"今日","7days":"近7天","30days":"近30天",all:"所有"},transTypes:{all:"全部",receive:"收益",payment:"支出",transfer:"转移",community:"社区划转",online:"在线流转",distribute:"商户分发"}};var D={title:"🎁 CDK 系统",refreshTitle:"刷新",tabs:{home:"🏠 首页",received:"📋 领取记录"}};var C={ui:{loading:"Loading...",loadingData:"Loading data...",loadingMore:"Load more...",empty:"No data",noHistory:"No history yet",selectCategory:"Select a category to view",error:"Failed to load",unknownError:"Unknown error",retry:"🔄 Retry",goLogin:"Sign in →"},dialog:{successTitle:"Success",errorTitle:"Error",warningTitle:"Warning",infoTitle:"Notice",confirmTitle:"Confirm Action",ok:"Confirm",cancel:"Cancel",gotIt:"Got it"},time:{lessThanOneMin:"< 1m",minutes:"{m}m",hours:"{h}h",hoursMinutes:"{h}h {m}m",justNow:"Just now",minutesAgo:"{n}m ago",hoursAgo:"{n}h ago",daysAgo:"{n}d ago",monthDay:"{m}/{d}",yearMonth:"{y}-{m}",weekdays:{"0":"Sun","1":"Mon","2":"Tue","3":"Wed","4":"Thu","5":"Fri","6":"Sat"},months:{"0":"Jan","1":"Feb","2":"Mar","3":"Apr","4":"May","5":"Jun","6":"Jul","7":"Aug","8":"Sep","9":"Oct","10":"Nov","11":"Dec"}},errors:{codes:{NETWORK_ERROR:"Network connection failed. Check your connection.",TIMEOUT:"Request timed out. Please try again later.",IP_BANNED:"IP address blocked. Try switching networks.",IP_PERMANENTLY_BANNED:"IP address permanently blocked. Contact support.",RATE_LIMITED:"Too many requests. Please try again shortly.",NOT_LOGGED_IN:"Please sign in first",AUTH_EXPIRED:"Session expired. Please sign in again.",INVALID_TOKEN:"Invalid session. Please sign in again.",TOKEN_EXPIRED:"Session expired. Please sign in again.",NOT_JOINED:"Join the leaderboard first",REGISTRATION_PAUSED:"New user registration is temporarily paused",UNAUTHORIZED:"Access denied",NOT_FOUND:"Requested resource not found",SERVER_ERROR:"Server temporarily unavailable. Try again later.",VALIDATION_FAILED:"Data validation failed",SYNC_FAILED:"Sync failed. Please try again later.",HTTP_ERROR:"Request failed"},http401_403:"Access denied. Confirm you are signed into the forum (HTTP {status})",http404:"Requested page not found (HTTP 404)",http429:"Too many requests. Please try again later (HTTP 429)",http5xx:"Server temporarily unavailable (HTTP {status})",http4xx:"Request failed (HTTP {status})",rateLimitWaitSeconds:"Too many requests. Wait {n}s and try again.",rateLimitWaitMinutes:"Too many requests. Wait {n}m and try again.",operationFailed:"Action failed. Please try again later."}};var P={ariaLabel:"{site} Trust Level Panel",header:{checkUpdate:"Check for updates",updateAvailable:"New version v{version}",upToDate:"Up to date",upToDateToast:"✅ Already on the latest version",updateCheckFailed:"Update check failed",updateCheckFailedToast:"❌ Failed to check for updates",cloudSync:"Cloud sync",cloudSyncing:"Syncing...",refresh:"Refresh data",settings:"Settings",collapsePanel:"Collapse panel",expandPanel:"Expand panel"},updateBubble:{closeAria:"Close",title:"New version available",updateNow:"🚀 Update now",updating:"⏳ Updating...",confirmInTab:"✅ Confirm update in the opened tab"},user:{loading:"Loading...",followingTitle:"View following list",followingPrefix:"Following ",followingSuffix:"",followersTitle:"View followers list",followersPrefix:"",followersSuffix:" Followers",joinDaysPrefix:"",joinDaysSuffix:"d",siteShortLinuxDo:"Joined ",siteShortIdc:"Joined ",joinedTooltip:"Joined {site} on {year}-{month}-{day}"},actions:{loginText:"Sign in",loginTitle:"Sign in to cloud sync",logoutText:"Sign out",logoutTitle:"Sign out of cloud sync",ldcText:"LDC",ldcTitle:"Linux Do Credit",shopText:"Store",shopTitle:"LD Store",cdkText:"CDK",cdkTitle:"CDK Center",melonText:"Summary",melonTitle:"AI Topic Summary",exportText:"Export",exportTitle:"Export topic as PDF / HTML / Markdown",ticketText:"Tickets",ticketTitle:"Support Tickets",expandMore:"More",expandMoreTitle:"Show more action buttons",collapse:"Less",collapseTitle:"Collapse action buttons"},tabs:{reqs:"Reqs",trends:"Trends",leaderboard:"Ranks",activity:"Profile"},logoutConfirm:{title:"Sign out now?",message:"Leaderboards and cloud sync will be unavailable after signing out.",cancel:"Cancel",confirm:"Sign out"},loginModal:{upgradeTitle:"Upgraded to v3.0",welcomeTitle:"Welcome to LDStatus Pro",upgradeP1Prefix:"v3.0 introduces ",upgradeP1Strong:"Cloud Sync",upgradeP1Suffix:"!",upgradeP2:"Sign in to sync your reading stats across browsers and devices automatically.",welcomeLead:"Sign in with your Linux.do account to:",welcomeItem1:"☁️ Sync reading data to the cloud",welcomeItem2:"🔄 Access stats across browsers & devices",welcomeItem3:"🏆 View and join reading leaderboards",loginNow:"🚀 Sign in now",redirecting:"⏳ Redirecting...",later:"Maybe later",note:"Sign-in is only used for cloud sync; local tracking works without signing in"},toasts:{notLoggedIn:"ℹ️ Not signed in",loggedOut:"✅ Signed out",syncComplete:"✅ Cloud sync complete",loginRequiredForTickets:"⚠️ Sign in first to use support tickets",popupBlocked:"⚠️ Pop-up blocked by browser — allow pop-ups and try again",loginSuccess:"✅ Signed in successfully",redirectingAuth:"⏳ Redirecting to authorization..."},notifications:{milestoneTitle:"🎉 Milestone Reached!"},homeErrors:{emptyConnect:"Trust level page returned empty content",http401_403:"Not signed into the forum or no access to trust level page (HTTP {status})",http404:"Trust level page not found (HTTP 404)",http429:"Too many requests. Please try again later (HTTP 429)",http5xx:"Trust level page temporarily unavailable (HTTP {status})",http4xx:"Trust level request failed (HTTP {status})",timeout:"Request timed out while loading trust level data. Check your network and retry.",network:"Network error while loading upgrade requirements. Check your connection and retry.",loadFailedTitle:"Failed to load upgrade data",fetchingSummary:"Fetching profile stats...",summaryEmpty:"User summary endpoint returned no valid stats",summaryPrefix:"Profile stats: {reason}",userUnidentified:"Could not identify current forum user",fetchingCloud:"Fetching synced cloud data...",cloudEmpty:"No synced upgrade data found in cloud",cloudPrefix:"Cloud: {reason}",currentTrustLevel:"Current Trust Level: {level}",noProgressData:"No upgrade progress data available",viewTrustGuide:"📖 View full trust level guide",connectAuthFailed:"Connect page authentication failed and returned the forum home page",connectTableMissing:"Upgrade requirements table not found on Connect page",connectNoReqs:"No parseable upgrade requirements found on Connect page",noSummaryPermission:"No permission to view user summary stats",summaryReturnedHtml:"User summary endpoint returned HTML instead of JSON",summaryPageEmpty:"User summary page returned empty content"}};var A={title:"Settings",backAria:"Back",nav:{theme:"🎨 Appearance",readingGoal:"🎯 Reading Goal",fontSize:"🔤 Font Size",actions:"🔘 Actions",requirements:"📋 Requirements",language:"🌐 Language"},theme:{title:"Appearance",auto:"System",autoDesc:"Match system light or dark mode",light:"Light",lightDesc:"Bright and crisp for daytime reading",dark:"Dark",darkDesc:"Easy on the eyes in low light"},readingGoal:{title:"Reading Goal",label:"Target",unit:"hrs",summary:{one:"{hours} hr",other:"{hours} hrs"},hint:"Range: 0.5–20 hours, in 0.5-hour steps"},fontSize:{title:"Font Size",currentLevel:"Current",levels:{compact:"Compact",small:"Small",standard:"Default",comfortable:"Large",large:"Extra"},hint:"Five scale steps for compact mobile panels or larger desktop reading"},actions:{title:"Action Buttons",summary:"{enabled}/{total} on",orderNav:"↕️ Button Order",toggleNav:"✅ Visible Buttons",toggleTitle:"Visible Buttons",orderTitle:"Button Order",orderTip:"Drag to reorder Store, LDC, CDK, Summary, Export, and Tickets. Sign-in and sign-out stay fixed.",buttons:{login:"Sign-in button",logout:"Sign-out button",ticket:"Tickets button",melon:"AI Summary button",export:"Export button",ldc:"LDC button",shop:"LD Store button",cdk:"CDK button"},resetOrder:"Reset default order",resetOrderToast:"✅ Restored default button order"},requirements:{title:"Requirements",summaryAll:"All",summaryIncomplete:"Unmet",allLabel:"Show all requirements",allDesc:"Display both completed and incomplete requirements",incompleteLabel:"Incomplete only",incompleteDesc:"Only display requirements not yet met"},language:{title:"Language",zhCN:"简体中文",zhCNSummary:"简体中文",zhCNDesc:"Default Simplified Chinese interface",enUS:"English (US)",enUSSummary:"English",enUSDesc:"English interface, applied after reload",hint:"Saved locally per site. Active summaries or exports are never interrupted automatically.",reloadNow:"Reload page to apply",savedPendingReload:"✅ Language saved — reload the page to apply",persistFailed:"⚠️ Could not save language preference; previous setting will remain after reload",busyCannotReload:"⏳ Finish or stop the active task before reloading"}};var E={ring:{met:"Met",completion:"Progress",remaining:"Left",maxAdminLevel:"🏆 Maximum trust level reached",maxUserLevel:"🎖️ Maximum regular trust level reached",remainingTip:{one:"⏳ {count} requirement left to advance",other:"⏳ {count} requirements left to advance"},readyTip:"🎉 All upgrade requirements met",allMetEmpty:"All upgrade requirements are met",learnTrust:"About forum trust levels →"},reading:{todayLabel:"Today",visitWebsiteTitle:"Visit LDStatus Pro website",pausedStatus:"Idle · Paused",trackingStatus:"Tracking reading...",levels:{starter:"Starter",warmup:"Warming Up",steady:"In the Zone",focused:"Deep Focus",deep:"Deep Study",master:"LD Master",super:"Super Reader",diamond:"Diamond",legend:"Legendary",mythic:"Mythic",fallback:"Lv.{level}"}},trends:{topicsEntered:"Topics",postsRead:"Read",likesGiven:"Likes",replies:"Replies",likesReceived:"Liked"},names:{daysVisited:"Days visited",visits:"Days visited",topicsEntered:"Topics entered",topicsEnteredAllTime:"Topics entered (all time)",postsRead:"Posts read",postsReadAllTime:"Posts read (all time)",replies:"Replies",topicsReplied:"Topics replied",postsCreated:"Posts created",topicsCreated:"Topics created",likesGiven:"Likes given",likesSent:"Likes given",likesReceived:"Likes received",likesReceivedDays:"Days with likes",likesReceivedUsers:"Users who liked",likedUsersAlt:"Users who liked",flaggedPosts:"Flagged posts",flaggingUsers:"Users who flagged",silenced6m:"Silenced (last 6m)",suspended6m:"Suspended (last 6m)",silenced:"Silenced",suspended:"Suspended",readingTime:"Read time (min)",readingTimeMin:"Read time (min)",solutions:"Solutions"}};var N={tabs:{today:"Today",week:"Week",month:"Month",year:"Year",all:"All"},prevDay:"prev. day",weekNum:"Wk {num}",today:{firstVisitLine1:"First visit today",firstVisitLine2:"Tracking starts from now",timeRange:"Today 00:00–{now} (first recorded at {start})",totalReading:"Read today",goalTitle:"📖 Daily Goal ({goal}h)",upItems:"📈 Gains",downItems:"📉 Drops",changesTitle:"📊 Today's Changes",comparedTo:"vs {label}",noChanges:"No metric changes vs {label}"},week:{readingTitle:"⏱️ 7-Day Reading",readingSub:"Total {total} · Avg {avg}/d",metricsTitle:"📈 Daily Progress",metricsSub:"Recorded metrics by day"},month:{readingTitle:"⏱️ Monthly Reading",readingSub:"Total {total} · Avg {avg}/d",dayFutureTip:"Day {day}: 0m (upcoming)",dayTip:"Day {day}: {time}",metricsTitle:"📈 Weekly Progress",metricsSub:"Recorded metrics by week"},year:{readingTitle:"⏱️ Yearly Reading",readingSub:"Total {total}",legendMin:"<1m",legendMax:">5h",metricsTitle:"📊 Monthly Progress",metricsSub:"Recorded metrics by month"},all:{recordedReadingDays:"Recorded {days} days of reading",recordedDataDays:"Recorded {rec} days of stats",recordedDataSpan:"Recorded {rec} days · Span {span}d",totalAndDailyAvg:"Total reading · Avg {avg}/d",cumulativeChanges:"📊 Overall Change",daysSuffix:"({rec}d)",dailyAvgIncrement:"📈 Avg Daily Gain"}};var F={tabs:{daily:"Daily",weekly:"Weekly",monthly:"Monthly"},loading:"Loading leaderboard...",login:{title:"Sign In Required",descLine1:"Sign in to unlock:",descLine2:"☁️ Cloud reading sync",descLine3:"🏆 Reading leaderboards",btn:"🚀 Sign in now",redirecting:"⏳ Redirecting...",privacy:"Only basic profile info is used for sync"},join:{title:"Join Reading Leaderboard",descLine1:"Compare your reading time with the community",descLine2:"Completely optional — you can leave anytime",btn:"✨ Join leaderboard",joining:"⏳ Joining...",joinedToast:"✅ Joined the leaderboard",privacy:"Only your username and reading time are shown"},paused:{title:"Registrations Paused",desc:"New leaderboard registrations are temporarily paused due to server load. Existing members can sign in as usual."},data:{emptyLine1:"No rankings yet",emptyLine2:"Be the first on the board!",updateMinutes:"Updates every {m}m",updateHours:"Updates every {h}h",refreshTitle:"Refresh now",period:"📅 Period: ",myRank:"My Rank",notInTop:" (Unranked)",meTag:"(You)",quitBtn:"Leave leaderboard",quittingBtn:"Leaving...",quitConfirmTitle:"Leave Leaderboard",quitConfirmMsg:"Are you sure you want to leave the leaderboard?",quitToast:"✅ Left the leaderboard",cooldownToast:"⏳ Wait {seconds}s before refreshing again",fromCacheToast:"📦 Loaded cached rankings",refreshedToast:"✅ Leaderboard refreshed"},errors:{fetchFailed:"Failed to fetch leaderboard",cooldown:"Refresh on cooldown",authExpired:"Session expired. Please sign in again.",joinFailed:"Failed to join leaderboard",quitFailed:"Failed to leave leaderboard"}};var I={title:"Following & Followers",tabFollowing:"Following",tabFollowers:"Followers",emptyFollowing:"Not following anyone yet",emptyFollowers:"No followers yet"};var M={title:"📪 Support Tickets",tabList:"My Tickets",tabCreate:"New Ticket",empty:"No tickets yet",emptyHint:'Use "New Ticket" to share feedback or report a problem',statusOpen:"Open",statusClosed:"Closed",types:{featureRequest:"Feature Request",bugReport:"Bug Report"},create:{typeLabel:"Ticket type",titleLabel:"Title",titleRange:"(4–50 chars)",titlePlaceholder:"Briefly describe your issue or suggestion",contentLabel:"Description",contentRange:"(8–500 chars)",contentPlaceholderFeature:"Describe your feature suggestion in detail...",contentPlaceholderBug:"Describe the problem in detail. Useful information:\n\n• Browser and version (e.g. Chrome 120)\n• Operating system (e.g. Windows 11)\n• Steps to reproduce\n• Expected vs. actual behavior",submit:"Submit ticket",submitting:"Submitting..."},detail:{back:"← Back",me:"👤 Me",adminFallback:"Admin",replyPlaceholder:"Type a reply...",send:"Send",closedHint:"This ticket is closed"},errors:{titleTooShort:"Title must be at least 4 characters",titleTooLong:"Title must be at most 50 characters",contentTooShort:"Description must be at least 8 characters",contentTooLong:"Description must be at most 500 characters",sessionExpired:"Session expired. Please sign in again.",submitFailed:"Submission failed",submitFailedWithReason:"Submission failed: {reason}",networkError:"Network error",loadFailed:"Failed to load ticket",sendFailed:"Failed to send reply"}};var O={tabs:{read:"Read",bookmarks:"Bookmarks",replies:"Replies",reactions:"Reactions",likes:"Liked",topics:"My Topics"},loginRequired:{title:"Sign In Required",desc:"Sign in to the forum to view your activity"},toolbar:{searchTopics:"Search titles or tags...",searchBookmarks:"Search titles, tags or content...",loadLabel:"Load",groupsLabel:"Group",allGroups:"All groups",ungrouped:"Ungrouped",select:"Select",exitSelect:"Exit",selectModeTitle:"Enter selection mode",exitSelectModeTitle:"Exit selection mode",selectAll:"All",selectAllTitle:"Select all filtered results",groupSet:"Group",groupSetTitle:"Assign a local group to selected bookmarks",groupClear:"Remove",groupClearTitle:"Remove local group from selected bookmarks",delete:"Delete",deleteTitle:"Remove selected bookmarks from the forum",export:"Export",exportRunTitle:"Export selected bookmarks; exports the current filtered list when nothing is selected"},stats:{loaded:"Loaded <strong>{count}</strong>",matched:"Matched <strong>{count}</strong>",group:"Group <strong>{name}</strong>",selected:"Selected <strong>{count}</strong>"},empty:{noTopics:"No read topics yet",noMatchTopics:"No matching topics",noBookmarks:"No bookmarks yet",noMatchBookmarks:"No matching bookmarks",noReplies:"No replies yet",noLikes:"Nothing liked yet",noReactions:"No reactions yet",noMyTopics:"No topics created yet",pickCategory:"Select a category to view",loginFirst:"Sign in to the forum first"},titles:{untitled:"Untitled",anonymous:"Anonymous",reply:"Replies",read:"Views",like:"Likes",bookmarkTime:"Bookmarked",lastActivity:"Last activity",selectBookmark:"Select bookmark",replyTime:"Replied",replyFloor:"Reply floor",likeTime:"Liked",author:"By @{username}",createdTime:"Created",replyCount:"Replies",viewCount:"Views",likeCount:"Likes",pinned:"Pinned",closed:"Closed",localGroup:"Local group",reactionTime:"Reacted",reactionCount:"{count} users"},loading:{batchOverlay:"Loading {count} items...",loadMoreFailed:"Load failed — scroll down to retry"},bookmarks:{noExportable:"⚠️ No bookmarks to export",exportTitle:"# LDStatus Pro Bookmark Export",exportTime:"Exported at: {time}",exportCount:"Count: {count}",exportGroup:"Group: {group}",exportCategory:"Category: {category}",exportTags:"Tags: {tags}",exportCreated:"Bookmarked: {time}",exportBumped:"Last activity: {time}",exportLink:"Link: {url}",exportedToast:"✅ Exported {count} bookmarks",selectFirst:"⚠️ Select bookmarks first",deleteConfirm:"Remove these {count} bookmarks from your forum bookmarks?<br>This affects your forum bookmark list.",deleteTitle:"Delete Bookmarks",deleteOk:"Delete",deleting:"⏳ Deleting {count} bookmarks...",deletedPartial:"⚠️ Deleted {ok}, failed {failed}",deletedAll:"✅ Deleted {count} bookmarks",groupPrompt:"Enter a group name{existing}",groupExisting:"\nExisting: {existing}",groupEmpty:"⚠️ Group name cannot be empty",groupAdded:"✅ Added to group: {name}",groupRemoved:"✅ Removed from group"},errors:{loadMoreFailed:"⚠️ Failed to load more: {reason}"}};var U={title:"🍟 LDC Credits",refreshTitle:"Refresh",tabs:{overview:"📊 Overview",transactions:"📜 History",support:"❤️ Support"},filter:{time:"Time",type:"Type"},timeRanges:{today:"Today","7days":"7 days","30days":"30 days",all:"All"},transTypes:{all:"All",receive:"Income",payment:"Spending",transfer:"Transfer",community:"Community",online:"Online",distribute:"Merchant"}};var q={title:"🎁 CDK Center",refreshTitle:"Refresh",tabs:{home:"🏠 Home",received:"📋 Claimed"}};var s="zh-CN";var we=Object.freeze(["zh-CN","en-US"]);var B=Object.freeze(["zero","one","two","few","many","other"]);var _=Object.freeze({"zh-CN":Object.freeze({common:h,panel:f,settings:b,metrics:k,trends:S,leaderboard:w,follow:v,tickets:L,activity:R,ldc:x,cdk:D}),"en-US":Object.freeze({common:C,panel:P,settings:A,metrics:E,trends:N,leaderboard:F,follow:I,tickets:M,activity:O,ldc:U,cdk:q})});function z(t){if(typeof t!=="string")return s;const e=t.trim().toLowerCase();if(e==="en-us"||e==="en")return"en-US";if(e==="zh-cn"||e==="zh")return"zh-CN";return s}function G(t){return String(t??"").replace(/[&<>"']/g,e=>e==="&"?"&amp;":e==="<"?"&lt;":e===">"?"&gt;":e==='"'?"&quot;":"&#39;")}function m(t){if(!t||typeof t!=="object"||Array.isArray(t))return false;const e=Object.keys(t);return e.length>0&&Object.prototype.hasOwnProperty.call(t,"other")&&e.every(r=>B.includes(r)&&typeof t[r]==="string")}function j(t,e){if(typeof e!=="string"||!e)return void 0;const r=e.split(".");let o=t;for(const n of r){if(!o||typeof o!=="object"||!Object.prototype.hasOwnProperty.call(o,n)){return void 0}o=o[n]}return typeof o==="string"||m(o)?o:void 0}function H(t,e){if(!e||typeof e!=="object")return t;return t.replace(/\{([a-zA-Z0-9_]+)\}/g,(r,o)=>Object.prototype.hasOwnProperty.call(e,o)&&e[o]!==void 0&&e[o]!==null?String(e[o]):r)}function p(t=s,{catalogs:e=_,onFallback:r}={}){const o=z(t);const n=new Map;const W=i=>{if(!n.has(i))n.set(i,new globalThis.Intl.PluralRules(i));return n.get(i)};function g(i,a={}){const c=j(e[o],i);let l=c;let y=o;if(l===void 0&&o!==s){l=j(e[s],i);y=s;if(l!==void 0)r?.({key:i,locale:o,fallbackLocale:s,missing:false})}if(l===void 0){r?.({key:i,locale:o,fallbackLocale:null,missing:true});return String(i??"")}if(m(l)){const T=Number(a?.count??0);const V=Number.isFinite(T)?W(y).select(T):"other";const K=l[V]??l.other;return H(K,a)}return H(l,a)}return Object.freeze({locale:o,t:(i,a)=>g(i,a),tHtml:(i,a)=>G(g(i,a)),formatNumber:(i,a)=>new globalThis.Intl.NumberFormat(o,a).format(i),formatDateTime:(i,a)=>new globalThis.Intl.DateTimeFormat(o,a).format(i),formatRelativeTime:(i,a,c)=>new globalThis.Intl.RelativeTimeFormat(o,{numeric:"auto",...c}).format(i,a)})}var d=p(s);function ve(){return d.locale}function Le(t){d=p(t);return d.locale}function Re(t,e){return d.t(t,e)}function xe(t,e){return d.tHtml(t,e)}function De(t,e){return d.formatNumber(t,e)}function Ce(t,e){return d.formatDateTime(t,e)}function Pe(t,e,r){return d.formatRelativeTime(t,e,r)}return $(Ae);})();
         // @@I18N_END
 
         // ==================== CDK/LDC 桥接页面 ====================
@@ -6109,12 +6109,12 @@
                 this.overlay.className = 'ldsp-ticket-overlay';
                 this.overlay.innerHTML = `
                     <div class="ldsp-ticket-header">
-                        <div class="ldsp-ticket-title">📪 工单系统</div>
+                        <div class="ldsp-ticket-title">${I18n.tHtml('tickets.title')}</div>
                         <div class="ldsp-ticket-close">×</div>
                     </div>
                     <div class="ldsp-ticket-tabs">
-                        <div class="ldsp-ticket-tab active" data-tab="list">我的工单</div>
-                        <div class="ldsp-ticket-tab" data-tab="create">提交工单</div>
+                        <div class="ldsp-ticket-tab active" data-tab="list">${I18n.tHtml('tickets.tabList')}</div>
+                        <div class="ldsp-ticket-tab" data-tab="create">${I18n.tHtml('tickets.tabCreate')}</div>
                     </div>
                     <div class="ldsp-ticket-body"></div>`;
                 if (this.panelBody) {
@@ -6146,8 +6146,8 @@
 
             async _loadTicketTypes() {
                 const defaultTypes = [
-                    { id: 'feature_request', label: '功能建议', icon: '💡' },
-                    { id: 'bug_report', label: 'BUG反馈', icon: '📪' }
+                    { id: 'feature_request', label: I18n.t('tickets.types.featureRequest'), icon: '💡' },
+                    { id: 'bug_report', label: I18n.t('tickets.types.bugReport'), icon: '📪' }
                 ];
                 try {
                     const result = await this.oauth?.api('/api/tickets/types');
@@ -6289,8 +6289,8 @@
                 if (this.tickets.length === 0) {
                     body.innerHTML = UI.empty({
                         icon: '📭',
-                        text: '暂无工单记录',
-                        extra: '<div style="margin-top:6px;font-size:10px">点击"提交工单"反馈建议或问题</div>',
+                        text: I18n.t('tickets.empty'),
+                        extra: `<div style="margin-top:6px;font-size:10px">${I18n.tHtml('tickets.emptyHint')}</div>`,
                         className: 'ldsp-ticket-empty',
                         iconClass: 'ldsp-ticket-empty-icon',
                         textClass: ''
@@ -6303,8 +6303,8 @@
                         ${this.tickets.map(t => `
                             <div class="ldsp-ticket-item ${t.has_new_reply ? 'has-reply' : ''}" data-id="${t.id}">
                                 <div class="ldsp-ticket-item-header">
-                                    <span class="ldsp-ticket-item-type">${this._getTypeIcon(t.type)} ${this._getTypeLabel(t.type)}</span>
-                                    <span class="ldsp-ticket-item-status ${t.status}">${t.status === 'open' ? '处理中' : '已关闭'}</span>
+                                    <span class="ldsp-ticket-item-type">${this._getTypeIcon(t.type)} ${Utils.escapeHtml(this._getTypeLabel(t.type))}</span>
+                                    <span class="ldsp-ticket-item-status ${t.status}">${I18n.tHtml(t.status === 'open' ? 'tickets.statusOpen' : 'tickets.statusClosed')}</span>
                                 </div>
                                 <div class="ldsp-ticket-item-title">${Utils.sanitize(t.title, 50)}</div>
                                 <div class="ldsp-ticket-item-meta">
@@ -6327,40 +6327,40 @@
                 
                 if (!this.ticketTypes || this.ticketTypes.length === 0) {
                     this.ticketTypes = [
-                        { id: 'feature_request', label: '功能建议', icon: '💡' },
-                        { id: 'bug_report', label: 'BUG反馈', icon: '📪' }
+                        { id: 'feature_request', label: I18n.t('tickets.types.featureRequest'), icon: '💡' },
+                        { id: 'bug_report', label: I18n.t('tickets.types.bugReport'), icon: '📪' }
                     ];
                 }
                 
                 // 不同类型的 placeholder 提示
                 const placeholders = {
-                    'feature_request': '请详细描述您的功能建议...',
-                    'bug_report': '请详细描述您遇到的问题，建议包含以下信息：\n\n• 浏览器及版本（如 Chrome 120）\n• 操作系统（如 Windows 11）\n• 问题复现步骤\n• 预期行为与实际行为'
+                    'feature_request': I18n.t('tickets.create.contentPlaceholderFeature'),
+                    'bug_report': I18n.t('tickets.create.contentPlaceholderBug')
                 };
                 const defaultPlaceholder = placeholders[this.ticketTypes[0]?.id] || placeholders['feature_request'];
                 
                 body.innerHTML = `
                     <div class="ldsp-ticket-form">
                         <div class="ldsp-ticket-form-group">
-                            <div class="ldsp-ticket-label">工单类型</div>
+                            <div class="ldsp-ticket-label">${I18n.tHtml('tickets.create.typeLabel')}</div>
                             <div class="ldsp-ticket-types">
                                 ${this.ticketTypes.map((t, i) => `
-                                    <div class="ldsp-ticket-type ${i === 0 ? 'selected' : ''}" data-type="${t.id}">
+                                    <div class="ldsp-ticket-type ${i === 0 ? 'selected' : ''}" data-type="${Utils.escapeHtml(t.id)}">
                                         <span class="ldsp-ticket-type-icon">${t.icon}</span>
-                                        <span class="ldsp-ticket-type-label">${t.label}</span>
+                                        <span class="ldsp-ticket-type-label">${Utils.escapeHtml(this._getTypeLabel(t.id))}</span>
                                     </div>
                                 `).join('')}
                             </div>
                         </div>
                         <div class="ldsp-ticket-form-group">
-                            <div class="ldsp-ticket-label">标题 <span style="color:var(--txt-mut);font-weight:400">(4-50字)</span></div>
-                            <input type="text" class="ldsp-ticket-input" placeholder="简要描述您的问题或建议" minlength="4" maxlength="50">
+                            <div class="ldsp-ticket-label">${I18n.tHtml('tickets.create.titleLabel')} <span style="color:var(--txt-mut);font-weight:400">${I18n.tHtml('tickets.create.titleRange')}</span></div>
+                            <input type="text" class="ldsp-ticket-input" placeholder="${I18n.tHtml('tickets.create.titlePlaceholder')}" minlength="4" maxlength="50">
                         </div>
                         <div class="ldsp-ticket-form-group">
-                            <div class="ldsp-ticket-label">详细描述 <span style="color:var(--txt-mut);font-weight:400">(8-500字)</span></div>
-                            <textarea class="ldsp-ticket-textarea" placeholder="${defaultPlaceholder}" minlength="8" maxlength="500"></textarea>
+                            <div class="ldsp-ticket-label">${I18n.tHtml('tickets.create.contentLabel')} <span style="color:var(--txt-mut);font-weight:400">${I18n.tHtml('tickets.create.contentRange')}</span></div>
+                            <textarea class="ldsp-ticket-textarea" placeholder="${Utils.escapeHtml(defaultPlaceholder)}" minlength="8" maxlength="500"></textarea>
                         </div>
-                        <button class="ldsp-ticket-submit">提交工单</button>
+                        <button class="ldsp-ticket-submit">${I18n.tHtml('tickets.create.submit')}</button>
                     </div>`;
 
                 const textarea = body.querySelector('.ldsp-ticket-textarea');
@@ -6384,13 +6384,13 @@
                 const content = body.querySelector('.ldsp-ticket-textarea')?.value.trim();
                 const btn = body.querySelector('.ldsp-ticket-submit');
 
-                if (!title || title.length < 4) { LDSPDialog.warning('标题至少需要4个字符'); return; }
-                if (title.length > 50) { LDSPDialog.warning('标题最多50个字符'); return; }
-                if (!content || content.length < 8) { LDSPDialog.warning('描述至少需要8个字符'); return; }
-                if (content.length > 500) { LDSPDialog.warning('描述最多500个字符'); return; }
+                if (!title || title.length < 4) { LDSPDialog.warning(I18n.t('tickets.errors.titleTooShort')); return; }
+                if (title.length > 50) { LDSPDialog.warning(I18n.t('tickets.errors.titleTooLong')); return; }
+                if (!content || content.length < 8) { LDSPDialog.warning(I18n.t('tickets.errors.contentTooShort')); return; }
+                if (content.length > 500) { LDSPDialog.warning(I18n.t('tickets.errors.contentTooLong')); return; }
 
                 btn.disabled = true;
-                btn.textContent = '提交中...';
+                btn.textContent = I18n.t('tickets.create.submitting');
 
                 try {
                     const result = await this.oauth.api('/api/tickets', {
@@ -6407,16 +6407,16 @@
                         // 检测登录失效情况
                         const errCode = result.error?.code;
                         if (errCode === 'NOT_LOGGED_IN' || errCode === 'AUTH_EXPIRED' || errCode === 'INVALID_TOKEN') {
-                            LDSPDialog.error('登录已失效，请重新登录后再试');
+                            LDSPDialog.error(I18n.t('tickets.errors.sessionExpired'));
                         } else {
-                            LDSPDialog.error(result.error?.message || result.error || data?.error || '提交失败');
+                            LDSPDialog.error(result.error?.message || result.error || data?.error || I18n.t('tickets.errors.submitFailed'));
                         }
                     }
                 } catch (e) {
-                    LDSPDialog.error('提交失败: ' + (e.message || '网络错误'));
+                    LDSPDialog.error(I18n.t('tickets.errors.submitFailedWithReason', { reason: e.message || I18n.t('tickets.errors.networkError') }));
                 } finally {
                     btn.disabled = false;
-                    btn.textContent = '提交工单';
+                    btn.textContent = I18n.t('tickets.create.submit');
                 }
             }
 
@@ -6431,9 +6431,9 @@
                     if (!result.success) {
                         const errCode = result.error?.code;
                         if (errCode === 'NOT_LOGGED_IN' || errCode === 'AUTH_EXPIRED' || errCode === 'INVALID_TOKEN') {
-                            throw new Error('登录已失效，请重新登录');
+                            throw new Error(I18n.t('tickets.errors.sessionExpired'));
                         }
-                        throw new Error(result.error?.message || result.error || '加载失败');
+                        throw new Error(result.error?.message || result.error || I18n.t('common.ui.error'));
                     }
                     
                     const data = result.data?.data || result.data;
@@ -6444,20 +6444,20 @@
                     body.innerHTML = `
                         <div class="ldsp-ticket-detail">
                             <div class="ldsp-ticket-detail-top">
-                                <div class="ldsp-ticket-back">← 返回</div>
+                                <div class="ldsp-ticket-back">${I18n.tHtml('tickets.detail.back')}</div>
                                 <div class="ldsp-ticket-detail-header">
                                     <div class="ldsp-ticket-detail-title">${Utils.sanitize(ticket.title, 100)}</div>
                                     <div class="ldsp-ticket-detail-meta">
-                                        <span>${this._getTypeIcon(ticket.type)} ${this._getTypeLabel(ticket.type)}</span>
+                                        <span>${this._getTypeIcon(ticket.type)} ${Utils.escapeHtml(this._getTypeLabel(ticket.type))}</span>
                                         <span>#${ticket.id}</span>
-                                        <span class="ldsp-ticket-item-status ${ticket.status}">${ticket.status === 'open' ? '处理中' : '已关闭'}</span>
+                                        <span class="ldsp-ticket-item-status ${ticket.status}">${I18n.tHtml(ticket.status === 'open' ? 'tickets.statusOpen' : 'tickets.statusClosed')}</span>
                                     </div>
                                 </div>
                             </div>
                             <div class="ldsp-ticket-messages">
                                 <div class="ldsp-ticket-reply user">
                                     <div class="ldsp-ticket-reply-header">
-                                        <span class="ldsp-ticket-reply-author">👤 我</span>
+                                        <span class="ldsp-ticket-reply-author">${I18n.tHtml('tickets.detail.me')}</span>
                                         <span>${this._formatTime(ticket.created_at)}</span>
                                     </div>
                                     <div class="ldsp-ticket-reply-content">${Utils.sanitize(ticket.content, 2000)}</div>
@@ -6465,7 +6465,7 @@
                                 ${replies.map(r => `
                                     <div class="ldsp-ticket-reply ${r.is_admin ? 'admin' : 'user'}">
                                         <div class="ldsp-ticket-reply-header">
-                                            <span class="ldsp-ticket-reply-author">${r.is_admin ? '👨‍💼 ' + (r.admin_name || '管理员') : '👤 我'}</span>
+                                            <span class="ldsp-ticket-reply-author">${r.is_admin ? '👨‍💼 ' + Utils.escapeHtml(r.admin_name || I18n.t('tickets.detail.adminFallback')) : I18n.tHtml('tickets.detail.me')}</span>
                                             <span>${this._formatTime(r.created_at)}</span>
                                         </div>
                                         <div class="ldsp-ticket-reply-content">${Utils.sanitize(r.content, 2000)}</div>
@@ -6475,10 +6475,10 @@
                             <div class="ldsp-ticket-input-area">
                                 ${ticket.status === 'open' ? `
                                     <div class="ldsp-ticket-reply-form">
-                                        <textarea class="ldsp-ticket-reply-input" placeholder="输入回复..." maxlength="500"></textarea>
-                                        <button class="ldsp-ticket-reply-btn">发送</button>
+                                        <textarea class="ldsp-ticket-reply-input" placeholder="${I18n.tHtml('tickets.detail.replyPlaceholder')}" maxlength="500"></textarea>
+                                        <button class="ldsp-ticket-reply-btn">${I18n.tHtml('tickets.detail.send')}</button>
                                     </div>
-                                ` : '<div class="ldsp-ticket-closed-hint">此工单已关闭</div>'}
+                                ` : `<div class="ldsp-ticket-closed-hint">${I18n.tHtml('tickets.detail.closedHint')}</div>`}
                             </div>
                         </div>`;
 
@@ -6506,8 +6506,8 @@
                 } catch (e) {
                     body.innerHTML = UI.empty({
                         icon: '❌',
-                        text: '工单加载失败',
-                        hint: ErrorFormatter.format(e) || e.message || '未知错误',
+                        text: I18n.t('tickets.errors.loadFailed'),
+                        hint: ErrorFormatter.format(e) || e.message || I18n.t('common.ui.unknownError'),
                         className: 'ldsp-ticket-empty',
                         iconClass: 'ldsp-ticket-empty-icon',
                         textClass: ''
@@ -6535,13 +6535,13 @@
                         // 检测登录失效情况
                         const errCode = result.error?.code;
                         if (errCode === 'NOT_LOGGED_IN' || errCode === 'AUTH_EXPIRED' || errCode === 'INVALID_TOKEN') {
-                            LDSPDialog.error('登录已失效，请重新登录后再试');
+                            LDSPDialog.error(I18n.t('tickets.errors.sessionExpired'));
                         } else {
-                            LDSPDialog.error(result.error?.message || result.error || '发送失败');
+                            LDSPDialog.error(result.error?.message || result.error || I18n.t('tickets.errors.sendFailed'));
                         }
                     }
                 } catch (e) {
-                    LDSPDialog.error('网络错误');
+                    LDSPDialog.error(I18n.t('tickets.errors.networkError'));
                 } finally {
                     btn.disabled = false;
                 }
@@ -6553,6 +6553,8 @@
             }
 
             _getTypeLabel(type) {
+                const knownKey = { feature_request: 'tickets.types.featureRequest', bug_report: 'tickets.types.bugReport' }[type];
+                if (knownKey) return I18n.t(knownKey);
                 const t = this.ticketTypes.find(x => x.id === type);
                 return t?.label || type;
             }
@@ -6562,10 +6564,10 @@
                 const d = new Date(ts);
                 const now = new Date();
                 const diff = (now - d) / 1000;
-                if (diff < 60) return '刚刚';
-                if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`;
-                if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`;
-                if (diff < 2592000) return `${Math.floor(diff / 86400)}天前`;
+                if (diff < 60) return I18n.t('common.time.justNow');
+                if (diff < 3600) return I18n.t('common.time.minutesAgo', { n: Math.floor(diff / 60) });
+                if (diff < 86400) return I18n.t('common.time.hoursAgo', { n: Math.floor(diff / 3600) });
+                if (diff < 2592000) return I18n.t('common.time.daysAgo', { n: Math.floor(diff / 86400) });
                 return `${d.getMonth() + 1}/${d.getDate()}`;
             }
 
@@ -7352,14 +7354,14 @@ a:hover{text-decoration:underline;}
             static BRIDGE_HB_KEY = 'ldsp_ldc_bridge_hb';
             static BRIDGE_WIN_NAME = 'ldsp_ldc_bridge';
             static TRANS_TYPES = [
-                { id: '', label: '全部', icon: '📋' }, { id: 'receive', label: '收益', icon: '📥' },
-                { id: 'payment', label: '支出', icon: '📤' }, { id: 'transfer', label: '转移', icon: '🔄' },
-                { id: 'community', label: '社区划转', icon: '🏛️' }, { id: 'online', label: '在线流转', icon: '🌐' },
-                { id: 'distribute', label: '商户分发', icon: '📦' }
+                { id: '', labelKey: 'ldc.transTypes.all', icon: '📋' }, { id: 'receive', labelKey: 'ldc.transTypes.receive', icon: '📥' },
+                { id: 'payment', labelKey: 'ldc.transTypes.payment', icon: '📤' }, { id: 'transfer', labelKey: 'ldc.transTypes.transfer', icon: '🔄' },
+                { id: 'community', labelKey: 'ldc.transTypes.community', icon: '🏛️' }, { id: 'online', labelKey: 'ldc.transTypes.online', icon: '🌐' },
+                { id: 'distribute', labelKey: 'ldc.transTypes.distribute', icon: '📦' }
             ];
             static TIME_RANGES = [
-                { id: 'today', label: '今日' }, { id: '7days', label: '近7天' },
-                { id: '30days', label: '近30天' }, { id: 'all', label: '所有' }
+                { id: 'today', labelKey: 'ldc.timeRanges.today' }, { id: '7days', labelKey: 'ldc.timeRanges.7days' },
+                { id: '30days', labelKey: 'ldc.timeRanges.30days' }, { id: 'all', labelKey: 'ldc.timeRanges.all' }
             ];
 
             constructor(panelBody) {
@@ -7400,19 +7402,19 @@ a:hover{text-decoration:underline;}
                 this.overlay.className = 'ldsp-ldc-overlay';
                 this.overlay.innerHTML = `
                     <div class="ldsp-ldc-header">
-                        <div class="ldsp-ldc-title">🍟 LDC 积分</div>
+                        <div class="ldsp-ldc-title">${I18n.tHtml('ldc.title')}</div>
                         <div class="ldsp-ldc-header-actions">
                             <a href="https://credit.linux.do/home" target="_blank" class="ldsp-ldc-link">LINUX DO CREDIT</a>
-                            <button class="ldsp-ldc-refresh" title="刷新">
+                            <button class="ldsp-ldc-refresh" title="${I18n.tHtml('ldc.refreshTitle')}">
                                 <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
                             </button>
                             <div class="ldsp-ldc-close">×</div>
                         </div>
                     </div>
                     <div class="ldsp-ldc-tabs">
-                        <div class="ldsp-ldc-tab active" data-tab="overview">📊 概览</div>
-                        <div class="ldsp-ldc-tab" data-tab="transactions">📜 记录</div>
-                        <div class="ldsp-ldc-tab" data-tab="support">❤️ 支持</div>
+                        <div class="ldsp-ldc-tab active" data-tab="overview">${I18n.tHtml('ldc.tabs.overview')}</div>
+                        <div class="ldsp-ldc-tab" data-tab="transactions">${I18n.tHtml('ldc.tabs.transactions')}</div>
+                        <div class="ldsp-ldc-tab" data-tab="support">${I18n.tHtml('ldc.tabs.support')}</div>
                     </div>
                     <div class="ldsp-ldc-body">
                         ${UI.loading({ className: 'ldsp-ldc-loading' })}
@@ -8310,10 +8312,10 @@ a:hover{text-decoration:underline;}
             }
 
             _getFilterHtml() {
-                const tr = LDCManager.TIME_RANGES.map(t => `<div class="ldsp-ldc-filter-chip${this._filter.timeRange === t.id ? ' active' : ''}" data-time="${t.id}">${t.label}</div>`).join('');
-                const tp = LDCManager.TRANS_TYPES.map(t => `<div class="ldsp-ldc-filter-chip${this._filter.type === t.id ? ' active' : ''}" data-type="${t.id}">${t.icon} ${t.label}</div>`).join('');
-                return `<div class="ldsp-ldc-filter-section"><div class="ldsp-ldc-filter-row"><span class="ldsp-ldc-filter-label">时间</span><div class="ldsp-ldc-filter-chips">${tr}</div></div>
-                    <div class="ldsp-ldc-filter-row"><span class="ldsp-ldc-filter-label">类型</span><div class="ldsp-ldc-filter-chips ldsp-ldc-filter-chips-wrap">${tp}</div></div></div>`;
+                const tr = LDCManager.TIME_RANGES.map(t => `<div class="ldsp-ldc-filter-chip${this._filter.timeRange === t.id ? ' active' : ''}" data-time="${t.id}">${I18n.tHtml(t.labelKey)}</div>`).join('');
+                const tp = LDCManager.TRANS_TYPES.map(t => `<div class="ldsp-ldc-filter-chip${this._filter.type === t.id ? ' active' : ''}" data-type="${t.id}">${t.icon} ${I18n.tHtml(t.labelKey)}</div>`).join('');
+                return `<div class="ldsp-ldc-filter-section"><div class="ldsp-ldc-filter-row"><span class="ldsp-ldc-filter-label">${I18n.tHtml('ldc.filter.time')}</span><div class="ldsp-ldc-filter-chips">${tr}</div></div>
+                    <div class="ldsp-ldc-filter-row"><span class="ldsp-ldc-filter-label">${I18n.tHtml('ldc.filter.type')}</span><div class="ldsp-ldc-filter-chips ldsp-ldc-filter-chips-wrap">${tp}</div></div></div>`;
             }
 
             _bindFilterEvents(el) {
@@ -8394,18 +8396,18 @@ a:hover{text-decoration:underline;}
                 this.overlay.className = 'ldsp-cdk-overlay';
                 this.overlay.innerHTML = `
                     <div class="ldsp-cdk-header">
-                        <div class="ldsp-cdk-title">🎁 CDK 系统</div>
+                        <div class="ldsp-cdk-title">${I18n.tHtml('cdk.title')}</div>
                         <div class="ldsp-cdk-header-actions">
                             <a href="https://cdk.linux.do" target="_blank" class="ldsp-cdk-link">CDK.LINUX.DO</a>
-                            <button class="ldsp-cdk-refresh" title="刷新">
+                            <button class="ldsp-cdk-refresh" title="${I18n.tHtml('cdk.refreshTitle')}">
                                 <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
                             </button>
                             <div class="ldsp-cdk-close">×</div>
                         </div>
                     </div>
                     <div class="ldsp-cdk-tabs">
-                        <div class="ldsp-cdk-tab active" data-tab="home">🏠 首页</div>
-                        <div class="ldsp-cdk-tab" data-tab="received">📋 领取记录</div>
+                        <div class="ldsp-cdk-tab active" data-tab="home">${I18n.tHtml('cdk.tabs.home')}</div>
+                        <div class="ldsp-cdk-tab" data-tab="received">${I18n.tHtml('cdk.tabs.received')}</div>
                     </div>
                     <div class="ldsp-cdk-body">
                         ${UI.loading({ className: 'ldsp-cdk-loading' })}
@@ -10134,18 +10136,18 @@ a:hover{text-decoration:underline;}
                 this.overlay.className = 'ldsp-follow-overlay';
                 this.overlay.innerHTML = `
                     <div class="ldsp-follow-header">
-                        <div class="ldsp-follow-title">${FollowManager.ICONS.users} 关注与粉丝</div>
+                        <div class="ldsp-follow-title">${FollowManager.ICONS.users} ${I18n.tHtml('follow.title')}</div>
                         <div class="ldsp-follow-close">×</div>
                     </div>
                     <div class="ldsp-follow-tabs">
                         <div class="ldsp-follow-tab active" data-tab="following">
                             <span class="ldsp-follow-tab-icon">${FollowManager.ICONS.following}</span>
-                            <span class="ldsp-follow-tab-text">关注</span>
+                            <span class="ldsp-follow-tab-text">${I18n.tHtml('follow.tabFollowing')}</span>
                             <span class="ldsp-follow-tab-count">${this.followingCount}</span>
                         </div>
                         <div class="ldsp-follow-tab" data-tab="followers">
                             <span class="ldsp-follow-tab-icon">${FollowManager.ICONS.followers}</span>
-                            <span class="ldsp-follow-tab-text">粉丝</span>
+                            <span class="ldsp-follow-tab-text">${I18n.tHtml('follow.tabFollowers')}</span>
                             <span class="ldsp-follow-tab-count">${this.followersCount}</span>
                         </div>
                     </div>
@@ -10345,7 +10347,7 @@ a:hover{text-decoration:underline;}
             _renderList(type = 'following') {
                 const body = this.overlay.querySelector('.ldsp-follow-body');
                 const list = type === 'following' ? this.following : this.followers;
-                const emptyText = type === 'following' ? '还没有关注任何人' : '还没有粉丝';
+                const emptyText = I18n.t(type === 'following' ? 'follow.emptyFollowing' : 'follow.emptyFollowers');
                 const emptyIcon = type === 'following' ? FollowManager.ICONS.user : FollowManager.ICONS.followers;
                 
                 if (list.length === 0) {
@@ -10993,7 +10995,14 @@ a:hover{text-decoration:underline;}
             }
 
             renderActivity(tab) {
-                const tabs = [['read','📖','已读'],['bookmarks','⭐','收藏'],['replies','💬','回复'],['reactions','🤝','互动'],['likes','❤️','赞过'],['topics','📝','我的话题']];
+                const tabs = [
+                    ['read', '📖', I18n.tHtml('activity.tabs.read')],
+                    ['bookmarks', '⭐', I18n.tHtml('activity.tabs.bookmarks')],
+                    ['replies', '💬', I18n.tHtml('activity.tabs.replies')],
+                    ['reactions', '🤝', I18n.tHtml('activity.tabs.reactions')],
+                    ['likes', '❤️', I18n.tHtml('activity.tabs.likes')],
+                    ['topics', '📝', I18n.tHtml('activity.tabs.topics')]
+                ];
                 this.panel.$.activity.innerHTML = `<div class="ldsp-subtabs ldsp-trend-subtabs ldsp-subtabs-scroll"><div class="ldsp-subtab-indicator"><div class="ldsp-subtab-indicator-glass"></div><div class="ldsp-subtab-indicator-shine"></div></div>${tabs.map(([id,i,l])=>`<div class="ldsp-subtab${tab===id?' active':''}" data-activity="${id}"><span class="ldsp-trend-tab-icon">${i}</span><span class="ldsp-trend-tab-text">${l}</span></div>`).join('')}</div><div class="ldsp-activity-content"></div>`;
             }
             renderActivityLoading() { return UI.miniLoading(); }
@@ -11018,9 +11027,11 @@ a:hover{text-decoration:underline;}
             }
 
             renderTopicListWithSearch(topics, hasMore, search = '', batchSize = 20, totalLoaded = 0) {
-                const toolbar = `<div class="ldsp-activity-toolbar"><div class="ldsp-activity-search"><span class="ldsp-activity-search-icon">🔍</span><input type="text" placeholder="搜索标题或标签..." value="${Utils.escapeHtml(search)}"><button class="ldsp-activity-search-clear ${search ? 'show' : ''}">×</button></div><div class="ldsp-activity-toolbar-divider"></div><div class="ldsp-activity-batch"><span class="ldsp-activity-batch-label">加载</span><select class="ldsp-activity-batch-select"><option value="20"${batchSize===20?' selected':''}>20</option><option value="50"${batchSize===50?' selected':''}>50</option><option value="100"${batchSize===100?' selected':''}>100</option><option value="200"${batchSize===200?' selected':''}>200</option><option value="300"${batchSize===300?' selected':''}>300</option></select></div></div>`;
-                const stats = `<div class="ldsp-activity-stats">已加载 <strong>${totalLoaded}</strong> 条${search ? ` · 匹配 <strong>${topics.length}</strong> 条` : ''}</div>`;
-                if (!topics?.length) return toolbar + stats + this.renderActivityEmpty('📭', search ? '未找到匹配的话题' : '暂无已读话题');
+                const toolbar = `<div class="ldsp-activity-toolbar"><div class="ldsp-activity-search"><span class="ldsp-activity-search-icon">🔍</span><input type="text" placeholder="${I18n.tHtml('activity.toolbar.searchTopics')}" value="${Utils.escapeHtml(search)}"><button class="ldsp-activity-search-clear ${search ? 'show' : ''}">×</button></div><div class="ldsp-activity-toolbar-divider"></div><div class="ldsp-activity-batch"><span class="ldsp-activity-batch-label">${I18n.tHtml('activity.toolbar.loadLabel')}</span><select class="ldsp-activity-batch-select"><option value="20"${batchSize===20?' selected':''}>20</option><option value="50"${batchSize===50?' selected':''}>50</option><option value="100"${batchSize===100?' selected':''}>100</option><option value="200"${batchSize===200?' selected':''}>200</option><option value="300"${batchSize===300?' selected':''}>300</option></select></div></div>`;
+                const statsParts = [I18n.t('activity.stats.loaded', { count: totalLoaded })];
+                if (search) statsParts.push(I18n.t('activity.stats.matched', { count: topics.length }));
+                const stats = `<div class="ldsp-activity-stats">${statsParts.join(' · ')}</div>`;
+                if (!topics?.length) return toolbar + stats + this.renderActivityEmpty('📭', I18n.t(search ? 'activity.empty.noMatchTopics' : 'activity.empty.noTopics'));
                 return toolbar + stats + this._renderTopicItems(topics, hasMore);
             }
 
@@ -11032,7 +11043,7 @@ a:hover{text-decoration:underline;}
                 const getTagName = tag => typeof tag === 'string' ? tag : (tag?.name || '');
                 let h = '<div class="ldsp-topic-list ldsp-topic-list-enhanced">';
                 topics.forEach((t,i) => {
-                    const title = Utils.escapeHtml(t.title||'无标题'), pc = t.posts_count||0, v = t.views||0, lc = t.like_count||0;
+                    const title = Utils.escapeHtml(t.title||I18n.t('activity.titles.untitled')), pc = t.posts_count||0, v = t.views||0, lc = t.like_count||0;
                     const ur = t.unread_posts||t.unread||0, np = t.new_posts||0, tags = t.tags||[], rt = Utils.formatRelativeTime(t.bumped_at);
                     const catName = (typeof t.category_name === 'string' && t.category_name.trim())
                         ? t.category_name
@@ -11048,18 +11059,18 @@ a:hover{text-decoration:underline;}
                     const badge = ur>0?`<span class="ldsp-topic-badge ldsp-badge-unread">${ur}</span>`:np>0?`<span class="ldsp-topic-badge ldsp-badge-new">${np}</span>`:'';
                     const tagsH = (catName || tags.length)?`<div class="ldsp-topic-tags">${catH}${tags.slice(0,2).map(x=>`<span class="ldsp-topic-tag">${Utils.escapeHtml(getTagName(x))}</span>`).join('')}${tags.length>2?`<span class="ldsp-topic-tag-more">+${tags.length-2}</span>`:''}</div>`:'';
                     let psH = ps.length?'<div class="ldsp-topic-posters">'+ps.slice(0,3).map((p,j)=>`<img src="${getAv(p)}" class="ldsp-topic-avatar ${p.description?.includes('原始发帖人')?'ldsp-poster-op':p.extras?.includes('latest')?'ldsp-poster-latest':''}" title="${Utils.escapeHtml(p.name||p.username)}" style="z-index:${5-j}" loading="lazy">`).join('')+(ps.length>3?`<span class="ldsp-topic-posters-more">+${ps.length-3}</span>`:'')+'</div>':'';
-                    h += `<a href="${url}" target="_blank" class="ldsp-topic-item" data-scroll-key="topic-${t.id}" style="animation-delay:${i*20}ms"><div class="ldsp-topic-main"><div class="ldsp-topic-header"><div class="ldsp-topic-title-row">${badge?`<div class="ldsp-topic-badges">${badge}</div>`:''}<div class="ldsp-topic-title" title="${title}">${title}</div></div><div class="ldsp-topic-info">${tagsH}</div></div><div class="ldsp-topic-footer">${psH}<div class="ldsp-topic-stats"><span class="ldsp-topic-stat" title="回复">${ic.reply}<em>${pc}</em></span><span class="ldsp-topic-stat" title="阅读">${ic.view}<em>${v>=1000?(v/1000).toFixed(1)+'k':v}</em></span>${lc>0?`<span class="ldsp-topic-stat ldsp-stat-like" title="点赞">${ic.like}<em>${lc}</em></span>`:''}<span class="ldsp-topic-time">${rt}</span></div></div></div>${thumb?`<div class="ldsp-topic-thumbnail"><img src="${thumb}" loading="lazy"></div>`:''}</a>`;
+                    h += `<a href="${url}" target="_blank" class="ldsp-topic-item" data-scroll-key="topic-${t.id}" style="animation-delay:${i*20}ms"><div class="ldsp-topic-main"><div class="ldsp-topic-header"><div class="ldsp-topic-title-row">${badge?`<div class="ldsp-topic-badges">${badge}</div>`:''}<div class="ldsp-topic-title" title="${title}">${title}</div></div><div class="ldsp-topic-info">${tagsH}</div></div><div class="ldsp-topic-footer">${psH}<div class="ldsp-topic-stats"><span class="ldsp-topic-stat" title="${I18n.tHtml('activity.titles.reply')}">${ic.reply}<em>${pc}</em></span><span class="ldsp-topic-stat" title="${I18n.tHtml('activity.titles.read')}">${ic.view}<em>${v>=1000?(v/1000).toFixed(1)+'k':v}</em></span>${lc>0?`<span class="ldsp-topic-stat ldsp-stat-like" title="${I18n.tHtml('activity.titles.like')}">${ic.like}<em>${lc}</em></span>`:''}<span class="ldsp-topic-time">${rt}</span></div></div></div>${thumb?`<div class="ldsp-topic-thumbnail"><img src="${thumb}" loading="lazy"></div>`:''}</a>`;
                 });
                 return h+'</div>'+UI.loadMore({ hasMore });
             }
 
             renderTopicList(topics, hasMore) {
-                if (!topics?.length) return this.renderActivityEmpty('📭', '暂无已读话题');
+                if (!topics?.length) return this.renderActivityEmpty('📭', I18n.t('activity.empty.noTopics'));
                 return this._renderTopicItems(topics, hasMore);
             }
 
             renderBookmarkList(bm, hasMore) {
-                if (!bm?.length) return this.renderActivityEmpty('⭐', '暂无收藏');
+                if (!bm?.length) return this.renderActivityEmpty('⭐', I18n.t('activity.empty.noBookmarks'));
                 return this._renderBookmarkItems(bm, hasMore);
             }
 
@@ -11070,17 +11081,17 @@ a:hover{text-decoration:underline;}
                 const selectedCount = Number(options.selectedCount || 0);
                 const listCount = bookmarks?.length || 0;
                 const groupOptions = [
-                    `<option value="__all__"${activeGroup === '__all__' ? ' selected' : ''}>全部分组</option>`,
-                    `<option value="__ungrouped__"${activeGroup === '__ungrouped__' ? ' selected' : ''}>未分组</option>`,
+                    `<option value="__all__"${activeGroup === '__all__' ? ' selected' : ''}>${I18n.tHtml('activity.toolbar.allGroups')}</option>`,
+                    `<option value="__ungrouped__"${activeGroup === '__ungrouped__' ? ' selected' : ''}>${I18n.tHtml('activity.toolbar.ungrouped')}</option>`,
                     ...groups.map(g => `<option value="${Utils.escapeHtml(g)}"${activeGroup === g ? ' selected' : ''}>${Utils.escapeHtml(g)}</option>`)
                 ].join('');
-                const toolbar = `<div class="ldsp-activity-toolbar ldsp-bookmark-toolbar"><div class="ldsp-activity-search"><span class="ldsp-activity-search-icon">🔍</span><input type="text" placeholder="搜索标题、标签或内容..." value="${Utils.escapeHtml(search)}"><button class="ldsp-activity-search-clear ${search ? 'show' : ''}">×</button></div><div class="ldsp-activity-batch"><span class="ldsp-activity-batch-label">加载</span><select class="ldsp-activity-batch-select"><option value="20"${batchSize===20?' selected':''}>20</option><option value="50"${batchSize===50?' selected':''}>50</option><option value="100"${batchSize===100?' selected':''}>100</option><option value="200"${batchSize===200?' selected':''}>200</option><option value="300"${batchSize===300?' selected':''}>300</option></select></div><div class="ldsp-bookmark-manage"><div class="ldsp-bookmark-group-filter"><span class="ldsp-bookmark-manage-label">分组</span><select class="ldsp-bookmark-group-select">${groupOptions}</select></div><button class="ldsp-bookmark-action ldsp-bookmark-select-toggle ${selectMode ? 'active' : ''}" title="${selectMode ? '退出选择模式' : '进入选择模式'}">☑<span class="ldsp-bookmark-action-text">${selectMode ? '退出' : '选择'}</span></button><button class="ldsp-bookmark-action ldsp-bookmark-select-visible" ${listCount ? '' : 'disabled'} title="全选当前筛选结果">☷<span class="ldsp-bookmark-action-text">全选</span></button><button class="ldsp-bookmark-action ldsp-bookmark-group-set" ${selectedCount ? '' : 'disabled'} title="给已选收藏设置本地分组">📁<span class="ldsp-bookmark-action-text">分组</span></button><button class="ldsp-bookmark-action ldsp-bookmark-group-clear" ${selectedCount ? '' : 'disabled'} title="移出已选收藏的本地分组">↩<span class="ldsp-bookmark-action-text">移出</span></button><button class="ldsp-bookmark-action danger ldsp-bookmark-delete" ${selectedCount ? '' : 'disabled'} title="从论坛收藏中批量取消收藏">🗑<span class="ldsp-bookmark-action-text">删除</span></button><div class="ldsp-bookmark-export"><span class="ldsp-bookmark-manage-label">导出</span><select class="ldsp-bookmark-export-select"><option value="md">MD</option><option value="json">JSON</option><option value="csv">CSV</option></select></div><button class="ldsp-bookmark-action ldsp-bookmark-export-run" ${(listCount || selectedCount) ? '' : 'disabled'} title="导出已选收藏；未选择时导出当前筛选结果">⬇<span class="ldsp-bookmark-action-text">导出</span></button></div></div>`;
-                const statsParts = [`已加载 <strong>${totalLoaded}</strong> 条`];
-                if (search) statsParts.push(`匹配 <strong>${listCount}</strong> 条`);
-                if (activeGroup && activeGroup !== '__all__') statsParts.push(`分组 <strong>${Utils.escapeHtml(activeGroup === '__ungrouped__' ? '未分组' : activeGroup)}</strong>`);
-                if (selectedCount) statsParts.push(`已选 <strong>${selectedCount}</strong> 条`);
+                const toolbar = `<div class="ldsp-activity-toolbar ldsp-bookmark-toolbar"><div class="ldsp-activity-search"><span class="ldsp-activity-search-icon">🔍</span><input type="text" placeholder="${I18n.tHtml('activity.toolbar.searchBookmarks')}" value="${Utils.escapeHtml(search)}"><button class="ldsp-activity-search-clear ${search ? 'show' : ''}">×</button></div><div class="ldsp-activity-batch"><span class="ldsp-activity-batch-label">${I18n.tHtml('activity.toolbar.loadLabel')}</span><select class="ldsp-activity-batch-select"><option value="20"${batchSize===20?' selected':''}>20</option><option value="50"${batchSize===50?' selected':''}>50</option><option value="100"${batchSize===100?' selected':''}>100</option><option value="200"${batchSize===200?' selected':''}>200</option><option value="300"${batchSize===300?' selected':''}>300</option></select></div><div class="ldsp-bookmark-manage"><div class="ldsp-bookmark-group-filter"><span class="ldsp-bookmark-manage-label">${I18n.tHtml('activity.toolbar.groupsLabel')}</span><select class="ldsp-bookmark-group-select">${groupOptions}</select></div><button class="ldsp-bookmark-action ldsp-bookmark-select-toggle ${selectMode ? 'active' : ''}" title="${I18n.tHtml(selectMode ? 'activity.toolbar.exitSelectModeTitle' : 'activity.toolbar.selectModeTitle')}">☑<span class="ldsp-bookmark-action-text">${I18n.tHtml(selectMode ? 'activity.toolbar.exitSelect' : 'activity.toolbar.select')}</span></button><button class="ldsp-bookmark-action ldsp-bookmark-select-visible" ${listCount ? '' : 'disabled'} title="${I18n.tHtml('activity.toolbar.selectAllTitle')}">☷<span class="ldsp-bookmark-action-text">${I18n.tHtml('activity.toolbar.selectAll')}</span></button><button class="ldsp-bookmark-action ldsp-bookmark-group-set" ${selectedCount ? '' : 'disabled'} title="${I18n.tHtml('activity.toolbar.groupSetTitle')}">📁<span class="ldsp-bookmark-action-text">${I18n.tHtml('activity.toolbar.groupSet')}</span></button><button class="ldsp-bookmark-action ldsp-bookmark-group-clear" ${selectedCount ? '' : 'disabled'} title="${I18n.tHtml('activity.toolbar.groupClearTitle')}">↩<span class="ldsp-bookmark-action-text">${I18n.tHtml('activity.toolbar.groupClear')}</span></button><button class="ldsp-bookmark-action danger ldsp-bookmark-delete" ${selectedCount ? '' : 'disabled'} title="${I18n.tHtml('activity.toolbar.deleteTitle')}">🗑<span class="ldsp-bookmark-action-text">${I18n.tHtml('activity.toolbar.delete')}</span></button><div class="ldsp-bookmark-export"><span class="ldsp-bookmark-manage-label">${I18n.tHtml('activity.toolbar.export')}</span><select class="ldsp-bookmark-export-select"><option value="md">MD</option><option value="json">JSON</option><option value="csv">CSV</option></select></div><button class="ldsp-bookmark-action ldsp-bookmark-export-run" ${(listCount || selectedCount) ? '' : 'disabled'} title="${I18n.tHtml('activity.toolbar.exportRunTitle')}">⬇<span class="ldsp-bookmark-action-text">${I18n.tHtml('activity.toolbar.export')}</span></button></div></div>`;
+                const statsParts = [I18n.t('activity.stats.loaded', { count: totalLoaded })];
+                if (search) statsParts.push(I18n.t('activity.stats.matched', { count: listCount }));
+                if (activeGroup && activeGroup !== '__all__') statsParts.push(I18n.t('activity.stats.group', { name: Utils.escapeHtml(activeGroup === '__ungrouped__' ? I18n.t('activity.toolbar.ungrouped') : activeGroup) }));
+                if (selectedCount) statsParts.push(I18n.t('activity.stats.selected', { count: selectedCount }));
                 const stats = `<div class="ldsp-activity-stats">${statsParts.join(' · ')}</div>`;
-                if (!bookmarks?.length) return toolbar + stats + this.renderActivityEmpty('⭐', (search || activeGroup !== '__all__') ? '未找到匹配的收藏' : '暂无收藏');
+                if (!bookmarks?.length) return toolbar + stats + this.renderActivityEmpty('⭐', I18n.t((search || activeGroup !== '__all__') ? 'activity.empty.noMatchBookmarks' : 'activity.empty.noBookmarks'));
                 return toolbar + stats + this._renderBookmarkItems(bookmarks, hasMore, options);
             }
 
@@ -11095,10 +11106,10 @@ a:hover{text-decoration:underline;}
                 bm.forEach((b,i) => {
                     const rawId = b.id ?? b.bookmark_id ?? b.bookmarkId ?? b.topic_id ?? b.bookmarkable_url ?? i;
                     const bookmarkId = String(rawId);
-                    const title = Utils.escapeHtml(b.title||b.fancy_title||'无标题'), tags = b.tags||[], rt = Utils.formatRelativeTime(b.bumped_at), ct = Utils.formatDateTime(b.created_at), url = Utils.escapeHtml(b.bookmarkable_url||'#'), ex = b.excerpt||'';
+                    const title = Utils.escapeHtml(b.title||b.fancy_title||I18n.t('activity.titles.untitled')), tags = b.tags||[], rt = Utils.formatRelativeTime(b.bumped_at), ct = Utils.formatDateTime(b.created_at), url = Utils.escapeHtml(b.bookmarkable_url||'#'), ex = b.excerpt||'';
                     const selected = selectedIds.has(bookmarkId);
                     const groupName = groupMap[bookmarkId] || '';
-                    const groupH = groupName ? `<span class="ldsp-bookmark-group-chip" title="本地分组">🏷 ${Utils.escapeHtml(groupName)}</span>` : '';
+                    const groupH = groupName ? `<span class="ldsp-bookmark-group-chip" title="${I18n.tHtml('activity.titles.localGroup')}">🏷 ${Utils.escapeHtml(groupName)}</span>` : '';
                     const catName = (typeof b.category_name === 'string' && b.category_name.trim())
                         ? b.category_name
                         : (typeof b.category === 'string' ? b.category : (b.category?.name || ''));
@@ -11110,43 +11121,43 @@ a:hover{text-decoration:underline;}
                         : '';
                     const catH = catName ? `<span class="ldsp-bookmark-tag ldsp-bookmark-category" ${catStyle}>📁 ${Utils.escapeHtml(catName)}</span>` : '';
                     const tagsH = (catName || tags.length)?`<div class="ldsp-bookmark-tags">${catH}${tags.slice(0,4).map(t=>`<span class="ldsp-bookmark-tag">${Utils.escapeHtml(getTagName(t))}</span>`).join('')}${tags.length>4?`<span class="ldsp-bookmark-tag-more">+${tags.length-4}</span>`:''}</div>`:'';
-                    const checkH = selectMode ? `<label class="ldsp-bookmark-check" title="选择收藏"><input type="checkbox" class="ldsp-bookmark-checkbox" data-bookmark-id="${Utils.escapeHtml(bookmarkId)}"${selected ? ' checked' : ''}></label>` : '';
-                    h += `<div class="ldsp-bookmark-item${selectMode ? ' select-mode' : ''}${selected ? ' selected' : ''}" data-bookmark-id="${Utils.escapeHtml(bookmarkId)}" data-url="${url}" data-scroll-key="bookmark-${Utils.escapeHtml(bookmarkId)}" style="animation-delay:${i*30}ms">${checkH}<div class="ldsp-bookmark-main"><div class="ldsp-bookmark-title">${title}</div><div class="ldsp-bookmark-meta"><span class="ldsp-bookmark-time" title="收藏时间">${ic.calendar}${ct||'--'}</span><span class="ldsp-bookmark-time" title="最后活动">${ic.clock}${rt||'--'}</span>${groupH}</div>${tagsH}${ex?`<div class="ldsp-bookmark-excerpt">${ex}</div>`:''}</div></div>`;
+                    const checkH = selectMode ? `<label class="ldsp-bookmark-check" title="${I18n.tHtml('activity.titles.selectBookmark')}"><input type="checkbox" class="ldsp-bookmark-checkbox" data-bookmark-id="${Utils.escapeHtml(bookmarkId)}"${selected ? ' checked' : ''}></label>` : '';
+                    h += `<div class="ldsp-bookmark-item${selectMode ? ' select-mode' : ''}${selected ? ' selected' : ''}" data-bookmark-id="${Utils.escapeHtml(bookmarkId)}" data-url="${url}" data-scroll-key="bookmark-${Utils.escapeHtml(bookmarkId)}" style="animation-delay:${i*30}ms">${checkH}<div class="ldsp-bookmark-main"><div class="ldsp-bookmark-title">${title}</div><div class="ldsp-bookmark-meta"><span class="ldsp-bookmark-time" title="${I18n.tHtml('activity.titles.bookmarkTime')}">${ic.calendar}${ct||'--'}</span><span class="ldsp-bookmark-time" title="${I18n.tHtml('activity.titles.lastActivity')}">${ic.clock}${rt||'--'}</span>${groupH}</div>${tagsH}${ex?`<div class="ldsp-bookmark-excerpt">${ex}</div>`:''}</div></div>`;
                 });
                 return h+'</div>'+UI.loadMore({ hasMore });
             }
 
             renderReplyList(rp, hasMore) {
-                if (!rp?.length) return this.renderActivityEmpty('💬', '暂无回复');
+                if (!rp?.length) return this.renderActivityEmpty('💬', I18n.t('activity.empty.noReplies'));
                 const ic = { clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>', reply:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>' };
                 let h = '<div class="ldsp-reply-list">';
                 rp.forEach((r,i) => {
-                    const title = Utils.escapeHtml(r.title||'无标题'), ex = r.excerpt||'', rt = Utils.formatRelativeTime(r.created_at), url = `https://${CURRENT_SITE.domain}/t/topic/${r.topic_id}/${r.post_number}`;
-                    h += `<div class="ldsp-reply-item" data-url="${url}" data-scroll-key="reply-${r.post_id}" style="animation-delay:${i*30}ms"><div class="ldsp-reply-title">${title}</div><div class="ldsp-reply-meta"><span class="ldsp-reply-time" title="回复时间">${ic.clock}${rt||'--'}</span>${r.reply_to_post_number?`<span class="ldsp-reply-to" title="回复楼层">${ic.reply}#${r.reply_to_post_number}</span>`:''}</div>${ex?`<div class="ldsp-reply-excerpt">${ex}</div>`:''}</div>`;
+                    const title = Utils.escapeHtml(r.title||I18n.t('activity.titles.untitled')), ex = r.excerpt||'', rt = Utils.formatRelativeTime(r.created_at), url = `https://${CURRENT_SITE.domain}/t/topic/${r.topic_id}/${r.post_number}`;
+                    h += `<div class="ldsp-reply-item" data-url="${url}" data-scroll-key="reply-${r.post_id}" style="animation-delay:${i*30}ms"><div class="ldsp-reply-title">${title}</div><div class="ldsp-reply-meta"><span class="ldsp-reply-time" title="${I18n.tHtml('activity.titles.replyTime')}">${ic.clock}${rt||'--'}</span>${r.reply_to_post_number?`<span class="ldsp-reply-to" title="${I18n.tHtml('activity.titles.replyFloor')}">${ic.reply}#${r.reply_to_post_number}</span>`:''}</div>${ex?`<div class="ldsp-reply-excerpt">${ex}</div>`:''}</div>`;
                 });
                 return h+'</div>'+UI.loadMore({ hasMore });
             }
 
             renderLikeList(lk, hasMore) {
-                if (!lk?.length) return this.renderActivityEmpty('❤️', '暂无赞过内容');
+                if (!lk?.length) return this.renderActivityEmpty('❤️', I18n.t('activity.empty.noLikes'));
                 const ic = { clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>', user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' };
                 let h = '<div class="ldsp-like-list">';
                 lk.forEach((l,i) => {
-                    const title = Utils.escapeHtml(l.title||'无标题'), ex = l.excerpt||'', rt = Utils.formatRelativeTime(l.created_at), url = `https://${CURRENT_SITE.domain}/t/topic/${l.topic_id}/${l.post_number}`;
-                    const name = Utils.escapeHtml(l.name||l.username||'匿名');
-                    h += `<div class="ldsp-like-item" data-url="${url}" data-scroll-key="like-${l.post_id}" style="animation-delay:${i*30}ms"><div class="ldsp-like-title">${title}</div><div class="ldsp-like-meta"><span class="ldsp-like-time" title="点赞时间">${ic.clock}${rt||'--'}</span><span class="ldsp-like-author" title="作者：@${l.username}">${ic.user}${name}</span></div>${ex?`<div class="ldsp-like-excerpt">${ex}</div>`:''}</div>`;
+                    const title = Utils.escapeHtml(l.title||I18n.t('activity.titles.untitled')), ex = l.excerpt||'', rt = Utils.formatRelativeTime(l.created_at), url = `https://${CURRENT_SITE.domain}/t/topic/${l.topic_id}/${l.post_number}`;
+                    const name = Utils.escapeHtml(l.name||l.username||I18n.t('activity.titles.anonymous'));
+                    h += `<div class="ldsp-like-item" data-url="${url}" data-scroll-key="like-${l.post_id}" style="animation-delay:${i*30}ms"><div class="ldsp-like-title">${title}</div><div class="ldsp-like-meta"><span class="ldsp-like-time" title="${I18n.tHtml('activity.titles.likeTime')}">${ic.clock}${rt||'--'}</span><span class="ldsp-like-author" title="${I18n.tHtml('activity.titles.author', { username: Utils.escapeHtml(l.username || '') })}">${ic.user}${name}</span></div>${ex?`<div class="ldsp-like-excerpt">${ex}</div>`:''}</div>`;
                 });
                 return h+'</div>'+UI.loadMore({ hasMore });
             }
 
             renderMyTopicList(tp, hasMore) {
-                if (!tp?.length) return this.renderActivityEmpty('📝', '暂无发布的话题');
+                if (!tp?.length) return this.renderActivityEmpty('📝', I18n.t('activity.empty.noMyTopics'));
                 const ic = { reply:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>', view:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>', heart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>', clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>', calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>', pin:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>', lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>' };
                 // 提取tag名称，兼容新旧格式（新格式是对象数组 {id,name,slug}，旧格式是字符串数组）
                 const getTagName = tag => typeof tag === 'string' ? tag : (tag?.name || '');
                 let h = '<div class="ldsp-mytopic-list">';
                 tp.forEach((t,i) => {
-                    const title = Utils.escapeHtml(t.title||t.fancy_title||'无标题'), pc = t.posts_count||0, v = t.views||0, lc = t.like_count||0, tags = t.tags||[];
+                    const title = Utils.escapeHtml(t.title||t.fancy_title||I18n.t('activity.titles.untitled')), pc = t.posts_count||0, v = t.views||0, lc = t.like_count||0, tags = t.tags||[];
                     const rt = Utils.formatRelativeTime(t.bumped_at), ct = Utils.formatDateTime(t.created_at), url = `https://${CURRENT_SITE.domain}/t/topic/${t.id}`;
                     const catName = (typeof t.category_name === 'string' && t.category_name.trim())
                         ? t.category_name
@@ -11159,14 +11170,14 @@ a:hover{text-decoration:underline;}
                         : '';
                     const catH = catName ? `<span class="ldsp-mytopic-tag ldsp-mytopic-category" ${catStyle}>📁 ${Utils.escapeHtml(catName)}</span>` : '';
                     const tagsH = (catName || tags.length)?`<div class="ldsp-mytopic-tags">${catH}${tags.slice(0,3).map(x=>`<span class="ldsp-mytopic-tag">${Utils.escapeHtml(getTagName(x))}</span>`).join('')}${tags.length>3?`<span class="ldsp-mytopic-tag-more">+${tags.length-3}</span>`:''}</div>`:'';
-                    const st = (t.pinned?`<span class="ldsp-mytopic-status" title="已置顶">${ic.pin}</span>`:'')+(t.closed?`<span class="ldsp-mytopic-status ldsp-mytopic-closed" title="已关闭">${ic.lock}</span>`:'');
-                    h += `<a href="${url}" target="_blank" class="ldsp-mytopic-item${t.closed?' closed':''}" data-scroll-key="mytopic-${t.id}" style="animation-delay:${i*30}ms" title="${title}"><div class="ldsp-mytopic-header"><div class="ldsp-mytopic-title">${title}</div>${st?`<div class="ldsp-mytopic-icons">${st}</div>`:''}</div><div class="ldsp-mytopic-row">${tagsH}<span class="ldsp-mytopic-time" title="创建时间">${ic.calendar}${ct||'--'}</span></div><div class="ldsp-mytopic-meta"><span class="ldsp-mytopic-stat" title="回复数">${ic.reply}${pc}</span><span class="ldsp-mytopic-stat" title="浏览量">${ic.view}${v}</span><span class="ldsp-mytopic-stat ldsp-mytopic-likes" title="点赞数">${ic.heart}${lc}</span><div class="ldsp-mytopic-meta-right"><span class="ldsp-mytopic-time" title="最后活动">${ic.clock}${rt||'--'}</span></div></div></a>`;
+                    const st = (t.pinned?`<span class="ldsp-mytopic-status" title="${I18n.tHtml('activity.titles.pinned')}">${ic.pin}</span>`:'')+(t.closed?`<span class="ldsp-mytopic-status ldsp-mytopic-closed" title="${I18n.tHtml('activity.titles.closed')}">${ic.lock}</span>`:'');
+                    h += `<a href="${url}" target="_blank" class="ldsp-mytopic-item${t.closed?' closed':''}" data-scroll-key="mytopic-${t.id}" style="animation-delay:${i*30}ms" title="${title}"><div class="ldsp-mytopic-header"><div class="ldsp-mytopic-title">${title}</div>${st?`<div class="ldsp-mytopic-icons">${st}</div>`:''}</div><div class="ldsp-mytopic-row">${tagsH}<span class="ldsp-mytopic-time" title="${I18n.tHtml('activity.titles.createdTime')}">${ic.calendar}${ct||'--'}</span></div><div class="ldsp-mytopic-meta"><span class="ldsp-mytopic-stat" title="${I18n.tHtml('activity.titles.replyCount')}">${ic.reply}${pc}</span><span class="ldsp-mytopic-stat" title="${I18n.tHtml('activity.titles.viewCount')}">${ic.view}${v}</span><span class="ldsp-mytopic-stat ldsp-mytopic-likes" title="${I18n.tHtml('activity.titles.likeCount')}">${ic.heart}${lc}</span><div class="ldsp-mytopic-meta-right"><span class="ldsp-mytopic-time" title="${I18n.tHtml('activity.titles.lastActivity')}">${ic.clock}${rt||'--'}</span></div></div></a>`;
                 });
                 return h+'</div>'+UI.loadMore({ hasMore });
             }
 
             renderReactionList(rc, hasMore) {
-                if (!rc?.length) return this.renderActivityEmpty('🎭', '暂无互动记录');
+                if (!rc?.length) return this.renderActivityEmpty('🎭', I18n.t('activity.empty.noReactions'));
                 const icClk = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
                 const getAv = u => { if(!u?.avatar_template)return''; let t=u.avatar_template; return (t.startsWith('/')?`https://${CURRENT_SITE.domain}${t}`:t).replace('{size}',36); };
                 const emojiMap = {'+1':'👍','-1':'👎','laughing':'😂','heart':'❤️','open_mouth':'😮','cry':'😢','angry':'😠','thinking':'🤔','clap':'👏','fire':'🔥','tada':'🎉','rocket':'🚀','eyes':'👀','confused':'😕','star':'⭐','pray':'🙏','folded_hands':'🙏','grinning_face':'😀','rofl':'🤣','melting_face':'🫠','distorted_face':'🥴','zany_face':'🤪'};
@@ -11174,11 +11185,11 @@ a:hover{text-decoration:underline;}
                 let h = '<div class="ldsp-reaction-list">';
                 rc.forEach((r,i) => {
                     const p = r.post||{}, pu = p.user||{}, rd = r.reaction||{};
-                    const title = Utils.escapeHtml(p.topic_title||p.topic?.title||'无标题'), ex = p.excerpt||'', rt = Utils.formatRelativeTime(r.created_at);
+                    const title = Utils.escapeHtml(p.topic_title||p.topic?.title||I18n.t('activity.titles.untitled')), ex = p.excerpt||'', rt = Utils.formatRelativeTime(r.created_at);
                     const url = `https://${CURRENT_SITE.domain}/t/topic/${p.topic_id}/${p.post_number}`;
-                    const name = Utils.escapeHtml(pu.name||pu.username||p.username||'匿名'), un = pu.username||p.username, av = getAv(pu);
+                    const name = Utils.escapeHtml(pu.name||pu.username||p.username||I18n.t('activity.titles.anonymous')), un = pu.username||p.username, av = getAv(pu);
                     const rv = rd.reaction_value||'+1', ri = getEmoji(rv), cnt = rd.reaction_users_count||1;
-                    h += `<div class="ldsp-reaction-item" data-url="${url}" data-scroll-key="reaction-${r.id}" style="animation-delay:${i*30}ms"><div class="ldsp-reaction-header"><div class="ldsp-reaction-icon" title="${rv}">${ri}</div><div class="ldsp-reaction-title">${title}</div></div><div class="ldsp-reaction-meta">${av?`<img src="${av}" class="ldsp-reaction-avatar" loading="lazy">`:''}<span class="ldsp-reaction-author" title="作者：@${un}">${name}</span><span class="ldsp-reaction-time" title="互动时间">${icClk}${rt||'--'}</span>${cnt>1?`<span class="ldsp-reaction-count" title="共${cnt}人">+${cnt-1}</span>`:''}</div>${ex?`<div class="ldsp-reaction-excerpt">${ex}</div>`:''}</div>`;
+                    h += `<div class="ldsp-reaction-item" data-url="${url}" data-scroll-key="reaction-${r.id}" style="animation-delay:${i*30}ms"><div class="ldsp-reaction-header"><div class="ldsp-reaction-icon" title="${Utils.escapeHtml(rv)}">${ri}</div><div class="ldsp-reaction-title">${title}</div></div><div class="ldsp-reaction-meta">${av?`<img src="${av}" class="ldsp-reaction-avatar" loading="lazy">`:''}<span class="ldsp-reaction-author" title="${I18n.tHtml('activity.titles.author', { username: Utils.escapeHtml(un || '') })}">${name}</span><span class="ldsp-reaction-time" title="${I18n.tHtml('activity.titles.reactionTime')}">${icClk}${rt||'--'}</span>${cnt>1?`<span class="ldsp-reaction-count" title="${I18n.tHtml('activity.titles.reactionCount', { count: cnt })}">+${cnt-1}</span>`:''}</div>${ex?`<div class="ldsp-reaction-excerpt">${ex}</div>`:''}</div>`;
                 });
                 return h+'</div>'+UI.loadMore({ hasMore });
             }
@@ -16395,8 +16406,8 @@ a:hover{text-decoration:underline;}
                     this.$.activity.innerHTML = `
                         <div class="ldsp-lb-login">
                             <div class="ldsp-lb-login-icon">🔐</div>
-                            <div class="ldsp-lb-login-title">需要登录</div>
-                            <div class="ldsp-lb-login-desc">请先登录论坛后再查看您的活动数据</div>
+                            <div class="ldsp-lb-login-title">${I18n.tHtml('activity.loginRequired.title')}</div>
+                            <div class="ldsp-lb-login-desc">${I18n.tHtml('activity.loginRequired.desc')}</div>
                         </div>`;
                     return;
                 }
@@ -16451,10 +16462,10 @@ a:hover{text-decoration:underline;}
                             await this._loadMyTopics(container);
                             break;
                         default:
-                            container.innerHTML = this.renderer.renderActivityEmpty('📭', '请选择一个分类');
+                            container.innerHTML = this.renderer.renderActivityEmpty('📭', I18n.t('activity.empty.pickCategory'));
                     }
                 } catch (e) {
-                    container.innerHTML = this.renderer.renderActivityError(e.message || '加载失败');
+                    container.innerHTML = this.renderer.renderActivityError(e.message || I18n.t('common.ui.error'));
                     container.querySelector('.ldsp-activity-retry')?.addEventListener('click', () => {
                         this.activityMgr.clearCache(this.activitySubTab);
                         this._renderActivityContent();
@@ -16466,7 +16477,7 @@ a:hover{text-decoration:underline;}
                 // 检查登录状态
                 const username = this.storage.getUser();
                 if (!username) {
-                    container.innerHTML = this.renderer.renderActivityEmpty('🔒', '请先登录论坛');
+                    container.innerHTML = this.renderer.renderActivityEmpty('🔒', I18n.t('activity.empty.loginFirst'));
                     return;
                 }
                 
@@ -16580,7 +16591,7 @@ a:hover{text-decoration:underline;}
                         batchSelect.classList.add('loading');
                         
                         if (topicList) {
-                            UI.showOverlay(topicList, `正在加载 ${newBatchSize} 条数据...`);
+                            UI.showOverlay(topicList, I18n.t('activity.loading.batchOverlay', { count: newBatchSize }));
                         }
                         
                         await this._loadReadTopics(container, false, newBatchSize);
@@ -16774,7 +16785,7 @@ a:hover{text-decoration:underline;}
                     const id = this._getBookmarkId(item);
                     return {
                         id,
-                        title: item.title || item.fancy_title || '无标题',
+                        title: item.title || item.fancy_title || I18n.t('activity.titles.untitled'),
                         url: this._getBookmarkAbsoluteUrl(item),
                         group: groupData?.items?.[id] || '',
                         category: this._getBookmarkCategoryName(item),
@@ -16805,7 +16816,7 @@ a:hover{text-decoration:underline;}
             _exportBookmarks(items, format, groupData) {
                 const rows = this._buildBookmarkExportRows(items, groupData);
                 if (!rows.length) {
-                    this.renderer.showToast('⚠️ 没有可导出的收藏');
+                    this.renderer.showToast(I18n.t('activity.bookmarks.noExportable'));
                     return;
                 }
 
@@ -16827,23 +16838,23 @@ a:hover{text-decoration:underline;}
                 } else {
                     ext = 'md';
                     content = [
-                        '# LDStatus Pro 收藏导出',
+                        I18n.t('activity.bookmarks.exportTitle'),
                         '',
-                        `导出时间：${Utils.formatDateTime(new Date().toISOString())}`,
-                        `数量：${rows.length}`,
+                        I18n.t('activity.bookmarks.exportTime', { time: Utils.formatDateTime(new Date().toISOString()) }),
+                        I18n.t('activity.bookmarks.exportCount', { count: rows.length }),
                         '',
                         ...rows.map((row, index) => {
                             const meta = [
-                                row.group ? `分组：${row.group}` : '',
-                                row.category ? `分类：${row.category}` : '',
-                                row.tags.length ? `标签：${row.tags.join(', ')}` : '',
-                                row.created_at ? `收藏时间：${Utils.formatDateTime(row.created_at)}` : '',
-                                row.bumped_at ? `最后活动：${Utils.formatDateTime(row.bumped_at)}` : ''
+                                row.group ? I18n.t('activity.bookmarks.exportGroup', { group: row.group }) : '',
+                                row.category ? I18n.t('activity.bookmarks.exportCategory', { category: row.category }) : '',
+                                row.tags.length ? I18n.t('activity.bookmarks.exportTags', { tags: row.tags.join(', ') }) : '',
+                                row.created_at ? I18n.t('activity.bookmarks.exportCreated', { time: Utils.formatDateTime(row.created_at) }) : '',
+                                row.bumped_at ? I18n.t('activity.bookmarks.exportBumped', { time: Utils.formatDateTime(row.bumped_at) }) : ''
                             ].filter(Boolean);
                             return [
                                 `## ${index + 1}. ${row.title}`,
                                 '',
-                                `链接：${row.url}`,
+                                I18n.t('activity.bookmarks.exportLink', { url: row.url }),
                                 meta.length ? meta.join(' · ') : '',
                                 row.excerpt ? `\n> ${row.excerpt}` : ''
                             ].filter(Boolean).join('\n');
@@ -16853,7 +16864,7 @@ a:hover{text-decoration:underline;}
                 }
 
                 this._downloadBookmarkText(content, `LDStatusPro_bookmarks_${stamp}.${ext}`, type);
-                this.renderer.showToast(`✅ 已导出 ${rows.length} 条收藏`);
+                this.renderer.showToast(I18n.t('activity.bookmarks.exportedToast', { count: rows.length }));
             }
 
             async _confirmBookmarkAction(message, options = {}) {
@@ -16866,17 +16877,23 @@ a:hover{text-decoration:underline;}
             async _deleteSelectedBookmarks(container, state) {
                 const ids = [...new Set((state.selectedIds || []).map(id => String(id)).filter(Boolean))];
                 if (!ids.length) {
-                    this.renderer.showToast('⚠️ 请先选择收藏');
+                    this.renderer.showToast(I18n.t('activity.bookmarks.selectFirst'));
                     return;
                 }
 
                 const confirmed = await this._confirmBookmarkAction(
-                    `确定要从论坛收藏中取消这 ${ids.length} 条收藏吗？<br>这个操作会影响论坛收藏列表。`,
-                    { title: '批量删除收藏', icon: '🗑', okText: '删除', cancelText: '取消', danger: true }
+                    I18n.t('activity.bookmarks.deleteConfirm', { count: ids.length }),
+                    {
+                        title: I18n.t('activity.bookmarks.deleteTitle'),
+                        icon: '🗑',
+                        okText: I18n.t('activity.bookmarks.deleteOk'),
+                        cancelText: I18n.t('common.dialog.cancel'),
+                        danger: true
+                    }
                 );
                 if (!confirmed) return;
 
-                this.renderer.showToast(`⏳ 正在删除 ${ids.length} 条收藏...`);
+                this.renderer.showToast(I18n.t('activity.bookmarks.deleting', { count: ids.length }));
                 const failedIds = [];
                 const okIds = [];
                 for (const id of ids) {
@@ -16904,9 +16921,9 @@ a:hover{text-decoration:underline;}
                 await this._loadBookmarks(container, true);
 
                 if (failedIds.length) {
-                    this.renderer.showToast(`⚠️ 已删除 ${okIds.length} 条，${failedIds.length} 条失败`);
+                    this.renderer.showToast(I18n.t('activity.bookmarks.deletedPartial', { ok: okIds.length, failed: failedIds.length }));
                 } else {
-                    this.renderer.showToast(`✅ 已删除 ${okIds.length} 条收藏`);
+                    this.renderer.showToast(I18n.t('activity.bookmarks.deletedAll', { count: okIds.length }));
                 }
             }
 
@@ -16949,31 +16966,31 @@ a:hover{text-decoration:underline;}
 
                 container.querySelector('.ldsp-bookmark-group-set')?.addEventListener('click', () => {
                     if (!state.selectedIds?.length) {
-                        this.renderer.showToast('⚠️ 请先选择收藏');
+                        this.renderer.showToast(I18n.t('activity.bookmarks.selectFirst'));
                         return;
                     }
                     const existing = (groupData.groups || []).slice(0, 8).join('、');
-                    const groupName = prompt(`输入分组名称${existing ? `\n已有：${existing}` : ''}`, '');
+                    const groupName = prompt(I18n.t('activity.bookmarks.groupPrompt', { existing: existing ? I18n.t('activity.bookmarks.groupExisting', { existing }) : '' }), '');
                     if (groupName === null) return;
                     const cleanGroup = groupName.trim().slice(0, 60);
                     if (!cleanGroup) {
-                        this.renderer.showToast('⚠️ 分组名称不能为空');
+                        this.renderer.showToast(I18n.t('activity.bookmarks.groupEmpty'));
                         return;
                     }
                     this._assignBookmarkGroup(state.selectedIds, cleanGroup);
                     state.selectedIds = [];
-                    this.renderer.showToast(`✅ 已加入分组：${Utils.escapeHtml(cleanGroup)}`);
+                    this.renderer.showToast(I18n.t('activity.bookmarks.groupAdded', { name: Utils.escapeHtml(cleanGroup) }));
                     rerender();
                 });
 
                 container.querySelector('.ldsp-bookmark-group-clear')?.addEventListener('click', () => {
                     if (!state.selectedIds?.length) {
-                        this.renderer.showToast('⚠️ 请先选择收藏');
+                        this.renderer.showToast(I18n.t('activity.bookmarks.selectFirst'));
                         return;
                     }
                     this._assignBookmarkGroup(state.selectedIds, '');
                     state.selectedIds = [];
-                    this.renderer.showToast('✅ 已移出分组');
+                    this.renderer.showToast(I18n.t('activity.bookmarks.groupRemoved'));
                     rerender();
                 });
 
@@ -16996,7 +17013,7 @@ a:hover{text-decoration:underline;}
                 // 获取当前用户名
                 const username = this.storage.getUser();
                 if (!username) {
-                    container.innerHTML = this.renderer.renderActivityEmpty('🔒', '请先登录论坛');
+                    container.innerHTML = this.renderer.renderActivityEmpty('🔒', I18n.t('activity.empty.loginFirst'));
                     return;
                 }
 
@@ -17097,7 +17114,7 @@ a:hover{text-decoration:underline;}
                         batchSelect.classList.add('loading');
                         
                         if (list) {
-                            UI.showOverlay(list, `正在加载 ${newBatchSize} 条数据...`);
+                            UI.showOverlay(list, I18n.t('activity.loading.batchOverlay', { count: newBatchSize }));
                         }
                         
                         await this._loadBookmarks(container, false, newBatchSize);
@@ -17112,7 +17129,7 @@ a:hover{text-decoration:underline;}
                 // 获取当前用户名
                 const username = this.storage.getUser();
                 if (!username) {
-                    container.innerHTML = this.renderer.renderActivityEmpty('🔒', '请先登录论坛');
+                    container.innerHTML = this.renderer.renderActivityEmpty('🔒', I18n.t('activity.empty.loginFirst'));
                     return;
                 }
 
@@ -17174,7 +17191,7 @@ a:hover{text-decoration:underline;}
                 // 获取当前用户名
                 const username = this.storage.getUser();
                 if (!username) {
-                    container.innerHTML = this.renderer.renderActivityEmpty('🔒', '请先登录论坛');
+                    container.innerHTML = this.renderer.renderActivityEmpty('🔒', I18n.t('activity.empty.loginFirst'));
                     return;
                 }
 
@@ -17236,7 +17253,7 @@ a:hover{text-decoration:underline;}
                 // 获取当前用户名
                 const username = this.storage.getUser();
                 if (!username) {
-                    container.innerHTML = this.renderer.renderActivityEmpty('🔒', '请先登录论坛');
+                    container.innerHTML = this.renderer.renderActivityEmpty('🔒', I18n.t('activity.empty.loginFirst'));
                     return;
                 }
 
@@ -17280,7 +17297,7 @@ a:hover{text-decoration:underline;}
                 // 获取当前用户名
                 const username = this.storage.getUser();
                 if (!username) {
-                    container.innerHTML = this.renderer.renderActivityEmpty('🔒', '请先登录论坛');
+                    container.innerHTML = this.renderer.renderActivityEmpty('🔒', I18n.t('activity.empty.loginFirst'));
                     return;
                 }
 
@@ -17473,7 +17490,7 @@ a:hover{text-decoration:underline;}
                             requestAnimationFrame(() => this._restoreActivityScrollAnchor(content, container, anchor));
                             if (!state.hasMore) this._cleanupActivityScroll(false);
                         } catch (e) {
-                            this.renderer.showToast(`⚠️ 加载更多失败: ${e.message}`);
+                            this.renderer.showToast(I18n.t('activity.errors.loadMoreFailed', { reason: e.message }));
                             if (type === 'replies' || type === 'likes') {
                                 state.offset -= 30;
                             } else if (type !== 'reactions') {
@@ -17482,7 +17499,7 @@ a:hover{text-decoration:underline;}
                             this.activityMgr.setPageState(type, state);
                             if (loadMoreEl) {
                                 loadMoreEl.classList.remove('loading');
-                                loadMoreEl.innerHTML = '<span>加载失败，向下滚动重试</span>';
+                                loadMoreEl.innerHTML = `<span>${I18n.tHtml('activity.loading.loadMoreFailed')}</span>`;
                             }
                         }
                     }

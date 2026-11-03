@@ -1,0 +1,45 @@
+{
+  "title": "📪 Support Tickets",
+  "tabList": "My Tickets",
+  "tabCreate": "New Ticket",
+  "empty": "No tickets yet",
+  "emptyHint": "Use \"New Ticket\" to share feedback or report a problem",
+  "statusOpen": "Open",
+  "statusClosed": "Closed",
+  "types": {
+    "featureRequest": "Feature Request",
+    "bugReport": "Bug Report"
+  },
+  "create": {
+    "typeLabel": "Ticket type",
+    "titleLabel": "Title",
+    "titleRange": "(4–50 chars)",
+    "titlePlaceholder": "Briefly describe your issue or suggestion",
+    "contentLabel": "Description",
+    "contentRange": "(8–500 chars)",
+    "contentPlaceholderFeature": "Describe your feature suggestion in detail...",
+    "contentPlaceholderBug": "Describe the problem in detail. Useful information:\n\n• Browser and version (e.g. Chrome 120)\n• Operating system (e.g. Windows 11)\n• Steps to reproduce\n• Expected vs. actual behavior",
+    "submit": "Submit ticket",
+    "submitting": "Submitting..."
+  },
+  "detail": {
+    "back": "← Back",
+    "me": "👤 Me",
+    "adminFallback": "Admin",
+    "replyPlaceholder": "Type a reply...",
+    "send": "Send",
+    "closedHint": "This ticket is closed"
+  },
+  "errors": {
+    "titleTooShort": "Title must be at least 4 characters",
+    "titleTooLong": "Title must be at most 50 characters",
+    "contentTooShort": "Description must be at least 8 characters",
+    "contentTooLong": "Description must be at most 500 characters",
+    "sessionExpired": "Session expired. Please sign in again.",
+    "submitFailed": "Submission failed",
+    "submitFailedWithReason": "Submission failed: {reason}",
+    "networkError": "Network error",
+    "loadFailed": "Failed to load ticket",
+    "sendFailed": "Failed to send reply"
+  }
+}

@@ -4,12 +4,22 @@ import zhSettings from './locales/zh-CN/settings.json' with { type: 'json' };
 import zhMetrics from './locales/zh-CN/metrics.json' with { type: 'json' };
 import zhTrends from './locales/zh-CN/trends.json' with { type: 'json' };
 import zhLeaderboard from './locales/zh-CN/leaderboard.json' with { type: 'json' };
+import zhFollow from './locales/zh-CN/follow.json' with { type: 'json' };
+import zhTickets from './locales/zh-CN/tickets.json' with { type: 'json' };
+import zhActivity from './locales/zh-CN/activity.json' with { type: 'json' };
+import zhLdc from './locales/zh-CN/ldc.json' with { type: 'json' };
+import zhCdk from './locales/zh-CN/cdk.json' with { type: 'json' };
 import enCommon from './locales/en-US/common.json' with { type: 'json' };
 import enPanel from './locales/en-US/panel.json' with { type: 'json' };
 import enSettings from './locales/en-US/settings.json' with { type: 'json' };
 import enMetrics from './locales/en-US/metrics.json' with { type: 'json' };
 import enTrends from './locales/en-US/trends.json' with { type: 'json' };
 import enLeaderboard from './locales/en-US/leaderboard.json' with { type: 'json' };
+import enFollow from './locales/en-US/follow.json' with { type: 'json' };
+import enTickets from './locales/en-US/tickets.json' with { type: 'json' };
+import enActivity from './locales/en-US/activity.json' with { type: 'json' };
+import enLdc from './locales/en-US/ldc.json' with { type: 'json' };
+import enCdk from './locales/en-US/cdk.json' with { type: 'json' };
 
 export const DEFAULT_LOCALE = 'zh-CN';
 export const SUPPORTED_LOCALES = Object.freeze(['zh-CN', 'en-US']);
@@ -22,7 +32,12 @@ export const CATALOGS = Object.freeze({
         settings: zhSettings,
         metrics: zhMetrics,
         trends: zhTrends,
-        leaderboard: zhLeaderboard
+        leaderboard: zhLeaderboard,
+        follow: zhFollow,
+        tickets: zhTickets,
+        activity: zhActivity,
+        ldc: zhLdc,
+        cdk: zhCdk
     }),
     'en-US': Object.freeze({
         common: enCommon,
@@ -30,7 +45,12 @@ export const CATALOGS = Object.freeze({
         settings: enSettings,
         metrics: enMetrics,
         trends: enTrends,
-        leaderboard: enLeaderboard
+        leaderboard: enLeaderboard,
+        follow: enFollow,
+        tickets: enTickets,
+        activity: enActivity,
+        ldc: enLdc,
+        cdk: enCdk
     })
 });
 

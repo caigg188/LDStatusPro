@@ -64,11 +64,40 @@ export const MIGRATED_RENDERER_METHODS = Object.freeze([
     'renderRegistrationPaused',
     'renderLeaderboardData',
     'renderLeaderboardLoading',
-    'renderLeaderboardError'
+    'renderLeaderboardError',
+    'renderActivity',
+    'renderActivityLoading',
+    'renderActivityEmpty',
+    'renderActivityError',
+    'renderTopicListWithSearch',
+    '_renderTopicItems',
+    'renderTopicList',
+    'renderBookmarkList',
+    'renderBookmarkListWithSearch',
+    '_renderBookmarkItems',
+    'renderReplyList',
+    'renderLikeList',
+    'renderMyTopicList',
+    'renderReactionList'
+]);
+
+export const MIGRATED_STANDALONE_CLASSES = Object.freeze([
+    'FollowManager',
+    'TicketManager'
+]);
+
+export const MIGRATED_PANEL_EXTRA_METHODS = Object.freeze([
+    '_renderActivity',
+    '_renderActivityContent',
+    '_buildBookmarkExportRows',
+    '_exportBookmarks',
+    '_deleteSelectedBookmarks',
+    '_bindBookmarkManageEvents',
+    '_bindActivityScroll'
 ]);
 
 // Explicit non-UI tokens allowed inside migrated methods (parser sentinels, server error matchers, punctuation).
-const ALLOWED_CJK_LITERALS = new Set(['未知', '；', '已暂停新用户注册']);
+const ALLOWED_CJK_LITERALS = new Set(['未知', '；', '已暂停新用户注册', '原始发帖人']);
 
 export function hashSourceEntry(key, value) {
     const canonical = typeof value === 'string'
@@ -250,6 +279,7 @@ export function validateI18n({
     let leaderboardClass = null;
     let uiDecl = null;
     let dialogDecl = null;
+    const standaloneClasses = new Map();
     walkAst(ast, node => {
         if (node.start < scanOffset) return;
         if (node.type === 'ClassDeclaration') {
@@ -257,6 +287,7 @@ export function validateI18n({
             if (node.id?.name === 'Renderer') rendererClass = node;
             if (node.id?.name === 'Notifier') notifierClass = node;
             if (node.id?.name === 'LeaderboardManager') leaderboardClass = node;
+            if (node.id?.name) standaloneClasses.set(node.id.name, node);
         }
         if (node.type === 'VariableDeclarator' && node.id?.type === 'Identifier') {
             if (node.id.name === 'UI') uiDecl = node;
@@ -316,6 +347,15 @@ export function validateI18n({
     checkClassMethods('Panel', panelClass, migratedMethods);
     if (migratedMethods === MIGRATED_PANEL_METHODS) {
         checkClassMethods('Renderer', rendererClass, MIGRATED_RENDERER_METHODS);
+        checkClassMethods('Panel', panelClass, MIGRATED_PANEL_EXTRA_METHODS);
+        for (const className of MIGRATED_STANDALONE_CLASSES) {
+            const classNode = standaloneClasses.get(className);
+            if (!classNode) {
+                errors.push(`Migrated class missing: ${className}`);
+                continue;
+            }
+            scanNodeForUncatalogedCjk(className, classNode);
+        }
         scanNodeForUncatalogedCjk('Notifier', notifierClass);
         scanNodeForUncatalogedCjk('LeaderboardManager', leaderboardClass);
         scanNodeForUncatalogedCjk('UI', uiDecl);

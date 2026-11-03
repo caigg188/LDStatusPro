@@ -1,0 +1,28 @@
+{
+  "title": "🍟 LDC Credits",
+  "refreshTitle": "Refresh",
+  "tabs": {
+    "overview": "📊 Overview",
+    "transactions": "📜 History",
+    "support": "❤️ Support"
+  },
+  "filter": {
+    "time": "Time",
+    "type": "Type"
+  },
+  "timeRanges": {
+    "today": "Today",
+    "7days": "7 days",
+    "30days": "30 days",
+    "all": "All"
+  },
+  "transTypes": {
+    "all": "All",
+    "receive": "Income",
+    "payment": "Spending",
+    "transfer": "Transfer",
+    "community": "Community",
+    "online": "Online",
+    "distribute": "Merchant"
+  }
+}
