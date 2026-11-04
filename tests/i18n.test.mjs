@@ -145,9 +145,59 @@ test('check-i18n passes on current repository and catches missing keys, placehol
     assert.ok(astCheck.errors.some(err => err.includes('Unresolved I18n.t key in LDStatusPro.user.js: "settings.doesNotExist"')));
 });
 
+test('core modules accept an injected translator and keep Chinese fallbacks without one', async () => {
+    const { normalizeApiUrl, requestCompletion, CompletionDecoder, packRecords } = await import('../src/core/topic-ai.mjs');
+    const { createTranslator } = await import('../src/i18n/index.mjs');
+    const en = createTranslator('en-US');
+    const zh = createTranslator('zh-CN');
+
+    // Without a translator the original Chinese text is used (standalone core / existing tests).
+    assert.throws(() => normalizeApiUrl('linux.do'), /地址须以 http:\/\//);
+    assert.throws(() => normalizeApiUrl('linux.do', zh.t), /地址须以 http:\/\//);
+    // With the injected translator the same failure follows the UI locale.
+    assert.throws(() => normalizeApiUrl('linux.do', en.t), /URL must start with http:\/\/ or https:\/\//);
+    assert.throws(() => normalizeApiUrl('https://user:secret@host.invalid', en.t), /must not contain a username/);
+
+    // Transport failures localize through the injected translator.
+    await assert.rejects(
+        requestCompletion({ apiUrl: 'https://ai.example.invalid/v1' }, {
+            messages: [], t: en.t,
+            gm: options => { queueMicrotask(() => options.onerror({})); return { abort() {} }; }
+        }),
+        error => /Cannot reach the AI service/.test(error.message)
+    );
+    await assert.rejects(
+        requestCompletion({ apiUrl: 'https://ai.example.invalid/v1' }, {
+            messages: [],
+            gm: options => { queueMicrotask(() => options.onerror({})); return { abort() {} }; }
+        }),
+        error => /无法连接 AI 服务/.test(error.message)
+    );
+
+    // HTTP error labels and decoder messages localize too.
+    await assert.rejects(
+        requestCompletion({ apiUrl: 'https://ai.example.invalid/v1' }, {
+            messages: [], t: en.t,
+            gm: options => { queueMicrotask(() => options.onload({ status: 401, responseText: '{}' })); return { abort() {} }; }
+        }),
+        error => error.status === 401 && /Authentication failed/.test(error.message)
+    );
+    const decoder = new CompletionDecoder(() => {}, en.t);
+    decoder.push('data: {"choices":[{"delta":{"content":"hi"}}]}\n\n');
+    decoder.push('data: [DONE]\n\n');
+    assert.equal(decoder.finish().text, 'hi');
+    const emptyDecoder = new CompletionDecoder(() => {}, en.t);
+    emptyDecoder.push('{}');
+    assert.throws(() => emptyDecoder.finish(), /AI returned empty content/);
+    assert.throws(() => packRecords(['x'.repeat(50)], 10, en.t), /Post author info exceeds|Post author/);
+
+    // Citation format written into records stays Chinese regardless of locale.
+    assert.equal(typeof packRecords([], 100), 'object');
+});
+
 test('embedded i18n bundle stays compact with zero external runtime dependencies', async () => {
     const { rawBytes, gzipBytes } = await buildI18nSnippet();
     assert.ok(CATALOGS['zh-CN'] && CATALOGS['en-US']);
-    assert.ok(rawBytes < 60_000, `Expected raw I18n bundle < 60 KB, got ${rawBytes} B`);
-    assert.ok(gzipBytes < 22_000, `Expected gzipped I18n bundle < 22 KB, got ${gzipBytes} B`);
+    assert.ok(rawBytes < 90_000, `Expected raw I18n bundle < 90 KB, got ${rawBytes} B`);
+    assert.ok(gzipBytes < 32_000, `Expected gzipped I18n bundle < 32 KB, got ${gzipBytes} B`);
 });

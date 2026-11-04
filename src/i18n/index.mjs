@@ -9,6 +9,9 @@ import zhTickets from './locales/zh-CN/tickets.json' with { type: 'json' };
 import zhActivity from './locales/zh-CN/activity.json' with { type: 'json' };
 import zhLdc from './locales/zh-CN/ldc.json' with { type: 'json' };
 import zhCdk from './locales/zh-CN/cdk.json' with { type: 'json' };
+import zhMelon from './locales/zh-CN/melon.json' with { type: 'json' };
+import zhExport from './locales/zh-CN/export.json' with { type: 'json' };
+import zhCore from './locales/zh-CN/core.json' with { type: 'json' };
 import enCommon from './locales/en-US/common.json' with { type: 'json' };
 import enPanel from './locales/en-US/panel.json' with { type: 'json' };
 import enSettings from './locales/en-US/settings.json' with { type: 'json' };
@@ -20,6 +23,9 @@ import enTickets from './locales/en-US/tickets.json' with { type: 'json' };
 import enActivity from './locales/en-US/activity.json' with { type: 'json' };
 import enLdc from './locales/en-US/ldc.json' with { type: 'json' };
 import enCdk from './locales/en-US/cdk.json' with { type: 'json' };
+import enMelon from './locales/en-US/melon.json' with { type: 'json' };
+import enExport from './locales/en-US/export.json' with { type: 'json' };
+import enCore from './locales/en-US/core.json' with { type: 'json' };
 
 export const DEFAULT_LOCALE = 'zh-CN';
 export const SUPPORTED_LOCALES = Object.freeze(['zh-CN', 'en-US']);
@@ -37,7 +43,10 @@ export const CATALOGS = Object.freeze({
         tickets: zhTickets,
         activity: zhActivity,
         ldc: zhLdc,
-        cdk: zhCdk
+        cdk: zhCdk,
+        melon: zhMelon,
+        export: zhExport,
+        core: zhCore
     }),
     'en-US': Object.freeze({
         common: enCommon,
@@ -50,7 +59,10 @@ export const CATALOGS = Object.freeze({
         tickets: enTickets,
         activity: enActivity,
         ldc: enLdc,
-        cdk: enCdk
+        cdk: enCdk,
+        melon: enMelon,
+        export: enExport,
+        core: enCore
     })
 });
 

@@ -1,5 +1,8 @@
 import createDOMPurify from 'dompurify';
 import { abortError, checkAbort, sleep } from './topic-content.mjs';
+import { tr } from './messages.mjs';
+
+const origin = 'core';
 
 const purifiers = new WeakMap();
 export function cleanExportHTML(html, document) {
@@ -34,8 +37,8 @@ export function selectImage(img, origin) {
 }
 
 export class ExportResources {
-    constructor({ origin, document, signal, gm = globalThis.GM_xmlhttpRequest, fetchImpl = (...args) => globalThis.fetch(...args), onProgress = () => {}, interval = 1000, maxImage = 20 * 1024 * 1024, maxTotal = 100 * 1024 * 1024 } = {}) {
-        Object.assign(this, { origin, document, signal, gm, fetchImpl, onProgress, interval, maxImage, maxTotal });
+    constructor({ origin, document, signal, gm = globalThis.GM_xmlhttpRequest, fetchImpl = (...args) => globalThis.fetch(...args), onProgress = () => {}, interval = 1000, maxImage = 20 * 1024 * 1024, maxTotal = 100 * 1024 * 1024, t = null } = {}) {
+        Object.assign(this, { origin, document, signal, gm, fetchImpl, onProgress, interval, maxImage, maxTotal, t });
         this.cache = new Map(); this.warnings = []; this.bytes = 0; this.active = 0; this.queue = []; this.hosts = new Map(); this.completed = 0;
     }
     _schedule(fn) {
@@ -63,7 +66,7 @@ export class ExportResources {
             try {
                 const response = await this.fetchImpl(url, { signal: controller.signal, credentials: 'same-origin' });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                if (Number(response.headers.get('content-length')) > this.maxImage) throw new Error('图片超过单图 20 MiB 限制');
+                if (Number(response.headers.get('content-length')) > this.maxImage) throw new Error(tr(this.t, `${origin}.warnings.imageTooLarge`));
                 const reader = response.body?.getReader();
                 if (!reader) return response.blob();
                 const chunks = []; let bytes = 0;
@@ -71,13 +74,13 @@ export class ExportResources {
                     const { done, value } = await reader.read();
                     if (done) break;
                     bytes += value.byteLength;
-                    if (bytes > this.maxImage) { await reader.cancel(); throw new Error('图片超过单图 20 MiB 限制'); }
+                    if (bytes > this.maxImage) { await reader.cancel(); throw new Error(tr(this.t, `${origin}.warnings.imageTooLarge`)); }
                     chunks.push(value);
                 }
                 return new this.document.defaultView.Blob(chunks, { type: response.headers.get('content-type') || '' });
             } finally { clearTimeout(timeout); this.signal?.removeEventListener('abort', stop); }
         }
-        if (!this.gm) throw new Error('跨域图片需要脚本管理器授权');
+        if (!this.gm) throw new Error(tr(this.t, `${origin}.warnings.crossOriginNeedsGrant`));
         return new Promise((resolve, reject) => {
             let request, settled = false;
             const finish = (error, blob) => {
@@ -90,7 +93,7 @@ export class ExportResources {
             this.signal?.addEventListener('abort', stop, { once: true });
             try {
                 request = this.gm({ method: 'GET', url, anonymous: true, responseType: 'blob',
-                    onprogress: response => { if (response.loaded > this.maxImage) { finish(new Error('图片超过单图 20 MiB 限制')); request?.abort(); } },
+                    onprogress: response => { if (response.loaded > this.maxImage) { finish(new Error(tr(this.t, `${origin}.warnings.imageTooLarge`))); request?.abort(); } },
                     onload: response => response.status >= 200 && response.status < 300 ? finish(null, response.response) : finish(new Error(`HTTP ${response.status}`)),
                     onerror: () => finish(new Error('图片连接失败或目标主机未授权')), ontimeout: () => finish(new Error('图片下载超时')), onabort: () => finish(abortError())
                 });
@@ -105,12 +108,12 @@ export class ExportResources {
         const promise = this._schedule(async () => {
             try {
                 checkAbort(this.signal);
-                if (this.bytes >= this.maxTotal) throw new Error('资源总量达到 100 MiB 限制');
+                if (this.bytes >= this.maxTotal) throw new Error(tr(this.t, `${origin}.warnings.imageBudgetTotal`));
                 const blob = await this._blob(url);
                 checkAbort(this.signal);
-                if (!blob || !/^image\//i.test(blob.type)) throw new Error('响应不是图片');
-                if (blob.size > this.maxImage) throw new Error('图片超过单图 20 MiB 限制');
-                if (this.bytes + blob.size > this.maxTotal) throw new Error('资源总量超过 100 MiB 限制');
+                if (!blob || !/^image\//i.test(blob.type)) throw new Error(tr(this.t, `${origin}.warnings.notAnImage`));
+                if (blob.size > this.maxImage) throw new Error(tr(this.t, `${origin}.warnings.imageTooLarge`));
+                if (this.bytes + blob.size > this.maxTotal) throw new Error(tr(this.t, `${origin}.warnings.imagesTooLargeTotal`));
                 this.bytes += blob.size;
                 return await new Promise((resolve, reject) => {
                     const reader = new this.document.defaultView.FileReader();
@@ -122,7 +125,7 @@ export class ExportResources {
                 });
             } catch (error) {
                 checkAbort(this.signal);
-                this.warnings.push({ url, reason: error.message || '资源未能嵌入' });
+                this.warnings.push({ url, reason: error.message || tr(this.t, `${origin}.warnings.resourceNotEmbedded`) });
                 return url;
             } finally {
                 this.completed++;
@@ -134,7 +137,7 @@ export class ExportResources {
     }
 }
 
-export async function prepareExportHTML(html, { document, origin, embed = false, pdf = false, resources, signal, postNumber = 0, topicId = '' } = {}) {
+export async function prepareExportHTML(html, { document, origin, embed = false, pdf = false, resources, signal, postNumber = 0, topicId = '', t = null } = {}) {
     checkAbort(signal);
     // Template contents are inert, including scripts and image loading.
     const template = document.createElement('template');
@@ -152,10 +155,10 @@ export async function prepareExportHTML(html, { document, origin, embed = false,
         const figure = document.createElement('figure'); figure.className = 'export-media';
         const sources = [media.getAttribute('src'), media.getAttribute('data'), ...[...media.querySelectorAll('source[src]')].map(el => el.getAttribute('src'))].map(src => exportUrl(src, origin)).filter(Boolean);
         const poster = exportUrl(media.getAttribute('poster'), origin);
-        if (poster) { const image = document.createElement('img'); image.src = poster; image.alt = '媒体封面'; figure.appendChild(image); }
-        const note = document.createElement('figcaption'); note.textContent = `${media.tagName.toLowerCase() === 'audio' ? '音频' : '媒体'}内容需联网查看：`; figure.appendChild(note);
+        if (poster) { const image = document.createElement('img'); image.src = poster; image.alt = tr(t, `${origin}.media.coverAlt`); figure.appendChild(image); }
+        const note = document.createElement('figcaption'); note.textContent = media.tagName.toLowerCase() === 'audio' ? tr(t, `${origin}.media.audioNote`) : tr(t, `${origin}.media.mediaNote`); figure.appendChild(note);
         for (const src of new Set(sources)) { const link = document.createElement('a'); link.href = src; link.textContent = media.getAttribute('title') || src; figure.appendChild(link); }
-        if (!sources.length) note.append('请访问原帖');
+        if (!sources.length) note.append(tr(t, `${origin}.media.visitOriginal`));
         media.replaceWith(figure);
     }
     const ids = new Map();
@@ -196,7 +199,7 @@ export async function prepareExportHTML(html, { document, origin, embed = false,
         const hint = img.closest('a.lightbox')?.getAttribute('title');
         if (!img.getAttribute('alt') && hint) img.setAttribute('alt', hint);
         for (const attr of ['srcset', 'sizes', 'data-src', 'data-srcset', 'data-original', 'data-lazy-src', 'loading', 'onerror']) img.removeAttribute(attr);
-        if (!src) { img.replaceWith(document.createTextNode(img.alt || '[图片地址不可用]')); return; }
+        if (!src) { img.replaceWith(document.createTextNode(img.alt || tr(t, `${origin}.media.imageUnavailable`))); return; }
         img.setAttribute('src', embed ? await resources.embed(src) : src);
         img.setAttribute('loading', 'eager');
     }));

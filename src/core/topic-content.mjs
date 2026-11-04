@@ -1,3 +1,7 @@
+import { tr } from './messages.mjs';
+
+const origin = 'core';
+
 export function abortError() {
     const error = new Error('已停止');
     error.name = 'AbortError';
@@ -28,8 +32,9 @@ export function retryDelay(response, body, now = Date.now()) {
 
 /** A forum-only queue: never shares credentials or cooldown with the LDSP APIs. */
 export class TopicContentClient {
-    constructor({ origin, fetchImpl = (...args) => globalThis.fetch(...args), identity = () => '', csrf = () => '', interval = 1000, jitter = () => Math.random() * 250, wait = sleep, now = Date.now } = {}) {
+    constructor({ origin, fetchImpl = (...args) => globalThis.fetch(...args), identity = () => '', csrf = () => '', interval = 1000, jitter = () => Math.random() * 250, wait = sleep, now = Date.now, t = null } = {}) {
         this.origin = origin;
+        this.t = t;
         this.fetchImpl = fetchImpl;
         this.identity = identity;
         this.csrf = csrf;
@@ -64,7 +69,7 @@ export class TopicContentClient {
                 if (this._scope() !== generation) throw abortError();
                 const delay = Math.max(this.nextRequest, this.cooldownUntil) - this.now();
                 if (delay > 0) {
-                    onProgress?.({ stage: 'wait', message: this.cooldownUntil > this.now() ? '站点限流，等待后继续…' : '正在按间隔读取…', detail: `等待约 ${Math.ceil(delay / 1000)} 秒，可随时停止` });
+                    onProgress?.({ stage: 'wait', message: this.cooldownUntil > this.now() ? tr(this.t, `${origin}.progress.rateLimited`) : tr(this.t, `${origin}.progress.waiting`), detail: tr(this.t, `${origin}.progress.waitDetail`, { seconds: Math.ceil(delay / 1000) }) });
                     await this.wait(delay, signal);
                 }
                 checkAbort(signal);
@@ -99,7 +104,7 @@ export class TopicContentClient {
                     checkAbort(signal);
                     if (this._scope() !== generation) throw abortError();
                     if (error.status && error.status < 500 || attempt === 2) throw error;
-                    onProgress?.({ stage: 'wait', message: '读取暂时失败，稍后重试…' });
+                    onProgress?.({ stage: 'wait', message: tr(this.t, `${origin}.progress.retrying`) });
                     await this.wait(1000 * 2 ** attempt, signal);
                 } finally {
                     clearTimeout(timeout);
@@ -114,7 +119,7 @@ export class TopicContentClient {
 
     _merge(entry, posts) {
         for (const post of posts || []) {
-            if (String(post.topic_id ?? entry.info.id) !== String(entry.info.id)) throw new Error('站点返回了不属于当前话题的帖子');
+            if (String(post.topic_id ?? entry.info.id) !== String(entry.info.id)) throw new Error(tr(this.t, `${origin}.errors.foreignTopicPosts`));
             if (post.id && Number.isInteger(post.post_number) && !post.deleted_at && !post.hidden) entry.posts.set(post.id, post);
         }
     }
@@ -127,9 +132,9 @@ export class TopicContentClient {
         if (options.refresh) this.clear(key);
         const data = await this._request(`/t/${encodeURIComponent(key)}.json`, options);
         checkAbort(options.signal);
-        if (String(data.id) !== key || !Array.isArray(data.post_stream?.posts)) throw new Error('话题信息格式异常');
+        if (String(data.id) !== key || !Array.isArray(data.post_stream?.posts)) throw new Error(tr(this.t, `${origin}.errors.topicInfoMalformed`));
         const info = {
-            id: key, title: data.title || '未命名话题', postsCount: data.posts_count || 0,
+            id: key, title: data.title || tr(this.t, `${origin}.topic.untitled`), postsCount: data.posts_count || 0,
             highestPostNumber: data.highest_post_number || Math.max(1, ...data.post_stream.posts.map(p => p.post_number)),
             views: data.views || 0, likeCount: data.like_count || 0,
             tags: (data.tags || []).map(tag => typeof tag === 'string' ? tag : tag.name).filter(Boolean),
@@ -146,7 +151,7 @@ export class TopicContentClient {
     }
 
     async getPosts(topicId, start, end, options = {}) {
-        if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) throw new Error('请输入有效的整数楼层范围');
+        if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) throw new Error(tr(this.t, `${origin}.errors.invalidRange`));
         const info = await this.getTopic(topicId, options);
         const entry = this.cache.get(String(topicId));
         const generation = this.generation;
@@ -157,12 +162,12 @@ export class TopicContentClient {
             if (this._scope() !== generation || this.cache.get(String(topicId)) !== entry) throw abortError();
             const covered = entry.coverage.filter(([from, to]) => from <= cursor && to > cursor);
             if (covered.length) { cursor = Math.max(...covered.map(([, to]) => to)); continue; }
-            options.onProgress?.({ stage: 'fetch', message: `正在读取第 ${cursor + 1}—${last} 楼…`, detail: '楼层空缺保留原编号，只读取当前账户可见的内容', current: cursor - start + 1, total: last - start + 1 });
+            options.onProgress?.({ stage: 'fetch', message: tr(this.t, `${origin}.progress.readingFloors`, { start: cursor + 1, end: last }), detail: tr(this.t, `${origin}.progress.readingDetail`), current: cursor - start + 1, total: last - start + 1 });
             const data = await this._request(`/t/${encodeURIComponent(topicId)}/posts.json?post_number=${cursor}&asc=true&include_suggested=false&include_related=false`, options);
-            if (!Array.isArray(data.post_stream?.posts)) throw new Error('帖子正文格式异常');
+            if (!Array.isArray(data.post_stream?.posts)) throw new Error(tr(this.t, `${origin}.errors.postStreamMalformed`));
             const posts = data.post_stream.posts;
             const next = posts.length ? Math.max(...posts.map(p => p.post_number)) : last;
-            if (!Number.isFinite(next) || next <= cursor) throw new Error('站点未返回后续楼层，请刷新后重试');
+            if (!Number.isFinite(next) || next <= cursor) throw new Error(tr(this.t, `${origin}.errors.noProgress`));
             this._merge(entry, posts);
             entry.coverage.push([cursor, next]);
             cursor = next;

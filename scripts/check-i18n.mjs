@@ -85,7 +85,9 @@ export const MIGRATED_STANDALONE_CLASSES = Object.freeze([
     'FollowManager',
     'TicketManager',
     'LDCManager',
-    'CDKManager'
+    'CDKManager',
+    'MelonHelper',
+    'TopicExporter'
 ]);
 
 export const MIGRATED_PANEL_EXTRA_METHODS = Object.freeze([
@@ -99,7 +101,21 @@ export const MIGRATED_PANEL_EXTRA_METHODS = Object.freeze([
 ]);
 
 // Explicit non-UI tokens allowed inside migrated methods (parser sentinels, server error matchers, punctuation).
-const ALLOWED_CJK_LITERALS = new Set(['未知', '；', '已暂停新用户注册', '原始发帖人']);
+const ALLOWED_CJK_LITERALS = new Set(['未知', '；', '已暂停新用户注册', '原始发帖人', '请仅回复 OK。', '及所附分段摘要', '本总结尚未完成。']);
+
+// AI prompt and citation sentinels that must stay Chinese: they control the model's output
+// language and the [第N楼] citation format that the parser and prompts depend on.
+// UI language is a separate concern from AI output language (see docs/i18n plan, section 5).
+const ALLOWED_PROMPT_FRAGMENTS = new Set([
+    '用约150字概括以下论坛讨论的主题、主要结论和重要分歧，关键结论引用 [第N楼]：',
+    '结构化总结以下论坛讨论：概要、关键观点、分歧、结论与待确认事项。不要将少数观点写成共识，关键结论引用 [第N楼]：',
+    '你帮助用户理解论坛总结。仅根据以下总结',
+    '回答，超出资料时明确说明，不推测图片。',
+    '[第',
+    '楼]',
+    '回复第',
+    '楼'
+]);
 
 export function hashSourceEntry(key, value) {
     const canonical = typeof value === 'string'
@@ -322,7 +338,7 @@ export function validateI18n({
                 }
             } else if (node.type === 'TemplateElement') {
                 const rawText = node.value?.raw || '';
-                if (CJK_RE.test(rawText)) {
+                if (CJK_RE.test(rawText) && !ALLOWED_PROMPT_FRAGMENTS.has(rawText.trim())) {
                     errors.push(`Uncataloged CJK template text in ${label}: ${JSON.stringify(rawText.trim().slice(0, 40))}`);
                 }
             }

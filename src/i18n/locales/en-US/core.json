@@ -1,0 +1,70 @@
+{
+  "errors": {
+    "urlScheme": "URL must start with http:// or https://, e.g. http://192.168.1.10:1234/v1",
+    "urlInvalid": "Invalid API URL. Check the IP, port and path.",
+    "urlCredentials": "URL must not contain a username, password or # fragment",
+    "api401": "Authentication failed. Check the API key.",
+    "api403": "Service denied access. Check the key and permissions.",
+    "api404": "Endpoint not found. Check the port and full path.",
+    "api429": "AI service rate limited. Try again manually later.",
+    "apiGeneric": "AI request failed (HTTP {status})",
+    "apiDetailSeparator": ": ",
+    "apiReturnedError": "AI returned an error",
+    "finishReason": "AI output did not finish normally ({reason})",
+    "sseMalformed": "Malformed AI streaming response; received content was kept",
+    "sseInterrupted": "AI stream ended early; received content was kept and you can retry",
+    "notSseOrJson": "AI did not return valid SSE or JSON. Check whether a web page URL was entered.",
+    "emptyContent": "AI returned empty content. Check the model name and service logs.",
+    "gmMissing": "The script manager did not provide GM_xmlhttpRequest. Check the script's run permissions.",
+    "idleTimeout": "No data from the AI service for two minutes; stopped. Check whether the model is still loading.",
+    "totalTimeout": "AI request exceeded ten minutes; stopped",
+    "discontinuousResponse": "The script manager returned a discontinuous response. Enable compatibility mode and retry.",
+    "connectFailed": "Cannot reach the AI service. Check that it is running, the address and port, Tampermonkey target-host permissions and browser local-network permission; this error alone cannot identify the exact cause",
+    "requestTimeout": "AI request timed out. Check that the service and model are ready.",
+    "promptTooLong": "Custom prompt is too long. Shorten it or raise the input budget.",
+    "noContent": "No content to summarize",
+    "truncatedOutput": "AI output hit the length limit; partial content was kept. Raise the output limit and retry.",
+    "packTooLong": "Post author info exceeds the input budget. Raise the budget.",
+    "digestNotCompressed": "Segment digests could not be compressed into the input budget. Raise the budget or shorten the custom prompt; completed digests were kept.",
+    "tooManyLayers": "Too many summary layers; stopped with segment results kept. Narrow the floor range.",
+    "foreignTopicPosts": "The site returned posts from a different topic",
+    "topicInfoMalformed": "Malformed topic info",
+    "invalidRange": "Enter a valid integer floor range",
+    "postStreamMalformed": "Malformed post content",
+    "noProgress": "The site returned no further floors. Refresh and retry."
+  },
+  "progress": {
+    "segment": "Segment {current}/{total}{layer}; at least {calls} calls expected",
+    "segmentLayer": " (layer {layer})",
+    "finalMulti": "Generating the final summary…",
+    "finalSingle": "Summarizing (about 1 call)…",
+    "rateLimited": "Site rate limited; waiting to continue…",
+    "waiting": "Reading at the configured interval…",
+    "waitDetail": "Waiting about {seconds}s; you can stop anytime",
+    "retrying": "Read failed temporarily; retrying shortly…",
+    "readingFloors": "Reading floors {start}–{end}…",
+    "readingDetail": "Missing floors keep their original numbers; only content visible to this account is read"
+  },
+  "topic": {
+    "untitled": "Untitled topic"
+  },
+  "warnings": {
+    "imageTooLarge": "Image exceeds the 20 MiB per-image limit",
+    "imagesTooLargeTotal": "Total resources exceed the 100 MiB limit",
+    "imageBudgetTotal": "Total resources reached the 100 MiB limit",
+    "crossOriginNeedsGrant": "Cross-origin images need script-manager authorization",
+    "notAnImage": "Response is not an image",
+    "imageDownloadTimeout": "Image download timed out",
+    "imageDownloadFailed": "Image connection failed or the target host is not authorized",
+    "imageEncodeFailed": "Image encoding failed",
+    "resourceNotEmbedded": "Resource could not be embedded"
+  },
+  "media": {
+    "coverAlt": "Media cover",
+    "audioNote": "Audio content requires an internet connection: ",
+    "mediaNote": "Media content requires an internet connection: ",
+    "visitOriginal": "Open the original post",
+    "imageUnavailable": "[Image URL unavailable]",
+    "mathSource": "Formula source"
+  }
+}
