@@ -35,11 +35,18 @@ export const CORE_TEXT = Object.freeze({
     'core.progress.segmentLayer': '（第{layer}层）',
     'core.progress.finalMulti': '正在生成最终总结…',
     'core.progress.finalSingle': '正在总结（预计 1 次调用）…',
+    'core.progress.rateLimited': '站点限流，等待后继续…',
+    'core.progress.waiting': '正在按间隔读取…',
+    'core.progress.waitDetail': '等待约 {seconds} 秒，可随时停止',
+    'core.progress.retrying': '读取暂时失败，稍后重试…',
+    'core.progress.readingFloors': '正在读取第 {start}—{end} 楼…',
+    'core.progress.readingDetail': '楼层空缺保留原编号，只读取当前账户可见的内容',
     'core.errors.foreignTopicPosts': '站点返回了不属于当前话题的帖子',
     'core.errors.topicInfoMalformed': '话题信息格式异常',
     'core.errors.invalidRange': '请输入有效的整数楼层范围',
     'core.errors.postStreamMalformed': '帖子正文格式异常',
     'core.errors.noProgress': '站点未返回后续楼层，请刷新后重试',
+    'core.topic.untitled': '未命名话题',
     'core.warnings.imageTooLarge': '图片超过单图 20 MiB 限制',
     'core.warnings.imagesTooLargeTotal': '资源总量超过 100 MiB 限制',
     'core.warnings.imageBudgetTotal': '资源总量达到 100 MiB 限制',
@@ -48,7 +55,13 @@ export const CORE_TEXT = Object.freeze({
     'core.warnings.imageDownloadTimeout': '图片下载超时',
     'core.warnings.imageDownloadFailed': '图片连接失败或目标主机未授权',
     'core.warnings.imageEncodeFailed': '图片编码失败',
-    'core.warnings.resourceNotEmbedded': '资源未能嵌入'
+    'core.warnings.resourceNotEmbedded': '资源未能嵌入',
+    'core.media.coverAlt': '媒体封面',
+    'core.media.audioNote': '音频内容需联网查看：',
+    'core.media.mediaNote': '媒体内容需联网查看：',
+    'core.media.visitOriginal': '请访问原帖',
+    'core.media.imageUnavailable': '[图片地址不可用]',
+    'core.media.mathSource': '公式源码'
 });
 
 function interpolate(text, params) {

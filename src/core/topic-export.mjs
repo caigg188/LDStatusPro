@@ -155,10 +155,10 @@ export async function prepareExportHTML(html, { document, origin, embed = false,
         const figure = document.createElement('figure'); figure.className = 'export-media';
         const sources = [media.getAttribute('src'), media.getAttribute('data'), ...[...media.querySelectorAll('source[src]')].map(el => el.getAttribute('src'))].map(src => exportUrl(src, origin)).filter(Boolean);
         const poster = exportUrl(media.getAttribute('poster'), origin);
-        if (poster) { const image = document.createElement('img'); image.src = poster; image.alt = tr(t, `${origin}.media.coverAlt`); figure.appendChild(image); }
-        const note = document.createElement('figcaption'); note.textContent = media.tagName.toLowerCase() === 'audio' ? tr(t, `${origin}.media.audioNote`) : tr(t, `${origin}.media.mediaNote`); figure.appendChild(note);
+        if (poster) { const image = document.createElement('img'); image.src = poster; image.alt = tr(t, 'core.media.coverAlt'); figure.appendChild(image); }
+        const note = document.createElement('figcaption'); note.textContent = media.tagName.toLowerCase() === 'audio' ? tr(t, 'core.media.audioNote') : tr(t, 'core.media.mediaNote'); figure.appendChild(note);
         for (const src of new Set(sources)) { const link = document.createElement('a'); link.href = src; link.textContent = media.getAttribute('title') || src; figure.appendChild(link); }
-        if (!sources.length) note.append(tr(t, `${origin}.media.visitOriginal`));
+        if (!sources.length) note.append(tr(t, 'core.media.visitOriginal'));
         media.replaceWith(figure);
     }
     const ids = new Map();
@@ -199,7 +199,7 @@ export async function prepareExportHTML(html, { document, origin, embed = false,
         const hint = img.closest('a.lightbox')?.getAttribute('title');
         if (!img.getAttribute('alt') && hint) img.setAttribute('alt', hint);
         for (const attr of ['srcset', 'sizes', 'data-src', 'data-srcset', 'data-original', 'data-lazy-src', 'loading', 'onerror']) img.removeAttribute(attr);
-        if (!src) { img.replaceWith(document.createTextNode(img.alt || tr(t, `${origin}.media.imageUnavailable`))); return; }
+        if (!src) { img.replaceWith(document.createTextNode(img.alt || tr(t, 'core.media.imageUnavailable'))); return; }
         img.setAttribute('src', embed ? await resources.embed(src) : src);
         img.setAttribute('loading', 'eager');
     }));

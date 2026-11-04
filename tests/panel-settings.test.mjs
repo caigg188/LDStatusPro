@@ -222,8 +222,16 @@ test('language selector persists immediately, handles storage failure, guards ac
     assert.equal(await page.evaluate(() => window.fixtureHarness.getReloadCalls()), 0);
     assert.match(await page.locator('[data-settings-lang-notice]').textContent(), /Finish or stop the active task/);
 
-    // 5. Once task finishes, reload proceeds cleanly.
-    await page.evaluate(() => { window.panel.melonHelper._abortController = null; });
+    // 4b. An active follow-up chat and unsaved melon settings also block reload.
+    await page.evaluate(() => { window.panel.melonHelper = { _abortController: null, _chatAbortController: new AbortController() }; });
+    await page.locator('[data-settings-lang-reload]').click();
+    assert.equal(await page.evaluate(() => window.fixtureHarness.getReloadCalls()), 0);
+    await page.evaluate(() => { window.panel.melonHelper = { _abortController: null, hasUnsavedSettings: () => true }; });
+    await page.locator('[data-settings-lang-reload]').click();
+    assert.equal(await page.evaluate(() => window.fixtureHarness.getReloadCalls()), 0);
+
+    // 5. Once tasks finish and edits are saved or discarded, reload proceeds cleanly.
+    await page.evaluate(() => { window.panel.melonHelper = { _abortController: null, _chatAbortController: null, hasUnsavedSettings: () => false }; });
     await page.locator('[data-settings-lang-reload]').click();
     assert.equal(await page.evaluate(() => window.fixtureHarness.getReloadCalls()), 1);
 

@@ -226,4 +226,74 @@ test('follow, tickets, activity and LDC/CDK structural labels render in both loc
         assert.deepEqual(report.labels, ['Read', 'Bookmarks', 'Replies', 'Reactions', 'Liked', 'My Topics']);
         assert.equal(report.activeId, 'bookmarks');
     });
+
+    await t.test('LDC transaction types, filter hints and overview timestamps resolve in both locales', async () => {
+        const report = await page.evaluate(() => {
+            const out = {};
+            for (const locale of ['zh-CN', 'en-US']) {
+                const h = createWorkflowHarness(locale);
+                const order = { id: 1, type: 'receive', status: 'success', amount: 5, order_name: 'Example', created_at: '2026-01-02T13:04:00Z' };
+                h.ldc._trans = { orders: [order], total: 1, hasMore: false };
+                h.ldc._renderTransUI();
+                const listType = h.ldc.overlay.querySelector('.ldsp-ldc-trans-type').textContent.trim();
+                h.ldc._showDetail(order);
+                const detailType = h.ldc.overlay.querySelector('.ldsp-ldc-trans-type').textContent.trim();
+                h.ldc._trans.orders = [];
+                h.ldc._filter = { timeRange: '7days', type: 'receive' };
+                h.ldc._renderTransUI();
+                const emptyHint = h.ldc.overlay.querySelector('.ldsp-ldc-empty-hint').textContent.trim();
+                h.ldc._renderOverview({ credits: 10, dailyLimit: 5, updateTime: 'today & tomorrow', incomeTotal: 1, expenseTotal: 2, estimatedIncrease: null, dailyStats: [] });
+                const updatedAt = h.ldc.overlay.querySelector('.ldsp-ldc-balance-time').textContent.trim();
+                out[locale] = { listType, detailType, emptyHint, updatedAt };
+            }
+            const h = createWorkflowHarness('en-US');
+            h.ldc._trans = { orders: [{ id: 2, type: 'mystery', status: 'success', amount: 1, order_name: 'X', created_at: '2026-01-02T13:04:00Z' }], total: 1, hasMore: false };
+            h.ldc._renderTransUI();
+            out.unknownType = h.ldc.overlay.querySelector('.ldsp-ldc-trans-type').textContent.trim();
+            return out;
+        });
+        assert.equal(report['zh-CN'].listType, '收益');
+        assert.equal(report['zh-CN'].detailType, '📥 收益');
+        assert.match(report['zh-CN'].emptyHint, /筛选条件：近7天 · 收益/);
+        assert.equal(report['zh-CN'].updatedAt, '数据更新于：today & tomorrow');
+        assert.equal(report['en-US'].listType, 'Income');
+        assert.equal(report['en-US'].detailType, '📥 Income');
+        assert.match(report['en-US'].emptyHint, /Filters: 7 days · Income/);
+        assert.equal(report['en-US'].updatedAt, 'Updated at: today & tomorrow');
+        assert.equal(report.unknownType, 'mystery');
+    });
+
+    await t.test('CDK creator and activity author names survive escaping exactly once', async () => {
+        const report = await page.evaluate(() => {
+            const out = {};
+            for (const locale of ['zh-CN', 'en-US']) {
+                const h = createWorkflowHarness(locale);
+                h.cdk._renderDetail({ name: 'Example', creator_nickname: 'Alice & Bob <3', status: 0 });
+                const cdkMeta = h.cdk.overlay.querySelector('.ldsp-cdk-detail-meta').textContent;
+                const likeHtml = h.rendererInstance.renderLikeList([{
+                    post_id: 1, topic_id: 2, post_number: 3, title: 'Topic',
+                    username: 'alice&bob', name: 'Alice & Bob', created_at: new Date(Date.now() - 3600000).toISOString()
+                }], false);
+                const reactionHtml = h.rendererInstance.renderReactionList([{
+                    id: 1, created_at: new Date(Date.now() - 3600000).toISOString(),
+                    post: { topic_id: 2, post_number: 3, topic_title: 'Topic', user: { username: 'carol&dave', name: 'Carol' } },
+                    reaction: { reaction_value: '+1', reaction_users_count: 1 }
+                }], false);
+                const tmp = document.createElement('div');
+                tmp.innerHTML = likeHtml + reactionHtml;
+                out[locale] = {
+                    cdkMeta,
+                    likeAuthor: tmp.querySelector('.ldsp-like-author').getAttribute('title'),
+                    reactionAuthor: tmp.querySelector('.ldsp-reaction-author').getAttribute('title')
+                };
+            }
+            return out;
+        });
+        assert.match(report['zh-CN'].cdkMeta, /创建者: Alice & Bob <3 · 进行中/);
+        assert.equal(report['zh-CN'].likeAuthor, '作者：@alice&bob');
+        assert.equal(report['zh-CN'].reactionAuthor, '作者：@carol&dave');
+        assert.match(report['en-US'].cdkMeta, /By Alice & Bob <3 · Ongoing/);
+        assert.equal(report['en-US'].likeAuthor, 'By @alice&bob');
+        assert.equal(report['en-US'].reactionAuthor, 'By @carol&dave');
+    });
 });

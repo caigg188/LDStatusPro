@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { JSDOM } from 'jsdom';
 import { cleanExportHTML, exportUrl, prepareExportHTML, htmlToMarkdown, ExportResources } from '../src/core/topic-export.mjs';
 import { renderMarkdown } from '../src/core/sanitize.mjs';
+import { createTranslator } from '../src/i18n/index.mjs';
 
 const origin = 'https://forum.invalid';
 const { window } = new JSDOM('', { url: origin });
@@ -65,4 +66,23 @@ test('assets are deduplicated, bounded and visibly reported when they cannot be 
     assert.equal(calls, 1); assert.equal(resources.warnings.length, 1);
     const controller = new AbortController(); controller.abort();
     await assert.rejects(new ExportResources({ document, origin, signal: controller.signal }).embed(url), { name: 'AbortError' });
+});
+
+test('media placeholders resolve through the injected translator or the built-in Chinese fallback', async () => {
+    const source = '<audio></audio><img src="javascript:bad">';
+    const localized = await prepareExportHTML(source, { document, origin, t: createTranslator('en-US').t });
+    assert.ok(!localized.includes('media.audioNote'), localized);
+    assert.ok(!localized.includes('media.visitOriginal'), localized);
+    assert.ok(!localized.includes('media.imageUnavailable'), localized);
+    assert.match(localized, /Audio content requires an internet connection:/);
+    assert.match(localized, /Open the original post/);
+    assert.match(localized, /\[Image URL unavailable\]/);
+
+    const fallback = await prepareExportHTML(source, { document, origin });
+    assert.ok(!fallback.includes('media.audioNote'), fallback);
+    assert.ok(!fallback.includes('media.visitOriginal'), fallback);
+    assert.ok(!fallback.includes('media.imageUnavailable'), fallback);
+    assert.match(fallback, /音频内容需联网查看：/);
+    assert.match(fallback, /请访问原帖/);
+    assert.match(fallback, /\[图片地址不可用\]/);
 });

@@ -93,3 +93,18 @@ test('default fetch keeps the global receiver required by native browsers', asyn
     const client = new TopicContentClient({ origin });
     assert.equal((await client.getTopic(42)).id, '42');
 });
+
+test('standalone progress messages never surface raw i18n keys', async () => {
+    const progress = [];
+    const client = new TopicContentClient({
+        origin, now: () => 0, wait: async () => {}, interval: 0, jitter: () => 0,
+        fetchImpl: async () => response({ id: 42, post_stream: { posts: [] } })
+    });
+    client.nextRequest = 1000;
+    await client.getTopic(42, { onProgress: state => progress.push(state) });
+    assert.ok(progress.length > 0);
+    for (const state of progress) {
+        assert.ok(!String(state.message).includes('core.'), state.message);
+        assert.ok(!String(state.detail || '').includes('core.'), state.detail);
+    }
+});

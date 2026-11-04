@@ -195,6 +195,16 @@ test('core modules accept an injected translator and keep Chinese fallbacks with
     assert.equal(typeof packRecords([], 100), 'object');
 });
 
+test('CORE_TEXT stays in exact parity with the zh-CN core catalog', async () => {
+    const { CORE_TEXT } = await import('../src/core/messages.mjs');
+    const expected = new Map();
+    for (const [domain, entries] of Object.entries(CATALOGS['zh-CN'].core)) {
+        for (const [key, value] of Object.entries(entries)) expected.set(`core.${domain}.${key}`, value);
+    }
+    assert.deepEqual(Object.keys(CORE_TEXT).sort(), [...expected.keys()].sort());
+    for (const [key, value] of expected) assert.equal(CORE_TEXT[key], value, key);
+});
+
 test('embedded i18n bundle stays compact with zero external runtime dependencies', async () => {
     const { rawBytes, gzipBytes } = await buildI18nSnippet();
     assert.ok(CATALOGS['zh-CN'] && CATALOGS['en-US']);

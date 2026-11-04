@@ -97,6 +97,8 @@ test('topic tools (AI summary + export) render localized UI and documents while 
     t.after(() => browser.close());
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
     page.setDefaultTimeout(2000);
+    const pageErrors = [];
+    page.on('pageerror', error => pageErrors.push(String(error)));
     await page.route('**/*', route => route.fulfill({
         contentType: 'text/html',
         body: '<!doctype html><html><head></head><body></body></html>'
@@ -119,11 +121,16 @@ test('topic tools (AI summary + export) render localized UI and documents while 
             melon._renderSettings();
             // Prompt textareas intentionally keep the Chinese default prompts (AI output language
             // and [第N楼] citations are separate from UI language); exclude them from the UI check.
-            const settingsNode = melon.overlay.querySelector('.ldsp-melon-settings')?.cloneNode(true);
-            settingsNode?.querySelectorAll('textarea').forEach(node => node.remove());
-            const settingsText = settingsNode?.textContent || '';
+            const settingsNode = melon.overlay.querySelector('.ldsp-melon-settings').cloneNode(true);
+            settingsNode.querySelectorAll('textarea').forEach(node => node.remove());
+            const settingsText = settingsNode.textContent;
+            melon.history = [{
+                topicId: 42, title: 'Fixture history', summary: 'Fixture summary for the history list',
+                mode: 'brief', timestamp: Date.now(), status: 'complete',
+                range: { start: 1, end: 2 }, model: 'gpt-4o-mini'
+            }];
             melon._renderHistory();
-            const historyText = melon.overlay.querySelector('.ldsp-melon-history')?.textContent || '';
+            const historyText = melon.overlay.querySelector('.ldsp-melon-history').textContent;
 
             const exporter = h.exporter;
             exporter.show();
@@ -131,13 +138,19 @@ test('topic tools (AI summary + export) render localized UI and documents while 
             const exportUiText = exporter.overlay.querySelector('.ldsp-export-body')?.textContent || '';
 
             const markdown = exporter._genMarkdown(fixture);
-            const html = exporter._genHtml ? exporter._genHtml(fixture) : '';
+            const html = exporter._genHTML(fixture);
+            const special = exporter._genHTML({ ...fixture, topic: { ...fixture.topic, title: 'A & B <topic>' } });
+            const specialDoc = new DOMParser().parseFromString(special, 'text/html');
 
             const residual = [];
             for (const [surface, text] of Object.entries({ settingsText, historyText, exportUiText })) {
                 if (cjk.test(text)) residual.push({ surface, sample: text.slice(0, 90) });
             }
-            return { title, tabs, exportTitle, residual, markdown, html };
+            return {
+                title, tabs, exportTitle, residual, markdown, html,
+                specialTitle: specialDoc.title,
+                specialHeading: specialDoc.querySelector('.header h1').textContent
+            };
         }, { cjkPattern: cjk, fixture: exportFixture() });
 
         assert.equal(report.title, '🍉 AI Topic Summary');
@@ -152,12 +165,13 @@ test('topic tools (AI summary + export) render localized UI and documents while 
         assert.match(report.markdown, /> Time: /);
         assert.match(report.markdown, /> Reply to: #1 @alice/);
         assert.match(report.markdown, /> Likes: 3/);
-        if (report.html) {
-            assert.match(report.html, /lang="en-US"/);
-            assert.match(report.html, /Topic #42/);
-            assert.match(report.html, /2 floors \(1-2\)/);
-            assert.match(report.html, /views/);
-        }
+        assert.match(report.html, /lang="en-US"/);
+        assert.match(report.html, /Topic #42/);
+        assert.match(report.html, /2 floors \(1-2\)/);
+        assert.match(report.html, /views/);
+        assert.ok(report.specialTitle.includes('A & B <topic>'), report.specialTitle);
+        assert.ok(!report.specialTitle.includes('&amp;'), report.specialTitle);
+        assert.equal(report.specialHeading, 'A & B <topic>');
     });
 
     await t.test('zh-CN keeps current copy for melon overlay, settings and export UI', async () => {
@@ -200,4 +214,40 @@ test('topic tools (AI summary + export) render localized UI and documents while 
         assert.equal(report['en-US'].brief, report['zh-CN'].brief);
         assert.equal(report['en-US'].detailed, report['zh-CN'].detailed);
     });
+
+    await t.test('melon reports unsaved settings edits and escapes history metadata exactly once', async () => {
+        const report = await page.evaluate(() => {
+            const h = createTopicToolsHarness('en-US');
+            const melon = h.melon;
+            melon.show();
+            melon._renderSettings();
+            const clean = melon.hasUnsavedSettings();
+            const brief = melon.overlay.querySelector('#melon-prompt-brief');
+            brief.value = 'Unsaved custom prompt';
+            const dirtyPrompt = melon.hasUnsavedSettings();
+            brief.value = '';
+            const restored = melon.hasUnsavedSettings();
+            const apiUrl = melon.overlay.querySelector('#melon-api-url');
+            apiUrl.value = 'https://example.com/v1';
+            const dirtyUrl = melon.hasUnsavedSettings();
+            apiUrl.value = '';
+
+            melon.history = [{
+                topicId: 42, title: 'Fixture history', summary: 'Fixture summary',
+                mode: 'brief', timestamp: Date.now(), status: 'complete',
+                range: { start: 1, end: 2 }, model: 'gpt & co'
+            }];
+            melon._showHistoryDetail(0);
+            const detailMeta = melon.overlay.querySelector('.ldsp-melon-history-detail-meta').textContent;
+            return { clean, dirtyPrompt, restored, dirtyUrl, detailMeta };
+        });
+        assert.deepEqual(
+            { clean: report.clean, dirtyPrompt: report.dirtyPrompt, restored: report.restored, dirtyUrl: report.dirtyUrl },
+            { clean: false, dirtyPrompt: true, restored: false, dirtyUrl: true }
+        );
+        assert.ok(report.detailMeta.includes('gpt & co'), report.detailMeta);
+        assert.ok(!report.detailMeta.includes('&amp;'), report.detailMeta);
+    });
+
+    assert.deepEqual(pageErrors, []);
 });
