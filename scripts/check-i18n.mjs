@@ -8,6 +8,7 @@ import { PLURAL_CATEGORIES, isPluralForms } from '../src/i18n/index.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const localesRoot = path.join(root, 'src/i18n/locales');
+const coreRoot = path.join(root, 'src/core');
 const manifestPath = path.join(root, 'src/i18n/review-manifest.json');
 const userscriptPath = path.join(root, 'LDStatusPro.user.js');
 
@@ -100,8 +101,38 @@ export const MIGRATED_PANEL_EXTRA_METHODS = Object.freeze([
     '_bindActivityScroll'
 ]);
 
-// Explicit non-UI tokens allowed inside migrated methods (parser sentinels, server error matchers, punctuation).
-const ALLOWED_CJK_LITERALS = new Set(['未知', '；', '已暂停新用户注册', '原始发帖人', '请仅回复 OK。', '及所附分段摘要', '本总结尚未完成。']);
+// Explicit non-UI tokens allowed inside migrated methods, scoped to the method that needs
+// them (parser sentinels, remote-value matchers, locale-dependent punctuation). Value -> method -> reason.
+const ALLOWED_CJK_LITERALS = new Map([
+    ['未知', new Map([
+        ['Panel._showFallbackStats', 'forum username sentinel'],
+        ['Panel._parse', 'forum username sentinel']
+    ])],
+    ['；', new Map([
+        ['Panel._showFallbackStats', 'zh-CN hint separator punctuation']
+    ])],
+    ['已暂停新用户注册', new Map([
+        ['Panel._renderLeaderboardContent', 'server REGISTRATION_PAUSED message matcher']
+    ])],
+    ['原始发帖人', new Map([
+        ['Renderer._renderTopicItems', 'forum poster description matcher']
+    ])],
+    ['请仅回复 OK。', new Map([
+        ['MelonHelper', 'connection-test prompt payload sent to the AI service']
+    ])],
+    ['及所附分段摘要', new Map([
+        ['MelonHelper', 'chat prompt fragment kept Chinese for AI output language']
+    ])],
+    ['本总结尚未完成。', new Map([
+        ['MelonHelper', 'chat prompt fragment kept Chinese for AI output language']
+    ])],
+    ['所有时间', new Map([
+        ['Renderer.getTrendFields', 'forum metric-name matcher for the all-time variant']
+    ])],
+    ['前一日', new Map([
+        ['Renderer.renderTodayTrend', 'server compareLabel matcher replaced by trends.prevDay']
+    ])]
+]);
 
 // AI prompt and citation sentinels that must stay Chinese: they control the model's output
 // language and the [第N楼] citation format that the parser and prompts depend on.
@@ -161,6 +192,80 @@ export function extractPlaceholders(entry) {
     return union;
 }
 
+// Detect duplicate member names before JSON.parse silently keeps only the last one.
+export function findDuplicateJsonKeys(text) {
+    const duplicates = [];
+    const scopes = [];
+    let expect = 'value';
+    let i = 0;
+    const skipWs = () => { while (i < text.length && /\s/.test(text[i])) i++; };
+    const readString = () => {
+        let out = '';
+        i++;
+        while (i < text.length) {
+            const ch = text[i];
+            if (ch === '\\') { out += text[i + 1] ?? ''; i += 2; continue; }
+            if (ch === '"') { i++; break; }
+            out += ch; i++;
+        }
+        return out;
+    };
+    while (i < text.length) {
+        skipWs();
+        const ch = text[i];
+        if (ch === undefined) break;
+        if (ch === '{') { scopes.push(new Set()); expect = 'key'; i++; continue; }
+        if (ch === '[') { scopes.push(null); expect = 'value'; i++; continue; }
+        if (ch === '}' || ch === ']') { scopes.pop(); expect = 'commaOrClose'; i++; continue; }
+        if (ch === ',') { i++; expect = scopes[scopes.length - 1] ? 'key' : 'value'; continue; }
+        if (ch === ':') { i++; expect = 'value'; continue; }
+        if (ch === '"') {
+            const value = readString();
+            if (expect === 'key') {
+                const keys = scopes[scopes.length - 1];
+                if (keys.has(value)) duplicates.push(value);
+                keys.add(value);
+                expect = 'colon';
+            } else {
+                expect = 'commaOrClose';
+            }
+            continue;
+        }
+        while (i < text.length && !/[\s,\]}]/.test(text[i])) i++;
+        expect = 'commaOrClose';
+    }
+    return duplicates;
+}
+
+// Statically resolvable message keys: plain literals, expression-free templates and
+// every branch of conditionals/logical expressions (each branch must resolve).
+export function staticStringKeys(node, keys = []) {
+    if (!node) return keys;
+    if (node.type === 'Literal' && typeof node.value === 'string') keys.push(node.value);
+    else if (node.type === 'TemplateLiteral' && node.expressions.length === 0) keys.push(node.quasis[0].value.cooked ?? node.quasis[0].value.raw);
+    else if (node.type === 'ConditionalExpression') {
+        staticStringKeys(node.consequent, keys);
+        staticStringKeys(node.alternate, keys);
+    } else if (node.type === 'LogicalExpression') {
+        staticStringKeys(node.left, keys);
+        staticStringKeys(node.right, keys);
+    }
+    return keys;
+}
+
+function isFullyStaticKey(node) {
+    if (!node) return false;
+    if (node.type === 'Literal') return typeof node.value === 'string';
+    if (node.type === 'TemplateLiteral') return node.expressions.length === 0;
+    if (node.type === 'ConditionalExpression') return isFullyStaticKey(node.consequent) && isFullyStaticKey(node.alternate);
+    if (node.type === 'LogicalExpression') return isFullyStaticKey(node.left) && isFullyStaticKey(node.right);
+    return false;
+}
+
+function lineOf(source, index) {
+    return source.slice(0, index).split('\n').length;
+}
+
 function allowedPluralCategories(locale) {
     return new Set(new Intl.PluralRules(locale).resolvedOptions().pluralCategories);
 }
@@ -173,11 +278,22 @@ export function loadDiskCatalogs(dir = localesRoot) {
         const namespaces = {};
         for (const file of files) {
             const ns = file.slice(0, -5);
-            namespaces[ns] = JSON.parse(fs.readFileSync(path.join(localeDir, file), 'utf8'));
+            const text = fs.readFileSync(path.join(localeDir, file), 'utf8');
+            const duplicates = [...new Set(findDuplicateJsonKeys(text))];
+            if (duplicates.length) throw new Error(`Duplicate keys in ${locale}/${file}: ${duplicates.join(', ')}`);
+            namespaces[ns] = JSON.parse(text);
         }
         result[locale] = namespaces;
     }
     return result;
+}
+
+export function loadCoreSources(dir = coreRoot) {
+    const sources = {};
+    for (const file of fs.readdirSync(dir).filter(name => name.endsWith('.mjs')).sort()) {
+        sources[file] = fs.readFileSync(path.join(dir, file), 'utf8');
+    }
+    return sources;
 }
 
 function walkAst(node, visit) {
@@ -188,6 +304,8 @@ function walkAst(node, visit) {
     }
 }
 
+// Full bootstrap manifest for the initial reviewed baseline. Later zh-CN source changes must
+// go through approveManifestEntries, which only records the keys a reviewer lists explicitly.
 export function buildReviewManifest(zhCatalog) {
     const errors = [];
     const zhMap = new Map();
@@ -207,11 +325,28 @@ export function buildReviewManifest(zhCatalog) {
     };
 }
 
+// Explicit, per-key approval: only the listed keys update their reviewed hash; additions and
+// changes stay pending otherwise, and removals stay flagged until the key is listed.
+export function approveManifestEntries(manifest, zhCatalog, keys) {
+    const errors = [];
+    const zhMap = new Map();
+    for (const [ns, data] of Object.entries(zhCatalog)) flattenCatalogNamespace(ns, data, ns, zhMap, errors);
+    if (errors.length) throw new Error(errors.join('\n'));
+    const next = { ...manifest, entries: { ...(manifest?.entries || {}) } };
+    for (const key of keys) {
+        if (zhMap.has(key)) next.entries[key] = hashSourceEntry(key, zhMap.get(key));
+        else if (Object.prototype.hasOwnProperty.call(next.entries, key)) delete next.entries[key];
+        else throw new Error(`Cannot approve unknown key: ${key}`);
+    }
+    return next;
+}
+
 export function validateI18n({
     catalogs = loadDiskCatalogs(),
     manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')),
     userscriptSource = fs.readFileSync(userscriptPath, 'utf8'),
-    migratedMethods = MIGRATED_PANEL_METHODS
+    migratedMethods = MIGRATED_PANEL_METHODS,
+    coreSources = loadCoreSources()
 } = {}) {
     const errors = [];
     const zhMap = new Map();
@@ -290,6 +425,7 @@ export function validateI18n({
     const coreEnd = userscriptSource.indexOf('// @@CORE_SANITIZE_END');
     const scanOffset = Math.max(i18nEnd >= 0 ? i18nEnd : 0, coreEnd >= 0 ? coreEnd : 0);
     const ast = parse(userscriptSource, { ecmaVersion: 'latest' });
+    const dynamicReferences = [];
 
     let panelClass = null;
     let rendererClass = null;
@@ -320,8 +456,11 @@ export function validateI18n({
             && (node.callee.property.name === 't' || node.callee.property.name === 'tHtml')
         ) {
             const arg = node.arguments[0];
-            if (arg?.type === 'Literal' && typeof arg.value === 'string' && !zhMap.has(arg.value)) {
-                errors.push(`Unresolved I18n.${node.callee.property.name} key in LDStatusPro.user.js: "${arg.value}"`);
+            for (const key of staticStringKeys(arg)) {
+                if (!zhMap.has(key)) errors.push(`Unresolved I18n.${node.callee.property.name} key in LDStatusPro.user.js: "${key}"`);
+            }
+            if (!isFullyStaticKey(arg)) {
+                dynamicReferences.push({ file: 'LDStatusPro.user.js', call: `I18n.${node.callee.property.name}`, line: lineOf(userscriptSource, node.start) });
             }
         }
     });
@@ -330,16 +469,16 @@ export function validateI18n({
         if (!rootNode) return;
         walkAst(rootNode, node => {
             if (node.type === 'Literal' && typeof node.value === 'string') {
-                // Skip raw unicode escape sequences used intentionally as canonical parser tokens
-                const rawSrc = userscriptSource.slice(node.start, node.end);
-                if (/\\u[0-9a-fA-F]{4}/.test(rawSrc) && !CJK_RE.test(rawSrc)) return;
-                if (CJK_RE.test(node.value) && !ALLOWED_CJK_LITERALS.has(node.value)) {
-                    errors.push(`Uncataloged CJK literal in ${label}: ${JSON.stringify(node.value)}`);
+                // The decoded value decides: \uXXXX escapes must not hide visible Chinese text.
+                const allowed = ALLOWED_CJK_LITERALS.get(node.value);
+                if (CJK_RE.test(node.value) && !allowed?.has(label)) {
+                    const hint = allowed ? ` (allowed in ${[...allowed.keys()].join(', ')})` : '';
+                    errors.push(`Uncataloged CJK literal in ${label}: ${JSON.stringify(node.value)}${hint}`);
                 }
             } else if (node.type === 'TemplateElement') {
-                const rawText = node.value?.raw || '';
-                if (CJK_RE.test(rawText) && !ALLOWED_PROMPT_FRAGMENTS.has(rawText.trim())) {
-                    errors.push(`Uncataloged CJK template text in ${label}: ${JSON.stringify(rawText.trim().slice(0, 40))}`);
+                const cooked = node.value?.cooked ?? node.value?.raw ?? '';
+                if (CJK_RE.test(cooked) && !ALLOWED_PROMPT_FRAGMENTS.has(cooked.trim())) {
+                    errors.push(`Uncataloged CJK template text in ${label}: ${JSON.stringify(cooked.trim().slice(0, 40))}`);
                 }
             }
         });
@@ -380,6 +519,23 @@ export function validateI18n({
         scanNodeForUncatalogedCjk('LDSPDialog', dialogDecl);
     }
 
+    // src/core message keys are validated against the zh-CN catalog; dynamic keys are reported.
+    for (const [file, source] of Object.entries(coreSources)) {
+        let coreAst;
+        try { coreAst = parse(source, { ecmaVersion: 'latest', sourceType: 'module' }); }
+        catch (error) { errors.push(`Cannot parse src/core/${file}: ${error.message}`); continue; }
+        walkAst(coreAst, node => {
+            if (node.type !== 'CallExpression' || node.callee?.type !== 'Identifier' || node.callee.name !== 'tr') return;
+            const arg = node.arguments[1];
+            for (const key of staticStringKeys(arg)) {
+                if (!zhMap.has(key)) errors.push(`Unresolved core message key in src/core/${file}: "${key}"`);
+            }
+            if (!isFullyStaticKey(arg)) {
+                dynamicReferences.push({ file: `src/core/${file}`, call: 'tr', line: lineOf(source, node.start) });
+            }
+        });
+    }
+
     return {
         ok: errors.length === 0,
         errors,
@@ -388,17 +544,26 @@ export function validateI18n({
             added,
             changed,
             removed,
-            reviewed: zhMap.size - added.length - changed.length
+            reviewed: zhMap.size - added.length - changed.length,
+            dynamicReferences,
+            scannedCoreFiles: Object.keys(coreSources)
         }
     };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
     const catalogs = loadDiskCatalogs();
-    if (process.argv.includes('--sync-manifest')) {
-        const nextManifest = buildReviewManifest(catalogs['zh-CN']);
+    const approveIndex = process.argv.indexOf('--approve');
+    if (approveIndex >= 0) {
+        const keys = process.argv.slice(approveIndex + 1).filter(arg => !arg.startsWith('--'));
+        if (!keys.length) {
+            console.error('Usage: node scripts/check-i18n.mjs --approve <key> [key...]');
+            process.exit(2);
+        }
+        const currentManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        const nextManifest = approveManifestEntries(currentManifest, catalogs['zh-CN'], keys);
         fs.writeFileSync(manifestPath, JSON.stringify(nextManifest, null, 2) + '\n');
-        console.log(`Updated review-manifest.json (${Object.keys(nextManifest.entries).length} reviewed keys).`);
+        console.log(`Approved ${keys.length} key(s): ${keys.join(', ')}`);
         process.exit(0);
     }
 
@@ -407,8 +572,16 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         const { summary } = result;
         console.log(
             `i18n status: ${summary.reviewed}/${summary.totalKeys} reviewed | `
-            + `added: ${summary.added.length}, changed source: ${summary.changed.length}, removed: ${summary.removed.length}`
+            + `added: ${summary.added.length}, changed source: ${summary.changed.length}, removed: ${summary.removed.length} | `
+            + `dynamic references: ${summary.dynamicReferences.length}`
         );
+        for (const [label, keys] of [['added', summary.added], ['changed source', summary.changed], ['removed', summary.removed]]) {
+            if (keys.length) console.log(`  ${label}: ${keys.join(', ')}`);
+        }
+        if (summary.dynamicReferences.length) {
+            console.log('  dynamic references (not statically verifiable):');
+            for (const ref of summary.dynamicReferences) console.log(`    ${ref.file}:${ref.line} ${ref.call}`);
+        }
     }
     if (!result.ok) {
         console.error(result.errors.join('\n'));

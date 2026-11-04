@@ -12,7 +12,7 @@ import {
     tHtml
 } from '../src/i18n/index.mjs';
 import { buildI18nSnippet } from '../scripts/embed-i18n.mjs';
-import { buildReviewManifest, loadDiskCatalogs, validateI18n } from '../scripts/check-i18n.mjs';
+import { approveManifestEntries, buildReviewManifest, findDuplicateJsonKeys, loadDiskCatalogs, validateI18n } from '../scripts/check-i18n.mjs';
 
 test('locale normalization defaults safely to zh-CN and accepts en-US variants', () => {
     assert.deepEqual(SUPPORTED_LOCALES, ['zh-CN', 'en-US']);
@@ -143,6 +143,69 @@ test('check-i18n passes on current repository and catches missing keys, placehol
     assert.equal(astCheck.ok, false);
     assert.ok(astCheck.errors.some(err => err.includes('Uncataloged CJK literal in Panel._getThemeModeLabel')));
     assert.ok(astCheck.errors.some(err => err.includes('Unresolved I18n.t key in LDStatusPro.user.js: "settings.doesNotExist"')));
+});
+
+test('manifest approval is explicit per key and never approves changed sources automatically', () => {
+    const disks = loadDiskCatalogs();
+    const manifest = buildReviewManifest(disks['zh-CN']);
+    const changed = structuredClone(disks);
+    changed['zh-CN'].settings.title = '偏好设置（新）';
+
+    assert.equal(validateI18n({ catalogs: changed, manifest }).ok, false);
+    assert.equal(validateI18n({ catalogs: changed, manifest: approveManifestEntries(manifest, changed['zh-CN'], []) }).ok, false);
+    assert.equal(validateI18n({ catalogs: changed, manifest: approveManifestEntries(manifest, changed['zh-CN'], ['settings.nav.theme']) }).ok, false);
+    assert.equal(validateI18n({ catalogs: changed, manifest: approveManifestEntries(manifest, changed['zh-CN'], ['settings.title']) }).ok, true);
+});
+
+test('check-i18n validates conditional keys, core modules, duplicate JSON and escaped CJK', () => {
+    const disks = loadDiskCatalogs();
+    const manifest = buildReviewManifest(disks['zh-CN']);
+
+    const conditionalUserscript = `
+        // @@CORE_SANITIZE_END
+        // @@I18N_END
+        class Panel {
+            _getThemeModeLabel() { return I18n.t(true ? 'audit.missingKey' : 'settings.theme.auto'); }
+            _getFontSizeLabel() { return I18n.t(dynamicKey); }
+        }
+    `;
+    const conditionalCheck = validateI18n({
+        catalogs: disks, manifest,
+        userscriptSource: conditionalUserscript,
+        migratedMethods: ['_getThemeModeLabel', '_getFontSizeLabel'],
+        coreSources: {}
+    });
+    assert.equal(conditionalCheck.ok, false);
+    assert.ok(conditionalCheck.errors.some(err => err.includes('"audit.missingKey"')));
+    assert.equal(conditionalCheck.summary.dynamicReferences.length, 1);
+    assert.equal(conditionalCheck.summary.dynamicReferences[0].call, 'I18n.t');
+
+    const coreCheck = validateI18n({
+        catalogs: disks, manifest,
+        userscriptSource: '// @@I18N_END\n// @@CORE_SANITIZE_END\n',
+        migratedMethods: [],
+        coreSources: { 'topic-ai.mjs': "import { tr } from './messages.mjs';\nexport const x = t => tr(t, 'core.missing.key');\n" }
+    });
+    assert.equal(coreCheck.ok, false);
+    assert.ok(coreCheck.errors.some(err => err.includes('core.missing.key') && err.includes('src/core/topic-ai.mjs')));
+
+    assert.deepEqual([...new Set(findDuplicateJsonKeys('{"a":{"b":"1","b":"2"},"a":"3"}'))].sort(), ['a', 'b']);
+
+    const escapedUserscript = `
+        // @@CORE_SANITIZE_END
+        // @@I18N_END
+        class Panel {
+            _getThemeModeLabel() { return '\\u5f20\\u5e16'; }
+        }
+    `;
+    const escapedCheck = validateI18n({
+        catalogs: disks, manifest,
+        userscriptSource: escapedUserscript,
+        migratedMethods: ['_getThemeModeLabel'],
+        coreSources: {}
+    });
+    assert.equal(escapedCheck.ok, false);
+    assert.ok(escapedCheck.errors.some(err => err.includes('Uncataloged CJK literal') && err.includes('张帖')));
 });
 
 test('core modules accept an injected translator and keep Chinese fallbacks without one', async () => {

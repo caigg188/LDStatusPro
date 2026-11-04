@@ -248,3 +248,14 @@ Pacote aplicado localmente sobre `1513b7c`, sem commit ou push:
 Verificação: `npm run check` com **334/334 testes** (328 anteriores + 6 novos), checker 913 chaves e bundles consistentes. Probes reexecutados: núcleo **8/13**, workflows **9/10**, checker **2/4**; as falhas restantes pertencem a E3 (aprovação do checker), E4 (mensagens próprias em chinês, datas fixas em zh-CN, rótulo de spoiler) e E5 (idioma acessível do viewer). O probe do método inexistente foi substituído por uma verificação de que a suíte chama `_genHTML` sem condições; nenhum alias de produção foi criado.
 
 Evidências RED (falhas antes das correções) e GREEN desta rodada: `/tmp/opencode/red-core.log`, `/tmp/opencode/red-panel.log` e `/tmp/opencode/check-after-p1.log`; contagens finais em `/tmp/opencode/probes-final.json`, `/tmp/opencode/workflows-final.json` e `/tmp/opencode/checker-final.json`. Nada foi commitado ou enviado ao upstream; a PR #97 continua aberta e independente.
+
+## 11. Atualização de implementação: E3 — manutenção verificável (2026-11-04)
+
+- **A10 — aprovação seletiva:** `--sync-manifest` foi removido. A única escrita no manifesto agora é `node scripts/check-i18n.mjs --approve <key> [key...]`, que atualiza apenas as chaves listadas via `approveManifestEntries`; `buildReviewManifest` permanece como bootstrap inicial documentado. `--status` é somente leitura e lista pendências e referências dinâmicas. O teste “manifest approval is explicit per key…” simula a atualização upstream: fonte alterada permanece pendente até a aprovação explícita daquela chave.
+- **A11 — pontos cegos fechados:**
+  - Módulos `src/core/*.mjs` passam a ser analisados: chaves de `tr()` são validadas contra o catálogo zh-CN. Para isso, o padrão `${origin}.` foi eliminado dos três módulos (52 chaves viraram literais `'core.*'`), removendo a classe de risco que causou A02.
+  - Argumentos condicionais/lógicos e templates sem expressões são resolvidos estaticamente; todas as ramificações precisam existir. Argumentos dinâmicos são reportados com arquivo, linha e chamada no `--status` (16 ocorrências hoje), em vez de ignorados em silêncio.
+  - Duplicatas de chave em JSON são detectadas antes do `JSON.parse` em `loadDiskCatalogs`.
+  - A exceção por escapes Unicode foi removida: o valor decodificado decide. A varredura revelou dois tokens legítimos antes escondidos (`所有时间`, `前一日`) — ambos matchers de valores remotos, agora na allowlist.
+  - A allowlist de CJK deixou de ser global por texto: cada token é permitido apenas no método que o usa, com motivo registrado; o erro sugere onde o mesmo texto é permitido.
+- **Verificação:** `npm run check` com **336/336 testes**; checker 913 chaves; probe do checker **7/7** (exit 0); probes de núcleo e workflows inalterados em **8/13** e **9/10**, com as falhas restantes pertencendo a E4/E5.

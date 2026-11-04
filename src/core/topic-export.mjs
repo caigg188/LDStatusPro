@@ -2,8 +2,6 @@ import createDOMPurify from 'dompurify';
 import { abortError, checkAbort, sleep } from './topic-content.mjs';
 import { tr } from './messages.mjs';
 
-const origin = 'core';
-
 const purifiers = new WeakMap();
 export function cleanExportHTML(html, document) {
     const window = document.defaultView || globalThis.window;
@@ -66,7 +64,7 @@ export class ExportResources {
             try {
                 const response = await this.fetchImpl(url, { signal: controller.signal, credentials: 'same-origin' });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                if (Number(response.headers.get('content-length')) > this.maxImage) throw new Error(tr(this.t, `${origin}.warnings.imageTooLarge`));
+                if (Number(response.headers.get('content-length')) > this.maxImage) throw new Error(tr(this.t, 'core.warnings.imageTooLarge'));
                 const reader = response.body?.getReader();
                 if (!reader) return response.blob();
                 const chunks = []; let bytes = 0;
@@ -74,13 +72,13 @@ export class ExportResources {
                     const { done, value } = await reader.read();
                     if (done) break;
                     bytes += value.byteLength;
-                    if (bytes > this.maxImage) { await reader.cancel(); throw new Error(tr(this.t, `${origin}.warnings.imageTooLarge`)); }
+                    if (bytes > this.maxImage) { await reader.cancel(); throw new Error(tr(this.t, 'core.warnings.imageTooLarge')); }
                     chunks.push(value);
                 }
                 return new this.document.defaultView.Blob(chunks, { type: response.headers.get('content-type') || '' });
             } finally { clearTimeout(timeout); this.signal?.removeEventListener('abort', stop); }
         }
-        if (!this.gm) throw new Error(tr(this.t, `${origin}.warnings.crossOriginNeedsGrant`));
+        if (!this.gm) throw new Error(tr(this.t, 'core.warnings.crossOriginNeedsGrant'));
         return new Promise((resolve, reject) => {
             let request, settled = false;
             const finish = (error, blob) => {
@@ -93,7 +91,7 @@ export class ExportResources {
             this.signal?.addEventListener('abort', stop, { once: true });
             try {
                 request = this.gm({ method: 'GET', url, anonymous: true, responseType: 'blob',
-                    onprogress: response => { if (response.loaded > this.maxImage) { finish(new Error(tr(this.t, `${origin}.warnings.imageTooLarge`))); request?.abort(); } },
+                    onprogress: response => { if (response.loaded > this.maxImage) { finish(new Error(tr(this.t, 'core.warnings.imageTooLarge'))); request?.abort(); } },
                     onload: response => response.status >= 200 && response.status < 300 ? finish(null, response.response) : finish(new Error(`HTTP ${response.status}`)),
                     onerror: () => finish(new Error('图片连接失败或目标主机未授权')), ontimeout: () => finish(new Error('图片下载超时')), onabort: () => finish(abortError())
                 });
@@ -108,12 +106,12 @@ export class ExportResources {
         const promise = this._schedule(async () => {
             try {
                 checkAbort(this.signal);
-                if (this.bytes >= this.maxTotal) throw new Error(tr(this.t, `${origin}.warnings.imageBudgetTotal`));
+                if (this.bytes >= this.maxTotal) throw new Error(tr(this.t, 'core.warnings.imageBudgetTotal'));
                 const blob = await this._blob(url);
                 checkAbort(this.signal);
-                if (!blob || !/^image\//i.test(blob.type)) throw new Error(tr(this.t, `${origin}.warnings.notAnImage`));
-                if (blob.size > this.maxImage) throw new Error(tr(this.t, `${origin}.warnings.imageTooLarge`));
-                if (this.bytes + blob.size > this.maxTotal) throw new Error(tr(this.t, `${origin}.warnings.imagesTooLargeTotal`));
+                if (!blob || !/^image\//i.test(blob.type)) throw new Error(tr(this.t, 'core.warnings.notAnImage'));
+                if (blob.size > this.maxImage) throw new Error(tr(this.t, 'core.warnings.imageTooLarge'));
+                if (this.bytes + blob.size > this.maxTotal) throw new Error(tr(this.t, 'core.warnings.imagesTooLargeTotal'));
                 this.bytes += blob.size;
                 return await new Promise((resolve, reject) => {
                     const reader = new this.document.defaultView.FileReader();
@@ -125,7 +123,7 @@ export class ExportResources {
                 });
             } catch (error) {
                 checkAbort(this.signal);
-                this.warnings.push({ url, reason: error.message || tr(this.t, `${origin}.warnings.resourceNotEmbedded`) });
+                this.warnings.push({ url, reason: error.message || tr(this.t, 'core.warnings.resourceNotEmbedded') });
                 return url;
             } finally {
                 this.completed++;

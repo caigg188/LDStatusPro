@@ -1,7 +1,5 @@
 import { tr } from './messages.mjs';
 
-const origin = 'core';
-
 export function abortError() {
     const error = new Error('已停止');
     error.name = 'AbortError';
@@ -69,7 +67,7 @@ export class TopicContentClient {
                 if (this._scope() !== generation) throw abortError();
                 const delay = Math.max(this.nextRequest, this.cooldownUntil) - this.now();
                 if (delay > 0) {
-                    onProgress?.({ stage: 'wait', message: this.cooldownUntil > this.now() ? tr(this.t, `${origin}.progress.rateLimited`) : tr(this.t, `${origin}.progress.waiting`), detail: tr(this.t, `${origin}.progress.waitDetail`, { seconds: Math.ceil(delay / 1000) }) });
+                    onProgress?.({ stage: 'wait', message: this.cooldownUntil > this.now() ? tr(this.t, 'core.progress.rateLimited') : tr(this.t, 'core.progress.waiting'), detail: tr(this.t, 'core.progress.waitDetail', { seconds: Math.ceil(delay / 1000) }) });
                     await this.wait(delay, signal);
                 }
                 checkAbort(signal);
@@ -104,7 +102,7 @@ export class TopicContentClient {
                     checkAbort(signal);
                     if (this._scope() !== generation) throw abortError();
                     if (error.status && error.status < 500 || attempt === 2) throw error;
-                    onProgress?.({ stage: 'wait', message: tr(this.t, `${origin}.progress.retrying`) });
+                    onProgress?.({ stage: 'wait', message: tr(this.t, 'core.progress.retrying') });
                     await this.wait(1000 * 2 ** attempt, signal);
                 } finally {
                     clearTimeout(timeout);
@@ -119,7 +117,7 @@ export class TopicContentClient {
 
     _merge(entry, posts) {
         for (const post of posts || []) {
-            if (String(post.topic_id ?? entry.info.id) !== String(entry.info.id)) throw new Error(tr(this.t, `${origin}.errors.foreignTopicPosts`));
+            if (String(post.topic_id ?? entry.info.id) !== String(entry.info.id)) throw new Error(tr(this.t, 'core.errors.foreignTopicPosts'));
             if (post.id && Number.isInteger(post.post_number) && !post.deleted_at && !post.hidden) entry.posts.set(post.id, post);
         }
     }
@@ -132,9 +130,9 @@ export class TopicContentClient {
         if (options.refresh) this.clear(key);
         const data = await this._request(`/t/${encodeURIComponent(key)}.json`, options);
         checkAbort(options.signal);
-        if (String(data.id) !== key || !Array.isArray(data.post_stream?.posts)) throw new Error(tr(this.t, `${origin}.errors.topicInfoMalformed`));
+        if (String(data.id) !== key || !Array.isArray(data.post_stream?.posts)) throw new Error(tr(this.t, 'core.errors.topicInfoMalformed'));
         const info = {
-            id: key, title: data.title || tr(this.t, `${origin}.topic.untitled`), postsCount: data.posts_count || 0,
+            id: key, title: data.title || tr(this.t, 'core.topic.untitled'), postsCount: data.posts_count || 0,
             highestPostNumber: data.highest_post_number || Math.max(1, ...data.post_stream.posts.map(p => p.post_number)),
             views: data.views || 0, likeCount: data.like_count || 0,
             tags: (data.tags || []).map(tag => typeof tag === 'string' ? tag : tag.name).filter(Boolean),
@@ -151,7 +149,7 @@ export class TopicContentClient {
     }
 
     async getPosts(topicId, start, end, options = {}) {
-        if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) throw new Error(tr(this.t, `${origin}.errors.invalidRange`));
+        if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) throw new Error(tr(this.t, 'core.errors.invalidRange'));
         const info = await this.getTopic(topicId, options);
         const entry = this.cache.get(String(topicId));
         const generation = this.generation;
@@ -162,12 +160,12 @@ export class TopicContentClient {
             if (this._scope() !== generation || this.cache.get(String(topicId)) !== entry) throw abortError();
             const covered = entry.coverage.filter(([from, to]) => from <= cursor && to > cursor);
             if (covered.length) { cursor = Math.max(...covered.map(([, to]) => to)); continue; }
-            options.onProgress?.({ stage: 'fetch', message: tr(this.t, `${origin}.progress.readingFloors`, { start: cursor + 1, end: last }), detail: tr(this.t, `${origin}.progress.readingDetail`), current: cursor - start + 1, total: last - start + 1 });
+            options.onProgress?.({ stage: 'fetch', message: tr(this.t, 'core.progress.readingFloors', { start: cursor + 1, end: last }), detail: tr(this.t, 'core.progress.readingDetail'), current: cursor - start + 1, total: last - start + 1 });
             const data = await this._request(`/t/${encodeURIComponent(topicId)}/posts.json?post_number=${cursor}&asc=true&include_suggested=false&include_related=false`, options);
-            if (!Array.isArray(data.post_stream?.posts)) throw new Error(tr(this.t, `${origin}.errors.postStreamMalformed`));
+            if (!Array.isArray(data.post_stream?.posts)) throw new Error(tr(this.t, 'core.errors.postStreamMalformed'));
             const posts = data.post_stream.posts;
             const next = posts.length ? Math.max(...posts.map(p => p.post_number)) : last;
-            if (!Number.isFinite(next) || next <= cursor) throw new Error(tr(this.t, `${origin}.errors.noProgress`));
+            if (!Number.isFinite(next) || next <= cursor) throw new Error(tr(this.t, 'core.errors.noProgress'));
             this._merge(entry, posts);
             entry.coverage.push([cursor, next]);
             cursor = next;

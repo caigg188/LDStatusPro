@@ -1,14 +1,12 @@
 import { abortError, checkAbort } from './topic-content.mjs';
 import { tr } from './messages.mjs';
 
-const origin = 'core';
-
 export function normalizeApiUrl(value, t) {
     const input = String(value || '').trim();
-    if (!/^https?:\/\//i.test(input)) throw new Error(tr(t, `${origin}.errors.urlScheme`));
+    if (!/^https?:\/\//i.test(input)) throw new Error(tr(t, 'core.errors.urlScheme'));
     let url;
-    try { url = new URL(input); } catch { throw new Error(tr(t, `${origin}.errors.urlInvalid`)); }
-    if (!url.hostname || url.username || url.password || url.hash) throw new Error(tr(t, `${origin}.errors.urlCredentials`));
+    try { url = new URL(input); } catch { throw new Error(tr(t, 'core.errors.urlInvalid')); }
+    if (!url.hostname || url.username || url.password || url.hash) throw new Error(tr(t, 'core.errors.urlCredentials'));
     const path = url.pathname.replace(/\/+$/, '');
     if (!path) url.pathname = '/v1/chat/completions';
     else if (path === '/v1' || path.endsWith('/v1')) url.pathname = `${path}/chat/completions`;
@@ -20,13 +18,13 @@ function apiError(status, text = '', t) {
     try { data = JSON.parse(text); } catch { data = {}; }
     const detail = String(data.error?.message || data.message || '').slice(0, 240);
     const labels = {
-        401: tr(t, `${origin}.errors.api401`),
-        403: tr(t, `${origin}.errors.api403`),
-        404: tr(t, `${origin}.errors.api404`),
-        429: tr(t, `${origin}.errors.api429`)
+        401: tr(t, 'core.errors.api401'),
+        403: tr(t, 'core.errors.api403'),
+        404: tr(t, 'core.errors.api404'),
+        429: tr(t, 'core.errors.api429')
     };
-    const separator = tr(t, `${origin}.errors.apiDetailSeparator`);
-    const error = new Error(`${labels[status] || tr(t, `${origin}.errors.apiGeneric`, { status })}${detail ? `${separator}${detail}` : ''}`);
+    const separator = tr(t, 'core.errors.apiDetailSeparator');
+    const error = new Error(`${labels[status] || tr(t, 'core.errors.apiGeneric', { status })}${detail ? `${separator}${detail}` : ''}`);
     error.status = status;
     error.contextOverflow = /context[_\s-]*(length|window)|maximum context|too many tokens|上下文.{0,12}(超|长)/i.test(`${data.error?.code || ''} ${detail}`);
     return error;
@@ -47,7 +45,7 @@ export class CompletionDecoder {
         this.truncated = false;
     }
     _json(data) {
-        if (data.error) throw new Error(String(data.error.message || tr(this.t, `${origin}.errors.apiReturnedError`)));
+        if (data.error) throw new Error(String(data.error.message || tr(this.t, 'core.errors.apiReturnedError')));
         const choice = data.choices?.[0];
         if (!choice) return;
         const value = choice.delta?.content ?? choice.message?.content ?? '';
@@ -55,7 +53,7 @@ export class CompletionDecoder {
         if (typeof text === 'string' && text) { this.content += text; this.onChunk(text); }
         if (choice.finish_reason === 'length') this.truncated = true;
         if (choice.finish_reason) this.finished = true;
-        if (choice.finish_reason && choice.finish_reason !== 'length' && choice.finish_reason !== 'stop') throw new Error(tr(this.t, `${origin}.errors.finishReason`, { reason: choice.finish_reason }));
+        if (choice.finish_reason && choice.finish_reason !== 'length' && choice.finish_reason !== 'stop') throw new Error(tr(this.t, 'core.errors.finishReason', { reason: choice.finish_reason }));
     }
     _flush() {
         if (!this.event.length || this.done) { this.event = []; return; }
@@ -64,7 +62,7 @@ export class CompletionDecoder {
         if (value === '[DONE]') { this.done = true; return; }
         if (!value) return;
         let data;
-        try { data = JSON.parse(value); } catch { throw new Error(tr(this.t, `${origin}.errors.sseMalformed`)); }
+        try { data = JSON.parse(value); } catch { throw new Error(tr(this.t, 'core.errors.sseMalformed')); }
         this._json(data);
     }
     _line(line) {
@@ -90,13 +88,13 @@ export class CompletionDecoder {
         if (this.mode === 'sse') {
             if (this.buffer) this._line(this.buffer.replace(/\r$/, ''));
             this._flush();
-            if (!this.done && !this.finished) throw new Error(tr(this.t, `${origin}.errors.sseInterrupted`));
+            if (!this.done && !this.finished) throw new Error(tr(this.t, 'core.errors.sseInterrupted'));
         } else {
             let data;
-            try { data = JSON.parse(this.raw); } catch { throw new Error(tr(this.t, `${origin}.errors.notSseOrJson`)); }
+            try { data = JSON.parse(this.raw); } catch { throw new Error(tr(this.t, 'core.errors.notSseOrJson')); }
             this._json(data);
         }
-        if (!this.content.trim()) throw new Error(tr(this.t, `${origin}.errors.emptyContent`));
+        if (!this.content.trim()) throw new Error(tr(this.t, 'core.errors.emptyContent'));
         return { text: this.content, truncated: this.truncated };
     }
 }
@@ -104,7 +102,7 @@ export class CompletionDecoder {
 export function requestCompletion(config, { messages, signal, onChunk, t = null, gm = globalThis.GM_xmlhttpRequest, maxTokens = config.maxTokens || 2048, timeoutMs = 600000, idleMs = 120000 } = {}) {
     checkAbort(signal);
     const url = normalizeApiUrl(config.apiUrl, t);
-    if (typeof gm !== 'function') throw new Error(tr(t, `${origin}.errors.gmMissing`));
+    if (typeof gm !== 'function') throw new Error(tr(t, 'core.errors.gmMissing'));
     return new Promise((resolve, reject) => {
         let request, settled = false, received = '', idleTimer;
         const decoder = new CompletionDecoder(onChunk, t);
@@ -119,9 +117,9 @@ export function requestCompletion(config, { messages, signal, onChunk, t = null,
         const stop = () => terminate(abortError());
         const resetIdle = () => {
             clearTimeout(idleTimer);
-            idleTimer = setTimeout(() => terminate(new Error(tr(t, `${origin}.errors.idleTimeout`))), idleMs);
+            idleTimer = setTimeout(() => terminate(new Error(tr(t, 'core.errors.idleTimeout'))), idleMs);
         };
-        const totalTimer = setTimeout(() => terminate(new Error(tr(t, `${origin}.errors.totalTimeout`))), timeoutMs);
+        const totalTimer = setTimeout(() => terminate(new Error(tr(t, 'core.errors.totalTimeout'))), timeoutMs);
         signal?.addEventListener('abort', stop, { once: true });
         resetIdle();
         const consume = response => {
@@ -130,7 +128,7 @@ export function requestCompletion(config, { messages, signal, onChunk, t = null,
             const text = response.responseText;
             if (typeof text !== 'string' || text === received) return;
             // XHR text is cumulative; managers without progress deliver it once in onload.
-            if (!text.startsWith(received)) throw new Error(tr(t, `${origin}.errors.discontinuousResponse`));
+            if (!text.startsWith(received)) throw new Error(tr(t, 'core.errors.discontinuousResponse'));
             const chunk = text.slice(received.length);
             received = text;
             resetIdle();
@@ -147,8 +145,8 @@ export function requestCompletion(config, { messages, signal, onChunk, t = null,
                     if (response.status < 200 || response.status >= 300) { finish(apiError(response.status, response.responseText, t)); return; }
                     try { consume(response); checkAbort(signal); finish(null, decoder.finish()); } catch (error) { finish(error); }
                 },
-                onerror: () => finish(new Error(tr(t, `${origin}.errors.connectFailed`))),
-                ontimeout: () => finish(new Error(tr(t, `${origin}.errors.requestTimeout`))),
+                onerror: () => finish(new Error(tr(t, 'core.errors.connectFailed'))),
+                ontimeout: () => finish(new Error(tr(t, 'core.errors.requestTimeout'))),
                 onabort: () => finish(abortError())
             });
             if (signal?.aborted) stop();
@@ -176,7 +174,7 @@ export function packRecords(records, budget, t = null) {
     let current = '';
     for (const record of records) {
         const header = String(record).match(/^\[第\d+楼\][^\n]*\n/)?.[0] || '';
-        if (header.length >= budget - 100) throw new Error(tr(t, `${origin}.errors.packTooLong`));
+        if (header.length >= budget - 100) throw new Error(tr(t, 'core.errors.packTooLong'));
         const parts = header && record.length > budget
             ? splitText(record.slice(header.length), budget - header.length - 4).map((part, index) => header + (index ? '（续）' : '') + part)
             : splitText(record, budget);
@@ -203,9 +201,9 @@ export class SummaryJob {
         const intermediate = '\n这是长帖的一个部分。压缩为不超过500字的摘要，保留关键结论、分歧和来源楼层，供最后汇总。';
         const system = prompt + rules;
         const available = budget - system.length - intermediate.length - title.length - 200;
-        if (available < 600) throw new Error(tr(t, `${origin}.errors.promptTooLong`));
+        if (available < 600) throw new Error(tr(t, 'core.errors.promptTooLong'));
         let chunks = packRecords(records, available, t);
-        if (!chunks.length) throw new Error(tr(t, `${origin}.errors.noContent`));
+        if (!chunks.length) throw new Error(tr(t, 'core.errors.noContent'));
         const call = async (text, key, isFinal, depth = 0) => {
             checkAbort(signal);
             if (this.completed.has(key)) return this.completed.get(key);
@@ -218,7 +216,7 @@ export class SummaryJob {
                     onChunk: chunk => { checkAbort(signal); this.partial += chunk; onOutput(this.partial, { phase: isFinal ? 'final' : 'part', partial: true }); }
                 });
                 checkAbort(signal);
-                if (result.truncated) throw new Error(tr(t, `${origin}.errors.truncatedOutput`));
+                if (result.truncated) throw new Error(tr(t, 'core.errors.truncatedOutput'));
                 this.completed.set(key, result.text);
                 return result.text;
             } catch (error) {
@@ -236,22 +234,22 @@ export class SummaryJob {
         while (chunks.length > 1) {
             const digests = [];
             for (let i = 0; i < chunks.length; i++) {
-                onProgress(tr(t, `${origin}.progress.segment`, {
+                onProgress(tr(t, 'core.progress.segment', {
                     current: i + 1,
                     total: chunks.length,
-                    layer: layer ? tr(t, `${origin}.progress.segmentLayer`, { layer: layer + 1 }) : '',
+                    layer: layer ? tr(t, 'core.progress.segmentLayer', { layer: layer + 1 }) : '',
                     calls: initial + 1
                 }));
                 digests.push(await call(chunks[i], `${layer}/${i}`, false));
                 this.digests = [...digests];
             }
             const next = packRecords(digests, available, t);
-            if (next.length >= chunks.length && next.length > 1) throw new Error(tr(t, `${origin}.errors.digestNotCompressed`));
+            if (next.length >= chunks.length && next.length > 1) throw new Error(tr(t, 'core.errors.digestNotCompressed'));
             chunks = next;
             layer++;
-            if (layer > 8) throw new Error(tr(t, `${origin}.errors.tooManyLayers`));
+            if (layer > 8) throw new Error(tr(t, 'core.errors.tooManyLayers'));
         }
-        onProgress(tr(t, initial > 1 ? `${origin}.progress.finalMulti` : `${origin}.progress.finalSingle`));
+        onProgress(tr(t, initial > 1 ? 'core.progress.finalMulti' : 'core.progress.finalSingle'));
         const result = await call(chunks[0], `final/${layer}`, true);
         onOutput(result, { phase: 'final', partial: false });
         return result;
