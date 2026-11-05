@@ -34,7 +34,7 @@ Resultados que alteram o plano:
 | `node docs/i18n/reproduce-audit.mjs` | 13 probes: 2 controles passam, 11 falham |
 | `node docs/i18n/reproduce-workflow-audit.mjs` | 9 probes falham |
 | `node docs/i18n/reproduce-checker-audit.mjs` | 4 probes: 2 controles passam, 2 falham |
-| GitHub, PR #97 | OPEN, `mergedAt: null` |
+| GitHub, PR #97 | OPEN na consulta de 2026-11-04; MERGED em 2026-11-05 (`7f33767`) |
 | GitHub, issue #95 | OPEN; causa real continua sem reprodução |
 | Comparação remota `21a0e90...main` upstream | `identical`, 0 commits à frente/atrás na consulta |
 
@@ -188,7 +188,7 @@ Escopo de produto mantido: plugin dentro de `linux.do`, seus overlays, mensagens
 | E5 — experiência e acessibilidade | P2, após E1/E4 | A09; testes reais de layout/foco/idioma | Matriz visual/interativa abaixo sem truncamento funcional |
 | E6 — entrega sustentável | P2, após anteriores | A12; documentação, orçamento, capturas e plano de integração | CI afetado completo, proveniência fiel, diffs pequenos e descrição de limites |
 
-Cada pacote pode virar um commit/PR focado. Os ajustes funcionais devem acompanhar seus testes; a infraestrutura adicional de testes não justifica reescrever o monólito. A pilha atual depende de #97: a estratégia de base deve ser definida conforme o upstream aceite ou não esse commit. A consulta remota desta auditoria não revelou commits novos no main que exijam rebase imediato.
+Cada pacote pode virar um commit/PR focado. Os ajustes funcionais devem acompanhar seus testes; a infraestrutura adicional de testes não justifica reescrever o monólito. A pilha atual foi rebaseada sobre o merge de #97 (`7f33767`); a árvore do upstream é idêntica à base `6f8eddf`, portanto o rebase não introduziu mudanças de conteúdo.
 
 ### Matriz mínima de completude
 
@@ -228,7 +228,7 @@ Não multiplicar todas as combinações cegamente: testar limites e combinaçõe
 
 **Estado correto agora:** E0/P1, E3 e as correções de mensagens/formato de E4 estão implementados localmente nesta branch e verificados pelos probes e pela suíte descritos na seção 12. A matriz completa de compatibilidade/interação de E1/E5 e a entrega E6 continuam pendentes. **Não declarar “100%”, cobertura completa de managers/browsers ou “944 revisões humanas” a partir do checker.**
 
-A PR #97 continua sendo uma correção independente submetida, sem merge registrado na consulta. A issue #95 continua candidata a diagnóstico/suporte: a mensagem antiga de CORS e a troca histórica de transporte não provam a causa nem a resolução do caso do usuário.
+A PR #97 foi mergeada no upstream em 2026-11-05 (`7f33767`), encerrando a correção independente de layout. A issue #95 continua candidata a diagnóstico/suporte: a mensagem antiga de CORS e a troca histórica de transporte não provam a causa nem a resolução do caso do usuário.
 
 O próximo trabalho recomendado é **E5**, começando pela matriz real de acessibilidade/layout, viewer, impressão/PDF e smoke nos userscript managers. Este documento registra escopo e aceite; os scripts anexos preservam evidências executáveis da auditoria.
 
@@ -247,7 +247,7 @@ Pacote aplicado localmente sobre `1513b7c`, sem commit ou push:
 
 Verificação: `npm run check` com **334/334 testes** (328 anteriores + 6 novos), checker 913 chaves e bundles consistentes. Probes reexecutados: núcleo **8/13**, workflows **9/10**, checker **2/4**; as falhas restantes pertencem a E3 (aprovação do checker), E4 (mensagens próprias em chinês, datas fixas em zh-CN, rótulo de spoiler) e E5 (idioma acessível do viewer). O probe do método inexistente foi substituído por uma verificação de que a suíte chama `_genHTML` sem condições; nenhum alias de produção foi criado.
 
-Evidências RED (falhas antes das correções) e GREEN desta rodada: `/tmp/opencode/red-core.log`, `/tmp/opencode/red-panel.log` e `/tmp/opencode/check-after-p1.log`; contagens finais em `/tmp/opencode/probes-final.json`, `/tmp/opencode/workflows-final.json` e `/tmp/opencode/checker-final.json`. Nada foi commitado ou enviado ao upstream; a PR #97 continua aberta e independente.
+Evidências RED (falhas antes das correções) e GREEN desta rodada: `/tmp/opencode/red-core.log`, `/tmp/opencode/red-panel.log` e `/tmp/opencode/check-after-p1.log`; contagens finais em `/tmp/opencode/probes-final.json`, `/tmp/opencode/workflows-final.json` e `/tmp/opencode/checker-final.json`. Naquela rodada, nada foi commitado ou enviado ao upstream; a PR #97 foi mergeada separadamente em 2026-11-05 (`7f33767`).
 
 ## 11. Atualização de implementação: E3 — manutenção verificável (2026-11-04)
 
