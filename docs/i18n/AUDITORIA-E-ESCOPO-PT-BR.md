@@ -286,3 +286,12 @@ Evidências RED (falhas antes das correções) e GREEN desta rodada: `/tmp/openc
 - **Loja:** lint, typecheck, arquitetura, estilos, CSP e noindex passaram; `npm test -- --maxWorkers=2` passou **679/679 testes em 101 arquivos**; build e `check:artifact` passaram, incluindo orçamento de bundles. A rodada paralela inicial teve 678/679 e um timeout, ausente na repetição isolada. O job remoto `Storefront browser` passou na execução `42014842386`.
 - **Bloqueio remanescente:** `check:source` falha em `audit`, com 18 ocorrências (16 moderadas, uma alta e uma crítica), incluindo DOMPurify e Undici. `ld-store/package.json` e lockfile não diferem de `upstream/main`; o bloqueio foi reproduzido localmente e no CI. Correção de dependências e validação correspondente continuam necessárias para o CI gate.
 - **Entrega:** PR #98 permanece rascunho; E1/E5, revisão visual, overhead/startup e plano de versão permanecem pendentes. PR #99 passou no CI gate como alteração documental.
+
+## 15. Correção do bloqueio de CI da PR #98 (2026-11-05)
+
+- O check recusado foi `Storefront quality`, na auditoria; não havia comentários de revisão ou pedidos de alteração do mantenedor na PR.
+- Atualizados DOMPurify para 3.4.17 e Vitest para 4.1.12. Overrides direcionados fixam Glob 14.0.2 (consumidor de Glob 13), Minimatch 11.0.1 (faixas vulneráveis >=7) e Undici 7.30.1 (consumidores de 7.x). Glob/Minimatch cruzam versões major transitivas: os checks de lint, tipos, testes e build abaixo verificam seus consumidores atuais. As versões antigas não afetadas de Minimatch permanecem preservadas. Wrangler continua fixado em 4.151.1, com Undici corrigido na sua árvore.
+- `npm ci` e `npm audit` reportam **zero vulnerabilidades**; a política de auditoria e sua lista de exceções não foram modificadas.
+- `npm run check:source` passou integralmente; `npm test -- --maxWorkers=2` passou **679/679** em 101 arquivos; `npm run build` e `npm run check:artifact` passaram.
+- `npm run test:e2e -- --workers=2` passou **138 testes, 2 ignorados**, após instalar o Chromium exigido pelo Playwright da loja. A primeira tentativa falhou por ausência desse executável, antes de exercitar os cenários.
+- Estes resultados corrigem o bloqueio de dependências; as pendências de aceite real do userscript descritas nas seções anteriores continuam vigentes. O resultado remoto deve ser confirmado no novo SHA.
