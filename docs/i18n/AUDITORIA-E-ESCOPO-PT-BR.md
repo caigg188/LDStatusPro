@@ -226,11 +226,11 @@ Não multiplicar todas as combinações cegamente: testar limites e combinaçõe
 
 ## 9. Decisões e comunicação de estado
 
-**Estado correto agora:** etapas 1–4 implementadas parcialmente e verificadas por uma suíte que possui lacunas; auditoria encontrou regressões e abriu o plano E0–E6. **Não declarar “100%”, “todas as chamadas traduzidas” ou “913 revisões humanas” a partir do checker.**
+**Estado correto agora:** E0/P1, E3 e as correções de mensagens/formato de E4 estão implementados localmente nesta branch e verificados pelos probes e pela suíte descritos na seção 12. A matriz completa de compatibilidade/interação de E1/E5 e a entrega E6 continuam pendentes. **Não declarar “100%”, cobertura completa de managers/browsers ou “944 revisões humanas” a partir do checker.**
 
 A PR #97 continua sendo uma correção independente submetida, sem merge registrado na consulta. A issue #95 continua candidata a diagnóstico/suporte: a mensagem antiga de CORS e a troca histórica de transporte não provam a causa nem a resolução do caso do usuário.
 
-O próximo trabalho recomendado era **E0 + correções P1**, executado em seguida e registrado na seção 10. Este documento registra escopo e aceite; os scripts anexos preservam evidências executáveis da auditoria.
+O próximo trabalho recomendado é **E5**, começando pela matriz real de acessibilidade/layout, viewer, impressão/PDF e smoke nos userscript managers. Este documento registra escopo e aceite; os scripts anexos preservam evidências executáveis da auditoria.
 
 ## 10. Atualização de implementação: E0 + correções P1 (2026-11-04)
 
@@ -259,3 +259,14 @@ Evidências RED (falhas antes das correções) e GREEN desta rodada: `/tmp/openc
   - A exceção por escapes Unicode foi removida: o valor decodificado decide. A varredura revelou dois tokens legítimos antes escondidos (`所有时间`, `前一日`) — ambos matchers de valores remotos, agora na allowlist.
   - A allowlist de CJK deixou de ser global por texto: cada token é permitido apenas no método que o usa, com motivo registrado; o erro sugere onde o mesmo texto é permitido.
 - **Verificação:** `npm run check` com **336/336 testes**; checker 913 chaves; probe do checker **7/7** (exit 0); probes de núcleo e workflows inalterados em **8/13** e **9/10**, com as falhas restantes pertencendo a E4/E5.
+
+## 12. Atualização de implementação: E4 — mensagens e formato (2026-11-04)
+
+- **Mensagens próprias classificadas:** erros de acesso, rate limit, respostas não JSON/HTTP, falhas de rede e timeout, autorização, upload, atividade/bookmarks e autenticação agora usam catálogos `zh-CN`/`en-US`. Mensagens não vazias vindas do servidor continuam sendo preservadas; códigos, status, URLs, payloads, retry e cancelamento não foram alterados.
+- **Exportação e mídia:** progresso e falhas de imagens, texto alternativo, fonte matemática e rótulos CSS usam o translator injetado. O CSS escapa controles, delimitadores e sequências de fechamento HTML. `htmlToMarkdown` aceita translator somente para exportação; o caminho de Markdown enviado à IA continua sem translator para preservar prompts e comportamento de saída.
+- **Formato:** datas de exportação, posts, histórico, LDC/CDK e utilitários seguem `I18n.getLocale()`, com `—` para datas inválidas. O contador de histórico em inglês usa formas plurais para 0/1/2/valores grandes; a descrição do modo breve mantém o orçamento em caracteres chineses, não “words”. O viewer destacado declara `lang`, `role=dialog`, `aria-modal` e rótulo acessível próprios.
+- **Verificação GREEN:** `npm run check` passou com **347/347 testes**, checker com **944 chaves** e ambos os bundles consistentes. Os probes executáveis passaram em **13/13 no núcleo**, **10/10 nos workflows** e **7/7 no checker**. A aprovação seletiva registrou **31 chaves** novas no `review-manifest.json`.
+- **Classificação/exclusões do inventário:** aliases de parsing, identificadores canônicos, logs e prompts não são texto de apresentação a traduzir. `abortError()` mantém o fallback chinês standalone e o nome `AbortError`; os consumidores de UI substituem a mensagem por seu estado localizado de cancelamento. Os primeiros retornos das páginas bridge e seu aviso independente não recebem preferência do painel: ficam explicitamente pendentes da revisão de protocolo/smoke de bridges em E1/E5, sem alterar contratos de `postMessage` nesta rodada. A mensagem de possível bloqueio de IP preserva a incerteza do diagnóstico original, em vez de afirmar que todo 403 é bloqueio.
+- **Evidência RED:** `/tmp/opencode/e4-red-core.json` (**8/13**), `/tmp/opencode/e4-red-workflows.json` (**9/10**), `/tmp/opencode/e4-red-tests.log` e `/tmp/opencode/e4-red-final-tests.log`; os testes atuais foram copiados para uma cópia isolada do commit `2c5e967`, sem alterar o código de produção do baseline. Logs intermediários `e4-red-owned-errors.log`/`e4-red-extended.log` não são o aceite final (incluíam problemas da fixture/import resolvidos depois).
+- **Artefatos GREEN:** `/tmp/opencode/e4-final-check.log`, `/tmp/opencode/e4-final-core.json`, `/tmp/opencode/e4-final-workflows.json` e `/tmp/opencode/e4-final-checker.json`. Nenhum commit, push ou PR foi feito nesta rodada.
+- **Limites restantes:** não declarar ainda cobertura completa de instalação real em Tampermonkey/Violentmonkey, Firefox, bridges externas, PDF/print em browsers reais ou matriz visual completa de acessibilidade. Esses itens permanecem em E5/E6; a issue #95 continua não reproduzida por falta de evidências do ambiente do relato.
