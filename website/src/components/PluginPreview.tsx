@@ -34,7 +34,7 @@ export function PluginPanel({
           key={`${panel.theme}-${panel.view}`}
           className={`plugin-panel${panel.theme === theme && panel.view === view ? ' selected' : ''}`}
           width="760"
-          height={panel.view === 'reqs' ? 1186 : 1211}
+          height={panel.view === 'reqs' ? 1180 : 1210}
           src={`/product-preview/plugin-${panel.theme}-${panel.view}.webp`}
           alt={`LDStatusPro v${pluginVersion} 原生${panel.theme === 'light' ? '浅色' : '深色'}${panel.view === 'reqs' ? '升级要求' : '阅读趋势'}面板，模拟登录状态与演示数据`}
           aria-hidden={panel.theme !== theme || panel.view !== view}

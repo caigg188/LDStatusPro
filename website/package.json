@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "deploy": "bash scripts/deploy-pages-production.sh",
     "preview:plugin": "node scripts/build-plugin-preview.mjs",
+    "capture:plugin": "node scripts/capture-plugin-preview.mjs",
     "check:deploy": "npm run lint && npm run build",
     "verify:release": "node ../scripts/pages-release.mjs verify"
   },
