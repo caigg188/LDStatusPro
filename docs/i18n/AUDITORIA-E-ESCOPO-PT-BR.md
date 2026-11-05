@@ -226,7 +226,7 @@ Não multiplicar todas as combinações cegamente: testar limites e combinaçõe
 
 ## 9. Decisões e comunicação de estado
 
-**Estado correto agora:** E0/P1, E3 e as correções de mensagens/formato de E4 estão implementados localmente nesta branch e verificados pelos probes e pela suíte descritos na seção 12. A matriz completa de compatibilidade/interação de E1/E5 e a entrega E6 continuam pendentes. **Não declarar “100%”, cobertura completa de managers/browsers ou “944 revisões humanas” a partir do checker.**
+**Estado correto agora:** E0/P1, E3 e E4 estão implementados e verificados; há evidências automatizadas de interação/browser, revisão visual estática e overhead na seção 16. E1/E5 têm cobertura dos métodos e bridges sintéticos descritos, enquanto instalação real em manager com conta autenticada, impressão nativa e aceite humano do site continuam pendentes. **Não declarar “100%”, cobertura completa de managers/ambientes reais ou “944 revisões humanas” a partir do checker.**
 
 A PR #97 foi mergeada no upstream em 2026-11-05 (`7f33767`), encerrando a correção independente de layout. A issue #95 continua candidata a diagnóstico/suporte: a mensagem antiga de CORS e a troca histórica de transporte não provam a causa nem a resolução do caso do usuário.
 
@@ -296,3 +296,23 @@ Evidências RED (falhas antes das correções) e GREEN desta rodada: `/tmp/openc
 - `npm run test:e2e -- --workers=2` passou **138 testes, 2 ignorados**, após instalar o Chromium exigido pelo Playwright da loja. A primeira tentativa falhou por ausência desse executável, antes de exercitar os cenários.
 - Estes resultados corrigem o bloqueio de dependências; as pendências de aceite real do userscript descritas nas seções anteriores continuam vigentes. O resultado remoto deve ser confirmado no novo SHA.
 - A primeira rodada remota do fix revelou incompatibilidade de resolução do override `glob@13` entre npm local e npm 10 do CI. O override foi normalizado para `glob` (a árvore utiliza somente esse consumidor), preservando 14.0.2. Lockfile regenerado com npm 10.9.9; `npm@10.9.9 ci` e auditoria passaram com zero vulnerabilidades. Nenhuma versão resolvida mudou nessa correção de compatibilidade.
+
+## 16. Aceite E1/E5/E6 executado (2026-11-05)
+
+- `docs/i18n/browser-acceptance.mjs` executou **48 cenários** em Chromium 156.0.8078.4 e Firefox 157.0: zh-CN/en-US, claro/escuro, 320/390/1440 px, níveis de fonte 1/5, ativação por teclado, bounds do painel e overflow do menu, idioma herdado, persistência/falha de storage, recarga adiada e guards para resumo, chat, configurações, exportação e tickets. Usa métodos de produção extraídos e storage/reload/estado operacional mockados; não é instalação de manager.
+- `docs/i18n/workflow-acceptance.mjs` executa **8 cenários**: HTML/Markdown e viewer em zh-CN/en-US nos dois browsers, mais CDK e LDC por browser. Verifica CSP e conteúdo dos artefatos, URLs canônicas, `lang`/`role`/`aria-modal`, título escapado, fonte e Escape. CDK usa iframe cross-origin com `postMessage` real; LDC usa callbacks/storage GM mockados. Ambos verificam resposta válida e rejeição de URL externa. Páginas e fetch são sintéticos/interceptados; não usa credenciais nem APIs reais. O primeiro harness travava em `about:blank` e passava ID numérico onde os métodos exigem string; a correção fornece URL de tópico interceptada, ID string e espera limitada. Isso era falha da fixture, não regressão do userscript.
+- Exportação/PDF já tinha cobertura GREEN em `tests/topic-components.test.mjs`: janela PDF é aberta antes da espera de rede, HTML e Markdown preservam conteúdo seguro, ranges e falhas são reportados, e recursos/mídia têm limites, fallback e cancelamento. O teste não afirma que o diálogo nativo de impressão foi aceito em uma sessão humana.
+- Revisão visual pelo **GLM-5.3-Flash da DeepInfra** confirmou ter recebido os pixels dos quatro WebP reais. Requisitos claro/escuro: glyphs CJK legíveis, bounds e rodapé completos, sem clipping. Tendências: contraste/paridade corretos; o cartão inferior termina na borda de 660 px conforme a regra de height-cap. Relatório: `/tmp/opencode/lds-glm-preview-review.md`. Escopo limitado às imagens chinesas estáticas; não cobre en-US, animações, print, manager ou site autenticado.
+- Medição isolada em `/tmp/opencode/lds-overhead.json`, baseline `7f33767`, Node v24.21.0/Linux/i3-4160: userscript 1,280,843 → 1,400,263 bytes e 280,170 → 311,370 gzip; core 170,666 → 176,024 bytes; i18n atual 76,342 bytes/29,275 gzip; core+i18n 252,367 bytes/97,744 gzip. Em Chromium, core+i18n foi mediana 0.4 ms compile + 1.6 ms init; em Firefox, 12 ms + 20 ms. São medições warm de blocos isolados, não boot completo, rede, manager ou dispositivo real.
+- Tampermonkey 5.5.1 foi identificado no Chrome local, mas não havia instalação configurada em perfil isolado nem sessão autenticada. Portanto, a prova de instalação real, permissões `@grant`/`@connect` no manager e smoke em `linux.do` autenticado permanecem explicitamente não executados, em vez de serem inferidos dos fixtures.
+
+Reprodução a partir da raiz (dependências npm e browsers Playwright instalados; benchmark requer o commit baseline no histórico):
+
+```sh
+node docs/i18n/browser-acceptance.mjs /tmp/opencode/lds-i18n-acceptance
+node docs/i18n/workflow-acceptance.mjs /tmp/opencode/lds-workflow-acceptance
+node docs/i18n/measure-overhead.mjs /tmp/opencode/lds-overhead.json
+npm run check
+```
+
+Os caminhos `/tmp/opencode` são artefatos locais, não anexos publicados da PR. O CI remoto passou em `e7afee7` ([run 42020205397](https://github.com/caigg188/LDStatusPro/actions/runs/42020205397)); os runners de aceite são manuais e não fazem parte de `npm run check`. A PR #98 permanece draft, com versão `3.9.0.7` e URLs de atualização originais; a decisão de versão/publicação e o aceite do ambiente autenticado cabem ao mantenedor.
