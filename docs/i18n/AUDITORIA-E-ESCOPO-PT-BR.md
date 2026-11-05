@@ -67,7 +67,7 @@ Referências de código abaixo correspondem ao commit `1513b7c`; devem ser acomp
 
 ## 4. Revisão independente: Spec
 
-Fonte: plano anterior `LDStatusPro/docs/i18n/ANALISE-PT-BR.md` e `UPSTREAM-PROPOSAL.md`.
+Fonte: [análise inicial](ANALISE-PT-BR.md) e [proposta upstream](UPSTREAM-PROPOSAL.md), consolidadas neste diretório. As contagens e referências de linha da auditoria abaixo preservam os marcos históricos examinados.
 
 1. **Recarga insegura:** contraria proposta `:27`, “Do not interrupt unsaved forms, active summaries, exports or other operations”. A proteção não inclui `_chatAbortController` nem campos de IA alterados.
 2. **LDC incompleto:** `.labelKey` foi introduzido, mas consumidores ainda usam `.label`; contraria análise `:62`, “Acrescentar `labelKey` … Traduzir apenas na renderização”, e compatibilidade chinesa da proposta `:84`.
@@ -270,3 +270,10 @@ Evidências RED (falhas antes das correções) e GREEN desta rodada: `/tmp/openc
 - **Evidência RED:** `/tmp/opencode/e4-red-core.json` (**8/13**), `/tmp/opencode/e4-red-workflows.json` (**9/10**), `/tmp/opencode/e4-red-tests.log` e `/tmp/opencode/e4-red-final-tests.log`; os testes atuais foram copiados para uma cópia isolada do commit `2c5e967`, sem alterar o código de produção do baseline. Logs intermediários `e4-red-owned-errors.log`/`e4-red-extended.log` não são o aceite final (incluíam problemas da fixture/import resolvidos depois).
 - **Artefatos GREEN:** `/tmp/opencode/e4-final-check.log`, `/tmp/opencode/e4-final-core.json`, `/tmp/opencode/e4-final-workflows.json` e `/tmp/opencode/e4-final-checker.json`. Nenhum commit, push ou PR foi feito nesta rodada.
 - **Limites restantes:** não declarar ainda cobertura completa de instalação real em Tampermonkey/Violentmonkey, Firefox, bridges externas, PDF/print em browsers reais ou matriz visual completa de acessibilidade. Esses itens permanecem em E5/E6; a issue #95 continua não reproduzida por falta de evidências do ambiente do relato.
+
+## 13. Preparação para revisão upstream (2026-11-05)
+
+- Análise e proposta consolidadas em `docs/i18n/`, com links relativos ao repositório e estado atualizado após rebase sobre `7f33767` (PR #97 integrada).
+- `website/npm run check:deploy` executado via `npm run check:deploy` no diretório `website`: lint sem erros, com o aviso preexistente de dependência `fetchReport` em `AnnualReport2025.tsx:1128`. O build falhou na geração de preview com **“Plugin screenshots are stale”**; TypeScript/Vite não chegaram a executar.
+- Os WebP continuam com a captura histórica de 2026-10-20. É necessário preparar os previews, recapturar as quatro vistas e registrar proveniência fiel antes de repetir o build. Não atualizar somente os hashes para contornar a falha.
+- Os checks da loja, também afetados pelos filtros amplos de scripts/workflows, ainda não foram executados localmente. A contribuição i18n deve permanecer em rascunho enquanto os requisitos E5/E6 e os checks afetados estiverem pendentes.
