@@ -1,5 +1,6 @@
 {
   "errors": {
+    "aborted": "Operation stopped",
     "urlScheme": "URL must start with http:// or https://, e.g. http://192.168.1.10:1234/v1",
     "urlInvalid": "Invalid API URL. Check the IP, port and path.",
     "urlCredentials": "URL must not contain a username, password or # fragment",
@@ -31,7 +32,12 @@
     "topicInfoMalformed": "Malformed topic info",
     "invalidRange": "Enter a valid integer floor range",
     "postStreamMalformed": "Malformed post content",
-    "noProgress": "The site returned no further floors. Refresh and retry."
+    "noProgress": "The site returned no further floors. Refresh and retry.",
+    "rateLimited": "The site is rate limited. Try again in about {seconds}s.",
+    "accessDenied": "The current login or access permission is unavailable. Log in or complete the site's verification first.",
+    "readFailed": "Failed to read posts (HTTP {status})",
+    "nonJson": "The site returned non-JSON content. Check the page for login or access verification.",
+    "httpStatus": "HTTP {status}"
   },
   "progress": {
     "segment": "Segment {current}/{total}{layer}; at least {calls} calls expected",
@@ -43,7 +49,9 @@
     "waitDetail": "Waiting about {seconds}s; you can stop anytime",
     "retrying": "Read failed temporarily; retrying shortly…",
     "readingFloors": "Reading floors {start}–{end}…",
-    "readingDetail": "Missing floors keep their original numbers; only content visible to this account is read"
+    "readingDetail": "Missing floors keep their original numbers; only content visible to this account is read",
+    "savingImages": "Saving images {current}/{total}…",
+    "imagesDetail": "Read {size} MiB; {count} not embedded"
   },
   "topic": {
     "untitled": "Untitled topic"
@@ -57,14 +65,17 @@
     "imageDownloadTimeout": "Image download timed out",
     "imageDownloadFailed": "Image connection failed or the target host is not authorized",
     "imageEncodeFailed": "Image encoding failed",
-    "resourceNotEmbedded": "Resource could not be embedded"
+    "resourceNotEmbedded": "Resource could not be embedded",
+    "noVisiblePosts": "No posts in the selected range are visible to this account"
   },
   "media": {
+    "imageAlt": "Image",
     "coverAlt": "Media cover",
     "audioNote": "Audio content requires an internet connection: ",
     "mediaNote": "Media content requires an internet connection: ",
     "visitOriginal": "Open the original post",
     "imageUnavailable": "[Image URL unavailable]",
-    "mathSource": "Formula source"
+    "mathSource": "Formula source",
+    "spoilerLabel": "[Spoiler content]"
   }
 }

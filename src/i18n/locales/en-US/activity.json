@@ -104,6 +104,16 @@
     "groupRemoved": "✅ Removed from group"
   },
   "errors": {
+    "readFailed": "Failed to load read topics",
+    "bookmarksFailed": "Failed to load bookmarks",
+    "deleteFailed": "Failed to delete bookmark",
+    "repliesFailed": "Failed to load replies",
+    "likesFailed": "Failed to load liked posts",
+    "topicsFailed": "Failed to load your topics",
+    "reactionsFailed": "Failed to load reactions",
+    "invalidResponse": "Invalid response data",
+    "notLoggedIn": "Not signed in",
+    "invalidBookmarkId": "Invalid bookmark ID",
     "loadMoreFailed": "⚠️ Failed to load more: {reason}"
   }
 }

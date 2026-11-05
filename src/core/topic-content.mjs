@@ -1,7 +1,7 @@
 import { tr } from './messages.mjs';
 
 export function abortError() {
-    const error = new Error('已停止');
+    const error = new Error(tr(null, 'core.errors.aborted'));
     error.name = 'AbortError';
     return error;
 }
@@ -90,13 +90,13 @@ export class TopicContentClient {
                     if (response.status === 429) {
                         this.cooldownUntil = this.now() + retryDelay(response, body, this.now());
                         if (attempt < 2) continue;
-                        throw Object.assign(new Error(`站点限流，请约 ${Math.ceil((this.cooldownUntil - this.now()) / 1000)} 秒后重试`), { status: 429 });
+                        throw Object.assign(new Error(tr(this.t, 'core.errors.rateLimited', { seconds: Math.ceil((this.cooldownUntil - this.now()) / 1000) })), { status: 429 });
                     }
                     if (response.status === 401 || response.status === 403 || /\/login(?:[/?]|$)/.test(response.url || '')) {
-                        throw Object.assign(new Error('当前登录或访问权限不可用，请先在站点完成登录或验证'), { status: response.status || 403 });
+                        throw Object.assign(new Error(tr(this.t, 'core.errors.accessDenied')), { status: response.status || 403 });
                     }
-                    if (!response.ok) throw Object.assign(new Error(`读取帖子失败（HTTP ${response.status}）`), { status: response.status });
-                    if (!body || typeof body !== 'object') throw Object.assign(new Error('站点返回了非 JSON 内容，请在网页检查登录或访问验证'), { status: 403 });
+                    if (!response.ok) throw Object.assign(new Error(tr(this.t, 'core.errors.readFailed', { status: response.status })), { status: response.status });
+                    if (!body || typeof body !== 'object') throw Object.assign(new Error(tr(this.t, 'core.errors.nonJson')), { status: 403 });
                     return body;
                 } catch (error) {
                     checkAbort(signal);
@@ -173,6 +173,6 @@ export class TopicContentClient {
         checkAbort(options.signal);
         if (this._scope() !== generation) throw abortError();
         const posts = [...entry.posts.values()].filter(p => p.post_number >= start && p.post_number <= last).sort((a, b) => a.post_number - b.post_number);
-        return { topic: info, posts, range: { start, end: last }, warnings: posts.length ? [] : ['所选范围没有当前账户可见的帖子'] };
+        return { topic: info, posts, range: { start, end: last }, warnings: posts.length ? [] : [tr(this.t, 'core.warnings.noVisiblePosts')] };
     }
 }

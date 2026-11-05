@@ -57,6 +57,9 @@
     }
   },
   "errors": {
+    "possibleIpBlock": "Your IP address may be blocked. Try switching networks or contact an administrator.",
+    "parseResponse": "Failed to parse the response",
+    "uploadFailed": "Upload failed",
     "codes": {
       "NETWORK_ERROR": "Network connection failed. Check your connection.",
       "TIMEOUT": "Request timed out. Please try again later.",

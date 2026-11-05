@@ -1,5 +1,6 @@
 {
   "errors": {
+    "aborted": "已停止",
     "urlScheme": "地址须以 http:// 或 https:// 开头，例如 http://192.168.1.10:1234/v1",
     "urlInvalid": "API 地址无效，请检查 IP、端口和路径",
     "urlCredentials": "地址不能包含用户名、密码或 # 片段",
@@ -31,7 +32,12 @@
     "topicInfoMalformed": "话题信息格式异常",
     "invalidRange": "请输入有效的整数楼层范围",
     "postStreamMalformed": "帖子正文格式异常",
-    "noProgress": "站点未返回后续楼层，请刷新后重试"
+    "noProgress": "站点未返回后续楼层，请刷新后重试",
+    "rateLimited": "站点限流，请约 {seconds} 秒后重试",
+    "accessDenied": "当前登录或访问权限不可用，请先在站点完成登录或验证",
+    "readFailed": "读取帖子失败（HTTP {status}）",
+    "nonJson": "站点返回了非 JSON 内容，请在网页检查登录或访问验证",
+    "httpStatus": "HTTP {status}"
   },
   "progress": {
     "segment": "分段汇总 {current}/{total}{layer}；初始预计至少 {calls} 次调用",
@@ -43,7 +49,9 @@
     "waitDetail": "等待约 {seconds} 秒，可随时停止",
     "retrying": "读取暂时失败，稍后重试…",
     "readingFloors": "正在读取第 {start}—{end} 楼…",
-    "readingDetail": "楼层空缺保留原编号，只读取当前账户可见的内容"
+    "readingDetail": "楼层空缺保留原编号，只读取当前账户可见的内容",
+    "savingImages": "正在保存图片 {current}/{total}…",
+    "imagesDetail": "已读取 {size} MiB；未嵌入 {count} 项"
   },
   "topic": {
     "untitled": "未命名话题"
@@ -57,14 +65,17 @@
     "imageDownloadTimeout": "图片下载超时",
     "imageDownloadFailed": "图片连接失败或目标主机未授权",
     "imageEncodeFailed": "图片编码失败",
-    "resourceNotEmbedded": "资源未能嵌入"
+    "resourceNotEmbedded": "资源未能嵌入",
+    "noVisiblePosts": "所选范围没有当前账户可见的帖子"
   },
   "media": {
+    "imageAlt": "图片",
     "coverAlt": "媒体封面",
     "audioNote": "音频内容需联网查看：",
     "mediaNote": "媒体内容需联网查看：",
     "visitOriginal": "请访问原帖",
     "imageUnavailable": "[图片地址不可用]",
-    "mathSource": "公式源码"
+    "mathSource": "公式源码",
+    "spoilerLabel": "〔剧透内容〕"
   }
 }

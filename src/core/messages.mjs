@@ -4,6 +4,7 @@
 // selected UI locale. When no translator is injected — standalone use or the existing unit
 // tests — the original Chinese text is used, keeping the core modules usable on their own.
 export const CORE_TEXT = Object.freeze({
+    'core.errors.aborted': '已停止',
     'core.errors.urlScheme': '地址须以 http:// 或 https:// 开头，例如 http://192.168.1.10:1234/v1',
     'core.errors.urlInvalid': 'API 地址无效，请检查 IP、端口和路径',
     'core.errors.urlCredentials': '地址不能包含用户名、密码或 # 片段',
@@ -46,6 +47,11 @@ export const CORE_TEXT = Object.freeze({
     'core.errors.invalidRange': '请输入有效的整数楼层范围',
     'core.errors.postStreamMalformed': '帖子正文格式异常',
     'core.errors.noProgress': '站点未返回后续楼层，请刷新后重试',
+    'core.errors.rateLimited': '站点限流，请约 {seconds} 秒后重试',
+    'core.errors.accessDenied': '当前登录或访问权限不可用，请先在站点完成登录或验证',
+    'core.errors.readFailed': '读取帖子失败（HTTP {status}）',
+    'core.errors.nonJson': '站点返回了非 JSON 内容，请在网页检查登录或访问验证',
+    'core.errors.httpStatus': 'HTTP {status}',
     'core.topic.untitled': '未命名话题',
     'core.warnings.imageTooLarge': '图片超过单图 20 MiB 限制',
     'core.warnings.imagesTooLargeTotal': '资源总量超过 100 MiB 限制',
@@ -57,11 +63,16 @@ export const CORE_TEXT = Object.freeze({
     'core.warnings.imageEncodeFailed': '图片编码失败',
     'core.warnings.resourceNotEmbedded': '资源未能嵌入',
     'core.media.coverAlt': '媒体封面',
+    'core.media.imageAlt': '图片',
     'core.media.audioNote': '音频内容需联网查看：',
     'core.media.mediaNote': '媒体内容需联网查看：',
     'core.media.visitOriginal': '请访问原帖',
     'core.media.imageUnavailable': '[图片地址不可用]',
-    'core.media.mathSource': '公式源码'
+    'core.media.mathSource': '公式源码',
+    'core.media.spoilerLabel': '〔剧透内容〕',
+    'core.progress.savingImages': '正在保存图片 {current}/{total}…',
+    'core.progress.imagesDetail': '已读取 {size} MiB；未嵌入 {count} 项',
+    'core.warnings.noVisiblePosts': '所选范围没有当前账户可见的帖子'
 });
 
 function interpolate(text, params) {

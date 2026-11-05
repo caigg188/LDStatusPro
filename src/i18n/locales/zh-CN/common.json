@@ -57,6 +57,9 @@
     }
   },
   "errors": {
+    "possibleIpBlock": "IP 可能被封禁，请更换网络节点或联系管理员",
+    "parseResponse": "解析响应失败",
+    "uploadFailed": "上传失败",
     "codes": {
       "NETWORK_ERROR": "网络连接失败，请检查网络",
       "TIMEOUT": "请求超时，请稍后重试",

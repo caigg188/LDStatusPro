@@ -86,6 +86,13 @@
     "note": "登录仅用于云同步，不登录也可正常使用本地功能"
   },
   "toasts": {
+    "authLinkFailed": "获取授权链接失败",
+    "authExpired": "⚠️ 登录已过期，请重新登录",
+    "authInvalid": "⚠️ 登录已失效，请重新登录",
+    "authRequired": "⚠️ 登录状态异常，请重新登录",
+    "authLost": "⚠️ 登录状态已失效，请重新登录",
+    "forumLoginRequired": "⚠️ 请先登录论坛",
+    "loginRequestFailed": "登录请求失败",
     "notLoggedIn": "ℹ️ 当前未登录",
     "loggedOut": "✅ 已退出登录",
     "syncComplete": "✅ 数据同步完成",

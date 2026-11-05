@@ -104,6 +104,16 @@
     "groupRemoved": "✅ 已移出分组"
   },
   "errors": {
+    "readFailed": "获取已读话题失败",
+    "bookmarksFailed": "获取收藏列表失败",
+    "deleteFailed": "删除收藏失败",
+    "repliesFailed": "获取回复列表失败",
+    "likesFailed": "获取赞过列表失败",
+    "topicsFailed": "获取我的话题失败",
+    "reactionsFailed": "获取互动记录失败",
+    "invalidResponse": "无效的响应数据",
+    "notLoggedIn": "未登录",
+    "invalidBookmarkId": "收藏 ID 无效",
     "loadMoreFailed": "⚠️ 加载更多失败: {reason}"
   }
 }

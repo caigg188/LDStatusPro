@@ -86,6 +86,13 @@
     "note": "Sign-in is only used for cloud sync; local tracking works without signing in"
   },
   "toasts": {
+    "authLinkFailed": "Failed to get the authorization link",
+    "authExpired": "⚠️ Session expired. Sign in again.",
+    "authInvalid": "⚠️ Invalid session. Sign in again.",
+    "authRequired": "⚠️ There is a problem with your session. Sign in again.",
+    "authLost": "⚠️ You are no longer signed in. Sign in again.",
+    "forumLoginRequired": "⚠️ Sign in to the forum first",
+    "loginRequestFailed": "Sign-in request failed",
     "notLoggedIn": "ℹ️ Not signed in",
     "loggedOut": "✅ Signed out",
     "syncComplete": "✅ Cloud sync complete",

@@ -27,7 +27,7 @@
   "modeLabel": "Summary mode",
   "modes": {
     "brief": "Brief",
-    "briefDesc": "~150-word quick overview",
+    "briefDesc": "Quick overview (~150 Chinese characters)",
     "briefShort": "Brief",
     "detailed": "Detailed",
     "detailedDesc": "Full structured analysis",
@@ -106,7 +106,7 @@
     "goto": "🔗 Topic",
     "gotoTitle": "Jump to topic",
     "deleteTitle": "Delete this record",
-    "count": "{count} records",
+    "count": { "one": "{count} record", "other": "{count} records" },
     "localBadge": "💾 Local storage",
     "clearAll": "🗑️ Clear all",
     "confirmClear": "Clear all history?<br>This cannot be undone.",

@@ -195,6 +195,29 @@ test('topic tools (AI summary + export) render localized UI and documents while 
         assert.match(report.markdown, /> 楼层范围: 1-2（共 2 楼）/);
     });
 
+    await t.test('export dates and CSS labels follow the plugin locale, not the browser locale', async () => {
+        const report = await page.evaluate(fixture => {
+            const out = {};
+            for (const locale of ['en-US', 'zh-CN']) {
+                const h = createTopicToolsHarness(locale);
+                const html = h.exporter._genHTML(fixture);
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                out[locale] = {
+                    time: doc.querySelector('.post-time').textContent,
+                    expected: new Date(fixture.posts[0].timestamp).toLocaleString(locale),
+                    css: doc.querySelector('style').textContent,
+                    originalContent: doc.querySelector('.post-content').innerHTML
+                };
+            }
+            return out;
+        }, exportFixture());
+        for (const locale of ['en-US', 'zh-CN']) assert.equal(report[locale].time, report[locale].expected);
+        assert.ok(!/[\u3400-\u9fff]/.test(report['en-US'].css));
+        assert.match(report['en-US'].css, /Spoiler content/);
+        assert.match(report['zh-CN'].css, /剧透内容/);
+        assert.equal(report['en-US'].originalContent, report['zh-CN'].originalContent);
+    });
+
     await t.test('AI prompt and citation sentinels stay Chinese in both locales (parser compatibility)', async () => {
         const report = await page.evaluate(() => {
             const results = {};
@@ -213,6 +236,64 @@ test('topic tools (AI summary + export) render localized UI and documents while 
         }
         assert.equal(report['en-US'].brief, report['zh-CN'].brief);
         assert.equal(report['en-US'].detailed, report['zh-CN'].detailed);
+    });
+
+    await t.test('history plurals, dates and invalid export dates use the selected locale', async () => {
+        const report = await page.evaluate(fixture => {
+            const out = {};
+            for (const locale of ['en-US', 'zh-CN']) {
+                const h = createTopicToolsHarness(locale);
+                h.melon.show();
+                const timestamp = '2020-02-03T15:04:05Z';
+                h.melon.history = [{ topicId: 42, title: 'History', summary: 'Summary', timestamp, mode: 'brief' }];
+                h.melon._renderHistory();
+                const list = h.melon.overlay.querySelector('.ldsp-melon-body').textContent;
+                h.melon._showHistoryDetail(0);
+                const detail = h.melon.overlay.querySelector('.ldsp-melon-history-detail-meta').textContent;
+                const listDate = new Date(timestamp).toLocaleString(locale, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const detailDate = new Date(timestamp).toLocaleString(locale, { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const invalid = structuredClone(fixture);
+                invalid.exportDate = 'invalid'; invalid.posts[0].timestamp = 'invalid';
+                const doc = new DOMParser().parseFromString(h.exporter._genHTML(invalid), 'text/html');
+                out[locale] = {
+                    plurals: [0, 1, 2, 1000].map(count => I18n.t('melon.history.count', { count })),
+                    list, detail, listDate, detailDate,
+                    invalidPost: doc.querySelector('.post-time').textContent,
+                    invalidMarkdown: h.exporter._genMarkdown(invalid),
+                    utilDate: Utils.formatDateTime(timestamp),
+                    utilExpected: I18n.formatDateTime(new Date(timestamp), { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+                    invalidUtil: Utils.formatDateTime('invalid'),
+                    brief: I18n.t('melon.modes.briefDesc')
+                };
+            }
+            return out;
+        }, exportFixture());
+        assert.deepEqual(report['en-US'].plurals, ['0 records', '1 record', '2 records', '1000 records']);
+        assert.match(report['en-US'].brief, /150 Chinese characters/);
+        for (const r of Object.values(report)) {
+            assert.ok(r.list.includes(r.listDate), r.list);
+            assert.ok(r.detail.includes(r.detailDate), r.detail);
+            assert.equal(r.invalidPost, '—');
+            assert.equal(r.invalidUtil, '—');
+            assert.equal(r.utilDate, r.utilExpected);
+            assert.ok(!/Invalid Date|NaN/.test(r.invalidMarkdown));
+        }
+    });
+
+    await t.test('detached viewer declares the selected language and dialog semantics', async () => {
+        const report = await page.evaluate(() => {
+            const out = {};
+            for (const locale of ['en-US', 'zh-CN']) {
+                const h = createTopicToolsHarness(locale);
+                h.melon._showViewer({ title: 'Topic', summary: 'Summary', mode: 'brief', topicId: 42 });
+                const overlay = h.melon._viewerOverlay;
+                out[locale] = { lang: overlay.lang, role: overlay.getAttribute('role'), modal: overlay.getAttribute('aria-modal'), label: overlay.getAttribute('aria-label') };
+                h.melon._closeViewer();
+            }
+            return out;
+        });
+        assert.deepEqual(report['en-US'], { lang: 'en-US', role: 'dialog', modal: 'true', label: 'Summary detail' });
+        assert.deepEqual(report['zh-CN'], { lang: 'zh-CN', role: 'dialog', modal: 'true', label: '吃瓜详情' });
     });
 
     await t.test('melon reports unsaved settings edits and escapes history metadata exactly once', async () => {
