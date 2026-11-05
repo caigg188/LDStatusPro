@@ -4162,8 +4162,8 @@
     .ldsp-hdr-btns>button.has-update{background:linear-gradient(135deg,var(--ok),var(--ok-light));animation:pulse-update 3s ease-in-out infinite;position:relative;box-shadow:0 0 15px rgba(16,185,129,.4)}
     .ldsp-hdr-btns>button.has-update::after{content:'';position:absolute;top:-3px;right:-3px;width:10px;height:10px;background:var(--err);border-radius:50%;border:2px solid rgba(0,0,0,.2);animation:pulse-dot 2.5s ease infinite}
     #ldsp-panel.settings-open{overflow:visible}
-    .ldsp-settings-menu{position:absolute;top:34px;left:8px;right:auto;width:clamp(220px,85%,300px);min-width:0;max-width:min(300px,calc(100% - 16px));max-height:min(360px,calc(var(--h) - 56px));overflow-x:hidden;overflow-y:auto;padding:8px;box-sizing:border-box;background:var(--bg-card);border:1px solid var(--border2);border-radius:12px;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transform:translateY(-8px) scale(.98);transition:opacity .2s var(--ease),transform .2s var(--ease);z-index:120}
-    #ldsp-panel.expand-left .ldsp-settings-menu{left:auto;right:8px;width:clamp(220px,85%,300px);max-width:min(300px,calc(100% - 16px))}
+    .ldsp-settings-menu{position:absolute;top:calc(100% - 4px);left:8px;right:auto;width:calc(100% - 16px);min-width:0;max-width:300px;max-height:min(360px,calc(var(--h) - 56px));overflow-x:hidden;overflow-y:auto;padding:8px;box-sizing:border-box;background:var(--bg-card);border:1px solid var(--border2);border-radius:12px;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transform:translateY(-8px) scale(.98);transition:opacity .2s var(--ease),transform .2s var(--ease);z-index:120}
+    #ldsp-panel.expand-left .ldsp-settings-menu{left:auto;right:8px}
     #ldsp-panel.settings-open .ldsp-hdr{border-top-left-radius:var(--r-lg);border-top-right-radius:var(--r-lg)}
     #ldsp-panel.settings-open .ldsp-hdr::before,#ldsp-panel.settings-open .ldsp-hdr::after{border-top-left-radius:inherit;border-top-right-radius:inherit}
     .ldsp-settings-menu.show{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
@@ -4223,10 +4223,10 @@
     .ldsp-settings-order-label{font-size:11px;font-weight:600;color:var(--txt);min-width:0;flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .ldsp-settings-order-reset{width:100%;margin-top:10px;padding:8px 10px;border:1px solid var(--border2);border-radius:9px;background:var(--bg-el);color:var(--txt-sec);font-size:11px;font-weight:600;transition:background .15s,border-color .15s,color .15s}
     .ldsp-settings-order-reset:hover{background:var(--bg-hover);border-color:var(--accent);color:var(--accent)}
-    @media (max-width:480px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{top:30px;left:4px;right:auto;width:calc(100% - 8px);min-width:0;max-width:calc(100% - 8px);max-height:min(320px,calc(var(--h) - 48px));padding:6px}.ldsp-settings-view{max-height:calc(var(--h) - 64px);padding:1px}.ldsp-settings-head{padding:5px 2px 8px;margin-bottom:6px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:7px 8px;font-size:10px}.ldsp-settings-nav-value{max-width:76px;font-size:9px}.ldsp-settings-option-label{font-size:10px}.ldsp-settings-option-desc,.ldsp-settings-order-tip,.ldsp-settings-goal-hint,.ldsp-settings-font-hint{font-size:9px}.ldsp-settings-goal-row{padding:7px 8px;gap:6px}.ldsp-settings-goal-number{width:64px;padding:4px 6px;font-size:10px}}
-    @media (max-width:320px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{top:28px;left:2px;right:auto;width:calc(100% - 4px);min-width:0;max-width:calc(100% - 4px);max-height:min(280px,calc(var(--h) - 40px));padding:5px}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}.ldsp-settings-head-title{font-size:11px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px;font-size:9px}.ldsp-settings-nav-main{gap:6px}.ldsp-settings-goal-label{min-width:46px;font-size:10px}.ldsp-settings-goal-number{width:56px;font-size:9px}.ldsp-settings-order-reset{padding:7px 8px;font-size:10px}}
-    @media (max-height:620px){.ldsp-settings-menu{top:30px;max-height:min(280px,calc(var(--h) - 40px))}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}}
-    @media (max-height:500px){.ldsp-settings-menu{top:26px;max-height:min(240px,calc(var(--h) - 28px))}.ldsp-settings-head{padding:4px 2px 6px;margin-bottom:5px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px}}
+    @media (max-width:480px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{left:4px;right:auto;width:calc(100% - 8px);min-width:0;max-width:calc(100% - 8px);max-height:min(320px,calc(var(--h) - 48px));padding:6px}.ldsp-settings-view{max-height:calc(var(--h) - 64px);padding:1px}.ldsp-settings-head{padding:5px 2px 8px;margin-bottom:6px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:7px 8px;font-size:10px}.ldsp-settings-nav-value{max-width:76px;font-size:9px}.ldsp-settings-option-label{font-size:10px}.ldsp-settings-option-desc,.ldsp-settings-order-tip,.ldsp-settings-goal-hint,.ldsp-settings-font-hint{font-size:9px}.ldsp-settings-goal-row{padding:7px 8px;gap:6px}.ldsp-settings-goal-number{width:64px;padding:4px 6px;font-size:10px}}
+    @media (max-width:320px){.ldsp-settings-menu,#ldsp-panel.expand-left .ldsp-settings-menu{left:2px;right:auto;width:calc(100% - 4px);min-width:0;max-width:calc(100% - 4px);max-height:min(280px,calc(var(--h) - 40px));padding:5px}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}.ldsp-settings-head-title{font-size:11px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px;font-size:9px}.ldsp-settings-nav-main{gap:6px}.ldsp-settings-goal-label{min-width:46px;font-size:10px}.ldsp-settings-goal-number{width:56px;font-size:9px}.ldsp-settings-order-reset{padding:7px 8px;font-size:10px}}
+    @media (max-height:620px){.ldsp-settings-menu{max-height:min(280px,calc(var(--h) - 40px))}.ldsp-settings-view{max-height:calc(var(--h) - 56px)}}
+    @media (max-height:500px){.ldsp-settings-menu{max-height:min(240px,calc(var(--h) - 28px))}.ldsp-settings-head{padding:4px 2px 6px;margin-bottom:5px}.ldsp-settings-nav,.ldsp-settings-option,.ldsp-settings-toggle,.ldsp-settings-order-item{padding:6px 7px}}
     #ldsp-panel.collapsed .ldsp-settings-menu{display:none!important}
     @keyframes pulse-update{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
     @keyframes pulse-dot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:.8}}
@@ -4709,7 +4709,7 @@
     @media (max-height:420px){.ldsp-user-actions{display:none}.ldsp-reading::after{bottom:2px;font-size:6px}}
     @media (max-width:860px){.ldsp-user{grid-template-columns:minmax(0,1fr) minmax(64px,24%)}.ldsp-settings-menu{width:min(320px,calc(100% - 16px));max-width:min(320px,calc(100% - 16px))}.ldsp-rd-stats{display:flex;align-items:center;gap:8px;padding:10px;flex-wrap:wrap}.ldsp-rd-stats-info{min-width:0;flex:1}.ldsp-rd-stats-val,.ldsp-rd-stats-lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ldsp-rd-stats-badge{white-space:nowrap;padding:5px 9px;flex-shrink:0}.ldsp-track{flex-wrap:nowrap;min-width:0}.ldsp-track span,.ldsp-track{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
     @media (max-width:720px){.ldsp-user{grid-template-columns:minmax(0,1fr) minmax(58px,26%)}.ldsp-reading{justify-self:stretch;max-width:none;min-width:0;aspect-ratio:auto;min-height:58px;flex-direction:column;justify-content:center;gap:4px;padding:8px 6px 6px}.ldsp-reading-icon{font-size:18px;margin-bottom:4px}.ldsp-reading-time{font-size:13px}.ldsp-reading-label{font-size:8px}.ldsp-reading::after{left:6px;bottom:2px;transform:none;text-align:left;font-size:7px}.ldsp-reading-ripple{inset:0}.ldsp-user-actions{gap:5px}.ldsp-follow-combined{flex-wrap:wrap}.ldsp-join-days{white-space:nowrap}}
-    @media (max-width:560px){#ldsp-panel{left:max(4px,env(safe-area-inset-left));right:auto;top:max(6px,env(safe-area-inset-top))}#ldsp-panel.expand-left .ldsp-settings-menu,#ldsp-panel.expand-right .ldsp-settings-menu{left:0;right:auto}.ldsp-settings-menu{top:32px;width:calc(100% - 8px);max-width:calc(100% - 8px);max-height:min(70vh,calc(var(--h) - 28px))}.ldsp-hdr{padding-left:max(10px,calc(10px + env(safe-area-inset-left) * .2));padding-right:max(10px,calc(10px + env(safe-area-inset-right) * .2))}.ldsp-content{padding-bottom:max(0px,env(safe-area-inset-bottom))}}
+    @media (max-width:560px){#ldsp-panel{left:max(4px,env(safe-area-inset-left));right:auto;top:max(6px,env(safe-area-inset-top))}#ldsp-panel.expand-left .ldsp-settings-menu,#ldsp-panel.expand-right .ldsp-settings-menu{left:4px;right:auto}.ldsp-settings-menu{left:4px;right:auto;width:calc(100% - 8px);max-width:calc(100% - 8px);max-height:min(70vh,calc(var(--h) - 28px))}.ldsp-hdr{padding-left:max(10px,calc(10px + env(safe-area-inset-left) * .2));padding-right:max(10px,calc(10px + env(safe-area-inset-right) * .2))}.ldsp-content{padding-bottom:max(0px,env(safe-area-inset-bottom))}}
     @media (max-width:420px){.ldsp-user-row{align-items:flex-start}.ldsp-user-meta{gap:4px}.ldsp-follow-combined{font-size:9px}.ldsp-reading{gap:8px;min-height:54px}.ldsp-reading-time{font-size:12px}.ldsp-reading-label{font-size:8px}.ldsp-reading::after{bottom:4px;font-size:7px;max-width:calc(100% - 20px);white-space:normal;line-height:1.25}.ldsp-user-actions{gap:4px}.ldsp-action-btn{font-size:9px;padding:4px 8px;white-space:normal;text-overflow:ellipsis;overflow:hidden}.ldsp-user-actions-toggle{padding:4px 8px}.ldsp-rd-stats{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"icon info" "badge badge"}.ldsp-rd-stats-icon{grid-area:icon}.ldsp-rd-stats-info{grid-area:info}.ldsp-rd-stats-badge{grid-area:badge;justify-self:start;margin-top:2px}.ldsp-item{padding:6px 8px;margin-bottom:4px}.ldsp-item-name{font-size:10px}}
     /* --- 宽度响应式 --- */
     /* 窄屏优化 (宽度<380px): 手机竖屏 */
@@ -12039,162 +12039,162 @@ a:hover{text-decoration:underline;}
                             <button class="ldsp-cloud-sync" title="云同步" aria-label="云同步" style="display:none">☁️</button>
                             <button class="ldsp-refresh" title="刷新数据" aria-label="刷新数据">🔄</button>
                             <button class="ldsp-settings" title="设置" aria-label="设置">⚙️</button>
-                            <div class="ldsp-settings-menu" aria-hidden="true">
-                                <div class="ldsp-settings-view active" data-settings-view="root">
-                                    <div class="ldsp-settings-head">
-                                        <span class="ldsp-settings-head-title">设置</span>
-                                    </div>
-                                    <button class="ldsp-settings-nav" data-settings-open="theme">
-                                        <span class="ldsp-settings-nav-main">🎨 外观设置</span>
-                                        <span class="ldsp-settings-nav-value" data-settings-theme-value></span>
-                                        <span class="ldsp-settings-nav-arrow">›</span>
-                                    </button>
-                                    <button class="ldsp-settings-nav" data-settings-open="reading-goal">
-                                        <span class="ldsp-settings-nav-main">🎯 阅读目标</span>
-                                        <span class="ldsp-settings-nav-value" data-settings-goal-value></span>
-                                        <span class="ldsp-settings-nav-arrow">›</span>
-                                    </button>
-                                    <button class="ldsp-settings-nav" data-settings-open="font-size">
-                                        <span class="ldsp-settings-nav-main">🔤 字体调节</span>
-                                        <span class="ldsp-settings-nav-value" data-settings-font-value></span>
-                                        <span class="ldsp-settings-nav-arrow">›</span>
-                                    </button>
-                                    <button class="ldsp-settings-nav" data-settings-open="actions-root">
-                                        <span class="ldsp-settings-nav-main">🔘 功能按钮</span>
-                                        <span class="ldsp-settings-nav-value" data-settings-actions-value></span>
-                                        <span class="ldsp-settings-nav-arrow">›</span>
-                                    </button>
-                                    <button class="ldsp-settings-nav" data-settings-open="requirements-display">
-                                        <span class="ldsp-settings-nav-main">📋 要求展示</span>
-                                        <span class="ldsp-settings-nav-value" data-settings-requirements-value></span>
-                                        <span class="ldsp-settings-nav-arrow">›</span>
-                                    </button>
+                            <button class="ldsp-toggle" title="折叠面板" aria-label="折叠面板"><span class="ldsp-toggle-arrow">◀</span><img class="ldsp-toggle-logo" src="${COLLAPSED_LOGO_DATA_URI}" alt="" aria-hidden="true" draggable="false"></button>
+                        </div>
+                        <div class="ldsp-settings-menu" aria-hidden="true">
+                            <div class="ldsp-settings-view active" data-settings-view="root">
+                                <div class="ldsp-settings-head">
+                                    <span class="ldsp-settings-head-title">设置</span>
                                 </div>
-                                <div class="ldsp-settings-view" data-settings-view="theme">
-                                    <div class="ldsp-settings-head">
-                                        <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
-                                        <span class="ldsp-settings-head-title">外观设置</span>
-                                    </div>
-                                    <button class="ldsp-settings-option" data-theme-mode="auto">
-                                        <span class="ldsp-settings-option-main">
-                                            <span class="ldsp-settings-option-label">跟随系统</span>
-                                            <span class="ldsp-settings-option-desc">根据系统外观自动切换</span>
-                                        </span>
-                                        <span class="ldsp-settings-option-check">✔</span>
-                                    </button>
-                                    <button class="ldsp-settings-option" data-theme-mode="light">
-                                        <span class="ldsp-settings-option-main">
-                                            <span class="ldsp-settings-option-label">浅色</span>
-                                            <span class="ldsp-settings-option-desc">高亮清爽，适合白天阅读</span>
-                                        </span>
-                                        <span class="ldsp-settings-option-check">✔</span>
-                                    </button>
-                                    <button class="ldsp-settings-option" data-theme-mode="dark">
-                                        <span class="ldsp-settings-option-main">
-                                            <span class="ldsp-settings-option-label">深色</span>
-                                            <span class="ldsp-settings-option-desc">夜间护眼，减少眩光干扰</span>
-                                        </span>
-                                        <span class="ldsp-settings-option-check">✔</span>
-                                    </button>
+                                <button class="ldsp-settings-nav" data-settings-open="theme">
+                                    <span class="ldsp-settings-nav-main">🎨 外观设置</span>
+                                    <span class="ldsp-settings-nav-value" data-settings-theme-value></span>
+                                    <span class="ldsp-settings-nav-arrow">›</span>
+                                </button>
+                                <button class="ldsp-settings-nav" data-settings-open="reading-goal">
+                                    <span class="ldsp-settings-nav-main">🎯 阅读目标</span>
+                                    <span class="ldsp-settings-nav-value" data-settings-goal-value></span>
+                                    <span class="ldsp-settings-nav-arrow">›</span>
+                                </button>
+                                <button class="ldsp-settings-nav" data-settings-open="font-size">
+                                    <span class="ldsp-settings-nav-main">🔤 字体调节</span>
+                                    <span class="ldsp-settings-nav-value" data-settings-font-value></span>
+                                    <span class="ldsp-settings-nav-arrow">›</span>
+                                </button>
+                                <button class="ldsp-settings-nav" data-settings-open="actions-root">
+                                    <span class="ldsp-settings-nav-main">🔘 功能按钮</span>
+                                    <span class="ldsp-settings-nav-value" data-settings-actions-value></span>
+                                    <span class="ldsp-settings-nav-arrow">›</span>
+                                </button>
+                                <button class="ldsp-settings-nav" data-settings-open="requirements-display">
+                                    <span class="ldsp-settings-nav-main">📋 要求展示</span>
+                                    <span class="ldsp-settings-nav-value" data-settings-requirements-value></span>
+                                    <span class="ldsp-settings-nav-arrow">›</span>
+                                </button>
+                            </div>
+                            <div class="ldsp-settings-view" data-settings-view="theme">
+                                <div class="ldsp-settings-head">
+                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
+                                    <span class="ldsp-settings-head-title">外观设置</span>
                                 </div>
-                                <div class="ldsp-settings-view" data-settings-view="reading-goal">
-                                    <div class="ldsp-settings-head">
-                                        <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
-                                        <span class="ldsp-settings-head-title">阅读目标设置</span>
-                                    </div>
-                                    <div class="ldsp-settings-goal-wrap">
-                                        <div class="ldsp-settings-goal-row">
-                                            <span class="ldsp-settings-goal-label">目标时长</span>
-                                            <input class="ldsp-settings-goal-number" type="number" min="0.5" max="20" step="0.5" data-reading-goal-input="number">
-                                            <span class="ldsp-settings-goal-unit">小时</span>
-                                        </div>
-                                        <input class="ldsp-settings-goal-range" type="range" min="0.5" max="20" step="0.5" data-reading-goal-input="range">
-                                        <div class="ldsp-settings-goal-hint">范围 0.5 - 20 小时，步进 0.5 小时</div>
-                                    </div>
+                                <button class="ldsp-settings-option" data-theme-mode="auto">
+                                    <span class="ldsp-settings-option-main">
+                                        <span class="ldsp-settings-option-label">跟随系统</span>
+                                        <span class="ldsp-settings-option-desc">根据系统外观自动切换</span>
+                                    </span>
+                                    <span class="ldsp-settings-option-check">✔</span>
+                                </button>
+                                <button class="ldsp-settings-option" data-theme-mode="light">
+                                    <span class="ldsp-settings-option-main">
+                                        <span class="ldsp-settings-option-label">浅色</span>
+                                        <span class="ldsp-settings-option-desc">高亮清爽，适合白天阅读</span>
+                                    </span>
+                                    <span class="ldsp-settings-option-check">✔</span>
+                                </button>
+                                <button class="ldsp-settings-option" data-theme-mode="dark">
+                                    <span class="ldsp-settings-option-main">
+                                        <span class="ldsp-settings-option-label">深色</span>
+                                        <span class="ldsp-settings-option-desc">夜间护眼，减少眩光干扰</span>
+                                    </span>
+                                    <span class="ldsp-settings-option-check">✔</span>
+                                </button>
+                            </div>
+                            <div class="ldsp-settings-view" data-settings-view="reading-goal">
+                                <div class="ldsp-settings-head">
+                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
+                                    <span class="ldsp-settings-head-title">阅读目标设置</span>
                                 </div>
-                                <div class="ldsp-settings-view" data-settings-view="font-size">
-                                    <div class="ldsp-settings-head">
-                                        <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
-                                        <span class="ldsp-settings-head-title">字体调节</span>
+                                <div class="ldsp-settings-goal-wrap">
+                                    <div class="ldsp-settings-goal-row">
+                                        <span class="ldsp-settings-goal-label">目标时长</span>
+                                        <input class="ldsp-settings-goal-number" type="number" min="0.5" max="20" step="0.5" data-reading-goal-input="number">
+                                        <span class="ldsp-settings-goal-unit">小时</span>
                                     </div>
-                                    <div class="ldsp-settings-font-wrap">
-                                        <div class="ldsp-settings-font-row">
-                                            <span class="ldsp-settings-font-label">当前档位</span>
-                                            <span class="ldsp-settings-font-value" data-settings-font-name>标准</span>
-                                        </div>
-                                        <input class="ldsp-settings-font-range" type="range" min="1" max="5" step="1" data-font-level-input="range">
-                                        <div class="ldsp-settings-font-levels">
-                                            <span>紧凑</span>
-                                            <span>偏小</span>
-                                            <span>标准</span>
-                                            <span>舒适</span>
-                                            <span>宽大</span>
-                                        </div>
-                                        <div class="ldsp-settings-font-hint">五档梯度重新拉开：更适合小屏压缩阅读，也能在大屏下获得更明显放大效果</div>
-                                    </div>
-                                </div>
-                                <div class="ldsp-settings-view" data-settings-view="actions-root">
-                                    <div class="ldsp-settings-head">
-                                        <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
-                                        <span class="ldsp-settings-head-title">功能按钮</span>
-                                    </div>
-                                    <button class="ldsp-settings-nav" data-settings-open="actions-order">
-                                        <span class="ldsp-settings-nav-main">↕️ 按钮排序</span>
-                                        <span class="ldsp-settings-nav-arrow">›</span>
-                                    </button>
-                                    <button class="ldsp-settings-nav" data-settings-open="actions-toggle">
-                                        <span class="ldsp-settings-nav-main">✅ 功能启用</span>
-                                        <span class="ldsp-settings-nav-arrow">›</span>
-                                    </button>
-                                </div>
-                                <div class="ldsp-settings-view" data-settings-view="actions-toggle">
-                                    <div class="ldsp-settings-head">
-                                        <button class="ldsp-settings-back" data-settings-back="actions-root" aria-label="返回">‹</button>
-                                        <span class="ldsp-settings-head-title">功能启用</span>
-                                    </div>
-                                    <label class="ldsp-settings-toggle"><span>工单按钮</span><input type="checkbox" data-action-key="ticket" checked></label>
-                                    <label class="ldsp-settings-toggle"><span>总结按钮</span><input type="checkbox" data-action-key="melon" checked></label>
-                                    <label class="ldsp-settings-toggle"><span>导出按钮</span><input type="checkbox" data-action-key="export" checked></label>
-                                    ${CURRENT_SITE.domain === 'linux.do' ? '<label class="ldsp-settings-toggle"><span>LDC 按钮</span><input type="checkbox" data-action-key="ldc" checked></label><label class="ldsp-settings-toggle"><span>士多按钮</span><input type="checkbox" data-action-key="shop" checked></label><label class="ldsp-settings-toggle"><span>CDK 按钮</span><input type="checkbox" data-action-key="cdk" checked></label>' : ''}
-                                </div>
-                                <div class="ldsp-settings-view" data-settings-view="actions-order">
-                                    <div class="ldsp-settings-head">
-                                        <button class="ldsp-settings-back" data-settings-back="actions-root" aria-label="返回">‹</button>
-                                        <span class="ldsp-settings-head-title">按钮排序</span>
-                                    </div>
-                                    <div class="ldsp-settings-order-tip">可拖动调整：士多、LDC、CDK、总结、导出、工单。登录和注销顺序固定。</div>
-                                    <div class="ldsp-settings-order-list">
-                                        ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-settings-order-item" draggable="true" data-order-key="shop"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">士多按钮</span></div>' : ''}
-                                        ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-settings-order-item" draggable="true" data-order-key="ldc"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">LDC 按钮</span></div>' : ''}
-                                        ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-settings-order-item" draggable="true" data-order-key="cdk"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">CDK 按钮</span></div>' : ''}
-                                        <div class="ldsp-settings-order-item" draggable="true" data-order-key="melon"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">总结按钮</span></div>
-                                        <div class="ldsp-settings-order-item" draggable="true" data-order-key="export"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">导出按钮</span></div>
-                                        <div class="ldsp-settings-order-item" draggable="true" data-order-key="ticket"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">工单按钮</span></div>
-                                    </div>
-                                    <button class="ldsp-settings-order-reset" type="button">恢复默认顺序</button>
-                                </div>
-                                <div class="ldsp-settings-view" data-settings-view="requirements-display">
-                                    <div class="ldsp-settings-head">
-                                        <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
-                                        <span class="ldsp-settings-head-title">要求展示</span>
-                                    </div>
-                                    <button class="ldsp-settings-option" data-requirements-display-mode="all">
-                                        <span class="ldsp-settings-option-main">
-                                            <span class="ldsp-settings-option-label">展示所有升级数据</span>
-                                            <span class="ldsp-settings-option-desc">默认展示已完成和未完成的升级要求</span>
-                                        </span>
-                                        <span class="ldsp-settings-option-check">✔</span>
-                                    </button>
-                                    <button class="ldsp-settings-option" data-requirements-display-mode="incomplete">
-                                        <span class="ldsp-settings-option-main">
-                                            <span class="ldsp-settings-option-label">只显示未完成</span>
-                                            <span class="ldsp-settings-option-desc">要求板块仅保留尚未达成的项目</span>
-                                        </span>
-                                        <span class="ldsp-settings-option-check">✔</span>
-                                    </button>
+                                    <input class="ldsp-settings-goal-range" type="range" min="0.5" max="20" step="0.5" data-reading-goal-input="range">
+                                    <div class="ldsp-settings-goal-hint">范围 0.5 - 20 小时，步进 0.5 小时</div>
                                 </div>
                             </div>
-                            <button class="ldsp-toggle" title="折叠面板" aria-label="折叠面板"><span class="ldsp-toggle-arrow">◀</span><img class="ldsp-toggle-logo" src="${COLLAPSED_LOGO_DATA_URI}" alt="" aria-hidden="true" draggable="false"></button>
+                            <div class="ldsp-settings-view" data-settings-view="font-size">
+                                <div class="ldsp-settings-head">
+                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
+                                    <span class="ldsp-settings-head-title">字体调节</span>
+                                </div>
+                                <div class="ldsp-settings-font-wrap">
+                                    <div class="ldsp-settings-font-row">
+                                        <span class="ldsp-settings-font-label">当前档位</span>
+                                        <span class="ldsp-settings-font-value" data-settings-font-name>标准</span>
+                                    </div>
+                                    <input class="ldsp-settings-font-range" type="range" min="1" max="5" step="1" data-font-level-input="range">
+                                    <div class="ldsp-settings-font-levels">
+                                        <span>紧凑</span>
+                                        <span>偏小</span>
+                                        <span>标准</span>
+                                        <span>舒适</span>
+                                        <span>宽大</span>
+                                    </div>
+                                    <div class="ldsp-settings-font-hint">五档梯度重新拉开：更适合小屏压缩阅读，也能在大屏下获得更明显放大效果</div>
+                                </div>
+                            </div>
+                            <div class="ldsp-settings-view" data-settings-view="actions-root">
+                                <div class="ldsp-settings-head">
+                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
+                                    <span class="ldsp-settings-head-title">功能按钮</span>
+                                </div>
+                                <button class="ldsp-settings-nav" data-settings-open="actions-order">
+                                    <span class="ldsp-settings-nav-main">↕️ 按钮排序</span>
+                                    <span class="ldsp-settings-nav-arrow">›</span>
+                                </button>
+                                <button class="ldsp-settings-nav" data-settings-open="actions-toggle">
+                                    <span class="ldsp-settings-nav-main">✅ 功能启用</span>
+                                    <span class="ldsp-settings-nav-arrow">›</span>
+                                </button>
+                            </div>
+                            <div class="ldsp-settings-view" data-settings-view="actions-toggle">
+                                <div class="ldsp-settings-head">
+                                    <button class="ldsp-settings-back" data-settings-back="actions-root" aria-label="返回">‹</button>
+                                    <span class="ldsp-settings-head-title">功能启用</span>
+                                </div>
+                                <label class="ldsp-settings-toggle"><span>工单按钮</span><input type="checkbox" data-action-key="ticket" checked></label>
+                                <label class="ldsp-settings-toggle"><span>总结按钮</span><input type="checkbox" data-action-key="melon" checked></label>
+                                <label class="ldsp-settings-toggle"><span>导出按钮</span><input type="checkbox" data-action-key="export" checked></label>
+                                ${CURRENT_SITE.domain === 'linux.do' ? '<label class="ldsp-settings-toggle"><span>LDC 按钮</span><input type="checkbox" data-action-key="ldc" checked></label><label class="ldsp-settings-toggle"><span>士多按钮</span><input type="checkbox" data-action-key="shop" checked></label><label class="ldsp-settings-toggle"><span>CDK 按钮</span><input type="checkbox" data-action-key="cdk" checked></label>' : ''}
+                            </div>
+                            <div class="ldsp-settings-view" data-settings-view="actions-order">
+                                <div class="ldsp-settings-head">
+                                    <button class="ldsp-settings-back" data-settings-back="actions-root" aria-label="返回">‹</button>
+                                    <span class="ldsp-settings-head-title">按钮排序</span>
+                                </div>
+                                <div class="ldsp-settings-order-tip">可拖动调整：士多、LDC、CDK、总结、导出、工单。登录和注销顺序固定。</div>
+                                <div class="ldsp-settings-order-list">
+                                    ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-settings-order-item" draggable="true" data-order-key="shop"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">士多按钮</span></div>' : ''}
+                                    ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-settings-order-item" draggable="true" data-order-key="ldc"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">LDC 按钮</span></div>' : ''}
+                                    ${CURRENT_SITE.domain === 'linux.do' ? '<div class="ldsp-settings-order-item" draggable="true" data-order-key="cdk"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">CDK 按钮</span></div>' : ''}
+                                    <div class="ldsp-settings-order-item" draggable="true" data-order-key="melon"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">总结按钮</span></div>
+                                    <div class="ldsp-settings-order-item" draggable="true" data-order-key="export"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">导出按钮</span></div>
+                                    <div class="ldsp-settings-order-item" draggable="true" data-order-key="ticket"><span class="ldsp-settings-order-handle">⋮⋮</span><span class="ldsp-settings-order-label">工单按钮</span></div>
+                                </div>
+                                <button class="ldsp-settings-order-reset" type="button">恢复默认顺序</button>
+                            </div>
+                            <div class="ldsp-settings-view" data-settings-view="requirements-display">
+                                <div class="ldsp-settings-head">
+                                    <button class="ldsp-settings-back" data-settings-back="root" aria-label="返回">‹</button>
+                                    <span class="ldsp-settings-head-title">要求展示</span>
+                                </div>
+                                <button class="ldsp-settings-option" data-requirements-display-mode="all">
+                                    <span class="ldsp-settings-option-main">
+                                        <span class="ldsp-settings-option-label">展示所有升级数据</span>
+                                        <span class="ldsp-settings-option-desc">默认展示已完成和未完成的升级要求</span>
+                                    </span>
+                                    <span class="ldsp-settings-option-check">✔</span>
+                                </button>
+                                <button class="ldsp-settings-option" data-requirements-display-mode="incomplete">
+                                    <span class="ldsp-settings-option-main">
+                                        <span class="ldsp-settings-option-label">只显示未完成</span>
+                                        <span class="ldsp-settings-option-desc">要求板块仅保留尚未达成的项目</span>
+                                    </span>
+                                    <span class="ldsp-settings-option-check">✔</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="ldsp-update-bubble" style="display:none">
