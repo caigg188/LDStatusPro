@@ -4,10 +4,11 @@ import { JSDOM } from 'jsdom';
 export function componentSource() {
     const source = fs.readFileSync(new URL('../../LDStatusPro.user.js', import.meta.url), 'utf8');
     const core = source.slice(source.indexOf('// @@CORE_SANITIZE_BEGIN') + '// @@CORE_SANITIZE_BEGIN'.length, source.indexOf('// @@CORE_SANITIZE_END'));
+    const i18n = source.slice(source.indexOf('// @@I18N_BEGIN') + '// @@I18N_BEGIN'.length, source.indexOf('// @@I18N_END'));
     const shared = source.slice(source.indexOf('        let topicContentClient;'), source.indexOf('        const LDSPDialog'));
     const melon = source.slice(source.indexOf('        class MelonHelper'), source.indexOf('        class FollowManager'));
     const styles = source.slice(source.indexOf('        const Styles ='), source.indexOf('        const Tooltip ='));
-    return `${core}\n${styles}\n${shared}\n${melon}\nObject.assign(globalThis, { TopicExporter, MelonHelper, SafeDom, Styles });`;
+    return `${core}\n${i18n}\n${styles}\n${shared}\n${melon}\nObject.assign(globalThis, { TopicExporter, MelonHelper, SafeDom, I18n, Styles });`;
 }
 
 export function componentWindow({ fetchImpl, gm, config = {} } = {}) {

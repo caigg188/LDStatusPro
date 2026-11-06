@@ -1,0 +1,132 @@
+{
+  "title": "🍟 LDC Credits",
+  "refreshTitle": "Refresh",
+  "tabs": {
+    "overview": "📊 Overview",
+    "transactions": "📜 History",
+    "support": "❤️ Support"
+  },
+  "filter": {
+    "time": "Time",
+    "type": "Type"
+  },
+  "timeRanges": {
+    "today": "Today",
+    "7days": "7 days",
+    "30days": "30 days",
+    "all": "All"
+  },
+  "transTypes": {
+    "all": "All",
+    "receive": "Income",
+    "payment": "Spending",
+    "transfer": "Transfer",
+    "community": "Community",
+    "online": "Online",
+    "distribute": "Merchant"
+  },
+  "loginGuide": {
+    "titleTimeout": "Request timed out",
+    "titleNetwork": "Network error",
+    "titleAuth": "Sign-in required",
+    "descTimeout": "Loading timed out, possibly due to a network issue or being signed out of the LDC site. Open the LDC site, confirm you are signed in, then retry here.",
+    "descNetwork": "Network connection failed. Check your connection and retry. If it persists, sign in on the LDC site first.",
+    "descAuth": "Sign in on the LDC site first, then come back to this page and refresh.",
+    "solutionTitle": "✅ How to fix",
+    "solutionDesc": "Sign in on the LDC site",
+    "openSite": "Open LDC site ↗",
+    "retry": "🔄 Retry",
+    "tip": "💡 After signing in, come back here and retry"
+  },
+  "bridge": {
+    "connecting": "Connecting to LDC…",
+    "openTitle": "LDC page must stay open",
+    "openDesc": "Viewing transaction history requires the LINUX DO CREDIT page to stay open. If the tab was closed or blocked by the browser, open it again.",
+    "openButton": "Open LDC channel",
+    "openedRetry": "🔄 I opened it, retry"
+  },
+  "overview": {
+    "estimateTooltip": "Estimated score is approximate and resets daily at midnight",
+    "estimateChange": "Estimated change",
+    "chartIncome": "Income: +{amount}",
+    "chartExpense": "Spending: -{amount}",
+    "legendIncome": "Income",
+    "legendExpense": "Spending",
+    "balanceLabel": "🍟 Available balance:",
+    "dailyLimitPrefix": "Remaining today",
+    "updatedAt": "Updated at: {time}",
+    "totalIncome": "Total income",
+    "totalExpense": "Total spending",
+    "weeklyChartTitle": "📊 Last 7 days",
+    "noData": "No data",
+    "faqTitle": "Credit FAQ & rules",
+    "faqDesc": "Learn how LDC credits are earned, used and common questions"
+  },
+  "transactions": {
+    "refreshFailed": "Failed to load transactions. Refresh the credit.linux.do tab and retry.",
+    "loginRequired": "Sign in to credit.linux.do first",
+    "rejected": "Request rejected. Please try again later.",
+    "fetchFailed": "Failed to load data",
+    "empty": "No transactions yet",
+    "filterConditions": "Filters: {time}{type}{more}",
+    "filterMore": " · scroll down to load more",
+    "unknownOrder": "Unknown",
+    "filteredCount": "Showing {count} filtered",
+    "totalCount": "{total} records",
+    "loadedCount": ", {count} loaded",
+    "continueScroll": ", scroll down to load more",
+    "status": {
+      "success": "✓ Success",
+      "refund": "↩ Refunded",
+      "expired": "⏱ Expired",
+      "disputing": "⚠ Disputed",
+      "unknown": "Unknown"
+    }
+  },
+  "support": {
+    "title": "Support LDStatus Pro",
+    "desc": "Thanks for using LDStatus Pro!<br>Your support keeps development going",
+    "starTitle": "Star on GitHub",
+    "starDesc": "A Star is the best encouragement for the author",
+    "footer": "🙏 Every contribution goes to <em>server costs</em> and <em>feature development</em><br>Thanks to everyone in the community",
+    "tiers": {
+      "tier1": "Nice work",
+      "tier2": "Big support",
+      "tier3": "Truly appreciated",
+      "tier4": "Community contributor",
+      "badgeHot": "Popular",
+      "badgeFire": "Trending",
+      "badgeVip": "Premium"
+    }
+  },
+  "detail": {
+    "back": "← Back",
+    "title": "Transaction Detail",
+    "status": "Status",
+    "type": "Type",
+    "orderName": "Order name",
+    "appName": "App name",
+    "tradeTime": "Time",
+    "orderNo": "Order no.",
+    "payee": "Payee",
+    "payer": "Payer",
+    "remark": "Note",
+    "appLink": "App link"
+  },
+  "errors": {
+    "fetchUserInfo": "Failed to load user info",
+    "networkRetry": "Network error. Please try again later.",
+    "csrfFailed": "CSRF validation failed",
+    "notLoggedIn": "Not signed in",
+    "rejected": "Request rejected",
+    "badRequest": "Invalid request parameters",
+    "requestFailed": "Request failed ({status})",
+    "invalidRequest": "Invalid request",
+    "fetchFailed": "Failed to load data",
+    "openAndLogin": "Open and sign in to credit.linux.do, then retry",
+    "timeout": "Request timed out",
+    "bridgeClosed": "LDC data channel closed",
+    "parseFailed": "Parse failed",
+    "network": "Network error"
+  }
+}

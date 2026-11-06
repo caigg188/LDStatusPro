@@ -1,0 +1,60 @@
+{
+  "title": "🎁 CDK Center",
+  "refreshTitle": "Refresh",
+  "tabs": {
+    "home": "🏠 Home",
+    "received": "📋 Claimed"
+  },
+  "home": {
+    "scoreLabel": "CDK Score",
+    "aboutTitle": "About CDK Score",
+    "aboutDesc": "CDK Score is used for community project giveaways and claims; many projects set a minimum score requirement.",
+    "aboutTip": "🥇 Earn badges to raise your CDK Score",
+    "openFull": "Open the full CDK site"
+  },
+  "received": {
+    "loading": "Loading...",
+    "searchPlaceholder": "Search project or creator...",
+    "statsTotal": "📦 <strong>{total}</strong> records",
+    "statsLoaded": "Loaded {loaded}",
+    "emptySearch": "No matching records",
+    "empty": "No claims yet",
+    "loadMore": "⬇️ Scroll to load more",
+    "loadedAll": "✅ All loaded",
+    "copyTitle": "Copy content",
+    "loadingDetail": "Loading detail..."
+  },
+  "detail": {
+    "statusOngoing": "Ongoing",
+    "statusEnded": "Ended",
+    "back": "← Back",
+    "creator": "By {name}",
+    "distribution": "🎁 Content",
+    "remaining": "Remaining",
+    "total": "Total",
+    "requirements": "📋 Requirements",
+    "timeInfo": "📅 Schedule",
+    "reqTrustLevel": "🏅 Min trust level",
+    "reqRiskScore": "⭐ Min user score",
+    "reqSameIp": "🌐 IP limit",
+    "sameIpRestricted": "Same IP restricted",
+    "noRequirements": "No special requirements",
+    "claimed": " · ✅ Claimed",
+    "startTime": "Start",
+    "endTime": "End",
+    "createdTime": "Created"
+  },
+  "errors": {
+    "loginRequired": "Sign in to cdk.linux.do and refresh",
+    "timeoutLogin": "Request timed out. Confirm you are signed into cdk.linux.do and retry.",
+    "networkRetry": "Network error. Please try again later.",
+    "loginShort": "Sign in to cdk.linux.do first",
+    "network": "Network error",
+    "detailFailed": "Failed to load detail",
+    "invalidRequest": "Invalid request",
+    "bridgeNotReady": "Bridge not ready",
+    "timeout": "Request timed out",
+    "requestFailed": "Request failed ({status})",
+    "sendFailed": "Failed to send request"
+  }
+}

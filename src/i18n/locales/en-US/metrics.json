@@ -1,0 +1,69 @@
+{
+  "ring": {
+    "met": "Met",
+    "completion": "Progress",
+    "remaining": "Left",
+    "maxAdminLevel": "🏆 Maximum trust level reached",
+    "maxUserLevel": "🎖️ Maximum regular trust level reached",
+    "remainingTip": {
+      "one": "⏳ {count} requirement left to advance",
+      "other": "⏳ {count} requirements left to advance"
+    },
+    "readyTip": "🎉 All upgrade requirements met",
+    "allMetEmpty": "All upgrade requirements are met",
+    "learnTrust": "About forum trust levels →"
+  },
+  "reading": {
+    "todayLabel": "Today",
+    "visitWebsiteTitle": "Visit LDStatus Pro website",
+    "pausedStatus": "Idle · Paused",
+    "trackingStatus": "Tracking reading...",
+    "levels": {
+      "starter": "Starter",
+      "warmup": "Warming Up",
+      "steady": "In the Zone",
+      "focused": "Deep Focus",
+      "deep": "Deep Study",
+      "master": "LD Master",
+      "super": "Super Reader",
+      "diamond": "Diamond",
+      "legend": "Legendary",
+      "mythic": "Mythic",
+      "fallback": "Lv.{level}"
+    }
+  },
+  "trends": {
+    "topicsEntered": "Topics",
+    "postsRead": "Read",
+    "likesGiven": "Likes",
+    "replies": "Replies",
+    "likesReceived": "Liked"
+  },
+  "names": {
+    "daysVisited": "Days visited",
+    "visits": "Days visited",
+    "topicsEntered": "Topics entered",
+    "topicsEnteredAllTime": "Topics entered (all time)",
+    "postsRead": "Posts read",
+    "postsReadAllTime": "Posts read (all time)",
+    "replies": "Replies",
+    "topicsReplied": "Topics replied",
+    "postsCreated": "Posts created",
+    "topicsCreated": "Topics created",
+    "likesGiven": "Likes given",
+    "likesSent": "Likes given",
+    "likesReceived": "Likes received",
+    "likesReceivedDays": "Days with likes",
+    "likesReceivedUsers": "Users who liked",
+    "likedUsersAlt": "Users who liked",
+    "flaggedPosts": "Flagged posts",
+    "flaggingUsers": "Users who flagged",
+    "silenced6m": "Silenced (last 6m)",
+    "suspended6m": "Suspended (last 6m)",
+    "silenced": "Silenced",
+    "suspended": "Suspended",
+    "readingTime": "Read time (min)",
+    "readingTimeMin": "Read time (min)",
+    "solutions": "Solutions"
+  }
+}

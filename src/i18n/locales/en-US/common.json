@@ -1,0 +1,91 @@
+{
+  "ui": {
+    "loading": "Loading...",
+    "loadingData": "Loading data...",
+    "loadingMore": "Load more...",
+    "empty": "No data",
+    "noHistory": "No history yet",
+    "selectCategory": "Select a category to view",
+    "error": "Failed to load",
+    "unknownError": "Unknown error",
+    "retry": "🔄 Retry",
+    "goLogin": "Sign in →"
+  },
+  "dialog": {
+    "successTitle": "Success",
+    "errorTitle": "Error",
+    "warningTitle": "Warning",
+    "infoTitle": "Notice",
+    "confirmTitle": "Confirm Action",
+    "ok": "Confirm",
+    "cancel": "Cancel",
+    "gotIt": "Got it"
+  },
+  "time": {
+    "lessThanOneMin": "< 1m",
+    "minutes": "{m}m",
+    "hours": "{h}h",
+    "hoursMinutes": "{h}h {m}m",
+    "justNow": "Just now",
+    "minutesAgo": "{n}m ago",
+    "hoursAgo": "{n}h ago",
+    "daysAgo": "{n}d ago",
+    "monthDay": "{m}/{d}",
+    "yearMonth": "{y}-{m}",
+    "weekdays": {
+      "0": "Sun",
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat"
+    },
+    "months": {
+      "0": "Jan",
+      "1": "Feb",
+      "2": "Mar",
+      "3": "Apr",
+      "4": "May",
+      "5": "Jun",
+      "6": "Jul",
+      "7": "Aug",
+      "8": "Sep",
+      "9": "Oct",
+      "10": "Nov",
+      "11": "Dec"
+    }
+  },
+  "errors": {
+    "possibleIpBlock": "Your IP address may be blocked. Try switching networks or contact an administrator.",
+    "parseResponse": "Failed to parse the response",
+    "uploadFailed": "Upload failed",
+    "codes": {
+      "NETWORK_ERROR": "Network connection failed. Check your connection.",
+      "TIMEOUT": "Request timed out. Please try again later.",
+      "IP_BANNED": "IP address blocked. Try switching networks.",
+      "IP_PERMANENTLY_BANNED": "IP address permanently blocked. Contact support.",
+      "RATE_LIMITED": "Too many requests. Please try again shortly.",
+      "NOT_LOGGED_IN": "Please sign in first",
+      "AUTH_EXPIRED": "Session expired. Please sign in again.",
+      "INVALID_TOKEN": "Invalid session. Please sign in again.",
+      "TOKEN_EXPIRED": "Session expired. Please sign in again.",
+      "NOT_JOINED": "Join the leaderboard first",
+      "REGISTRATION_PAUSED": "New user registration is temporarily paused",
+      "UNAUTHORIZED": "Access denied",
+      "NOT_FOUND": "Requested resource not found",
+      "SERVER_ERROR": "Server temporarily unavailable. Try again later.",
+      "VALIDATION_FAILED": "Data validation failed",
+      "SYNC_FAILED": "Sync failed. Please try again later.",
+      "HTTP_ERROR": "Request failed"
+    },
+    "http401_403": "Access denied. Confirm you are signed into the forum (HTTP {status})",
+    "http404": "Requested page not found (HTTP 404)",
+    "http429": "Too many requests. Please try again later (HTTP 429)",
+    "http5xx": "Server temporarily unavailable (HTTP {status})",
+    "http4xx": "Request failed (HTTP {status})",
+    "rateLimitWaitSeconds": "Too many requests. Wait {n}s and try again.",
+    "rateLimitWaitMinutes": "Too many requests. Wait {n}m and try again.",
+    "operationFailed": "Action failed. Please try again later."
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "ring": {
+    "met": "已达标",
+    "completion": "完成度",
+    "remaining": "待完成",
+    "maxAdminLevel": "🏆 已达最高等级",
+    "maxUserLevel": "🎖️ 已达普通用户最高等级",
+    "remainingTip": {
+      "other": "⏳ 距升级还需完成 {count} 项要求"
+    },
+    "readyTip": "🎉 已满足升级条件",
+    "allMetEmpty": "所有升级要求都已完成",
+    "learnTrust": "了解论坛信任等级 →"
+  },
+  "reading": {
+    "todayLabel": "今日阅读",
+    "visitWebsiteTitle": "点击访问 LDStatus Pro 官网",
+    "pausedStatus": "未活动 已停止记录",
+    "trackingStatus": "阅读时间记录中...",
+    "levels": {
+      "starter": "刚起步",
+      "warmup": "热身中",
+      "steady": "渐入佳境",
+      "focused": "沉浸阅读",
+      "deep": "深度学习",
+      "master": "LD达人",
+      "super": "超级水怪",
+      "diamond": "钻石级",
+      "legend": "传奇级",
+      "mythic": "神话级",
+      "fallback": "等级{level}"
+    }
+  },
+  "trends": {
+    "topicsEntered": "浏览话题",
+    "postsRead": "已读帖子",
+    "likesGiven": "点赞",
+    "replies": "回复",
+    "likesReceived": "获赞"
+  },
+  "names": {
+    "daysVisited": "访问天数",
+    "visits": "访问次数",
+    "topicsEntered": "浏览话题",
+    "topicsEnteredAllTime": "浏览话题(所有时间)",
+    "postsRead": "已读帖子",
+    "postsReadAllTime": "已读帖子(所有时间)",
+    "replies": "回复",
+    "topicsReplied": "回复话题",
+    "postsCreated": "发帖",
+    "topicsCreated": "创建话题",
+    "likesGiven": "点赞",
+    "likesSent": "送出赞",
+    "likesReceived": "获赞",
+    "likesReceivedDays": "获赞天数",
+    "likesReceivedUsers": "点赞用户",
+    "likedUsersAlt": "获赞用户",
+    "flaggedPosts": "被举报帖子",
+    "flaggingUsers": "发起举报",
+    "silenced6m": "被禁言(近6个月)",
+    "suspended6m": "被封禁(近6个月)",
+    "silenced": "被禁言",
+    "suspended": "被封禁",
+    "readingTime": "阅读时间",
+    "readingTimeMin": "阅读时间(分钟)",
+    "solutions": "解决方案"
+  }
+}

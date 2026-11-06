@@ -1,0 +1,45 @@
+{
+  "title": "📪 工单系统",
+  "tabList": "我的工单",
+  "tabCreate": "提交工单",
+  "empty": "暂无工单记录",
+  "emptyHint": "点击\"提交工单\"反馈建议或问题",
+  "statusOpen": "处理中",
+  "statusClosed": "已关闭",
+  "types": {
+    "featureRequest": "功能建议",
+    "bugReport": "BUG反馈"
+  },
+  "create": {
+    "typeLabel": "工单类型",
+    "titleLabel": "标题",
+    "titleRange": "(4-50字)",
+    "titlePlaceholder": "简要描述您的问题或建议",
+    "contentLabel": "详细描述",
+    "contentRange": "(8-500字)",
+    "contentPlaceholderFeature": "请详细描述您的功能建议...",
+    "contentPlaceholderBug": "请详细描述您遇到的问题，建议包含以下信息：\n\n• 浏览器及版本（如 Chrome 120）\n• 操作系统（如 Windows 11）\n• 问题复现步骤\n• 预期行为与实际行为",
+    "submit": "提交工单",
+    "submitting": "提交中..."
+  },
+  "detail": {
+    "back": "← 返回",
+    "me": "👤 我",
+    "adminFallback": "管理员",
+    "replyPlaceholder": "输入回复...",
+    "send": "发送",
+    "closedHint": "此工单已关闭"
+  },
+  "errors": {
+    "titleTooShort": "标题至少需要4个字符",
+    "titleTooLong": "标题最多50个字符",
+    "contentTooShort": "描述至少需要8个字符",
+    "contentTooLong": "描述最多500个字符",
+    "sessionExpired": "登录已失效，请重新登录后再试",
+    "submitFailed": "提交失败",
+    "submitFailedWithReason": "提交失败: {reason}",
+    "networkError": "网络错误",
+    "loadFailed": "工单加载失败",
+    "sendFailed": "发送失败"
+  }
+}

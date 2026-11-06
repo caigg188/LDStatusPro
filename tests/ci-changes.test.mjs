@@ -14,6 +14,7 @@ test('workflow change detection includes website dependencies and shared release
         writeFileSync(join(dir, 'git'), '#!/bin/sh\nif [ "$1" = diff ]; then printf "%s\\n" "$CHANGED_FILES"; fi\n', { mode: 0o755 });
         for (const [files, expected] of [
             ['LDStatusPro.user.js', [true, true, false]],
+            ['src/i18n/locales/en-US/settings.json', [true, false, false]],
             ['website/src/App.tsx', [false, true, false]],
             ['ld-store/src/App.vue', [false, false, true]],
             ['scripts/verify-pages-release.mjs', [true, true, true]],

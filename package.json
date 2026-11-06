@@ -16,8 +16,11 @@
     "fmt": "prettier --write LDStatusPro.user.js",
     "embed:core": "node scripts/embed-core.mjs",
     "embed:core:check": "node scripts/embed-core.mjs --check",
+    "embed:i18n": "node scripts/embed-i18n.mjs",
+    "embed:i18n:check": "node scripts/embed-i18n.mjs --check",
+    "check:i18n": "node scripts/check-i18n.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "npm run lint:userscript && npm test && npm run embed:core:check",
+    "check": "npm run lint:userscript && npm run check:i18n && npm test && npm run embed:core:check && npm run embed:i18n:check",
     "check:agent-samples": "node scripts/validate-agent-samples.mjs"
   },
   "dependencies": {

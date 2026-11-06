@@ -1,5 +1,6 @@
 import createDOMPurify from 'dompurify';
 import { abortError, checkAbort, sleep } from './topic-content.mjs';
+import { tr } from './messages.mjs';
 
 const purifiers = new WeakMap();
 export function cleanExportHTML(html, document) {
@@ -34,8 +35,8 @@ export function selectImage(img, origin) {
 }
 
 export class ExportResources {
-    constructor({ origin, document, signal, gm = globalThis.GM_xmlhttpRequest, fetchImpl = (...args) => globalThis.fetch(...args), onProgress = () => {}, interval = 1000, maxImage = 20 * 1024 * 1024, maxTotal = 100 * 1024 * 1024 } = {}) {
-        Object.assign(this, { origin, document, signal, gm, fetchImpl, onProgress, interval, maxImage, maxTotal });
+    constructor({ origin, document, signal, gm = globalThis.GM_xmlhttpRequest, fetchImpl = (...args) => globalThis.fetch(...args), onProgress = () => {}, interval = 1000, maxImage = 20 * 1024 * 1024, maxTotal = 100 * 1024 * 1024, t = null } = {}) {
+        Object.assign(this, { origin, document, signal, gm, fetchImpl, onProgress, interval, maxImage, maxTotal, t });
         this.cache = new Map(); this.warnings = []; this.bytes = 0; this.active = 0; this.queue = []; this.hosts = new Map(); this.completed = 0;
     }
     _schedule(fn) {
@@ -62,8 +63,8 @@ export class ExportResources {
             const timeout = setTimeout(stop, 20000);
             try {
                 const response = await this.fetchImpl(url, { signal: controller.signal, credentials: 'same-origin' });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                if (Number(response.headers.get('content-length')) > this.maxImage) throw new Error('图片超过单图 20 MiB 限制');
+                if (!response.ok) throw new Error(tr(this.t, 'core.errors.httpStatus', { status: response.status }));
+                if (Number(response.headers.get('content-length')) > this.maxImage) throw new Error(tr(this.t, 'core.warnings.imageTooLarge'));
                 const reader = response.body?.getReader();
                 if (!reader) return response.blob();
                 const chunks = []; let bytes = 0;
@@ -71,13 +72,13 @@ export class ExportResources {
                     const { done, value } = await reader.read();
                     if (done) break;
                     bytes += value.byteLength;
-                    if (bytes > this.maxImage) { await reader.cancel(); throw new Error('图片超过单图 20 MiB 限制'); }
+                    if (bytes > this.maxImage) { await reader.cancel(); throw new Error(tr(this.t, 'core.warnings.imageTooLarge')); }
                     chunks.push(value);
                 }
                 return new this.document.defaultView.Blob(chunks, { type: response.headers.get('content-type') || '' });
             } finally { clearTimeout(timeout); this.signal?.removeEventListener('abort', stop); }
         }
-        if (!this.gm) throw new Error('跨域图片需要脚本管理器授权');
+        if (!this.gm) throw new Error(tr(this.t, 'core.warnings.crossOriginNeedsGrant'));
         return new Promise((resolve, reject) => {
             let request, settled = false;
             const finish = (error, blob) => {
@@ -86,13 +87,13 @@ export class ExportResources {
                 error ? reject(error) : resolve(blob);
             };
             const stop = () => { finish(abortError()); request?.abort(); };
-            const timeout = setTimeout(() => { finish(new Error('图片下载超时')); request?.abort(); }, 20000);
+            const timeout = setTimeout(() => { finish(new Error(tr(this.t, 'core.warnings.imageDownloadTimeout'))); request?.abort(); }, 20000);
             this.signal?.addEventListener('abort', stop, { once: true });
             try {
                 request = this.gm({ method: 'GET', url, anonymous: true, responseType: 'blob',
-                    onprogress: response => { if (response.loaded > this.maxImage) { finish(new Error('图片超过单图 20 MiB 限制')); request?.abort(); } },
-                    onload: response => response.status >= 200 && response.status < 300 ? finish(null, response.response) : finish(new Error(`HTTP ${response.status}`)),
-                    onerror: () => finish(new Error('图片连接失败或目标主机未授权')), ontimeout: () => finish(new Error('图片下载超时')), onabort: () => finish(abortError())
+                    onprogress: response => { if (response.loaded > this.maxImage) { finish(new Error(tr(this.t, 'core.warnings.imageTooLarge'))); request?.abort(); } },
+                    onload: response => response.status >= 200 && response.status < 300 ? finish(null, response.response) : finish(new Error(tr(this.t, 'core.errors.httpStatus', { status: response.status }))),
+                    onerror: () => finish(new Error(tr(this.t, 'core.warnings.imageDownloadFailed'))), ontimeout: () => finish(new Error(tr(this.t, 'core.warnings.imageDownloadTimeout'))), onabort: () => finish(abortError())
                 });
                 if (this.signal?.aborted) stop();
             } catch (error) { finish(error); }
@@ -105,28 +106,28 @@ export class ExportResources {
         const promise = this._schedule(async () => {
             try {
                 checkAbort(this.signal);
-                if (this.bytes >= this.maxTotal) throw new Error('资源总量达到 100 MiB 限制');
+                if (this.bytes >= this.maxTotal) throw new Error(tr(this.t, 'core.warnings.imageBudgetTotal'));
                 const blob = await this._blob(url);
                 checkAbort(this.signal);
-                if (!blob || !/^image\//i.test(blob.type)) throw new Error('响应不是图片');
-                if (blob.size > this.maxImage) throw new Error('图片超过单图 20 MiB 限制');
-                if (this.bytes + blob.size > this.maxTotal) throw new Error('资源总量超过 100 MiB 限制');
+                if (!blob || !/^image\//i.test(blob.type)) throw new Error(tr(this.t, 'core.warnings.notAnImage'));
+                if (blob.size > this.maxImage) throw new Error(tr(this.t, 'core.warnings.imageTooLarge'));
+                if (this.bytes + blob.size > this.maxTotal) throw new Error(tr(this.t, 'core.warnings.imagesTooLargeTotal'));
                 this.bytes += blob.size;
                 return await new Promise((resolve, reject) => {
                     const reader = new this.document.defaultView.FileReader();
                     const stop = () => { reader.abort(); reject(abortError()); };
                     this.signal?.addEventListener('abort', stop, { once: true });
                     reader.onload = () => { this.signal?.removeEventListener('abort', stop); resolve(reader.result); };
-                    reader.onerror = () => { this.signal?.removeEventListener('abort', stop); reject(new Error('图片编码失败')); };
+                    reader.onerror = () => { this.signal?.removeEventListener('abort', stop); reject(new Error(tr(this.t, 'core.warnings.imageEncodeFailed'))); };
                     reader.readAsDataURL(blob);
                 });
             } catch (error) {
                 checkAbort(this.signal);
-                this.warnings.push({ url, reason: error.message || '资源未能嵌入' });
+                this.warnings.push({ url, reason: error.message || tr(this.t, 'core.warnings.resourceNotEmbedded') });
                 return url;
             } finally {
                 this.completed++;
-                this.onProgress({ stage: 'images', message: `正在保存图片 ${this.completed}/${this.cache.size}…`, detail: `已读取 ${(this.bytes / 1024 / 1024).toFixed(1)} MiB；未嵌入 ${this.warnings.length} 项`, current: this.completed, total: this.cache.size });
+                this.onProgress({ stage: 'images', message: tr(this.t, 'core.progress.savingImages', { current: this.completed, total: this.cache.size }), detail: tr(this.t, 'core.progress.imagesDetail', { size: (this.bytes / 1024 / 1024).toFixed(1), count: this.warnings.length }), current: this.completed, total: this.cache.size });
             }
         });
         this.cache.set(url, promise);
@@ -134,7 +135,7 @@ export class ExportResources {
     }
 }
 
-export async function prepareExportHTML(html, { document, origin, embed = false, pdf = false, resources, signal, postNumber = 0, topicId = '' } = {}) {
+export async function prepareExportHTML(html, { document, origin, embed = false, pdf = false, resources, signal, postNumber = 0, topicId = '', t = null } = {}) {
     checkAbort(signal);
     // Template contents are inert, including scripts and image loading.
     const template = document.createElement('template');
@@ -145,17 +146,17 @@ export async function prepareExportHTML(html, { document, origin, embed = false,
         const source = math.getAttribute('data-math-source') || math.getAttribute('data-math') || math.textContent;
         if (source?.trim()) {
             const pre = document.createElement('pre'); pre.className = 'export-math-source';
-            pre.textContent = source.trim(); pre.setAttribute('data-export-label', '公式源码'); math.replaceWith(pre);
+            pre.textContent = source.trim(); pre.setAttribute('data-export-label', tr(t, 'core.media.mathSource')); math.replaceWith(pre);
         }
     }
     for (const media of root.querySelectorAll('iframe, video, audio, object, embed')) {
         const figure = document.createElement('figure'); figure.className = 'export-media';
         const sources = [media.getAttribute('src'), media.getAttribute('data'), ...[...media.querySelectorAll('source[src]')].map(el => el.getAttribute('src'))].map(src => exportUrl(src, origin)).filter(Boolean);
         const poster = exportUrl(media.getAttribute('poster'), origin);
-        if (poster) { const image = document.createElement('img'); image.src = poster; image.alt = '媒体封面'; figure.appendChild(image); }
-        const note = document.createElement('figcaption'); note.textContent = `${media.tagName.toLowerCase() === 'audio' ? '音频' : '媒体'}内容需联网查看：`; figure.appendChild(note);
+        if (poster) { const image = document.createElement('img'); image.src = poster; image.alt = tr(t, 'core.media.coverAlt'); figure.appendChild(image); }
+        const note = document.createElement('figcaption'); note.textContent = media.tagName.toLowerCase() === 'audio' ? tr(t, 'core.media.audioNote') : tr(t, 'core.media.mediaNote'); figure.appendChild(note);
         for (const src of new Set(sources)) { const link = document.createElement('a'); link.href = src; link.textContent = media.getAttribute('title') || src; figure.appendChild(link); }
-        if (!sources.length) note.append('请访问原帖');
+        if (!sources.length) note.append(tr(t, 'core.media.visitOriginal'));
         media.replaceWith(figure);
     }
     const ids = new Map();
@@ -196,7 +197,7 @@ export async function prepareExportHTML(html, { document, origin, embed = false,
         const hint = img.closest('a.lightbox')?.getAttribute('title');
         if (!img.getAttribute('alt') && hint) img.setAttribute('alt', hint);
         for (const attr of ['srcset', 'sizes', 'data-src', 'data-srcset', 'data-original', 'data-lazy-src', 'loading', 'onerror']) img.removeAttribute(attr);
-        if (!src) { img.replaceWith(document.createTextNode(img.alt || '[图片地址不可用]')); return; }
+        if (!src) { img.replaceWith(document.createTextNode(img.alt || tr(t, 'core.media.imageUnavailable'))); return; }
         img.setAttribute('src', embed ? await resources.embed(src) : src);
         img.setAttribute('loading', 'eager');
     }));
@@ -210,7 +211,7 @@ function escapeText(text) {
 }
 function fenceFor(text, minimum = 3) { return '`'.repeat(Math.max(minimum - 1, ...[...text.matchAll(/`+/g)].map(match => match[0].length)) + 1); }
 
-export function htmlToMarkdown(html, { document, origin } = {}) {
+export function htmlToMarkdown(html, { document, origin, t = null } = {}) {
     const template = document.createElement('template');
     template.innerHTML = cleanExportHTML(html, document);
     const children = node => [...node.childNodes].map(convert).join('');
@@ -245,7 +246,7 @@ export function htmlToMarkdown(html, { document, origin } = {}) {
             }
             case 'img': {
                 if (node.classList.contains('emoji')) return node.getAttribute('alt') || '';
-                const src = selectImage(node, origin); const alt = escapeText(node.getAttribute('alt') || '图片');
+                const src = selectImage(node, origin); const alt = escapeText(node.getAttribute('alt') || tr(t, 'core.media.imageAlt'));
                 return src ? `![${alt}](<${src.replace(/>/g, '%3E')}>)` : `[${alt}]`;
             }
             case 'ul': case 'ol': {
@@ -281,15 +282,22 @@ export function htmlToMarkdown(html, { document, origin } = {}) {
     return children(template.content).trim();
 }
 
-export const EXPORT_EXTRA_CSS = `
+// Hex-escape CSS controls and '<' as well: this stylesheet is embedded in an HTML style element.
+function cssText(value) { return String(value).replace(/[\\'<>\u0000-\u001f\u007f]/g, ch => `\\${ch.codePointAt(0).toString(16)} `); }
+export function getExportExtraCSS(t = null) {
+    const spoilerLabel = cssText(tr(t, 'core.media.spoilerLabel'));
+    const mathSource = cssText(tr(t, 'core.media.mathSource'));
+    return `
 .post-content .emoji{display:inline-block;width:1.2em;height:1.2em;max-height:none;margin:0 .1em;vertical-align:-.15em;border-radius:0}
 .post-content .lightbox-wrapper,.post-content .lightbox{display:block;max-width:100%}.post-content .meta{color:#667085;font-size:12px;display:block}
 .post-content .export-image-caption{display:block;font-size:12px;line-height:1.5;color:#667085;text-align:center;margin:4px 0 8px}.post-content svg{max-width:100%}
 .post-content details{border:1px solid #d4dfd9;border-radius:6px;padding:8px 12px;margin:12px 0}.post-content summary{cursor:pointer;font-weight:600}
-.post-content .spoiler,.post-content .spoiler-blurred{filter:none!important;opacity:1!important}.post-content .spoiler::before{content:'〔剧透内容〕';font-size:12px;color:#667085}
+.post-content .spoiler,.post-content .spoiler-blurred{filter:none!important;opacity:1!important}.post-content .spoiler::before{content:'${spoilerLabel}';font-size:12px;color:#667085}
 .post-content .onebox{display:block;border:1px solid #d4dfd9;padding:12px;margin:12px 0;overflow-wrap:anywhere}.post-content .onebox img{max-height:200px}
-.post-content .export-media{border-left:3px solid #4b5ea8;padding:8px 12px}.export-media a{display:block}.export-math-source::before{content:'公式源码';display:block;font-size:12px;color:#94a3b8}
+.post-content .export-media{border-left:3px solid #4b5ea8;padding:8px 12px}.export-media a{display:block}.export-math-source::before{content:'${mathSource}';display:block;font-size:12px;color:#94a3b8}
 .post-content .table-wrapper{overflow-x:auto}.post-content table{table-layout:auto}.post-content th{font-weight:600;background:#f6f8f5}
 .export-warnings{padding:14px;border:1px solid #d6a348;background:#fff9ed;margin:16px 0;overflow-wrap:anywhere}.export-warnings li{margin:6px 0}
 @media print{.post-content .lightbox-wrapper{break-inside:avoid}.post-content .table-wrapper{overflow:visible}.post-content thead{display:table-header-group}.post-content tr{break-inside:avoid}.post-content pre{overflow:visible;white-space:pre-wrap;overflow-wrap:anywhere}.post-content h1,.post-content h2,.post-content h3,.post-content summary{break-after:avoid}.post-content .emoji{max-height:none}.post-content .onebox{break-inside:auto}}
 `;
+}
+export const EXPORT_EXTRA_CSS = getExportExtraCSS();

@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { JSDOM } from 'jsdom';
-import { cleanExportHTML, exportUrl, prepareExportHTML, htmlToMarkdown, ExportResources } from '../src/core/topic-export.mjs';
+import { cleanExportHTML, exportUrl, prepareExportHTML, htmlToMarkdown, ExportResources, EXPORT_EXTRA_CSS } from '../src/core/topic-export.mjs';
+import * as topicExport from '../src/core/topic-export.mjs';
 import { renderMarkdown } from '../src/core/sanitize.mjs';
+import { createTranslator } from '../src/i18n/index.mjs';
 
 const origin = 'https://forum.invalid';
 const { window } = new JSDOM('', { url: origin });
@@ -65,4 +67,65 @@ test('assets are deduplicated, bounded and visibly reported when they cannot be 
     assert.equal(calls, 1); assert.equal(resources.warnings.length, 1);
     const controller = new AbortController(); controller.abort();
     await assert.rejects(new ExportResources({ document, origin, signal: controller.signal }).embed(url), { name: 'AbortError' });
+});
+
+test('media placeholders resolve through the injected translator or the built-in Chinese fallback', async () => {
+    const source = '<audio></audio><img src="javascript:bad">';
+    const localized = await prepareExportHTML(source, { document, origin, t: createTranslator('en-US').t });
+    assert.ok(!localized.includes('media.audioNote'), localized);
+    assert.ok(!localized.includes('media.visitOriginal'), localized);
+    assert.ok(!localized.includes('media.imageUnavailable'), localized);
+    assert.match(localized, /Audio content requires an internet connection:/);
+    assert.match(localized, /Open the original post/);
+    assert.match(localized, /\[Image URL unavailable\]/);
+
+    const fallback = await prepareExportHTML(source, { document, origin });
+    assert.ok(!fallback.includes('media.audioNote'), fallback);
+    assert.ok(!fallback.includes('media.visitOriginal'), fallback);
+    assert.ok(!fallback.includes('media.imageUnavailable'), fallback);
+    assert.match(fallback, /音频内容需联网查看：/);
+    assert.match(fallback, /请访问原帖/);
+    assert.match(fallback, /\[图片地址不可用\]/);
+});
+
+test('image failures, progress and math labels follow the injected locale with a Chinese standalone fallback', async () => {
+    for (const locale of ['zh-CN', 'en-US', null]) {
+        const t = locale ? createTranslator(locale).t : null;
+        const expected = createTranslator(locale || 'zh-CN').t;
+        for (const [callback, key] of [['onerror', 'core.warnings.imageDownloadFailed'], ['ontimeout', 'core.warnings.imageDownloadTimeout']]) {
+            const progress = [];
+            const url = 'https://cdn.invalid/image.png';
+            const resources = new ExportResources({ document, origin, interval: 0, t, onProgress: state => progress.push(state), gm: options => {
+                queueMicrotask(() => options[callback]()); return { abort() {} };
+            } });
+            assert.equal(await resources.embed(url), url);
+            assert.deepEqual(resources.warnings, [{ url, reason: expected(key) }]);
+            assert.equal(progress[0].message, expected('core.progress.savingImages', { current: 1, total: 1 }));
+            assert.equal(progress[0].detail, expected('core.progress.imagesDetail', { size: '0.0', count: 1 }));
+        }
+        const html = await prepareExportHTML('<span class="math">x^2</span><p>原始正文</p>', { document, origin, t });
+        assert.ok(html.includes(`data-export-label="${expected('core.media.mathSource')}"`), html);
+        assert.match(html, /原始正文/);
+    }
+});
+
+test('export CSS escapes string delimiters, controls and HTML end tags', () => {
+    const label = "'\\\n\r\u0000</style><script>bad</script>";
+    // The baseline has only the constant: exercise that actual output for the RED comparison.
+    const getExportExtraCSS = topicExport.getExportExtraCSS || (() => EXPORT_EXTRA_CSS);
+    const css = getExportExtraCSS(() => label);
+    assert.ok(css.includes('\\27 \\5c \\a \\d \\0 \\3c /style\\3e '));
+    const doc = new JSDOM(`<style>${css}</style><p>safe</p>`).window.document;
+    assert.equal(doc.querySelectorAll('style').length, 1);
+    assert.equal(doc.querySelectorAll('script').length, 0);
+    assert.equal(doc.querySelector('p').textContent, 'safe');
+    assert.equal(EXPORT_EXTRA_CSS, getExportExtraCSS(createTranslator('zh-CN').t));
+});
+
+test('Markdown image fallback localizes exports but standalone AI input retains Chinese', () => {
+    const html = '<img src="/x.png"><img src="/y.png" alt="原始 alt">';
+    const english = htmlToMarkdown(html, { document, origin, t: createTranslator('en-US').t });
+    assert.match(english, /!\[Image\]/);
+    assert.match(english, /!\[原始 alt\]/);
+    assert.match(htmlToMarkdown(html, { document, origin }), /!\[图片\]/);
 });

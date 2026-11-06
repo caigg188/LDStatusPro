@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { TopicContentClient, retryDelay, sleep } from '../src/core/topic-content.mjs';
+import { createTranslator } from '../src/i18n/index.mjs';
 
 const origin = 'https://forum.invalid';
 const post = number => ({ id: 1000 + number, topic_id: 42, post_number: number, cooked: `<p>第${number}楼</p>` });
@@ -92,4 +93,44 @@ test('default fetch keeps the global receiver required by native browsers', asyn
     };
     const client = new TopicContentClient({ origin });
     assert.equal((await client.getTopic(42)).id, '42');
+});
+
+test('standalone progress messages never surface raw i18n keys', async () => {
+    const progress = [];
+    const client = new TopicContentClient({
+        origin, now: () => 0, wait: async () => {}, interval: 0, jitter: () => 0,
+        fetchImpl: async () => response({ id: 42, post_stream: { posts: [] } })
+    });
+    client.nextRequest = 1000;
+    await client.getTopic(42, { onProgress: state => progress.push(state) });
+    assert.ok(progress.length > 0);
+    for (const state of progress) {
+        assert.ok(!String(state.message).includes('core.'), state.message);
+        assert.ok(!String(state.detail || '').includes('core.'), state.detail);
+    }
+});
+
+test('forum errors and empty-range warnings follow the injected locale without changing status or retries', async () => {
+    for (const locale of ['zh-CN', 'en-US']) {
+        const t = createTranslator(locale).t;
+        for (const [status, data, key, params, expectedCalls] of [
+            [401, {}, 'core.errors.accessDenied', {}, 1],
+            [403, {}, 'core.errors.accessDenied', {}, 1],
+            [404, {}, 'core.errors.readFailed', { status: 404 }, 1],
+            [500, {}, 'core.errors.readFailed', { status: 500 }, 3],
+            [200, '<html>verify</html>', 'core.errors.nonJson', {}, 1],
+            [429, { wait_seconds: 7 }, 'core.errors.rateLimited', { seconds: 7 }, 3]
+        ]) {
+            let calls = 0;
+            const client = fixture(async () => { calls++; return response(data, status); }, { t }).client;
+            await assert.rejects(client.getTopic(42), error => {
+                assert.equal(error.message, t(key, params));
+                assert.equal(error.status, status === 200 ? 403 : status);
+                return true;
+            });
+            assert.equal(calls, expectedCalls);
+        }
+        const client = fixture(async () => response({ id: 42, highest_post_number: 1, post_stream: { posts: [] } }), { t }).client;
+        assert.deepEqual((await client.getPosts(42, 1, 1)).warnings, [t('core.warnings.noVisiblePosts')]);
+    }
 });

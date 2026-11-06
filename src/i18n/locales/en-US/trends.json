@@ -1,0 +1,54 @@
+{
+  "tabs": {
+    "today": "Today",
+    "week": "Week",
+    "month": "Month",
+    "year": "Year",
+    "all": "All"
+  },
+  "prevDay": "prev. day",
+  "weekNum": "Wk {num}",
+  "today": {
+    "firstVisitLine1": "First visit today",
+    "firstVisitLine2": "Tracking starts from now",
+    "timeRange": "Today 00:00–{now} (first recorded at {start})",
+    "totalReading": "Read today",
+    "goalTitle": "📖 Daily Goal ({goal}h)",
+    "upItems": "📈 Gains",
+    "downItems": "📉 Drops",
+    "changesTitle": "📊 Today's Changes",
+    "comparedTo": "vs {label}",
+    "noChanges": "No metric changes vs {label}"
+  },
+  "week": {
+    "readingTitle": "⏱️ 7-Day Reading",
+    "readingSub": "Total {total} · Avg {avg}/d",
+    "metricsTitle": "📈 Daily Progress",
+    "metricsSub": "Recorded metrics by day"
+  },
+  "month": {
+    "readingTitle": "⏱️ Monthly Reading",
+    "readingSub": "Total {total} · Avg {avg}/d",
+    "dayFutureTip": "Day {day}: 0m (upcoming)",
+    "dayTip": "Day {day}: {time}",
+    "metricsTitle": "📈 Weekly Progress",
+    "metricsSub": "Recorded metrics by week"
+  },
+  "year": {
+    "readingTitle": "⏱️ Yearly Reading",
+    "readingSub": "Total {total}",
+    "legendMin": "<1m",
+    "legendMax": ">5h",
+    "metricsTitle": "📊 Monthly Progress",
+    "metricsSub": "Recorded metrics by month"
+  },
+  "all": {
+    "recordedReadingDays": "Recorded {days} days of reading",
+    "recordedDataDays": "Recorded {rec} days of stats",
+    "recordedDataSpan": "Recorded {rec} days · Span {span}d",
+    "totalAndDailyAvg": "Total reading · Avg {avg}/d",
+    "cumulativeChanges": "📊 Overall Change",
+    "daysSuffix": "({rec}d)",
+    "dailyAvgIncrement": "📈 Avg Daily Gain"
+  }
+}

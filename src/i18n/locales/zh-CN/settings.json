@@ -1,0 +1,86 @@
+{
+  "title": "设置",
+  "backAria": "返回",
+  "nav": {
+    "theme": "🎨 外观设置",
+    "readingGoal": "🎯 阅读目标",
+    "fontSize": "🔤 字体调节",
+    "actions": "🔘 功能按钮",
+    "requirements": "📋 要求展示",
+    "language": "🌐 界面语言"
+  },
+  "theme": {
+    "title": "外观设置",
+    "auto": "跟随系统",
+    "autoDesc": "根据系统外观自动切换",
+    "light": "浅色",
+    "lightDesc": "高亮清爽，适合白天阅读",
+    "dark": "深色",
+    "darkDesc": "夜间护眼，减少眩光干扰"
+  },
+  "readingGoal": {
+    "title": "阅读目标设置",
+    "label": "目标时长",
+    "unit": "小时",
+    "summary": {
+      "other": "{hours}小时"
+    },
+    "hint": "范围 0.5 - 20 小时，步进 0.5 小时"
+  },
+  "fontSize": {
+    "title": "字体调节",
+    "currentLevel": "当前档位",
+    "levels": {
+      "compact": "紧凑",
+      "small": "偏小",
+      "standard": "标准",
+      "comfortable": "舒适",
+      "large": "宽大"
+    },
+    "hint": "五档梯度重新拉开：更适合小屏压缩阅读，也能在大屏下获得更明显放大效果"
+  },
+  "actions": {
+    "title": "功能按钮",
+    "summary": "{enabled}/{total} 开启",
+    "orderNav": "↕️ 按钮排序",
+    "toggleNav": "✅ 功能启用",
+    "toggleTitle": "功能启用",
+    "orderTitle": "按钮排序",
+    "orderTip": "可拖动调整：士多、LDC、CDK、总结、导出、工单。登录和注销顺序固定。",
+    "buttons": {
+      "login": "登录按钮",
+      "logout": "注销按钮",
+      "ticket": "工单按钮",
+      "melon": "总结按钮",
+      "export": "导出按钮",
+      "ldc": "LDC 按钮",
+      "shop": "士多按钮",
+      "cdk": "CDK 按钮"
+    },
+    "resetOrder": "恢复默认顺序",
+    "resetOrderToast": "✅ 已恢复默认顺序"
+  },
+  "requirements": {
+    "title": "要求展示",
+    "summaryAll": "展示全部",
+    "summaryIncomplete": "只显示未完成",
+    "allLabel": "展示所有升级数据",
+    "allDesc": "默认展示已完成和未完成的升级要求",
+    "incompleteLabel": "只显示未完成",
+    "incompleteDesc": "要求板块仅保留尚未达成的项目"
+  },
+  "language": {
+    "title": "界面语言",
+    "zhCN": "简体中文",
+    "zhCNSummary": "简体中文",
+    "zhCNDesc": "默认中文界面",
+    "enUS": "English (US)",
+    "enUSSummary": "English (US)",
+    "enUSDesc": "英文界面，刷新页面后生效",
+    "hint": "语言偏好会立即保存在当前站点本地；存在进行中的总结或导出任务时不会强制刷新。",
+    "reloadNow": "刷新页面以应用语言",
+    "savedPendingReload": "✅ 语言已保存，刷新页面后生效",
+    "persistFailed": "⚠️ 无法保存语言偏好，刷新后将恢复之前的设置",
+    "busyCannotReload": "⏳ 当前有正在运行的任务，请等待完成后再刷新页面"
+  }
+}

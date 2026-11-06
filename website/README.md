@@ -62,7 +62,17 @@ npm run build
 npm run preview -- --host 127.0.0.1
 ```
 
-构建先生成插件预览，再运行 `tsc -b` 和 Vite，生成 `dist/`。`public/_headers` 和 `_redirects` 随构建复制。`npm run preview:plugin` 生成原生展示 HTML 并校验图片来源。要准备新截图，先运行 `npm run preview:plugin -- --prepare`，用浏览器在 1440 × 900 的内层桌面 iframe 中渲染四个 HTML，按 CSS 2 倍缩放采集并裁切到面板边界，保存 WebP 后更新 `public/product-preview/capture.json`。HTML 内禁止脚本与网络请求，仅供采集；首页不引用它们。当前升级要求图片为 760 × 1186，趋势图片为 760 × 1211。
+构建先生成插件预览，再运行 `tsc -b` 和 Vite，生成 `dist/`。`public/_headers` 和 `_redirects` 随构建复制。`npm run preview:plugin` 生成原生展示 HTML 并校验图片来源。HTML 内禁止脚本与网络请求，仅供采集；首页不引用它们。
+
+重新采集：在仓库根目录安装锁定依赖 `npm ci` 和浏览器 `npx --no-install playwright install chromium`，确认系统具有中文字体；然后在 `website/` 执行：
+
+```bash
+npm run preview:plugin -- --prepare
+npm run capture:plugin
+npm run check:deploy
+```
+
+采集脚本复用根目录的 Playwright，在 1440 × 900 的桌面 iframe 中以 CSS 2 倍缩放渲染四个 HTML，按 DOM 面板边界裁切，以浏览器原生 WebP 编码器质量 0.96 保存。外部请求被阻止；`capture.json` 记录浏览器、日期、源码/演示数据及各 HTML/图片哈希。2026-11-05 的 Chromium/Linux 采集使用系统中文字体 Droid Sans Fallback，升级要求图片为 760 × 1180，趋势图片为 760 × 1210。检查图片后同步 `PluginPreview.tsx` 的固有尺寸，并在仓库根目录执行 `node design/scripts/sync-assets.mjs` 与 `--check`。自动采集不代替人工视觉验收。
 
 统计 SDK 仅在 `ldspro.qzz.io` 加载，localhost 和 Pages 预览域名不会发送统计数据。不要在本地验收过程中连接生产账号或执行订单、支付等业务操作。
 

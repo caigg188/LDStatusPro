@@ -1,0 +1,91 @@
+{
+  "ui": {
+    "loading": "加载中...",
+    "loadingData": "加载数据中...",
+    "loadingMore": "加载更多...",
+    "empty": "暂无数据",
+    "noHistory": "暂无历史数据",
+    "selectCategory": "选择一个分类查看",
+    "error": "加载失败",
+    "unknownError": "未知错误",
+    "retry": "🔄 重试",
+    "goLogin": "去登录 →"
+  },
+  "dialog": {
+    "successTitle": "成功",
+    "errorTitle": "错误",
+    "warningTitle": "警告",
+    "infoTitle": "提示",
+    "confirmTitle": "确认操作",
+    "ok": "确认",
+    "cancel": "取消",
+    "gotIt": "知道了"
+  },
+  "time": {
+    "lessThanOneMin": "< 1分钟",
+    "minutes": "{m}分钟",
+    "hours": "{h}小时",
+    "hoursMinutes": "{h}小时{m}分",
+    "justNow": "刚刚",
+    "minutesAgo": "{n}分钟前",
+    "hoursAgo": "{n}小时前",
+    "daysAgo": "{n}天前",
+    "monthDay": "{m}月{d}日",
+    "yearMonth": "{y}年{m}月",
+    "weekdays": {
+      "0": "周日",
+      "1": "周一",
+      "2": "周二",
+      "3": "周三",
+      "4": "周四",
+      "5": "周五",
+      "6": "周六"
+    },
+    "months": {
+      "0": "1月",
+      "1": "2月",
+      "2": "3月",
+      "3": "4月",
+      "4": "5月",
+      "5": "6月",
+      "6": "7月",
+      "7": "8月",
+      "8": "9月",
+      "9": "10月",
+      "10": "11月",
+      "11": "12月"
+    }
+  },
+  "errors": {
+    "possibleIpBlock": "IP 可能被封禁，请更换网络节点或联系管理员",
+    "parseResponse": "解析响应失败",
+    "uploadFailed": "上传失败",
+    "codes": {
+      "NETWORK_ERROR": "网络连接失败，请检查网络",
+      "TIMEOUT": "请求超时，请稍后重试",
+      "IP_BANNED": "IP 已被封禁，请更换网络节点",
+      "IP_PERMANENTLY_BANNED": "IP 已被永久封禁，请联系管理员",
+      "RATE_LIMITED": "请求过于频繁，请稍后重试",
+      "NOT_LOGGED_IN": "请先登录",
+      "AUTH_EXPIRED": "登录已过期，请重新登录",
+      "INVALID_TOKEN": "登录已失效，请重新登录",
+      "TOKEN_EXPIRED": "登录已过期，请重新登录",
+      "NOT_JOINED": "请先加入排行榜",
+      "REGISTRATION_PAUSED": "已暂停新用户注册",
+      "UNAUTHORIZED": "没有访问权限",
+      "NOT_FOUND": "请求的资源不存在",
+      "SERVER_ERROR": "服务器暂时不可用，请稍后重试",
+      "VALIDATION_FAILED": "数据验证失败",
+      "SYNC_FAILED": "同步失败，请稍后重试",
+      "HTTP_ERROR": "请求失败"
+    },
+    "http401_403": "没有访问权限，请确认已登录论坛（HTTP {status}）",
+    "http404": "请求的页面不存在（HTTP 404）",
+    "http429": "请求过于频繁，请稍后重试（HTTP 429）",
+    "http5xx": "服务器暂时不可用（HTTP {status}）",
+    "http4xx": "请求失败（HTTP {status}）",
+    "rateLimitWaitSeconds": "请求过于频繁，请等待 {n} 秒后重试",
+    "rateLimitWaitMinutes": "请求过于频繁，请等待 {n} 分钟后重试",
+    "operationFailed": "操作失败，请稍后重试"
+  }
+}
