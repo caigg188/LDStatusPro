@@ -72,7 +72,7 @@ npm run capture:plugin
 npm run check:deploy
 ```
 
-采集脚本复用根目录的 Playwright，在 1440 × 900 的桌面 iframe 中以 CSS 2 倍缩放渲染四个 HTML，按 DOM 面板边界裁切，以浏览器原生 WebP 编码器质量 0.96 保存。外部请求被阻止；`capture.json` 记录浏览器、日期、源码/演示数据及各 HTML/图片哈希。2026-11-05 的 Chromium/Linux 采集使用系统中文字体 Droid Sans Fallback，升级要求图片为 760 × 1180，趋势图片为 760 × 1210。检查图片后同步 `PluginPreview.tsx` 的固有尺寸，并在仓库根目录执行 `node design/scripts/sync-assets.mjs` 与 `--check`。自动采集不代替人工视觉验收。
+采集脚本复用根目录的 Playwright，在 1440 × 900 的桌面 iframe 中以 CSS 2 倍缩放渲染四个 HTML，按 DOM 面板边界裁切，以浏览器原生 WebP 编码器质量 0.96 保存。外部请求被阻止；`capture.json` 记录浏览器、日期、源码/演示数据及各 HTML/图片哈希。2026-11-06 的 v3.9.0.8 图片由 Chromium/macOS 采集，升级要求图片为 760 × 1202，趋势图片为 760 × 1212；不同系统的字体度量可能影响高度，以本次 DOM 边界和来源记录为准。检查图片后同步 `PluginPreview.tsx` 的固有尺寸，并在仓库根目录执行 `node design/scripts/sync-assets.mjs` 与 `--check`。自动采集不代替人工视觉验收。
 
 统计 SDK 仅在 `ldspro.qzz.io` 加载，localhost 和 Pages 预览域名不会发送统计数据。不要在本地验收过程中连接生产账号或执行订单、支付等业务操作。
 

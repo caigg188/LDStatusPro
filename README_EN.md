@@ -8,7 +8,7 @@
 
 > **Linux.do & IDCFlare Community Enhancement Tool** - Trust Level Tracking · Reading Stats · Cloud Sync · Leaderboard
 
-![Version](https://img.shields.io/badge/version-v3.9.0.3-blue)
+![Version](https://img.shields.io/badge/version-v3.9.0.8-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-✓-brightgreen)
 ![Multi-Site](https://img.shields.io/badge/Multi--Site-✓-brightgreen)
@@ -27,6 +27,14 @@ The Simplified Chinese README is the source of truth for versions, repo layout, 
 ---
 
 ## 🌟 Core Features
+
+### Interface language · v3.9.0.8
+
+The userscript now offers an optional **English (US)** interface. Simplified Chinese remains the default.
+
+To switch, open **⚙️ Settings → 🌐 界面语言 (Language) → English (US)**, then click **Reload page to apply**. The preference is saved locally for each site. Finish or stop active summaries, follow-up chats and exports, and save any pending plugin form edits before reloading. Forum posts, user content and AI output are not automatically translated.
+
+Thanks to [@lulavc7221](https://github.com/lulavc7221) for contributing English support! See the [v3.9.0.8 release notes](https://github.com/caigg188/LDStatusPro/releases/tag/v3.9.0.8).
 
 <table>
 <tr>
