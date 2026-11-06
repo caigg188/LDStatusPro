@@ -1,45 +1,45 @@
 {
-  "capturedOn": "2026-11-05",
-  "sha256": "d0f768510e3aede65a5bb2f18a8b0db6ce960a89fb558d549c9b9ba8f1ff8d4c",
+  "capturedOn": "2026-11-06",
+  "sha256": "78be978b7b755d299aa27c4e7cbadf26a5a6feee810fcc113e6c4303af486f3f",
   "fixtureSha256": "c535b3b960a82580aac2564fc6f7a8e559b3b4b9353e91c85f743ea55bf89da4",
   "presentationRevision": "compact-380x660-incomplete-no-level-badge-settled-v1",
   "method": "Playwright Chromium rendering of original source UI with synthetic signed-in fixtures; 1440x900 desktop iframe at CSS scale 2, deviceScaleFactor 1; clipped to DOM panel bounds; external requests blocked",
   "browser": "Chromium 156.0.8078.4",
-  "platform": "linux",
+  "platform": "darwin",
   "images": {
     "reqs": {
       "width": 760,
-      "height": 1180
+      "height": 1202
     },
     "trends": {
       "width": 760,
-      "height": 1210
+      "height": 1212
     }
   },
   "files": {
     "plugin-light-reqs.webp": {
-      "sha256": "53b2f314373a1697ca65292209ac28f8ce632a1181a8056a37ecc2989eebb49c",
-      "htmlSha256": "038ce5bc816c63f0100ce2c0f9ce5dea266aa0549cc1f1826068e4bdf4a1a752",
+      "sha256": "e94926969fe35f52f447db3c97ee69af62be44432dca21ef561cc3ff4817d0c5",
+      "htmlSha256": "7e2e8e488f2cf1583d95523944a8c7bb3f144fc3e106b7862ede7060a5ad4bd3",
       "width": 760,
-      "height": 1180
+      "height": 1202
     },
     "plugin-light-trends.webp": {
-      "sha256": "0f64bbddb5251d30eeeedf247dbeeab910e09f6c844e3b63d1abbee6d69a0c4b",
-      "htmlSha256": "0956d1c74830e5ab28580a23d7d18870fabc5129cd499f98efc350688233437b",
+      "sha256": "e1198a9f58f70bc5031e15abe785ffc22995c6ab4d674903db23add8767121e4",
+      "htmlSha256": "598e6ef97d7186ede2560f046401fd1474f029b319c8064d421151b2bdcc53eb",
       "width": 760,
-      "height": 1210
+      "height": 1212
     },
     "plugin-dark-reqs.webp": {
-      "sha256": "2e76c9f21974f485659d2eee13a48c67d76d9f2a5c7e3a026cb8b9fde2bbeb29",
-      "htmlSha256": "1282683f91a5678fbb284b5573ca1ec9a1829ba4b45df0d57b7d8ec873c5416e",
+      "sha256": "97135c627befe6b0bb054f81e445968783c9b8faa8f739304ac64b0eb39fd800",
+      "htmlSha256": "769fca5f5965af52174df874a8545d6aecce6ac08fc4f0c322166f56373864f0",
       "width": 760,
-      "height": 1180
+      "height": 1202
     },
     "plugin-dark-trends.webp": {
-      "sha256": "23bf0665c74aed603c42ffe1b602b0d469a9f34697b03992314be95b5aef0bf3",
-      "htmlSha256": "5a13a9a548223ec8d000146584acb4c1e08b4b5fc43166d7ace438f35f60fa32",
+      "sha256": "4a47c308ab5016e9e56023b78f65be6150a7fad5aa20fd93ddbddcb7a23080a6",
+      "htmlSha256": "f98524c0efa94108a689683bc07d572056a658162dec82e21cc9432fb15cd785",
       "width": 760,
-      "height": 1210
+      "height": 1212
     }
   },
   "processing": "Settled animation frame; browser-native WebP quality 0.96. No live plugin runtime on the website."

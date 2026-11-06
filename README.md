@@ -8,7 +8,7 @@
 
 > **Linux.do & IDCFlare 社区增强工具** - 信任级别追踪 · 阅读统计 · 云同步 · 排行榜 · LD 士多入口
 
-![Version](https://img.shields.io/badge/version-v3.9.0.7-blue)
+![Version](https://img.shields.io/badge/version-v3.9.0.8-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-✓-brightgreen)
 ![Multi-Site](https://img.shields.io/badge/Multi--Site-✓-brightgreen)
@@ -18,7 +18,7 @@
 
 🌐 **[官网](https://ldspro.qzz.io/)** | 🏪 **[LD 士多](https://ldcstore.com/)** | 📖 **[脚本说明](./DOCS.md)**
 
-脚本版本以 `LDStatusPro.user.js` 头部 `@version` 为准（当前 **3.9.0.7**）。`update_log.md` 停在 v3.5.4.10，后续变更看 git 与下方近期条目。
+脚本版本以 `LDStatusPro.user.js` 头部 `@version` 为准（当前 **3.9.0.8**）。`update_log.md` 停在 v3.5.4.10，后续变更看 git 与下方近期条目。
 
 **简体中文** | [English](./README_EN.md) | [繁體中文](./README_TW.md)
 
@@ -297,6 +297,15 @@ LDStatusPro/
 ---
 
 ## 📋 更新日志
+
+### v3.9.0.8
+
+- 新增可选的 English (US) 脚本界面，覆盖面板、设置、阅读与趋势、排行榜、工单、LDC/CDK、AI 工具及导出界面。
+- 默认仍为简体中文。在「⚙️ 设置 → 🌐 界面语言」选择 English (US)，再点击「Reload page to apply」刷新生效；语言偏好按站点保存在本地。
+- 切换语言前会保存偏好，刷新应用时检查进行中的总结、追问、导出及未保存的相关表单；论坛原文、用户内容和 AI 输出不会自动翻译。
+- 修复设置菜单在窄面板和较大字号下的文字裁切，并补充 AI 连接失败排查说明。
+- English interface: open **⚙️ Settings → 🌐 界面语言 (Language) → English (US)**, then click **Reload page to apply**.
+- 感谢 [@lulavc7221](https://github.com/lulavc7221) 对英语支持、菜单修复与文档的贡献（[#97](https://github.com/caigg188/LDStatusPro/pull/97)、[#98](https://github.com/caigg188/LDStatusPro/pull/98)、[#99](https://github.com/caigg188/LDStatusPro/pull/99)）。
 
 ### v3.9.0.7
 

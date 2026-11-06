@@ -181,38 +181,38 @@
     {
       "file": "assets/product/plugin/capture.json",
       "source": "website/public/product-preview/capture.json",
-      "bytes": 1849,
-      "sha256": "cff1b2f6364eabe23bbcedf85db18e27fa1c2560e720e14f241b22c5b8ceb22d"
+      "bytes": 1850,
+      "sha256": "e60ebe98d6e6cc25f8d79c2f9acbf84a906213eda07e25c8daf64f483264c2cc"
     },
     {
       "file": "assets/product/plugin/plugin-dark-reqs.webp",
       "source": "website/public/product-preview/plugin-dark-reqs.webp",
-      "bytes": 63416,
-      "sha256": "2e76c9f21974f485659d2eee13a48c67d76d9f2a5c7e3a026cb8b9fde2bbeb29"
+      "bytes": 65734,
+      "sha256": "97135c627befe6b0bb054f81e445968783c9b8faa8f739304ac64b0eb39fd800"
     },
     {
       "file": "assets/product/plugin/plugin-dark-trends.webp",
       "source": "website/public/product-preview/plugin-dark-trends.webp",
-      "bytes": 72524,
-      "sha256": "23bf0665c74aed603c42ffe1b602b0d469a9f34697b03992314be95b5aef0bf3"
+      "bytes": 66440,
+      "sha256": "4a47c308ab5016e9e56023b78f65be6150a7fad5aa20fd93ddbddcb7a23080a6"
     },
     {
       "file": "assets/product/plugin/plugin-light-reqs.webp",
       "source": "website/public/product-preview/plugin-light-reqs.webp",
-      "bytes": 66324,
-      "sha256": "53b2f314373a1697ca65292209ac28f8ce632a1181a8056a37ecc2989eebb49c"
+      "bytes": 68938,
+      "sha256": "e94926969fe35f52f447db3c97ee69af62be44432dca21ef561cc3ff4817d0c5"
     },
     {
       "file": "assets/product/plugin/plugin-light-trends.webp",
       "source": "website/public/product-preview/plugin-light-trends.webp",
-      "bytes": 76752,
-      "sha256": "0f64bbddb5251d30eeeedf247dbeeab910e09f6c844e3b63d1abbee6d69a0c4b"
+      "bytes": 69544,
+      "sha256": "e1198a9f58f70bc5031e15abe785ffc22995c6ab4d674903db23add8767121e4"
     },
     {
       "file": "assets/product/plugin/source.json",
       "source": "website/public/product-preview/source.json",
       "bytes": 816,
-      "sha256": "75c366211eaca3a679508f224682ca5a798b49a1f64f088c7a6c375f6c5a7f93"
+      "sha256": "79bb3b39fb367d24b599f512f1e7d2fa5cdad537c7ae0c939a38979bffc3957c"
     },
     {
       "file": "assets/product/store/source.json",
