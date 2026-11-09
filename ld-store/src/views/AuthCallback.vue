@@ -84,15 +84,6 @@ function parseOAuthData() {
       const verifier = consumeOAuthState(data.s)
       return verifier ? { code: data.c, state: data.s, verifier } : null
     }
-    // Compatibility reader for callbacks issued before the coordinated cutover.
-    if (data.t && data.u) {
-      return {
-        token: data.t,
-        user: data.u,
-        isJoined: data.j === 1,
-        timestamp: data.ts
-      }
-    }
     return null
   } catch (e) {
     console.error('[AuthCallback] Failed to parse OAuth data:', e)

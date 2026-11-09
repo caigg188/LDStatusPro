@@ -29,6 +29,6 @@ CDK 导出使用公共 API 客户端，下载中的账号变化会丢弃结果�
 
 ## 2026-11-09 一次性授权码交接
 
-登录发起时生成 S256 verifier（sessionStorage）并将 challenge 交给 API1；回跳只接收 60 秒 code 与签名 state，立即清除地址栏参数。`/api/shop/auth/exchange` 兑换为 API2 用户会话后，继续走原有服务端身份校验、跨标签会话竞争保护与持久化流程。旧 JWT fragment 仅保留读取兼容；新后端不再签发这种 URL。插件同期升级为相同的 browser-bound code 流程。
+登录发起时生成 S256 verifier（sessionStorage）并将 challenge 交给 API1；回跳只接收 60 秒 code 与签名 state，立即清除地址栏参数。`/api/shop/auth/exchange` 兑换为 API2 用户会话后，继续走原有服务端身份校验、跨标签会话竞争保护与持久化流程。旧 JWT fragment 也不再接受，避免凭据注入绕过浏览器 state 绑定；新后端不再签发这种 URL。插件同期升级为相同的 browser-bound code 流程。
 
 定向验证：商城 auth-callback 16 项、插件 OAuth 交接 2 项；API1/2 的 mock 验证不能替代真实 OAuth、浏览器插件管理器与生产页面验收。上线需与两个后端协调，旧插件须升级。回滚保留来源白名单和 code 交接，不恢复将长期 JWT 放入 URL 的实现。
