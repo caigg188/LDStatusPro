@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import { webcrypto } from 'node:crypto';
 import { parse } from 'acorn';
 import { JSDOM } from 'jsdom';
 
@@ -20,6 +21,7 @@ const code = node => source.slice(node.start, node.end);
 function fixture(locale) {
     const dom = new JSDOM('', { url: 'https://linux.do/', runScripts: 'outside-only' });
     const w = dom.window;
+    Object.defineProperty(w, 'crypto', { value: webcrypto, configurable: true });
     w.eval(source.slice(source.indexOf('// @@I18N_BEGIN') + '// @@I18N_BEGIN'.length, source.indexOf('// @@I18N_END')));
     w.eval(`const CONFIG = { NETWORK: { TIMEOUT: 1000 }, LEADERBOARD_API: 'https://api.invalid' };
         const CURRENT_SITE = { domain: 'linux.do' };

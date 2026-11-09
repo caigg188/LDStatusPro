@@ -6,6 +6,7 @@ import AuthCallback from '../src/views/AuthCallback.vue'
 import { authSession, clearAuthSession, setAuthSession } from '../src/utils/auth'
 import { authToken } from './helpers/auth'
 import { Buffer } from 'node:buffer'
+import { rememberOAuthState } from '../src/utils/oauthHandoff'
 const mocks = vi.hoisted(() => ({ replace: vi.fn().mockResolvedValue(undefined), success: vi.fn() }))
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: { redirect: '/product/7' } }), useRouter: () => ({ replace: mocks.replace }) }))
 vi.mock('@/composables/useToast', () => ({ useToast: () => ({ success: mocks.success }) }))
@@ -14,7 +15,12 @@ beforeEach(() => { localStorage.clear(); clearAuthSession(); setActivePinia(crea
 afterEach(() => { wrapper?.unmount(); wrapper = undefined; vi.unstubAllGlobals(); vi.restoreAllMocks() })
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })
 function callback(token = authToken(), id = '11', query = false) {
-  const data = Buffer.from(JSON.stringify({ t: token, u: { id, site: 'linux.do' }, j: 1 })).toString('base64')
+  rememberOAuthState('v'.repeat(64), 'fixture-state')
+  const data = Buffer.from(JSON.stringify({ c: 'one-use-fixture', s: 'fixture-state', exp: Date.now() + 60000 })).toString('base64')
+  const verifyFetch = globalThis.fetch
+  vi.stubGlobal('fetch', (url: string, options: RequestInit) => String(url).endsWith('/api/shop/auth/exchange')
+    ? Promise.resolve(json({ success: true, data: { token, user: { id, site: 'linux.do' } } }))
+    : verifyFetch(url, options))
   history.replaceState(null, '', `/auth/callback${query ? `?ldsp_oauth=${encodeURIComponent(data)}&redirect=/product/7` : `#ldsp_oauth=${data}`}`)
   wrapper = mount(AuthCallback, { global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } } })
 }
@@ -26,7 +32,7 @@ it('removes callback credentials immediately, verifies before persistence and re
   expect(location.href).not.toContain('ldsp_oauth')
   expect(authSession.value.token).toBeNull()
   expect(mocks.success).not.toHaveBeenCalled()
-  resolve(verified()); await flushPromises()
+  await flushPromises(); resolve(verified()); await flushPromises()
   expect(authSession.value.user?.id).toBe('11')
   expect(mocks.success).toHaveBeenCalledWith('登录成功')
   expect(mocks.replace).toHaveBeenCalledWith('/product/7')
@@ -50,13 +56,13 @@ it('retries a transient network failure without claiming success prematurely', a
   expect(fetch).toHaveBeenCalledTimes(2)
   expect(mocks.success).toHaveBeenCalledTimes(1)
 })
-it.each(['invalid-token', authToken('11', { exp: 1 }), authToken('22')])('rejects invalid or mismatched callback data before contacting the server', async token => {
+it.each(['invalid-token', authToken('11', { exp: 1 }), authToken('22')])('rejects invalid or mismatched exchanged credentials before identity verification', async token => {
   const fetch = vi.fn()
   vi.stubGlobal('fetch', fetch)
   callback(token); await flushPromises()
   expect(fetch).not.toHaveBeenCalled()
   expect(authSession.value.token).toBeNull()
-  expect(wrapper!.text()).toContain('无效或已过期')
+  expect(wrapper!.text()).toContain('已失效')
 })
 it.each([
   { success: true, data: { authenticated: false, user: { id: '11' } } },
@@ -72,7 +78,7 @@ it('cannot overwrite a new cross-tab login while validation is pending', async (
   let resolve!: (response: Response) => void
   vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(yes => { resolve = yes })))
   callback(); setAuthSession(authToken('22'))
-  resolve(verified()); await flushPromises()
+  await flushPromises(); resolve(verified()); await flushPromises()
   expect(authSession.value.user?.id).toBe('22')
   expect(mocks.success).not.toHaveBeenCalled()
   expect(wrapper!.text()).toContain('其他页面变更')
@@ -81,17 +87,55 @@ it('does not log in after leaving the callback, and aborts its request', async (
   let resolve!: (response: Response) => void
   const fetch = vi.fn((_url: string, _options: RequestInit) => new Promise<Response>(yes => { resolve = yes }))
   vi.stubGlobal('fetch', fetch)
-  callback(); wrapper!.unmount(); wrapper = undefined
+  callback(); await flushPromises(); wrapper!.unmount(); wrapper = undefined
   expect(fetch.mock.calls[0][1].signal?.aborted).toBe(true)
-  resolve(verified()); await flushPromises()
+  await flushPromises(); resolve(verified()); await flushPromises()
   expect(authSession.value.token).toBeNull()
 })
 it('reports storage failure without false success', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(verified()))
-  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked') })
+  const setItem = Storage.prototype.setItem
+  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function(key, value) {
+    if (this === localStorage) throw new Error('blocked')
+    return setItem.call(this, key, value)
+  })
   vi.spyOn(console, 'error').mockImplementation(() => {})
   callback(); await flushPromises()
   expect(authSession.value.token).toBeNull()
   expect(mocks.success).not.toHaveBeenCalled()
   expect(wrapper!.text()).toContain('无法保存')
+})
+it('exchanges a browser-bound one-use code before server validation; the URL contains no JWT', async () => {
+  rememberOAuthState('v'.repeat(64), 'signed-state')
+  const grant = Buffer.from(JSON.stringify({ c: 'one-use-code', s: 'signed-state', exp: Date.now() + 60000 })).toString('base64')
+  history.replaceState(null, '', `/auth/callback#ldsp_oauth=${grant}`)
+  const fetch = vi.fn().mockResolvedValueOnce(json({ success: true, data: { token: authToken(), user: { id: '11' } } })).mockResolvedValueOnce(verified())
+  vi.stubGlobal('fetch', fetch)
+  wrapper = mount(AuthCallback, { global: { stubs: { RouterLink: true } } })
+  expect(location.href).not.toContain('ldsp_oauth')
+  await flushPromises()
+  expect(fetch.mock.calls[0][0]).toContain('/api/shop/auth/exchange')
+  expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({ code: 'one-use-code', state: 'signed-state', verifier: 'v'.repeat(64) })
+  expect(sessionStorage.getItem('ldstore.oauth.pkce')).toBeNull()
+  expect(authSession.value.user?.id).toBe('11')
+})
+it('rejects a code whose state belongs to another browser login', async () => {
+  rememberOAuthState('v'.repeat(64), 'my-state')
+  const grant = Buffer.from(JSON.stringify({ c: 'stolen-code', s: 'other-state', exp: Date.now() + 60000 })).toString('base64')
+  history.replaceState(null, '', `/auth/callback#ldsp_oauth=${grant}`)
+  const fetch = vi.fn(); vi.stubGlobal('fetch', fetch)
+  wrapper = mount(AuthCallback, { global: { stubs: { RouterLink: true } } })
+  await flushPromises()
+  expect(fetch).not.toHaveBeenCalled()
+  expect(authSession.value.token).toBeNull()
+})
+
+it('rejects a raw JWT fragment without browser-bound authorization state', async () => {
+  const data = Buffer.from(JSON.stringify({ t: authToken(), u: { id: '11' } })).toString('base64')
+  history.replaceState(null, '', `/auth/callback#ldsp_oauth=${data}`)
+  const fetch = vi.fn(); vi.stubGlobal('fetch', fetch)
+  wrapper = mount(AuthCallback, { global: { stubs: { RouterLink: true } } })
+  await flushPromises()
+  expect(fetch).not.toHaveBeenCalled()
+  expect(authSession.value.token).toBeNull()
 })

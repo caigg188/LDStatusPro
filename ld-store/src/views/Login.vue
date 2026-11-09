@@ -88,6 +88,7 @@
 </template>
 
 <script setup>
+import { prepareOAuthHandoff, rememberOAuthState } from '@/utils/oauthHandoff'
 import { ref, onMounted } from 'vue'
 import StoreLogo from '@/components/common/StoreLogo.vue'
 import { useRoute } from 'vue-router'
@@ -122,12 +123,14 @@ async function handleLogin() {
     
     // 获取 OAuth 登录地址
     // 后端使用 /api/auth/init 端点，支持 site 和 return_url 参数
-    const result = await api.get(`/api/auth/init?site=linux.do&return_url=${encodeURIComponent(returnUrl)}`, { auth: 'none' })
+    const { verifier, challenge } = await prepareOAuthHandoff()
+    const result = await api.get(`/api/auth/init?site=linux.do&return_url=${encodeURIComponent(returnUrl)}&code_challenge=${challenge}`, { auth: 'none' })
     
     // 返回格式: { success: true, data: { auth_url: "...", state: "..." } }
     const authUrl = result.data?.auth_url || result.auth_url
     if (result.success && authUrl) {
       // 跳转到 OAuth 授权页面
+      rememberOAuthState(verifier, result.data?.state || result.state)
       window.location.href = authUrl
     } else {
       toast.error(result.error?.message || '获取登录地址失败')

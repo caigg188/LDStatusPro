@@ -2,7 +2,12 @@ import { test, expect, signIn, user } from './fixtures'
 import { authToken } from '../tests/helpers/auth'
 const otherUser = { ...user, id: '33', username: 'other-buyer', name: '另一买家' }
 const otherToken = authToken(otherUser.id, otherUser)
-const callbackData = (token = authToken(user.id, user), profile = user) => Buffer.from(JSON.stringify({ t: token, u: profile, j: 1 })).toString('base64')
+async function startLogin(page: import('@playwright/test').Page, redirect = '/') {
+  await page.goto(`/login?redirect=${encodeURIComponent(redirect)}`)
+  await page.locator('.checkbox-custom').click()
+  await expect(page.getByRole('checkbox')).toBeChecked()
+  await page.getByRole('button', { name: '使用 Linux.do 账号登录' }).click()
+}
 const accountButton = (page: import('@playwright/test').Page) => page.locator('[aria-controls="header-user-menu"]')
 
 test('cross-tab account switch replaces the visible identity, and logout redirects a private page', async ({ page, context }) => {
@@ -50,7 +55,7 @@ test('a late 401 from the previous account cannot log out the new account', asyn
 
 test('OAuth rejection leaves the callback logged out and removes credentials from its URL', async ({ page }) => {
   await page.route('**/api/shop/auth/verify', route => route.fulfill({ status: 401, json: { success: false, code: 'AUTH_INVALID' } }))
-  await page.goto(`/auth/callback?ldsp_oauth=${encodeURIComponent(callbackData())}&redirect=/checkout/7`)
+  await startLogin(page, '/checkout/7')
   await expect(page.getByText('登录授权校验失败，请重新登录')).toBeVisible()
   expect(page.url()).not.toContain('ldsp_oauth')
   expect(await page.evaluate(() => localStorage.getItem('ld_store_token'))).toBeNull()
@@ -63,7 +68,7 @@ test('transient OAuth validation failures can be retried without a premature ses
     if (++attempts === 1) return route.abort('failed')
     return route.fulfill({ json: { success: true, data: { authenticated: true, user } } })
   })
-  await page.goto(`/auth/callback#ldsp_oauth=${callbackData()}`)
+  await startLogin(page)
   await expect(page.getByRole('button', { name: '重试校验' })).toBeVisible()
   expect(await page.evaluate(() => localStorage.getItem('ld_store_token'))).toBeNull()
   await page.getByRole('button', { name: '重试校验' }).click()
@@ -79,7 +84,7 @@ test('a pending OAuth callback cannot overwrite a newer login from another tab',
     await pending
     return route.fulfill({ json: { success: true, data: { authenticated: true, user } } })
   })
-  await page.goto(`/auth/callback#ldsp_oauth=${callbackData()}`)
+  await startLogin(page)
   const tab = await context.newPage()
   await tab.goto('/product/7')
   await tab.evaluate(token => localStorage.setItem('ld_store_token', JSON.stringify({ value: token, expire: 0 })), otherToken)
@@ -97,5 +102,20 @@ test('an idle session expires without a network request or a reload', async ({ p
   await page.clock.fastForward(61000)
   await expect(page).toHaveURL(/\/login\?redirect=.*reason=expired/)
   await expect(accountButton(page)).toHaveCount(0)
+  expect(await page.evaluate(() => localStorage.getItem('ld_store_token'))).toBeNull()
+})
+
+test('login entry completes the PKCE code handoff and returns to the requested product', async ({ page }) => {
+  await startLogin(page, '/product/7')
+  await expect(page).toHaveURL(/\/product\/7$/)
+  await expect(accountButton(page)).toHaveAttribute('aria-label', /回归买家/)
+  expect(await page.evaluate(() => sessionStorage.getItem('ldstore.oauth.pkce'))).toBeNull()
+  expect(page.url()).not.toContain('ldsp_oauth')
+})
+
+test('a legacy raw JWT URL cannot bypass browser-bound login state', async ({ page }) => {
+  const data = Buffer.from(JSON.stringify({ t: authToken(user.id, user), u: user })).toString('base64')
+  await page.goto(`/auth/callback#ldsp_oauth=${data}`)
+  await expect(page.getByText('登录信息无效或已过期，请重新登录')).toBeVisible()
   expect(await page.evaluate(() => localStorage.getItem('ld_store_token'))).toBeNull()
 })

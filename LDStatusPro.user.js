@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         LDStatus Pro
 // @namespace    http://tampermonkey.net/
-// @version      3.9.0.8
+// @version      3.9.0.9
 // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
 // @author       JackLiii
 // @license      MIT
@@ -227,14 +227,8 @@
                     const encoded = match[1];
                     const base64 = decodeURIComponent(encoded);
                     const decoded = JSON.parse(decodeURIComponent(atob(base64)));
-                    // 检查时效性（5分钟内有效）
-                    if (decoded.ts && Date.now() - decoded.ts < 5 * 60 * 1000) {
-                        _pendingOAuthData = {
-                            success: true,
-                            token: decoded.t,
-                            user: decoded.u,
-                            isJoined: decoded.j === 1
-                        };
+                    if (decoded.c && decoded.s && decoded.exp > Date.now() && decoded.exp <= Date.now() + 60000) {
+                        _pendingOAuthData = decoded;
                     }
                     // 立即清除 URL 中的登录参数
                     let newHash = hash.replace(/[#&]?ldsp_oauth=[^&]*/, '').replace(/^[#&]+/, '').replace(/[#&]+$/, '');
@@ -3050,21 +3044,8 @@
                     const base64 = decodeURIComponent(encoded);
                     const decoded = JSON.parse(decodeURIComponent(atob(base64)));
                     
-                    // 检查时效性（5分钟内有效）
-                    if (decoded.ts && Date.now() - decoded.ts > 5 * 60 * 1000) {
-                        Logger.log('URL login result expired');
-                        this._clearUrlHash();
-                        return null;
-                    }
-                    
-                    // 转换为标准格式
-                    const result = {
-                        success: true,
-                        token: decoded.t,
-                        user: decoded.u,
-                        isJoined: decoded.j === 1
-                    };
-                    
+                    const result = decoded.c && decoded.s && decoded.exp > Date.now() ? decoded : null;
+
                     // 清除 URL 中的登录参数，保持 URL 干净
                     this._clearUrlHash();
                     
@@ -3101,9 +3082,23 @@
              * 统一同窗口登录
              * 所有环境都使用同窗口跳转方式，避免弹窗拦截和跨窗口通信问题
              */
+            async _exchangeHandoff(grant) {
+                if (!grant?.c || !grant.s || grant.exp <= Date.now()) return null;
+                let pending;
+                try { pending = JSON.parse(sessionStorage.getItem('ldsp.oauth.pkce')); } catch { return null; }
+                if (!pending || pending.state !== grant.s) return null;
+                sessionStorage.removeItem('ldsp.oauth.pkce');
+                let result;
+                try { result = await this.network.api('/api/auth/exchange', {
+                    method: 'POST', body: { code: grant.c, state: grant.s, verifier: pending.verifier,
+                        origin: location.origin, audience: 'ldsp' }
+                }); } catch { return null; }
+                return result.success && result.data?.token ? { success: true, ...result.data } : null;
+            }
+
             async login() {
                 // 检查是否有待处理的登录结果（从 URL hash 中获取）
-                const pendingResult = this._checkUrlHashLogin();
+                const pendingResult = await this._exchangeHandoff(this._checkUrlHashLogin());
                 if (pendingResult?.success && pendingResult.token && pendingResult.user) {
                     this.setToken(pendingResult.token);
                     this.setUserInfo(pendingResult.user);
@@ -3117,9 +3112,13 @@
                 const returnUrl = encodeURIComponent(window.location.origin + window.location.pathname + window.location.search);
                 
                 try {
-                    const result = await this.network.api(`/api/auth/init?site=${siteParam}&return_url=${returnUrl}`);
+                    const verifier = Array.from(window.crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
+                    const digest = new Uint8Array(await window.crypto.subtle.digest('SHA-256', new window.TextEncoder().encode(verifier)));
+                    const challenge = btoa(String.fromCharCode(...digest)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                    const result = await this.network.api(`/api/auth/init?site=${siteParam}&return_url=${returnUrl}&code_challenge=${challenge}`);
                     
                     if (result.success && result.data?.auth_url) {
+                        sessionStorage.setItem('ldsp.oauth.pkce', JSON.stringify({ verifier, state: result.data.state }));
                         // 跳转到授权页面
                         window.location.href = result.data.auth_url;
                         // 返回一个永不 resolve 的 Promise（页面会跳转，不会执行后续代码）
@@ -12053,11 +12052,11 @@ a:hover{text-decoration:underline;}
             }
             
             // 初始化云服务
-            _initCloudServices() {
+            async _initCloudServices() {
                 // 检查待处理的 OAuth 登录结果（统一同窗口模式）
                 let justLoggedIn = false;
                 if (this.hasLeaderboard && this.oauth) {
-                    justLoggedIn = this._checkPendingOAuthLogin();
+                    justLoggedIn = await this._checkPendingOAuthLogin();
                 }
 
                 if (!this.hasLeaderboard) {
@@ -16281,7 +16280,7 @@ a:hover{text-decoration:underline;}
              * 统一同窗口登录模式：用户授权后会跳转回原页面，登录结果通过 URL hash 传递
              * 数据在脚本最开始就被捕获到 _pendingOAuthData 全局变量
              */
-            _checkPendingOAuthLogin() {
+            async _checkPendingOAuthLogin() {
                 // 优先使用脚本启动时捕获的数据（避免 Discourse 路由处理掉 hash）
                 let pendingResult = _pendingOAuthData;
                 _pendingOAuthData = null; // 清除已使用的数据
@@ -16291,6 +16290,7 @@ a:hover{text-decoration:underline;}
                     pendingResult = this.oauth._checkUrlHashLogin();
                 }
                 
+                pendingResult = await this.oauth._exchangeHandoff(pendingResult);
                 if (pendingResult?.success && pendingResult.token && pendingResult.user) {
                     Logger.log('processing OAuth login result');
                     // 【关键】先同步保存登录信息，确保后续的 isLoggedIn() 检查能返回 true
