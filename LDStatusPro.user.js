@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         LDStatus Pro
 // @namespace    http://tampermonkey.net/
-// @version      3.9.0.8
+// @version      3.9.0.9
 // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
 // @author       JackLiii
 // @license      MIT
@@ -3112,8 +3112,8 @@
                 const returnUrl = encodeURIComponent(window.location.origin + window.location.pathname + window.location.search);
                 
                 try {
-                    const verifier = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
-                    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+                    const verifier = Array.from(window.crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
+                    const digest = new Uint8Array(await window.crypto.subtle.digest('SHA-256', new window.TextEncoder().encode(verifier)));
                     const challenge = btoa(String.fromCharCode(...digest)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
                     const result = await this.network.api(`/api/auth/init?site=${siteParam}&return_url=${returnUrl}&code_challenge=${challenge}`);
                     
