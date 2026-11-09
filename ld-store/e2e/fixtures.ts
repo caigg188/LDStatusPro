@@ -1,3 +1,4 @@
+import { createHash, randomUUID } from 'node:crypto'
 import { test as base, expect, type Page } from '@playwright/test'
 export const user = { id: '11', username: 'browser-buyer', name: '回归买家', site: 'linux.do', trust_level: 2 }
 export const token = `${Buffer.from(JSON.stringify({ alg: 'HS256' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: user.id, ...user, exp: 4102444800 })).toString('base64url')}.fixture`
@@ -26,6 +27,7 @@ export const test = base.extend<{ scenario: Scenario }>({
       fulfillmentAccepted: false, fulfillmentAckCount: 0, fulfillmentOrderBlocked: false,
       fulfillmentHistory: [], quotes: 0, submissions: [], reads: [], order: null
     }
+    const oauthGrants = new Map<string, { state: string; challenge: string; origin: string; expiresAt: number }>()
     const unexpected: string[] = []
     const pageErrors: string[] = []
     context.on('page', page => page.on('pageerror', error => pageErrors.push(error.message)))
@@ -40,9 +42,21 @@ export const test = base.extend<{ scenario: Scenario }>({
       const ok = (data: unknown) => route.fulfill({ json: { success: true, data } })
       const fail = (status: number, code: string) => route.fulfill({ status, json: { success: false, code, message: '模拟请求失败' } })
       if (path === '/api/auth/init') {
+        const challenge = url.searchParams.get('code_challenge') || ''
+        if (!/^[A-Za-z0-9_-]{43}$/.test(challenge)) return fail(400, 'INVALID_PKCE')
         const callback = new URL(url.searchParams.get('return_url')!)
-        callback.hash = `ldsp_oauth=${Buffer.from(JSON.stringify({ t: token, u: user, j: 1 })).toString('base64')}`
-        return ok({ auth_url: callback.toString() })
+        const code = randomUUID(), state = randomUUID(), expiresAt = Date.now() + 60000
+        oauthGrants.set(code, { state, challenge, origin: callback.origin, expiresAt })
+        callback.hash = `ldsp_oauth=${Buffer.from(JSON.stringify({ c: code, s: state, exp: expiresAt })).toString('base64')}`
+        return ok({ auth_url: callback.toString(), state })
+      }
+      if (path === '/api/shop/auth/exchange') {
+        const input = request.postDataJSON()
+        const grant = oauthGrants.get(input.code)
+        if (!grant || grant.state !== input.state || grant.origin !== input.origin || grant.expiresAt <= Date.now()
+          || typeof input.verifier !== 'string' || createHash('sha256').update(input.verifier).digest('base64url') !== grant.challenge) return fail(401, 'INVALID_GRANT')
+        oauthGrants.delete(input.code)
+        return ok({ token, user, isJoined: true })
       }
       if (path === '/api/shop/auth/verify') return ok({ authenticated: true, user })
       if (path === '/api/shop/system-status') return ok({ mode: 'normal', enabled: false })

@@ -74,7 +74,7 @@ public_hashes=$(find dist/assets -type f -name '*.js' -exec shasum -a 256 {} \; 
   echo 'Refusing Pages deployment: public JavaScript differs from private source-map build' >&2
   exit 1
 }
-[[ $(find dist -type f -name '*.map' | wc -l | tr -d ' ') == 0 ]] || {
+[[ $(find -L dist -type f -name '*.map' | wc -l | tr -d ' ') == 0 ]] || {
   echo 'Refusing Pages deployment: public build contains source maps' >&2
   exit 1
 }
