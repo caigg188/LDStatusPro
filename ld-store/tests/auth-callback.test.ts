@@ -6,6 +6,7 @@ import AuthCallback from '../src/views/AuthCallback.vue'
 import { authSession, clearAuthSession, setAuthSession } from '../src/utils/auth'
 import { authToken } from './helpers/auth'
 import { Buffer } from 'node:buffer'
+import { rememberOAuthState } from '../src/utils/oauthHandoff'
 const mocks = vi.hoisted(() => ({ replace: vi.fn().mockResolvedValue(undefined), success: vi.fn() }))
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: { redirect: '/product/7' } }), useRouter: () => ({ replace: mocks.replace }) }))
 vi.mock('@/composables/useToast', () => ({ useToast: () => ({ success: mocks.success }) }))
@@ -94,4 +95,28 @@ it('reports storage failure without false success', async () => {
   expect(authSession.value.token).toBeNull()
   expect(mocks.success).not.toHaveBeenCalled()
   expect(wrapper!.text()).toContain('无法保存')
+})
+it('exchanges a browser-bound one-use code before server validation; the URL contains no JWT', async () => {
+  rememberOAuthState('v'.repeat(64), 'signed-state')
+  const grant = Buffer.from(JSON.stringify({ c: 'one-use-code', s: 'signed-state', exp: Date.now() + 60000 })).toString('base64')
+  history.replaceState(null, '', `/auth/callback#ldsp_oauth=${grant}`)
+  const fetch = vi.fn().mockResolvedValueOnce(json({ success: true, data: { token: authToken(), user: { id: '11' } } })).mockResolvedValueOnce(verified())
+  vi.stubGlobal('fetch', fetch)
+  wrapper = mount(AuthCallback, { global: { stubs: { RouterLink: true } } })
+  expect(location.href).not.toContain('ldsp_oauth')
+  await flushPromises()
+  expect(fetch.mock.calls[0][0]).toContain('/api/shop/auth/exchange')
+  expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({ code: 'one-use-code', state: 'signed-state', verifier: 'v'.repeat(64) })
+  expect(sessionStorage.getItem('ldstore.oauth.pkce')).toBeNull()
+  expect(authSession.value.user?.id).toBe('11')
+})
+it('rejects a code whose state belongs to another browser login', async () => {
+  rememberOAuthState('v'.repeat(64), 'my-state')
+  const grant = Buffer.from(JSON.stringify({ c: 'stolen-code', s: 'other-state', exp: Date.now() + 60000 })).toString('base64')
+  history.replaceState(null, '', `/auth/callback#ldsp_oauth=${grant}`)
+  const fetch = vi.fn(); vi.stubGlobal('fetch', fetch)
+  wrapper = mount(AuthCallback, { global: { stubs: { RouterLink: true } } })
+  await flushPromises()
+  expect(fetch).not.toHaveBeenCalled()
+  expect(authSession.value.token).toBeNull()
 })

@@ -19,6 +19,7 @@
 </template>
 
 <script setup>
+import { consumeOAuthState } from '@/utils/oauthHandoff'
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
@@ -79,6 +80,11 @@ function parseOAuthData() {
 
     // 验证数据结构
     // data: { t: token, u: user, j: isJoined, ts: timestamp }
+    if (data.c && data.s && data.exp > Date.now() && data.exp <= Date.now() + 60000) {
+      const verifier = consumeOAuthState(data.s)
+      return verifier ? { code: data.c, state: data.s, verifier } : null
+    }
+    // Compatibility reader for callbacks issued before the coordinated cutover.
     if (data.t && data.u) {
       return {
         token: data.t,
@@ -99,7 +105,7 @@ async function completeLogin() {
   loading.value = true
   error.value = ''
   retryable.value = false
-  if (!oauthData || !getAuthUser(oauthData.token, oauthData.user)) {
+  if (!oauthData || (!oauthData.code && !getAuthUser(oauthData.token, oauthData.user))) {
     error.value = '登录信息无效或已过期，请重新登录'
     loading.value = false
     return
@@ -107,6 +113,19 @@ async function completeLogin() {
   controller = new AbortController()
   const timeoutId = setTimeout(() => controller?.abort(), 8000)
   try {
+    if (oauthData.code) {
+      const exchange = await fetch(`${api.BASE_URL}/api/shop/auth/exchange`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...oauthData, origin: location.origin }), signal: controller.signal
+      })
+      const exchanged = await exchange.json().catch(() => null)
+      if (!exchange.ok || !exchanged?.data?.token || !getAuthUser(exchanged.data.token, exchanged.data.user)) {
+        error.value = '登录校验已失效，请重新登录'
+        return
+      }
+      if (!active) return
+      oauthData = exchanged.data
+    }
     // 候选凭据只用于服务端校验，成功之前不写入当前会话。
     const response = await fetch(`${api.BASE_URL}/api/shop/auth/verify`, {
       headers: { Accept: 'application/json', Authorization: `Bearer ${oauthData.token}` },
