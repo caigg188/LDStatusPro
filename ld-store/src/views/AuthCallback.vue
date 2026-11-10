@@ -19,7 +19,8 @@
 </template>
 
 <script setup>
-import { consumeOAuthState } from '@/utils/oauthHandoff'
+import { consumeOAuthState, isOAuthHandoff } from '@/utils/oauthHandoff'
+import { captureOAuthEvent } from '@/observability/faro'
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
@@ -61,7 +62,7 @@ function getRawOAuthParam() {
 
 function parseOAuthData() {
   const raw = getRawOAuthParam()
-  if (!raw) return null
+  if (!raw || raw.length > 32768) { captureOAuthEvent('callback', 'malformed'); return null }
 
   try {
     // 兼容历史/异常编码: + 被转空格、URL-safe base64、缺失 padding
@@ -78,15 +79,16 @@ function parseOAuthData() {
     }
     const data = JSON.parse(decoded)
 
-    // 验证数据结构
-    // data: { t: token, u: user, j: isJoined, ts: timestamp }
-    if (data.c && data.s && data.exp > Date.now() && data.exp <= Date.now() + 60000) {
+    // Only validate shape locally; expiry belongs to the server clock.
+    if (isOAuthHandoff(data)) {
       const verifier = consumeOAuthState(data.s)
+      if (verifier) captureOAuthEvent('callback', 'accepted', { expiresAt: data.exp })
       return verifier ? { code: data.c, state: data.s, verifier } : null
     }
+    captureOAuthEvent('callback', 'malformed')
     return null
-  } catch (e) {
-    console.error('[AuthCallback] Failed to parse OAuth data:', e)
+  } catch {
+    captureOAuthEvent('callback', 'malformed')
     return null
   }
 }
@@ -105,19 +107,25 @@ async function completeLogin() {
   const timeoutId = setTimeout(() => controller?.abort(), 8000)
   try {
     if (oauthData.code) {
+      captureOAuthEvent('exchange', 'started')
       const exchange = await fetch(`${api.BASE_URL}/api/shop/auth/exchange`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...oauthData, origin: location.origin }), signal: controller.signal
       })
       const exchanged = await exchange.json().catch(() => null)
       if (!exchange.ok || !exchanged?.data?.token || !getAuthUser(exchanged.data.token, exchanged.data.user)) {
-        error.value = '登录校验已失效，请重新登录'
+        captureOAuthEvent('exchange', exchange.status >= 500 ? 'unavailable' : 'invalid_grant', {
+          status: exchange.status, requestId: exchange.headers.get('x-request-id')
+        })
+        error.value = exchange.status >= 500 ? '登录服务暂时不可用，请重新发起登录' : '登录校验已失效，请重新登录'
         return
       }
       if (!active) return
       oauthData = exchanged.data
+      captureOAuthEvent('exchange', 'success', { status: exchange.status, requestId: exchange.headers.get('x-request-id') })
     }
     // 候选凭据只用于服务端校验，成功之前不写入当前会话。
+    captureOAuthEvent('verify', 'started')
     const response = await fetch(`${api.BASE_URL}/api/shop/auth/verify`, {
       headers: { Accept: 'application/json', Authorization: `Bearer ${oauthData.token}` },
       credentials: 'include', signal: controller.signal
@@ -125,20 +133,26 @@ async function completeLogin() {
     const payload = await response.json().catch(() => null)
     if (!active) return
     if (!isAuthSessionCurrent(baseline)) {
+      captureOAuthEvent('verify', 'session_changed')
       error.value = '登录状态已在其他页面变更，请重新进入'
       return
     }
     if (!response.ok || payload?.success !== true || payload.data?.authenticated !== true
       || !payload.data?.user || !getAuthUser(oauthData.token, payload.data.user)) {
+      captureOAuthEvent('verify', response.status >= 500 ? 'unavailable' : 'invalid_identity', {
+        status: response.status, requestId: response.headers.get('x-request-id')
+      })
       retryable.value = response.status >= 500
       error.value = retryable.value ? '登录校验服务暂时不可用，请重试' : '登录授权校验失败，请重新登录'
       return
     }
     const loginOk = userStore.login(oauthData.token, oauthData.user)
     if (!loginOk) {
+      captureOAuthEvent('session', 'persist_failed')
       error.value = '登录信息无法保存，请检查浏览器存储后重新登录'
       return
     }
+    captureOAuthEvent('session', 'success')
     toast.success('登录成功')
     const redirect = sanitizePostLoginRedirect(
       Array.isArray(route.query.redirect) ? route.query.redirect[0] : route.query.redirect, '/'
@@ -146,8 +160,10 @@ async function completeLogin() {
     try { await router.replace(redirect) } catch { await router.replace('/') }
   } catch {
     if (active) {
-      error.value = '登录校验暂未完成，请检查网络后重试'
-      retryable.value = true
+      captureOAuthEvent(oauthData?.code ? 'exchange' : 'verify', 'network_error')
+      // A lost exchange response may already have consumed the one-use grant.
+      retryable.value = !oauthData?.code
+      error.value = retryable.value ? '登录校验暂未完成，请检查网络后重试' : '未收到授权结果，请重新发起登录，不要刷新回调页面'
     }
   } finally {
     clearTimeout(timeoutId)
