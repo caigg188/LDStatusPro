@@ -119,3 +119,26 @@ test('a legacy raw JWT URL cannot bypass browser-bound login state', async ({ pa
   await expect(page.getByText('登录信息无效或已过期，请重新登录')).toBeVisible()
   expect(await page.evaluate(() => localStorage.getItem('ld_store_token'))).toBeNull()
 })
+
+
+for (const offset of [-5000, -30000, 120000]) {
+  test(`login succeeds with device clock offset ${offset}ms`, async ({ page }) => {
+    await page.addInitScript(offset => {
+      const actualNow = Date.now.bind(Date)
+      Date.now = () => actualNow() + offset
+    }, offset)
+    await startLogin(page, '/product/7')
+    await expect(page).toHaveURL(/\/product\/7$/)
+    await expect(accountButton(page)).toHaveAttribute('aria-label', /回归买家/)
+    expect(page.url()).not.toContain('ldsp_oauth')
+  })
+}
+
+test('a lost code exchange response offers a new login rather than replaying the code', async ({ page }) => {
+  await page.route('**/api/shop/auth/exchange', route => route.abort('failed'))
+  await startLogin(page)
+  await expect(page.getByText('未收到授权结果，请重新发起登录，不要刷新回调页面')).toBeVisible()
+  await expect(page.getByRole('button', { name: '重试校验' })).toHaveCount(0)
+  await page.getByRole('link', { name: '重新登录', exact: true }).click()
+  await expect(page).toHaveURL(/\/login$/)
+})

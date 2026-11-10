@@ -45,7 +45,7 @@ export const test = base.extend<{ scenario: Scenario }>({
         const challenge = url.searchParams.get('code_challenge') || ''
         if (!/^[A-Za-z0-9_-]{43}$/.test(challenge)) return fail(400, 'INVALID_PKCE')
         const callback = new URL(url.searchParams.get('return_url')!)
-        const code = randomUUID(), state = randomUUID(), expiresAt = Date.now() + 60000
+        const code = createHash('sha256').update(randomUUID()).digest('base64url'), state = randomUUID(), expiresAt = Date.now() + 60000
         oauthGrants.set(code, { state, challenge, origin: callback.origin, expiresAt })
         callback.hash = `ldsp_oauth=${Buffer.from(JSON.stringify({ c: code, s: state, exp: expiresAt })).toString('base64')}`
         return ok({ auth_url: callback.toString(), state })

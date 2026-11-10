@@ -10,6 +10,7 @@ const DEFAULT_API_ORIGINS = [
 ]
 const NOTIFICATION_STREAM_PATTERN = /\/api\/shop\/notifications\/stream(?:\?|$)/
 const pendingErrors = []
+const pendingOAuthEvents = []
 const BUILD_VERSION = import.meta.env.VITE_BUILD_VERSION
 
 let faroInstance = null
@@ -114,6 +115,7 @@ function flushPendingErrors() {
   pendingErrors.splice(0).forEach(({ error, context }) => {
     faroInstance.api.pushError(error, { context })
   })
+  pendingOAuthEvents.splice(0).forEach(attributes => faroInstance.api.pushEvent('oauth_handoff', attributes, 'auth'))
 }
 
 export function captureStorefrontError(error, context = {}) {
@@ -128,6 +130,31 @@ export function captureStorefrontError(error, context = {}) {
   }
 
   if (pendingErrors.length < 5) pendingErrors.push({ error: safeError, context: safeContext })
+}
+
+// Explicit allowlist: no callback URL, code, state, verifier, identity or token.
+const OAUTH_STAGES = new Set(['init', 'callback', 'exchange', 'verify', 'session'])
+const OAUTH_REASONS = new Set(['started', 'accepted', 'malformed', 'state_missing', 'state_mismatch',
+  'storage_blocked', 'invalid_grant', 'unavailable', 'network_error', 'session_changed',
+  'invalid_identity', 'persist_failed', 'success', 'update_required'])
+export function captureOAuthEvent(stage, reason, details = {}) {
+  try {
+    const config = resolveTelemetryConfig()
+    if (!config.enabled || !OAUTH_STAGES.has(stage) || !OAUTH_REASONS.has(reason)) return
+    const attributes = { stage, reason, client_build: String(config.version).slice(0, 80) }
+    if (Number.isInteger(details.status) && details.status >= 100 && details.status <= 599) {
+      attributes.http_status = String(details.status)
+    }
+    if (typeof details.requestId === 'string' && /^(?:[a-f0-9]{32}|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})$/i.test(details.requestId)) {
+      attributes.request_id = details.requestId
+    }
+    if (Number.isSafeInteger(details.expiresAt)) {
+      const remaining = details.expiresAt - Date.now()
+      attributes.remaining_bucket = remaining > 60000 ? 'over_60s' : remaining > 0 ? 'within_60s' : 'past'
+    }
+    if (faroInstance) faroInstance.api.pushEvent('oauth_handoff', attributes, 'auth')
+    else if (pendingOAuthEvents.length < 20) pendingOAuthEvents.push(attributes)
+  } catch { /* Diagnostics must never prevent login. */ }
 }
 
 export function initializeStorefrontTelemetry(router) {
@@ -179,6 +206,7 @@ export function initializeStorefrontTelemetry(router) {
   }).catch(() => {
     faroInstance = null
     pendingErrors.splice(0)
+    pendingOAuthEvents.splice(0)
     return null
   })
 

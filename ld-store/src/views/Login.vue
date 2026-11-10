@@ -88,6 +88,7 @@
 </template>
 
 <script setup>
+import { captureOAuthEvent } from '@/observability/faro'
 import { prepareOAuthHandoff, rememberOAuthState } from '@/utils/oauthHandoff'
 import { ref, onMounted } from 'vue'
 import StoreLogo from '@/components/common/StoreLogo.vue'
@@ -123,6 +124,7 @@ async function handleLogin() {
     
     // 获取 OAuth 登录地址
     // 后端使用 /api/auth/init 端点，支持 site 和 return_url 参数
+    captureOAuthEvent('init', 'started')
     const { verifier, challenge } = await prepareOAuthHandoff()
     const result = await api.get(`/api/auth/init?site=linux.do&return_url=${encodeURIComponent(returnUrl)}&code_challenge=${challenge}`, { auth: 'none' })
     
@@ -131,12 +133,15 @@ async function handleLogin() {
     if (result.success && authUrl) {
       // 跳转到 OAuth 授权页面
       rememberOAuthState(verifier, result.data?.state || result.state)
+      captureOAuthEvent('init', 'success')
       window.location.href = authUrl
     } else {
+      captureOAuthEvent('init', result.error?.code === 'INVALID_PKCE' ? 'update_required' : 'unavailable')
       toast.error(result.error?.message || '获取登录地址失败')
       loading.value = false
     }
   } catch (e) {
+    captureOAuthEvent('init', 'unavailable')
     toast.error('登录失败：' + e.message)
     loading.value = false
   }

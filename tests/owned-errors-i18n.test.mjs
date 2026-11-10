@@ -8,7 +8,9 @@ import { JSDOM } from 'jsdom';
 const source = readFileSync(new URL('../LDStatusPro.user.js', import.meta.url), 'utf8');
 const classes = new Map();
 let authHandler;
+let oauthValidator;
 function walk(node) {
+    if (node.type === 'FunctionDeclaration' && node.id?.name === 'isOAuthHandoff') oauthValidator = node;
     if (node.type === 'ClassDeclaration') classes.set(node.id.name, node);
     if (node.type === 'CallExpression' && node.callee.object?.name === 'EventBus' && node.arguments[0]?.value === 'auth:expired') authHandler = node.arguments[1];
     for (const value of Object.values(node)) {
@@ -27,6 +29,7 @@ function fixture(locale) {
         const CURRENT_SITE = { domain: 'linux.do' };
         const Logger = { warn() {} };
         const GM_info = { script: { version: 'test' } };
+        ${code(oauthValidator)}
         ${['NetworkError', 'Network', 'ActivityManager', 'OAuthManager', 'LDCManager', 'CDKManager'].map(name => code(classes.get(name))).join('\n')}
         Object.assign(globalThis, { I18n, Network, ActivityManager, OAuthManager, LDCManager, CDKManager, authHandler: function(payload) { return (${code(authHandler)})(payload); } });`);
     w.I18n.setLocale(locale);

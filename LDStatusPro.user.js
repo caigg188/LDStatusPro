@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         LDStatus Pro
 // @namespace    http://tampermonkey.net/
-// @version      3.9.0.9
+// @version      3.9.0.10
 // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
 // @author       JackLiii
 // @license      MIT
@@ -218,6 +218,13 @@
 
         // ==================== 尽早捕获 OAuth 登录结果 =====================
         // 由于 Discourse 路由可能会处理掉 URL hash，需要在脚本最开始就提取
+        // Only validate the wire format. Expiry uses the issuer clock at exchange.
+        function isOAuthHandoff(data) {
+            return data !== null && typeof data === 'object' && !Array.isArray(data)
+                && typeof data.c === 'string' && /^[A-Za-z0-9_-]{43,128}$/.test(data.c)
+                && typeof data.s === 'string' && data.s.length > 0 && data.s.length <= 8192
+                && Number.isSafeInteger(data.exp) && data.exp > 0;
+        }
         let _pendingOAuthData = null;
         try {
             const hash = window.location.hash;
@@ -227,7 +234,7 @@
                     const encoded = match[1];
                     const base64 = decodeURIComponent(encoded);
                     const decoded = JSON.parse(decodeURIComponent(atob(base64)));
-                    if (decoded.c && decoded.s && decoded.exp > Date.now() && decoded.exp <= Date.now() + 60000) {
+                    if (isOAuthHandoff(decoded)) {
                         _pendingOAuthData = decoded;
                     }
                     // 立即清除 URL 中的登录参数
@@ -237,7 +244,7 @@
                 }
             }
         } catch (e) {
-            console.warn('[OAuth] Failed to capture OAuth data:', e);
+            console.warn('[OAuth] Invalid callback data; start a new login.');
         }
 
         // ==================== 浏览器兼容性检查 ====================
@@ -3044,14 +3051,14 @@
                     const base64 = decodeURIComponent(encoded);
                     const decoded = JSON.parse(decodeURIComponent(atob(base64)));
                     
-                    const result = decoded.c && decoded.s && decoded.exp > Date.now() ? decoded : null;
+                    const result = isOAuthHandoff(decoded) ? decoded : null;
 
                     // 清除 URL 中的登录参数，保持 URL 干净
                     this._clearUrlHash();
                     
                     return result;
                 } catch (e) {
-                    Logger.error('Failed to parse URL hash login:', e);
+                    Logger.warn('Invalid OAuth callback data; start a new login.');
                     this._clearUrlHash();
                     return null;
                 }
@@ -3083,11 +3090,11 @@
              * 所有环境都使用同窗口跳转方式，避免弹窗拦截和跨窗口通信问题
              */
             async _exchangeHandoff(grant) {
-                if (!grant?.c || !grant.s || grant.exp <= Date.now()) return null;
+                if (!isOAuthHandoff(grant)) return null;
                 let pending;
                 try { pending = JSON.parse(sessionStorage.getItem('ldsp.oauth.pkce')); } catch { return null; }
                 if (!pending || pending.state !== grant.s) return null;
-                sessionStorage.removeItem('ldsp.oauth.pkce');
+                try { sessionStorage.removeItem('ldsp.oauth.pkce'); } catch { return null; }
                 let result;
                 try { result = await this.network.api('/api/auth/exchange', {
                     method: 'POST', body: { code: grant.c, state: grant.s, verifier: pending.verifier,
