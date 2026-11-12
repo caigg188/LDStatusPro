@@ -14,7 +14,7 @@ export function cleanExportHTML(html, document) {
 
 export function exportUrl(value, origin, { image = false } = {}) {
     const raw = String(value || '').trim();
-    if (image && /^data:image\/(?:png|jpe?g|gif|webp|avif|bmp|svg\+xml);/i.test(raw)) return raw;
+    if (image && /^data:image\/(?:png|jpe?g|gif|webp|avif|bmp|svg\+xml|x-icon|vnd\.microsoft\.icon);/i.test(raw)) return raw;
     if (!raw) return '';
     try {
         const url = new URL(raw, origin);
@@ -145,19 +145,33 @@ export async function prepareExportHTML(html, { document, origin, embed = false,
         if (math.querySelector('math, svg')) continue;
         const source = math.getAttribute('data-math-source') || math.getAttribute('data-math') || math.textContent;
         if (source?.trim()) {
-            const pre = document.createElement('pre'); pre.className = 'export-math-source';
-            pre.textContent = source.trim(); pre.setAttribute('data-export-label', tr(t, 'core.media.mathSource')); math.replaceWith(pre);
+            // A formula inside a sentence must stay inline; a block element there would split the paragraph.
+            const inline = math.tagName === 'SPAN' && !!math.closest('p, li, td, th, h1, h2, h3, h4, h5, h6');
+            const holder = document.createElement(inline ? 'code' : 'pre'); holder.className = inline ? 'export-math-inline' : 'export-math-source';
+            holder.textContent = source.trim(); holder.setAttribute('data-export-label', tr(t, 'core.media.mathSource')); math.replaceWith(holder);
         }
     }
-    for (const media of root.querySelectorAll('iframe, video, audio, object, embed')) {
+    for (const media of root.querySelectorAll('iframe, video, audio, object, embed, .video-placeholder-container[data-video-src]')) {
         const figure = document.createElement('figure'); figure.className = 'export-media';
-        const sources = [media.getAttribute('src'), media.getAttribute('data'), ...[...media.querySelectorAll('source[src]')].map(el => el.getAttribute('src'))].map(src => exportUrl(src, origin)).filter(Boolean);
+        const sources = [media.getAttribute('src'), media.getAttribute('data'), media.getAttribute('data-video-src'), ...[...media.querySelectorAll('source[src]')].map(el => el.getAttribute('src'))].map(src => exportUrl(src, origin)).filter(Boolean);
         const poster = exportUrl(media.getAttribute('poster'), origin);
         if (poster) { const image = document.createElement('img'); image.src = poster; image.alt = tr(t, 'core.media.coverAlt'); figure.appendChild(image); }
         const note = document.createElement('figcaption'); note.textContent = media.tagName.toLowerCase() === 'audio' ? tr(t, 'core.media.audioNote') : tr(t, 'core.media.mediaNote'); figure.appendChild(note);
         for (const src of new Set(sources)) { const link = document.createElement('a'); link.href = src; link.textContent = media.getAttribute('title') || src; figure.appendChild(link); }
         if (!sources.length) note.append(tr(t, 'core.media.visitOriginal'));
         media.replaceWith(figure);
+    }
+    // Inline styles are stripped by the sanitizer; carry column alignment over as an attribute.
+    for (const cell of root.querySelectorAll('th[style], td[style]')) {
+        const align = cell.getAttribute('style').match(/text-align:\s*(left|right|center)/i)?.[1];
+        if (align) cell.setAttribute('align', align.toLowerCase());
+    }
+    // Task-list boxes are icon-font glyphs on the forum; without the font they render as nothing.
+    for (const box of root.querySelectorAll('span.chcklst-box')) {
+        const checked = box.classList.contains('checked');
+        const mark = document.createElement('span'); mark.className = 'export-check';
+        mark.setAttribute('data-checked', String(checked)); mark.textContent = checked ? '\u2611' : '\u2610';
+        box.replaceWith(mark);
     }
     const ids = new Map();
     for (const node of root.querySelectorAll('[id]')) { const old = node.id; node.id = `post-${postNumber}-${old}`; ids.set(old, node.id); }
@@ -205,81 +219,220 @@ export async function prepareExportHTML(html, { document, origin, embed = false,
     return cleanExportHTML(wrapper.innerHTML, document);
 }
 
-function escapeText(text) {
-    return text.replace(/[\\`*_[\]<>#!~]/g, '\\$&')
-        .replace(/^( {0,3})([-+]|\d+[.)])(?=[ \t])/gm, (_, indent, marker) => indent + marker.slice(0, -1) + '\\' + marker.slice(-1));
+const PUNCT = /[\p{P}\p{S}]/u;
+const WORD = /[\p{L}\p{N}]/u;
+
+// Escapes only what would change meaning, so prose stays readable in the Markdown source.
+// `lineStart` is true when the text begins a line: block markers only matter there.
+function escapeText(text, lineStart = false) {
+    let out = text.replace(/[\\`*[\]<>~]/g, '\\$&')
+        .replace(/_/g, (ch, index, all) => WORD.test(all[index - 1] || '') && WORD.test(all[index + 1] || '') ? ch : '\\_')
+        .replace(/&(?=#?[0-9a-zA-Z]+;)/g, '\\&');
+    if (lineStart) {
+        out = out.replace(/^(\s*)(#{1,6})(?=\s|$)/, '$1\\$2')
+            .replace(/^(\s*)([-+])(?=\s|$)/, '$1\\$2')
+            .replace(/^(\s*)(\d{1,9})([.)])(?=\s|$)/, '$1$2\\$3')
+            .replace(/^(\s*)([=-])(?=[=-]*\s*$)/, '$1\\$2');
+    }
+    return out;
 }
+// For values placed into the document by the exporter itself (title, names, category): one line, literal.
+export function escapeMarkdownText(value) { return escapeText(String(value ?? '').replace(/\s+/g, ' ').trim(), true); }
 function fenceFor(text, minimum = 3) { return '`'.repeat(Math.max(minimum - 1, ...[...text.matchAll(/`+/g)].map(match => match[0].length)) + 1); }
+
+// Trailing spaces are noise except the two that mark a hard line break before more text.
+function tidy(markdown) {
+    const lines = markdown.replace(/\r/g, '').split('\n');
+    const out = lines.map((line, index) => {
+        const body = line.replace(/[ \t]+$/, '').replace(/(\S) {2,}(?=\S)/g, '$1 ');
+        const next = lines[index + 1];
+        return /\S {2,}$/.test(line) && next !== undefined && next.trim() ? body + '  ' : body;
+    });
+    return out.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\n+|\n+$/g, '');
+}
+// Blank lines get the bare prefix; lines with content keep their own ending (it may be a hard break).
+const prefixLines = (text, first, rest) => text.split('\n').map((line, index) => line ? (index ? rest : first) + line : (index ? rest : first).replace(/[ \t]+$/, '')).join('\n');
+const cellAlign = cell => (cell.getAttribute('align') || cell.getAttribute('style')?.match(/text-align:\s*(left|right|center)/i)?.[1] || '').toLowerCase();
 
 export function htmlToMarkdown(html, { document, origin, t = null } = {}) {
     const template = document.createElement('template');
     template.innerHTML = cleanExportHTML(html, document);
-    const children = node => [...node.childNodes].map(convert).join('');
-    const convert = node => {
-        if (node.nodeType === 3) return escapeText((node.nodeValue || '').replace(/[ \t\r\n\f]+/g, ' '));
+    // Code and raw HTML are parked so whitespace tidying never touches them; a token always
+    // sits alone on its line and inherits that line's list/quote prefix when restored.
+    const parked = [];
+    const park = text => { parked.push(text); return `\n\n\u0000${parked.length - 1}\u0000\n\n`; };
+    const held = [];
+    const hold = text => { held.push(text); return `\u0001${held.length - 1}\u0001`; };
+    const restore = markdown => markdown.replace(/^(.*)\u0000(\d+)\u0000[ \t]*$/gm, (_, prefix, id) => {
+        const rest = /^[\s>]*$/.test(prefix) ? prefix : prefix.replace(/[^\s>]/g, ' ');
+        return prefixLines(parked[Number(id)], prefix, rest);
+    })
+        // A parked block that ended up inside inline content (an icon in a link label, say) is put back on one line.
+        .replace(/\u0000(\d+)\u0000/g, (_, id) => parked[Number(id)].replace(/\s*\n\s*/g, ' '))
+        .replace(/\u0001(\d+)\u0001/g, (_, id) => held[Number(id)]);
+
+    const children = (node, atLineStart = true) => {
+        let out = '';
+        for (const child of node.childNodes) {
+            const lineStart = out ? out.endsWith('\n') : atLineStart;
+            let part = convert(child, lineStart);
+            if (child.nodeType === 3) {
+                if (lineStart || out.endsWith(' ')) part = part.replace(/^ +/, '');
+            }
+            out += part;
+        }
+        return out;
+    };
+    const block = text => { const body = tidy(text); return body ? `\n\n${body}\n\n` : ''; };
+    const neighbour = (node, direction) => {
+        for (let current = node; current && current !== template.content; current = current.parentNode) {
+            for (let sibling = current[direction]; sibling; sibling = sibling[direction]) {
+                const text = sibling.textContent || '';
+                if (text) return direction === 'previousSibling' ? text.at(-1) : text[0];
+            }
+            if (/^(P|LI|TD|TH|DIV|BLOCKQUOTE|H[1-6]|SUMMARY|FIGCAPTION)$/.test(current.parentNode?.tagName || '')) break;
+        }
+        return '';
+    };
+    // CommonMark only treats a delimiter run as emphasis when it is "flanking": `**注意：**内容`
+    // stays literal. Fall back to the equivalent tag exactly where the rule would fail.
+    const emphasis = (node, marker, tag) => {
+        const [, lead, body, trail] = children(node, false).match(/^(\s*)([\s\S]*?)(\s*)$/);
+        if (!body) return lead + trail;
+        const before = lead ? ' ' : neighbour(node, 'previousSibling');
+        const after = trail ? ' ' : neighbour(node, 'nextSibling');
+        const free = ch => !ch || /\s/.test(ch) || PUNCT.test(ch);
+        const opens = !PUNCT.test(body[0]) || free(before);
+        const closes = !PUNCT.test(body.at(-1)) || free(after);
+        const flat = !body.includes('\n\n') && !body.includes('\u0000');
+        return lead + (opens && closes && flat ? `${marker}${body}${marker}` : `<${tag}>${body}</${tag}>`) + trail;
+    };
+    const inlineTag = (node, tag) => { const body = children(node, false); return body.trim() ? `<${tag}>${body}</${tag}>` : body; };
+    const title = text => text ? ` "${text.replace(/\s+/g, ' ').trim().replace(/["\\]/g, '\\$&')}"` : '';
+    const link = (label, href) => `[${label}](<${href.replace(/>/g, '%3E')}>)`;
+    const footnoteId = node => (node.getAttribute('href') || node.id || '').match(/footnote-(?:ref-)?(?:\d+-)*?(\d+)$/)?.[1] || '';
+
+    const convert = (node, lineStart = false) => {
+        // The two control characters are reserved for the placeholders above and never valid in a post.
+        if (node.nodeType === 3) return escapeText((node.nodeValue || '').replace(/[\u0000\u0001]/g, '').replace(/[ \t\r\n\f]+/g, ' '), lineStart);
         if (node.nodeType !== 1) return '';
         const tag = node.tagName.toLowerCase();
-        const text = () => children(node);
+        const has = name => node.classList.contains(name);
         switch (tag) {
             case 'br': return '  \n';
-            case 'p': return `${text().trim()}\n\n`;
-            case 'strong': case 'b': return `**${text()}**`;
-            case 'em': case 'i': return `*${text()}*`;
-            case 'del': case 's': return `~~${text()}~~`;
+            case 'p': return block(children(node));
+            case 'strong': case 'b': return emphasis(node, '**', 'strong');
+            case 'em': case 'i': return emphasis(node, '*', 'em');
+            case 'del': case 's': case 'strike': return emphasis(node, '~~', 'del');
+            case 'sub': case 'kbd': case 'mark': case 'ins': case 'u': return inlineTag(node, tag);
+            case 'sup': {
+                const reference = has('footnote-ref') && footnoteId(node.querySelector('a') || node);
+                return reference ? `[^${reference}]` : inlineTag(node, tag);
+            }
             case 'pre': {
                 const code = node.querySelector('code') || node;
                 const raw = code.textContent || '';
                 const fence = fenceFor(raw);
-                const lang = code.className?.match(/(?:language|lang)-([\w-]+)/)?.[1] || (node.classList.contains('export-math-source') ? 'math' : '');
-                return `\n\n${fence}${lang}\n${raw}${raw.endsWith('\n') ? '' : '\n'}${fence}\n\n`;
+                const lang = code.className?.match(/(?:language|lang)-([\w-]+)/)?.[1] || (has('export-math-source') ? 'math' : '');
+                return park(`${fence}${lang}\n${raw}${raw.endsWith('\n') ? '' : '\n'}${fence}`);
             }
             case 'code': {
-                const raw = node.textContent || ''; const fence = fenceFor(raw, 1); const pad = /^`|`$|^ | $/.test(raw) ? ' ' : '';
-                return `${fence}${pad}${raw}${pad}${fence}`;
+                const raw = (node.textContent || '').replace(/\n/g, ' ');
+                if (!raw) return '';
+                const fence = fenceFor(raw, 1); const pad = /^`|`$|^ | $/.test(raw) ? ' ' : '';
+                const span = `${fence}${pad}${raw}${pad}${fence}`;
+                // $`...`$ renders as inline math on GitHub and stays a readable code span elsewhere.
+                return hold(has('export-math-inline') ? `$${span}$` : span);
             }
             case 'a': {
-                if (node.classList.contains('anchor')) return '';
+                if (has('anchor') || has('footnote-backref')) return '';
                 const value = node.getAttribute('href') || '';
                 const href = value.startsWith('#') ? value : exportUrl(value, origin);
-                const label = text().trim();
-                return href ? `[${label || escapeText(href)}](<${href.replace(/>/g, '%3E')}>)` : label;
+                if (has('lightbox')) {
+                    const image = node.querySelector('img');
+                    const caption = node.querySelector('.export-image-caption, .meta');
+                    const src = image && (exportUrl(value, origin, { image: true }) || selectImage(image, origin));
+                    if (src) return `![${escapeText(image.getAttribute('alt') || tr(t, 'core.media.imageAlt'))}](<${src.replace(/>/g, '%3E')}>${title(caption ? [...caption.querySelectorAll('.filename, .informations')].map(part => part.textContent.trim()).filter(Boolean).join(' · ') || caption.textContent : '')})`;
+                }
+                const label = children(node, false).trim().replace(/\n+/g, ' ');
+                return href ? link(label || escapeText(href), href) : label;
             }
             case 'img': {
-                if (node.classList.contains('emoji')) return node.getAttribute('alt') || '';
+                if (has('emoji')) return node.getAttribute('alt') || '';
+                if (has('avatar') || has('site-icon')) return '';
                 const src = selectImage(node, origin); const alt = escapeText(node.getAttribute('alt') || tr(t, 'core.media.imageAlt'));
-                return src ? `![${alt}](<${src.replace(/>/g, '%3E')}>)` : `[${alt}]`;
+                return src ? `![${alt}](<${src.replace(/>/g, '%3E')}>${title(node.getAttribute('title'))})` : `[${alt}]`;
+            }
+            case 'span': {
+                if (has('chcklst-box') || has('export-check')) return has('checked') || node.getAttribute('data-checked') === 'true' ? '[x] ' : '[ ] ';
+                return children(node, lineStart);
             }
             case 'ul': case 'ol': {
+                if (has('footnotes-list')) {
+                    return block([...node.children].filter(child => child.tagName === 'LI').map((li, index) =>
+                        prefixLines(tidy(children(li)), `[^${footnoteId(li) || index + 1}]: `, '    ')).join('\n\n'));
+                }
                 const start = Number(node.getAttribute('start')) || 1;
-                return '\n' + [...node.children].filter(child => child.tagName === 'LI').map((li, index) => {
+                const items = [...node.children].filter(child => child.tagName === 'LI').map((li, index) => {
                     const prefix = tag === 'ol' ? `${start + index}. ` : '- ';
-                    const value = children(li).trim();
-                    return prefix + value.replace(/\n/g, '\n' + ' '.repeat(prefix.length));
-                }).join('\n') + '\n\n';
+                    return prefixLines(tidy(children(li)) || '', prefix, ' '.repeat(prefix.length));
+                });
+                const loose = items.some(item => /\n\n/.test(item));
+                const list = items.join(loose ? '\n\n' : '\n');
+                // A list nested directly in an item continues that item instead of opening a new paragraph.
+                return node.parentNode?.tagName === 'LI' ? `\n${list}\n` : block(list);
             }
+            case 'li': return block(children(node));
             case 'aside': case 'blockquote': {
-                if (tag === 'aside' && !node.classList.contains('quote')) return `\n${text()}\n`;
-                if (tag === 'aside') { const quote = node.querySelector('blockquote'); if (quote) return convert(quote); }
-                return text().trim().split('\n').map(line => '> ' + line).join('\n') + '\n\n';
+                if (tag === 'aside' && !has('quote')) return block(children(node));
+                let body = tidy(children(tag === 'aside' ? node.querySelector('blockquote') || node : node));
+                if (tag === 'aside') {
+                    const heading = node.querySelector('.title');
+                    const name = heading ? tidy(children(heading)).replace(/\n+/g, ' ') : '';
+                    if (name) body = `**${name}**${body ? '\n\n' + body : ''}`;
+                }
+                return body ? block(prefixLines(body, '> ', '> ')) : '';
             }
             case 'table': {
-                if (node.querySelector('[rowspan], [colspan], table table')) return `\n\n${node.outerHTML}\n\n`;
+                if (node.querySelector('[rowspan], [colspan], table table, td ul, td ol, td pre, td blockquote, td details, th ul, th ol, th pre')) return park(node.outerHTML);
                 const rows = [...node.rows]; if (!rows.length) return '';
                 const width = Math.max(...rows.map(row => row.cells.length));
-                const rowText = row => '| ' + Array.from({ length: width }, (_, index) => row.cells[index] ? children(row.cells[index]).trim().replace(/\|/g, '\\|').replace(/\n/g, '<br>') : '').join(' | ') + ' |';
-                const hasHeader = [...rows[0].cells].some(cell => cell.tagName === 'TH');
+                const cell = value => tidy(children(value)).replace(/\|/g, '\\|').replace(/ *\n+ */g, '<br>');
+                const rowText = row => '| ' + Array.from({ length: width }, (_, index) => row.cells[index] ? cell(row.cells[index]) : '').join(' | ') + ' |';
+                const hasHeader = [...rows[0].cells].some(value => value.tagName === 'TH');
+                const marks = Array.from({ length: width }, (_, index) => ({ left: ':---', right: '---:', center: ':---:' })[cellAlign(rows[0].cells[index] || rows[0].cells[0])] || '---');
                 const header = hasHeader ? rowText(rows.shift()) : '| ' + Array(width).fill(' ').join(' | ') + ' |';
-                return '\n\n' + [header, '| ' + Array(width).fill('---').join(' | ') + ' |', ...rows.map(rowText)].join('\n') + '\n\n';
+                return block([header, '| ' + marks.join(' | ') + ' |', ...rows.map(rowText)].join('\n'));
             }
-            case 'details': return `\n\n<details${node.hasAttribute('open') ? ' open' : ''}>\n${node.innerHTML}\n</details>\n\n`;
-            case 'hr': return '\n\n---\n\n';
-            case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6': return '\n\n' + '#'.repeat(Math.min(6, Number(tag[1]) + 2)) + ' ' + text().trim() + '\n\n';
-            case 'div': case 'figure': case 'section': return `\n${text()}\n`;
-            case 'svg': case 'math': return node.outerHTML;
-            default: return text();
+            case 'details': {
+                const summary = [...node.children].find(child => child.tagName === 'SUMMARY');
+                const heading = summary ? summary.textContent.replace(/\s+/g, ' ').trim().replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch]) : '';
+                const body = tidy([...node.childNodes].filter(child => child !== summary).map(child => convert(child, true)).join(''));
+                return `${park(`<details${node.hasAttribute('open') ? ' open' : ''}>\n<summary>${heading}</summary>`)}${body}${park('</details>')}`;
+            }
+            case 'summary': return '';
+            case 'hr': return has('footnotes-sep') ? '' : block('---');
+            case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6': {
+                const heading = tidy(children(node)).replace(/\s*\n+\s*/g, ' ');
+                return heading ? block('#'.repeat(Math.min(6, Number(tag[1]) + 2)) + ' ' + heading) : '';
+            }
+            case 'figure': {
+                if (!has('export-media')) return block(children(node));
+                const note = node.querySelector('figcaption');
+                const links = [...node.querySelectorAll('a[href]')].map(anchor => convert(anchor)).filter(Boolean);
+                const cover = [...node.querySelectorAll('img')].map(image => convert(image)).filter(Boolean);
+                return block([...cover, note ? escapeText(note.textContent.trim(), true) : '', ...links].filter(Boolean).join('  \n'));
+            }
+            case 'div': case 'section': case 'article': case 'header': case 'footer': case 'figcaption': case 'tbody': case 'thead': case 'tr': case 'td': case 'th': return block(children(node));
+            case 'svg': case 'math': {
+                // Decorative icons carry no content; a drawing that is the content is kept as raw markup.
+                if (tag === 'svg' && (node.getAttribute('aria-hidden') === 'true' || node.getAttribute('role') === 'presentation')) return '';
+                return node.closest('a, h1, h2, h3, h4, h5, h6, td, th, summary') ? hold(node.outerHTML.replace(/\s*\n\s*/g, ' ')) : park(node.outerHTML);
+            }
+            default: return children(node, lineStart);
         }
     };
-    return children(template.content).trim();
+    return restore(tidy(children(template.content)));
 }
 
 // Hex-escape CSS controls and '<' as well: this stylesheet is embedded in an HTML style element.
@@ -288,7 +441,7 @@ export function getExportExtraCSS(t = null) {
     const spoilerLabel = cssText(tr(t, 'core.media.spoilerLabel'));
     const mathSource = cssText(tr(t, 'core.media.mathSource'));
     return `
-.post-content .emoji{display:inline-block;width:1.2em;height:1.2em;max-height:none;margin:0 .1em;vertical-align:-.15em;border-radius:0}
+.post-content .emoji{display:inline-block;width:1.2em;height:1.2em;max-height:none;margin:0 .1em;vertical-align:-.15em;border-radius:0;white-space:nowrap;overflow:hidden}
 .post-content .lightbox-wrapper,.post-content .lightbox{display:block;max-width:100%}.post-content .meta{color:#667085;font-size:12px;display:block}
 .post-content .export-image-caption{display:block;font-size:12px;line-height:1.5;color:#667085;text-align:center;margin:4px 0 8px}.post-content svg{max-width:100%}
 .post-content details{border:1px solid #d4dfd9;border-radius:6px;padding:8px 12px;margin:12px 0}.post-content summary{cursor:pointer;font-weight:600}
@@ -296,6 +449,12 @@ export function getExportExtraCSS(t = null) {
 .post-content .onebox{display:block;border:1px solid #d4dfd9;padding:12px;margin:12px 0;overflow-wrap:anywhere}.post-content .onebox img{max-height:200px}
 .post-content .export-media{border-left:3px solid #4b5ea8;padding:8px 12px}.export-media a{display:block}.export-math-source::before{content:'${mathSource}';display:block;font-size:12px;color:#94a3b8}
 .post-content .table-wrapper{overflow-x:auto}.post-content table{table-layout:auto}.post-content th{font-weight:600;background:#f6f8f5}
+.post-content th[align=center],.post-content td[align=center]{text-align:center}.post-content th[align=right],.post-content td[align=right]{text-align:right}
+.post-content .export-check{display:inline-block;margin-right:.35em;font-size:1.05em;line-height:1}
+.post-content code.export-math-inline{font-style:italic;white-space:nowrap}
+.post-content img.avatar{display:inline-block;width:20px;height:20px;max-height:none;margin:0 6px 0 0;vertical-align:middle;border-radius:50%;white-space:nowrap;overflow:hidden}
+.post-content img.site-icon{display:inline-block;width:16px;height:16px;max-height:none;margin:0 6px 0 0;vertical-align:-.15em;border-radius:2px;white-space:nowrap;overflow:hidden}
+.post-content aside.quote .title{font-size:13px;font-weight:600;margin-bottom:6px}.post-content aside.quote blockquote{background:none;border:0;padding:0;margin:0;border-radius:0}
 .export-warnings{padding:14px;border:1px solid #d6a348;background:#fff9ed;margin:16px 0;overflow-wrap:anywhere}.export-warnings li{margin:6px 0}
 @media print{.post-content .lightbox-wrapper{break-inside:avoid}.post-content .table-wrapper{overflow:visible}.post-content thead{display:table-header-group}.post-content tr{break-inside:avoid}.post-content pre{overflow:visible;white-space:pre-wrap;overflow-wrap:anywhere}.post-content h1,.post-content h2,.post-content h3,.post-content summary{break-after:avoid}.post-content .emoji{max-height:none}.post-content .onebox{break-inside:auto}}
 `;

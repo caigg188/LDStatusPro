@@ -4,6 +4,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
+import { assertIndentSafe } from './embed-core.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BEGIN = '// @@I18N_BEGIN';
@@ -25,6 +26,8 @@ export async function buildI18nSnippet() {
         charset: 'utf8'
     });
     const raw = result.outputFiles[0].text.trim();
+    // 目前该包没有多行模板字符串；一旦出现，缩进会改写翻译文本，这里直接让构建失败
+    assertIndentSafe(raw);
     const indented = raw
         .split('\n')
         .map(line => (line ? `            ${line}` : ''))
