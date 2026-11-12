@@ -17871,7 +17871,23 @@ a:hover{text-decoration:underline;}
         }
 
         // ==================== 启动 ====================
+        // 页面内嵌 iframe（如应用广场 /mini-app-api/frame-host）同样匹配 @match，但其 CSP 会拦截注入的样式，
+        // 面板会以无样式状态出现在应用内部；因此只在顶层窗口启动主程序。
+        // 不能改用 @noframes：cdk.linux.do 桥接页需要在 iframe 中运行。
+        // 判断出错或存疑时一律视为顶层，宁可多显示也不能让正常页面丢失面板。
+        const isTopWindow = () => {
+            try {
+                if (window.top === window.self) return true;
+                // 个别脚本管理器会包装 window，导致恒等比较失真；ancestorOrigins 为空说明确实是顶层
+                const ancestors = window.location.ancestorOrigins;
+                return !!ancestors && ancestors.length === 0;
+            } catch {
+                return true;
+            }
+        };
+
         async function startup() {
+            if (!isTopWindow()) return;
             // 初始化全局领导者管理器（必须在其他组件之前）
             TabLeader.init();
             
