@@ -581,6 +581,11 @@
     .ldsp-resize-e{right:0;top:1em;bottom:1em;width:6px;cursor:e-resize}
     .ldsp-resize-s{bottom:0;left:1em;right:1em;height:6px;cursor:s-resize}
     .ldsp-resize-se{right:0;bottom:0;width:14px;height:14px;cursor:se-resize}
+    .ldsp-resize-w{left:0;top:1em;bottom:1em;width:6px;cursor:w-resize}
+    .ldsp-resize-n{top:0;left:1em;right:1em;height:5px;cursor:n-resize;z-index:21}
+    .ldsp-resize-nw{left:0;top:0;width:12px;height:12px;cursor:nw-resize;z-index:21}
+    .ldsp-resize-ne{right:0;top:0;width:12px;height:12px;cursor:ne-resize;z-index:21}
+    .ldsp-resize-sw{left:0;bottom:0;width:14px;height:14px;cursor:sw-resize}
     .ldsp-resize-se::before{content:'';position:absolute;right:3px;bottom:3px;width:8px;height:8px;border-right:2px solid var(--txt-mut);border-bottom:2px solid var(--txt-mut);opacity:.5;transition:opacity .2s}
     #ldsp-panel:hover .ldsp-resize-se::before{opacity:.8}
     .ldsp-resize-handle:hover::before{opacity:1}
@@ -1752,7 +1757,7 @@
     #ldsp-panel.light .ldsp-tooltip{background:linear-gradient(135deg,rgba(255,255,255,.98),rgba(248,250,254,.98));color:#2d3148;box-shadow:0 4px 16px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.06)}
     #ldsp-panel.light .ldsp-tooltip.heatmap{background:rgba(255,255,255,.98);color:#1e2030;border-color:rgba(0,0,0,.08);box-shadow:0 4px 12px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.05)}
     #ldsp-panel.light .ldsp-tooltip::before{box-shadow:-1px -1px 0 rgba(0,0,0,.04)}
-html,body{margin:0;background:transparent;overflow:hidden}#ldsp-panel{left:24px;top:24px;pointer-events:none}#ldsp-panel,#ldsp-panel *{animation:none!important;transition:none!important}</style></head><body><div id="ldsp-panel" class="" style="--safe-top: 0px; --safe-left: 0px; --w: 380px; --h: 660px; --fs: 13px; --ldsp-font-scale: 1; --pd: 11px; --av: 42px; --ring: 82px; --reading-w: 132px; --min-w: 236px; --max-w: 440px; --min-h: 260px; width: 380px; max-height: 660px;">
+html,body{margin:0;background:transparent;overflow:hidden}#ldsp-panel{left:24px;top:24px;pointer-events:none}#ldsp-panel,#ldsp-panel *{animation:none!important;transition:none!important}</style></head><body><div id="ldsp-panel" class="" style="--safe-top: 0px; --safe-left: 0px; --w: 380px; --h: 660px; --fs: 13px; --ldsp-font-scale: 1; --pd: 11px; --av: 42px; --ring: 82px; --reading-w: 132px; --min-w: 236px; --max-w: 1424px; --min-h: 260px; width: 380px; max-height: 660px;">
                     <div class="ldsp-hdr">
                         <div class="ldsp-hdr-info">
                             <div class="ldsp-site-wrap">
@@ -2033,4 +2038,9 @@ html,body{margin:0;background:transparent;overflow:hidden}#ldsp-panel{left:24px;
                     </div>
                     <div class="ldsp-resize-handle ldsp-resize-e"></div>
                     <div class="ldsp-resize-handle ldsp-resize-s"></div>
-                    <div class="ldsp-resize-handle ldsp-resize-se"></div></div></body></html>
+                    <div class="ldsp-resize-handle ldsp-resize-se"></div>
+                    <div class="ldsp-resize-handle ldsp-resize-w"></div>
+                    <div class="ldsp-resize-handle ldsp-resize-n"></div>
+                    <div class="ldsp-resize-handle ldsp-resize-nw"></div>
+                    <div class="ldsp-resize-handle ldsp-resize-ne"></div>
+                    <div class="ldsp-resize-handle ldsp-resize-sw"></div></div></body></html>

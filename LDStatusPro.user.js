@@ -4760,6 +4760,11 @@
     .ldsp-resize-e{right:0;top:1em;bottom:1em;width:6px;cursor:e-resize}
     .ldsp-resize-s{bottom:0;left:1em;right:1em;height:6px;cursor:s-resize}
     .ldsp-resize-se{right:0;bottom:0;width:14px;height:14px;cursor:se-resize}
+    .ldsp-resize-w{left:0;top:1em;bottom:1em;width:6px;cursor:w-resize}
+    .ldsp-resize-n{top:0;left:1em;right:1em;height:5px;cursor:n-resize;z-index:21}
+    .ldsp-resize-nw{left:0;top:0;width:12px;height:12px;cursor:nw-resize;z-index:21}
+    .ldsp-resize-ne{right:0;top:0;width:12px;height:12px;cursor:ne-resize;z-index:21}
+    .ldsp-resize-sw{left:0;bottom:0;width:14px;height:14px;cursor:sw-resize}
     .ldsp-resize-se::before{content:'';position:absolute;right:3px;bottom:3px;width:8px;height:8px;border-right:2px solid var(--txt-mut);border-bottom:2px solid var(--txt-mut);opacity:.5;transition:opacity .2s}
     #ldsp-panel:hover .ldsp-resize-se::before{opacity:.8}
     .ldsp-resize-handle:hover::before{opacity:1}
@@ -12490,7 +12495,12 @@ a:hover{text-decoration:underline;}
                     </div>
                     <div class="ldsp-resize-handle ldsp-resize-e"></div>
                     <div class="ldsp-resize-handle ldsp-resize-s"></div>
-                    <div class="ldsp-resize-handle ldsp-resize-se"></div>`;
+                    <div class="ldsp-resize-handle ldsp-resize-se"></div>
+                    <div class="ldsp-resize-handle ldsp-resize-w"></div>
+                    <div class="ldsp-resize-handle ldsp-resize-n"></div>
+                    <div class="ldsp-resize-handle ldsp-resize-nw"></div>
+                    <div class="ldsp-resize-handle ldsp-resize-ne"></div>
+                    <div class="ldsp-resize-handle ldsp-resize-sw"></div>`;
 
                 document.body.appendChild(this.el);
                 
@@ -13921,7 +13931,9 @@ a:hover{text-decoration:underline;}
                 const margin = cfg.isVerySmall ? 4 : cfg.isMobile ? 6 : 8;
                 const minW = cfg.isVerySmall ? 184 : cfg.isPhone ? 200 : cfg.isTablet ? 224 : 236;
                 const minH = cfg.isVerySmall ? 190 : cfg.isLandscapeCompact ? 208 : cfg.isPhone ? 228 : 260;
-                const maxW = Math.min(cfg.isTablet ? 460 : 440, Math.max(minW, vw - margin * 2));
+                // 桌面端允许自由拖宽到视口边距；手机/平板保持原有上限
+                const capW = cfg.isMobile ? 440 : cfg.isTablet ? 460 : Infinity;
+                const maxW = Math.min(capW, Math.max(minW, vw - margin * 2));
                 const maxH = Math.max(minH, vh - margin * 2);
                 return { minW, maxW, minH, maxH, margin };
             }
@@ -13947,7 +13959,8 @@ a:hover{text-decoration:underline;}
                 width = Math.round(Math.min(bounds.maxW, Math.max(bounds.minW, width)));
                 maxHeight = Math.round(Math.min(bounds.maxH, Math.max(bounds.minH, maxHeight)));
                 
-                return { ...cfg, width, maxHeight, bounds, usingCustom: !!custom };
+                const fixedHeight = !!(custom && typeof custom === 'object' && custom.fixedHeight);
+                return { ...cfg, width, maxHeight, bounds, usingCustom: !!custom, fixedHeight };
             }
             
             _applyPanelSize(_reason = '') {
@@ -13983,6 +13996,7 @@ a:hover{text-decoration:underline;}
                 // 即使处于折叠状态，也更新尺寸以便展开时生效
                 el.style.width = `${cfg.width}px`;
                 el.style.maxHeight = `${cfg.maxHeight}px`;
+                el.style.height = cfg.fixedHeight ? `${cfg.maxHeight}px` : '';
             }
             
             _onResize() {
@@ -14104,9 +14118,10 @@ a:hover{text-decoration:underline;}
                 const handles = el.querySelectorAll('.ldsp-resize-handle');
                 if (!handles.length) return;
 
-                let startX, startY, startW, startMaxH, startLeft, startTop, direction, alignRight;
+                let startX, startY, startW, startLeft, startTop, startRectH, direction, alignRight;
                 let resizeMoved = false;
-                let originalWidthStyle, originalMaxHStyle, originalCssW, originalCssH;
+                let heightResized = false;
+                let originalWidthStyle, originalMaxHStyle, originalHeightStyle, originalCssW, originalCssH;
                 let originalLeftStyle, originalRightStyle, originalTopStyle;
 
                 const onMouseMove = (e) => {
@@ -14121,18 +14136,31 @@ a:hover{text-decoration:underline;}
                     const cfg = Screen.getConfig();
                     const bounds = this._getPanelSizeBounds(cfg, vw, vh);
 
-                    const maxW = Math.max(bounds.minW, Math.min(bounds.maxW, vw - bounds.margin - startLeft));
-                    const maxH = Math.max(bounds.minH, Math.min(bounds.maxH, vh - bounds.margin - startTop));
+                    const startRight = startLeft + startW;
+                    const startBottom = startTop + startRectH;
+                    const hasW = direction.includes('w');
+                    const hasN = direction.includes('n');
 
-                    if (direction.includes('e')) {
-                        const newW = Math.max(bounds.minW, Math.min(maxW, startW + dx));
+                    // 水平方向：东边缘向右受视口限制；西边缘固定右边缘，向左受视口限制
+                    if (direction.includes('e') || hasW) {
+                        const limit = hasW ? startRight - bounds.margin : vw - bounds.margin - startLeft;
+                        const maxW = Math.max(bounds.minW, Math.min(bounds.maxW, limit));
+                        const newW = Math.max(bounds.minW, Math.min(maxW, hasW ? startW - dx : startW + dx));
                         el.style.width = `${newW}px`;
                         el.style.setProperty('--w', `${newW}px`);
+                        if (hasW) el.style.left = `${Math.round(startRight - newW)}px`;
                     }
-                    if (direction.includes('s')) {
-                        const newH = Math.max(bounds.minH, Math.min(maxH, startMaxH + dy));
+                    // 垂直方向：南边缘沿用 max-height 起点；北边缘固定下边缘（以实际渲染高度为起点）
+                    if (direction.includes('s') || hasN) {
+                        const limit = hasN ? startBottom - bounds.margin : vh - bounds.margin - startTop;
+                        const maxH = Math.max(bounds.minH, Math.min(bounds.maxH, limit));
+                        // 以实际渲染高度为起点并写入 height：内容不足时面板也会跟随拖拽变高
+                        const newH = Math.max(bounds.minH, Math.min(maxH, hasN ? startRectH - dy : startRectH + dy));
+                        el.style.height = `${newH}px`;
                         el.style.maxHeight = `${newH}px`;
                         el.style.setProperty('--h', `${newH}px`);
+                        heightResized = true;
+                        if (hasN) el.style.top = `${Math.round(startBottom - newH)}px`;
                     }
                     this._scheduleIndicatorRefresh(true);
                 };
@@ -14148,6 +14176,7 @@ a:hover{text-decoration:underline;}
                         // 没有实际拖拽，恢复所有原始样式
                         el.style.width = originalWidthStyle;
                         el.style.maxHeight = originalMaxHStyle;
+                        el.style.height = originalHeightStyle;
                         el.style.left = originalLeftStyle;
                         el.style.right = originalRightStyle;
                         el.style.top = originalTopStyle;
@@ -14168,11 +14197,14 @@ a:hover{text-decoration:underline;}
                     const widthRatio = vw > 0 ? finalWidth / vw : 0;
                     const heightRatio = vh > 0 ? finalMaxH / vh : 0;
 
+                    // fixedHeight 仅在用户拖过垂直方向后为 true；旧数据没有该标记，保持内容自适应高度
+                    const prevSize = this.storage.getGlobal('customSize', null);
                     this.storage.setGlobalNow('customSize', {
                         width: Math.round(finalWidth),
                         height: Math.round(finalMaxH),
                         widthRatio,
                         heightRatio,
+                        fixedHeight: heightResized || !!prevSize?.fixedHeight,
                         updatedAt: Date.now()
                     });
 
@@ -14193,37 +14225,54 @@ a:hover{text-decoration:underline;}
                 };
 
                 handles.forEach(handle => {
+                    // 双击任意手柄：恢复默认尺寸（清除自定义宽高）
+                    handle.addEventListener('dblclick', (e) => {
+                        if (el.classList.contains('collapsed')) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.storage.setGlobalNow('customSize', null);
+                        this._lastSizeKey = null;
+                        this._applyPanelSize('resize-reset');
+                        this._scheduleIndicatorRefresh(true);
+                    });
                     handle.addEventListener('mousedown', (e) => {
                         if (el.classList.contains('collapsed')) return;
                         e.preventDefault();
                         e.stopPropagation();
 
-                        if (handle.classList.contains('ldsp-resize-e')) direction = 'e';
-                        else if (handle.classList.contains('ldsp-resize-s')) direction = 's';
-                        else if (handle.classList.contains('ldsp-resize-se')) direction = 'se';
+                        const dirClass = [...handle.classList].find(c => /^ldsp-resize-(n|s|e|w|ne|nw|se|sw)$/.test(c));
+                        direction = dirClass ? dirClass.slice('ldsp-resize-'.length) : null;
+                        if (!direction) return;
 
                         // 保存原始样式值（用于没有拖拽时恢复）
                         originalWidthStyle = el.style.width;
                         originalMaxHStyle = el.style.maxHeight;
+                        originalHeightStyle = el.style.height;
+                        heightResized = false;
                         originalLeftStyle = el.style.left;
                         originalRightStyle = el.style.right;
                         originalTopStyle = el.style.top;
                         originalCssW = el.style.getPropertyValue('--w');
                         originalCssH = el.style.getPropertyValue('--h');
 
-                        // 从 CSS 属性读取起始值（而非 getBoundingClientRect），避免 sub-pixel 差异
-                        // 面板实际渲染高度可能小于 maxHeight（内容未撑满），所以必须用 maxHeight 作为拖拽起点
+                        // 宽度从 CSS 属性读取（而非 getBoundingClientRect），避免 sub-pixel 差异；
+                        // 高度以实际渲染高度为起点，使拖拽时边缘始终跟随指针
                         const rect = el.getBoundingClientRect();
                         startX = e.clientX;
                         startY = e.clientY;
                         startW = parseFloat(el.style.width) || rect.width;
-                        startMaxH = parseFloat(el.style.maxHeight) || parseFloat(el.style.getPropertyValue('--h')) || rect.height;
                         startLeft = rect.left;
                         startTop = rect.top;
+                        startRectH = rect.height;
                         resizeMoved = false;
 
                         const savedPos = this.storage.getGlobal('position');
                         alignRight = savedPos?.alignRight ?? el.classList.contains('expand-left');
+
+                        // 拖拽期间统一以 left 定位，使任意边缘/角都能让对边保持不动；
+                        // 松开时由 onMouseUp 按 alignRight 转回 left 或 right 锚点
+                        el.style.left = `${rect.left}px`;
+                        el.style.right = 'auto';
 
                         el.classList.add('resizing');
                         document.addEventListener('mousemove', onMouseMove);
