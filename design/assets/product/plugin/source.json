@@ -1,6 +1,6 @@
 {
-  "version": "3.9.0.8",
-  "sha256": "78be978b7b755d299aa27c4e7cbadf26a5a6feee810fcc113e6c4303af486f3f",
+  "version": "3.9.0.10",
+  "sha256": "ded478776263cbe3ee8b108112f8a9360b6c0a3f310c4cf60e2e869b66f1a5de",
   "fixtureSha256": "c535b3b960a82580aac2564fc6f7a8e559b3b4b9353e91c85f743ea55bf89da4",
   "presentationRevision": "compact-380x660-incomplete-no-level-badge-settled-v1",
   "source": "LDStatusPro.user.js",
