@@ -1,6 +1,6 @@
 {
-  "capturedOn": "2026-11-06",
-  "sha256": "78be978b7b755d299aa27c4e7cbadf26a5a6feee810fcc113e6c4303af486f3f",
+  "capturedOn": "2026-11-10",
+  "sha256": "e4194144990c3acd2544ddca36c1bdb92c47f4d8d320a7c63ec166aabe6f3a59",
   "fixtureSha256": "c535b3b960a82580aac2564fc6f7a8e559b3b4b9353e91c85f743ea55bf89da4",
   "presentationRevision": "compact-380x660-incomplete-no-level-badge-settled-v1",
   "method": "Playwright Chromium rendering of original source UI with synthetic signed-in fixtures; 1440x900 desktop iframe at CSS scale 2, deviceScaleFactor 1; clipped to DOM panel bounds; external requests blocked",
@@ -18,26 +18,26 @@
   },
   "files": {
     "plugin-light-reqs.webp": {
-      "sha256": "e94926969fe35f52f447db3c97ee69af62be44432dca21ef561cc3ff4817d0c5",
-      "htmlSha256": "7e2e8e488f2cf1583d95523944a8c7bb3f144fc3e106b7862ede7060a5ad4bd3",
+      "sha256": "2e462bfd48e517fed1fbfb7ed106d60cf4a5d52af43e06ca9f6d58590434c558",
+      "htmlSha256": "7a7d5f3a0cb870db032502107871ba404210ca13f1f8d15aa941ccbbb61298a4",
       "width": 760,
       "height": 1202
     },
     "plugin-light-trends.webp": {
-      "sha256": "e1198a9f58f70bc5031e15abe785ffc22995c6ab4d674903db23add8767121e4",
-      "htmlSha256": "598e6ef97d7186ede2560f046401fd1474f029b319c8064d421151b2bdcc53eb",
+      "sha256": "d7ce956294fde35e41a4bb9df41ccfe7002ff29fea8c202c36f9076d3f3cba4f",
+      "htmlSha256": "07812caefc65e867eb6763e7afe5fb928eafdded335d644e44585ee54c983ebf",
       "width": 760,
       "height": 1212
     },
     "plugin-dark-reqs.webp": {
-      "sha256": "97135c627befe6b0bb054f81e445968783c9b8faa8f739304ac64b0eb39fd800",
-      "htmlSha256": "769fca5f5965af52174df874a8545d6aecce6ac08fc4f0c322166f56373864f0",
+      "sha256": "6b8613dea42831eca9cbb7ab45017035f8e252e11a8bc1798d53fe924f8ea1ac",
+      "htmlSha256": "70563c8a2d36b8976bdf91c1cf2417e2a91c467c9aed407238c1b77ef6fc5f23",
       "width": 760,
       "height": 1202
     },
     "plugin-dark-trends.webp": {
-      "sha256": "4a47c308ab5016e9e56023b78f65be6150a7fad5aa20fd93ddbddcb7a23080a6",
-      "htmlSha256": "f98524c0efa94108a689683bc07d572056a658162dec82e21cc9432fb15cd785",
+      "sha256": "73008fb36702e15228794000fc6224cb1d06fca7f907c28da39b2e114305a9a5",
+      "htmlSha256": "e5647c4a893878c543b6e8463cb13d97afa43fa45396c2dda2218ee38be1b8ef",
       "width": 760,
       "height": 1212
     }
