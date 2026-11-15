@@ -99,7 +99,8 @@
     "loginRequiredForTickets": "⚠️ 请先登录后使用工单功能",
     "popupBlocked": "⚠️ 浏览器拦截了新标签页，请允许弹窗后重试",
     "loginSuccess": "✅ 登录成功",
-    "redirectingAuth": "⏳ 正在跳转到授权页面..."
+    "redirectingAuth": "⏳ 正在跳转到授权页面...",
+    "oauthLoginFailed": "脚本登录失败：{reason}（{detail}）。请重新点击“登录”授权。"
   },
   "notifications": {
     "milestoneTitle": "🎉 达成里程碑！"
@@ -130,5 +131,14 @@
     "noSummaryPermission": "没有权限查看用户统计数据",
     "summaryReturnedHtml": "用户统计接口返回了网页而不是数据",
     "summaryPageEmpty": "用户统计页返回空内容"
+  },
+  "oauthErrors": {
+    "callbackInvalid": "授权回调格式无效",
+    "storageUnavailable": "浏览器无法读取登录会话",
+    "pendingMissing": "找不到本次登录会话，回跳前后的标签页或来源可能不同",
+    "pendingInvalid": "本次登录会话数据无效",
+    "stateMismatch": "授权回调与本次登录会话不匹配",
+    "exchangeFailed": "登录结果兑换失败",
+    "exchangeInvalid": "登录服务返回的数据不完整"
   }
 }

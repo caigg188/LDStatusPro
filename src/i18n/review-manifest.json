@@ -946,6 +946,14 @@
     "panel.toasts.authLost": "55c0a973cd1de6fa",
     "panel.toasts.forumLoginRequired": "0dd7795e3ec886c1",
     "panel.toasts.loginRequestFailed": "ee60336059661718",
-    "common.errors.possibleIpBlock": "0e4d1d6ae1d133fe"
+    "common.errors.possibleIpBlock": "0e4d1d6ae1d133fe",
+    "panel.toasts.oauthLoginFailed": "3696d3f3cd1a498c",
+    "panel.oauthErrors.callbackInvalid": "5f26b900354d8180",
+    "panel.oauthErrors.storageUnavailable": "874b4f0ad4ecbee1",
+    "panel.oauthErrors.pendingMissing": "955f8fed687bcd19",
+    "panel.oauthErrors.pendingInvalid": "e4a4a4d369588a52",
+    "panel.oauthErrors.stateMismatch": "a7b25224bfc9ef19",
+    "panel.oauthErrors.exchangeFailed": "552482ba96c70371",
+    "panel.oauthErrors.exchangeInvalid": "dc9c986ee9c692eb"
   }
 }

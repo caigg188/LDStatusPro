@@ -8,12 +8,15 @@ const end = source.indexOf('            async login()', start);
 const validatorStart = source.indexOf('        function isOAuthHandoff(data)');
 const validatorEnd = source.indexOf('        let _pendingOAuthData', validatorStart);
 const validator = source.slice(validatorStart, validatorEnd);
+const helperStart = source.indexOf('        function oauthLoginFailure(');
+const helperEnd = source.indexOf('        class OAuthManager {', helperStart);
+const helpers = source.slice(helperStart, helperEnd);
 function fixture(state = 'signed-state', browserNow = Date.now()) {
   const data = new Map([['ldsp.oauth.pkce', JSON.stringify({ verifier: 'v'.repeat(64), state })]]);
-  const context = vm.createContext({ Date: { now: () => browserNow }, Number, JSON, location: { origin: 'https://linux.do' }, sessionStorage: {
+  const context = vm.createContext({ Date: { now: () => browserNow }, Number, JSON, I18n: { t: key => key }, location: { origin: 'https://linux.do' }, sessionStorage: {
     getItem: key => data.get(key), removeItem: key => data.delete(key)
   } });
-  const oauth = vm.runInContext(`${validator} new (class { ${source.slice(start, end)} })()`, context);
+  const oauth = vm.runInContext(`${validator} ${helpers} new (class { ${source.slice(start, end)} })()`, context);
   let calls = 0;
   oauth.network = { api: async (path, options) => {
     calls++; assert.equal(path, '/api/auth/exchange');
@@ -27,13 +30,13 @@ test('userscript consumes the expected browser state and exchanges code once', a
   const f = fixture();
   const grant = { c: 'c'.repeat(43), s: 'signed-state', exp: Date.now() + 60000 };
   assert.equal((await f.oauth._exchangeHandoff(grant)).token, 'mock-response-token');
-  assert.equal(await f.oauth._exchangeHandoff(grant), null);
+  await assert.rejects(f.oauth._exchangeHandoff(grant), { code: 'OAUTH_PENDING_MISSING' });
   assert.equal(f.calls(), 1);
 });
 test('userscript rejects wrong state and malformed grants before a network request', async () => {
   const f = fixture();
-  assert.equal(await f.oauth._exchangeHandoff({ c: 'c'.repeat(43), s: 'other-state', exp: Date.now() + 60000 }), null);
-  assert.equal(await f.oauth._exchangeHandoff({ c: 'short', s: 'signed-state', exp: Date.now() + 60000 }), null);
+  await assert.rejects(f.oauth._exchangeHandoff({ c: 'c'.repeat(43), s: 'other-state', exp: Date.now() + 60000 }), { code: 'OAUTH_STATE_MISMATCH' });
+  await assert.rejects(f.oauth._exchangeHandoff({ c: 'short', s: 'signed-state', exp: Date.now() + 60000 }), { code: 'OAUTH_CALLBACK_INVALID' });
   assert.equal(f.calls(), 0);
 });
 

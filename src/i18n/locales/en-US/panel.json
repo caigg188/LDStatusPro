@@ -99,7 +99,8 @@
     "loginRequiredForTickets": "⚠️ Sign in first to use support tickets",
     "popupBlocked": "⚠️ Pop-up blocked by browser — allow pop-ups and try again",
     "loginSuccess": "✅ Signed in successfully",
-    "redirectingAuth": "⏳ Redirecting to authorization..."
+    "redirectingAuth": "⏳ Redirecting to authorization...",
+    "oauthLoginFailed": "Script sign-in failed: {reason} ({detail}). Click Sign in again to start a new authorization."
   },
   "notifications": {
     "milestoneTitle": "🎉 Milestone Reached!"
@@ -130,5 +131,14 @@
     "noSummaryPermission": "No permission to view user summary stats",
     "summaryReturnedHtml": "User summary endpoint returned HTML instead of JSON",
     "summaryPageEmpty": "User summary page returned empty content"
+  },
+  "oauthErrors": {
+    "callbackInvalid": "The authorization callback is invalid",
+    "storageUnavailable": "The browser cannot access the sign-in session",
+    "pendingMissing": "The original sign-in session is missing; the tab or origin may have changed",
+    "pendingInvalid": "The original sign-in session is invalid",
+    "stateMismatch": "The authorization callback does not match this sign-in session",
+    "exchangeFailed": "The sign-in result could not be exchanged",
+    "exchangeInvalid": "The sign-in service returned an incomplete result"
   }
 }
