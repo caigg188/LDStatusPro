@@ -24,18 +24,24 @@ function allowedDevelopmentAdvisory(id, vuln, { packageLock, now = Date.now() } 
 }
 
 export function collectAdvisoryIds(name, vulns, visiting = new Set()) {
-    const vuln = vulns[name]
-    if (!vuln || visiting.has(name)) return []
+    const vuln = Object.hasOwn(vulns, name) ? vulns[name] : null
+    if (!vuln || typeof vuln !== 'object' || Array.isArray(vuln) || visiting.has(name)
+        || !Array.isArray(vuln.via) || !vuln.via.length) return ['UNKNOWN_ADVISORY']
     visiting.add(name)
     const ids = []
-    for (const item of vuln.via || []) {
+    for (const item of vuln.via) {
         if (typeof item === 'string') {
             ids.push(...collectAdvisoryIds(item, vulns, visiting))
             continue
         }
-        const ghsa = String(item.url || '').match(/GHSA-[0-9a-z-]+/i)?.[0]
-        if (ghsa) ids.push(ghsa)
+        const ghsa = typeof item?.url === 'string'
+            ? item.url.match(/^https:\/\/github\.com\/advisories\/(GHSA-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4})\/?$/i)?.[1]
+            : null
+        // Every branch must resolve; an allowed sibling is not evidence for an unknown entry.
+        ids.push(ghsa ? `GHSA-${ghsa.slice(5).toLowerCase()}` : 'UNKNOWN_ADVISORY')
     }
+    // Track only the active path so a shared dependency is not mistaken for a cycle.
+    visiting.delete(name)
     return [...new Set(ids)]
 }
 
@@ -47,9 +53,9 @@ export function leftoverVulnerabilities(report, allowedAdvisories = ALLOWED_ADVI
     const vulns = report.vulnerabilities
     return Object.entries(vulns).flatMap(([name, vuln]) => {
         const discovered = collectAdvisoryIds(name, vulns)
-        const advisories = (discovered.length ? discovered : ['UNKNOWN_ADVISORY']).filter((id) => !allowedAdvisories.has(id)
-            && !allowedDevelopmentAdvisory(id, vuln, options))
-        return advisories.length ? [{ name, severity: vuln.severity, advisories }] : []
+        const advisories = discovered.filter((id) => id === 'UNKNOWN_ADVISORY' || (!allowedAdvisories.has(id)
+            && !allowedDevelopmentAdvisory(id, vuln, options)))
+        return advisories.length ? [{ name, severity: vuln?.severity, advisories }] : []
     })
 }
 
@@ -73,8 +79,9 @@ export function parseAuditResult(result) {
 }
 
 function main() {
-    const report = parseAuditResult(spawnSync('npm', ['audit', '--json', '--audit-level=low'], {
+    const report = parseAuditResult(spawnSync('npm', ['audit', '--package-lock-only', '--include=dev', '--json', '--audit-level=low'], {
         encoding: 'utf8',
+        timeout: 90_000,
         maxBuffer: 16 * 1024 * 1024
     }))
     const packageLock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'))

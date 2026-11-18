@@ -73,4 +73,43 @@ describe('check-audit', () => {
     const other = JSON.parse(JSON.stringify(report)); other.vulnerabilities.picomatch.via[0].url = 'https://github.com/advisories/GHSA-unknown'
     expect(leftoverVulnerabilities(other, new Set(), options)).toHaveLength(1)
   })
+
+  it.each([
+    ['unknown object', {}], ['null', null], ['number', 1], ['array', []],
+    ['unresolved dependency', 'missing'],
+    ['unrecognized URL', { url: 'https://example.invalid/advisory' }],
+    ['allowed ID on another host', { url: 'https://example.invalid/GHSA-fc5q-39xc-vjpf' }],
+    ['allowed ID in a query', { url: 'https://github.com/advisories/other?GHSA-fc5q-39xc-vjpf' }]
+  ])('rejects an allowed advisory mixed with %s in either order', (_name, item) => {
+    const advisory = { url: 'https://github.com/advisories/GHSA-fc5q-39xc-vjpf' }
+    const options = { now: Date.parse('2026-11-18T00:00:00Z'), packageLock: { packages: { 'node_modules/picomatch': { dev: true } } } }
+    for (const via of [[advisory, item], [item, advisory]]) {
+      const report = { vulnerabilities: { picomatch: { severity: 'high', nodes: ['node_modules/picomatch'], via } } }
+      expect(leftoverVulnerabilities(report, new Set(['UNKNOWN_ADVISORY']), options)[0]?.advisories).toEqual(['UNKNOWN_ADVISORY'])
+    }
+  })
+
+  it('does not hide unknown entries behind a permanent exception or a transitive reference', () => {
+    const report = { vulnerabilities: {
+      braces: { severity: 'high', via: [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm' }, 'wrapper'] },
+      wrapper: { severity: 'low', via: [{}] }
+    } }
+    expect(leftoverVulnerabilities(report).map(item => item.advisories)).toEqual([['UNKNOWN_ADVISORY'], ['UNKNOWN_ADVISORY']])
+    for (const via of [[], null, 'missing', {}]) {
+      expect(leftoverVulnerabilities({ vulnerabilities: { fixture: { severity: 'low', via } } })[0]?.advisories).toEqual(['UNKNOWN_ADVISORY'])
+    }
+  })
+
+  it('rejects cycles while allowing shared, fully resolved dependency paths', () => {
+    const report = { vulnerabilities: {
+      braces: { severity: 'high', via: [{ url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm' }] },
+      wrapper: { severity: 'high', via: ['braces'] },
+      parent: { severity: 'high', via: ['braces', 'wrapper'] }
+    } }
+    expect(leftoverVulnerabilities(report)).toEqual([])
+    report.vulnerabilities.braces.via.push('parent')
+    const unresolved = leftoverVulnerabilities(report)
+    expect(unresolved).toHaveLength(3)
+    expect(unresolved.every(item => item.advisories.includes('UNKNOWN_ADVISORY'))).toBe(true)
+  })
 })
