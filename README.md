@@ -18,7 +18,7 @@
 
 🌐 **[官网](https://ldspro.qzz.io/)** | 🏪 **[LD 士多](https://ldcstore.com/)** | 📖 **[脚本说明](./DOCS.md)**
 
-脚本版本以 `LDStatusPro.user.js` 头部 `@version` 为准（当前 **3.9.0.8**）。`update_log.md` 停在 v3.5.4.10，后续变更看 git 与下方近期条目。
+脚本版本以 `LDStatusPro.user.js` 头部 `@version` 为准（当前 **3.9.0.12**）。`update_log.md` 停在 v3.5.4.10，后续变更看 git 与下方近期条目。
 
 **简体中文** | [English](./README_EN.md) | [繁體中文](./README_TW.md)
 
@@ -297,6 +297,14 @@ LDStatusPro/
 ---
 
 ## 📋 更新日志
+
+### v3.9.0.12
+
+- 面板支持从四条边和四个角调整大小；桌面端可拖宽至视口边距，双击任意手柄恢复默认尺寸，旧尺寸配置继续按内容自适应高度。
+- 修复应用广场及其他 iframe 内重复启动面板的问题，保留 CDK iframe 桥接。
+- 修复内嵌构建缩进破坏 Markdown、代码块与 AI 提示词的问题，并在构建时阻止此类内容失真。
+- 改善话题导出的引用署名、任务列表、表格对齐、公式、视频链接、图片说明和上下标；导出文档中的标题与用户信息按字面保留。
+- 感谢 [@lulavc7221](https://github.com/lulavc7221) 的贡献（[#105](https://github.com/caigg188/LDStatusPro/pull/105)、[#106](https://github.com/caigg188/LDStatusPro/pull/106)、[#107](https://github.com/caigg188/LDStatusPro/pull/107)）。
 
 ### v3.9.0.11
 

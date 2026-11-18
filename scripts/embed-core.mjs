@@ -2,20 +2,41 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parse } from 'acorn';
 import { build } from 'esbuild';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BEGIN = '// @@CORE_SANITIZE_BEGIN';
 const END = '// @@CORE_SANITIZE_END';
 
+// 缩进只能作用于代码，不能落在字符串内容里：任何带真实换行的模板字符串都会被缩进改写。
+export function assertIndentSafe(code) {
+    const visit = (node) => {
+        if (!node || typeof node.type !== 'string') return;
+        if (node.type === 'TemplateElement' && /[\r\n]/.test(node.value.raw)) {
+            throw new Error('SafeDom bundle contains a multi-line template literal; indenting it would change its content.');
+        }
+        for (const value of Object.values(node)) {
+            if (Array.isArray(value)) value.forEach(visit);
+            else if (value && typeof value.type === 'string') visit(value);
+        }
+    };
+    visit(parse(code, { ecmaVersion: 'latest' }));
+}
+
 async function buildSnippet() {
     const result = await build({
         entryPoints: [path.join(root, 'src/core/browser-core.mjs')], bundle: true,
         write: false, format: 'iife', globalName: 'SafeDom', platform: 'browser',
         target: 'es2020', minifyWhitespace: true, minifyIdentifiers: true,
-        minifySyntax: false, legalComments: 'inline', charset: 'utf8'
+        minifySyntax: false, legalComments: 'inline', charset: 'utf8',
+        // 模板字符串里的真实换行会被下面的缩进改写（每个换行后多出 12 个空格），
+        // 导致导出的 Markdown、代码块和提示词内容被破坏；统一降级为普通字符串。
+        supported: { 'template-literal': false }
     });
-    const indented = result.outputFiles[0].text.trim()
+    const bundle = result.outputFiles[0].text.trim();
+    assertIndentSafe(bundle);
+    const indented = bundle
         .split('\n')
         .map((line) => (line ? `            ${line}` : ''))
         .join('\n');
@@ -50,5 +71,7 @@ async function embed(check) {
     fs.writeFileSync(userPath, updated);
 }
 
-const check = process.argv.includes('--check');
-await embed(check);
+// 仅在作为脚本直接执行时写入；被测试导入时不产生副作用
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+    await embed(process.argv.includes('--check'));
+}
