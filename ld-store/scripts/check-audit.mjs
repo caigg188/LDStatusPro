@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { readFileSync } from 'node:fs'
 
 /**
  * Advisories with no non-breaking fix. Tailwind 3 still pulls braces 3.x;
@@ -9,6 +10,18 @@ import { fileURLToPath } from 'node:url'
 export const ALLOWED_ADVISORIES = new Set([
     'GHSA-vfj7-8cjw-p6xm'
 ])
+
+// Approved 2026-11-18: no published fix is available. This exception applies
+// only to lockfile-proven development dependencies with trusted build globs.
+export const DEV_ADVISORY_EXCEPTION = Object.freeze({
+    id: 'GHSA-fc5q-39xc-vjpf', expiresAt: '2026-11-25T00:00:00Z'
+})
+
+function allowedDevelopmentAdvisory(id, vuln, { packageLock, now = Date.now() } = {}) {
+    return id === DEV_ADVISORY_EXCEPTION.id && now < Date.parse(DEV_ADVISORY_EXCEPTION.expiresAt)
+        && Array.isArray(vuln.nodes) && vuln.nodes.length > 0
+        && vuln.nodes.every(path => packageLock?.packages?.[path]?.dev === true)
+}
 
 export function collectAdvisoryIds(name, vulns, visiting = new Set()) {
     const vuln = vulns[name]
@@ -26,14 +39,16 @@ export function collectAdvisoryIds(name, vulns, visiting = new Set()) {
     return [...new Set(ids)]
 }
 
-export function leftoverVulnerabilities(report, allowedAdvisories = ALLOWED_ADVISORIES) {
+export function leftoverVulnerabilities(report, allowedAdvisories = ALLOWED_ADVISORIES, options = {}) {
     if (report?.error || !report?.vulnerabilities || typeof report.vulnerabilities !== 'object'
         || Array.isArray(report.vulnerabilities)) {
         throw new Error('npm audit did not return a valid vulnerability report')
     }
     const vulns = report.vulnerabilities
     return Object.entries(vulns).flatMap(([name, vuln]) => {
-        const advisories = collectAdvisoryIds(name, vulns).filter((id) => !allowedAdvisories.has(id))
+        const discovered = collectAdvisoryIds(name, vulns)
+        const advisories = (discovered.length ? discovered : ['UNKNOWN_ADVISORY']).filter((id) => !allowedAdvisories.has(id)
+            && !allowedDevelopmentAdvisory(id, vuln, options))
         return advisories.length ? [{ name, severity: vuln.severity, advisories }] : []
     })
 }
@@ -62,7 +77,8 @@ function main() {
         encoding: 'utf8',
         maxBuffer: 16 * 1024 * 1024
     }))
-    const leftover = leftoverVulnerabilities(report)
+    const packageLock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'))
+    const leftover = leftoverVulnerabilities(report, ALLOWED_ADVISORIES, { packageLock })
     if (!leftover.length) {
         console.log('npm audit: no blocking vulnerabilities')
         return

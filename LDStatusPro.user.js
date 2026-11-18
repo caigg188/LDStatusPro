@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         LDStatus Pro
 // @namespace    http://tampermonkey.net/
-// @version      3.9.0.10
+// @version      3.9.0.11
 // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
 // @author       JackLiii
 // @license      MIT
@@ -2959,7 +2959,26 @@
             }
 
             getToken() { return this.storage.getGlobal('leaderboardToken', null); }
-            setToken(token) { this.storage.setGlobalNow('leaderboardToken', token); }
+            setToken(token) {
+                // Shared generations also isolate same-JWT reauthorization.
+                const generation = `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+                this.storage.setGlobalNow('leaderboardAuthGeneration', generation);
+                this.storage.setGlobalNow('leaderboardToken', token);
+                return generation;
+            }
+
+            _captureAuthSession() {
+                return { token: this.getToken(), generation: this.storage.getGlobal('leaderboardAuthGeneration', null) };
+            }
+
+            _isAuthSessionCurrent(session) {
+                return session.token === this.getToken()
+                    && session.generation === this.storage.getGlobal('leaderboardAuthGeneration', null);
+            }
+
+            _sessionChangedResult() {
+                return { success: false, error: { code: 'SESSION_CHANGED', message: 'Session changed' } };
+            }
             
             getUserInfo() { return this.storage.getGlobal('leaderboardUser', null); }
             setUserInfo(user) { this.storage.setGlobalNow('leaderboardUser', user); }
@@ -2983,23 +3002,26 @@
                 EventBus.emit('auth:expired', payload);
             }
 
-            _handleAuthExpired(reason = 'TOKEN_EXPIRED', payload = {}) {
-                this.logout();
-                this._emitAuthExpired({ reason, ...payload });
+            _handleAuthExpired(reason = 'TOKEN_EXPIRED', payload = {}, session = this._captureAuthSession()) {
+                if (!session.token || !this._isAuthSessionCurrent(session)) return false;
+                const generation = this.logout();
+                this._emitAuthExpired({ reason, ...payload, generation });
+                return true;
             }
             
             /**
              * 检查是否已登录且 Token 未过期
              */
             isLoggedIn() {
-                const token = this.getToken();
+                const session = this._captureAuthSession();
+                const token = session.token;
                 const user = this.getUserInfo();
                 if (!token || !user) return false;
                 
                 // 检查 token 是否过期
                 if (this._isTokenExpired(token)) {
                     Logger.log('Token expired, logging out');
-                    this._handleAuthExpired('TOKEN_EXPIRED', { source: 'isLoggedIn' });
+                    this._handleAuthExpired('TOKEN_EXPIRED', { source: 'isLoggedIn' }, session);
                     return false;
                 }
                 return true;
@@ -3139,9 +3161,10 @@
             }
 
             logout() {
-                this.setToken(null);
+                const generation = this.setToken(null);
                 this.setUserInfo(null);
                 this.setJoined(false);
+                return generation;
             }
 
             /**
@@ -3152,28 +3175,31 @@
              */
             async api(endpoint, options = {}) {
                 const { requireAuth = true, ...restOptions } = options;
-                
-                // 需要登录的接口，先检查登录状态（包含 Token 过期检测）
+                const session = this._captureAuthSession();
+                const token = session.token;
+
+                // Capture once before the request can wait in the network queue.
                 if (requireAuth) {
-                    const token = this.getToken();
                     if (!token) {
                         return { success: false, error: { code: 'NOT_LOGGED_IN', message: 'Not logged in' } };
                     }
                     // Token 已过期，主动退出登录态并通知 UI
                     if (this._isTokenExpired(token)) {
-                        this._handleAuthExpired('TOKEN_EXPIRED', { endpoint, source: 'api:precheck' });
+                        this._handleAuthExpired('TOKEN_EXPIRED', { endpoint, source: 'api:precheck' }, session);
                         return { success: false, error: { code: 'TOKEN_EXPIRED', message: 'Token expired' } };
                     }
                 }
                 
                 try {
-                    const result = await this.network.api(endpoint, { ...restOptions, token: this.getToken() });
+                    const result = await this.network.api(endpoint, { ...restOptions, token });
+                    if (!this._isAuthSessionCurrent(session)) return this._sessionChangedResult();
                     const responseCode = String(result?.error?.code || '').trim().toUpperCase();
-                    if (result?.success === false && this._isAuthErrorCode(responseCode)) {
-                        this._handleAuthExpired(responseCode || 'INVALID_TOKEN', { endpoint, source: 'api:response' });
+                    if (token && result?.success === false && this._isAuthErrorCode(responseCode)) {
+                        this._handleAuthExpired(responseCode || 'INVALID_TOKEN', { endpoint, source: 'api:response' }, session);
                     }
                     return result;
                 } catch (e) {
+                    if (!this._isAuthSessionCurrent(session)) return this._sessionChangedResult();
                     const errCode = String(e?.code || '').trim().toUpperCase();
                     const errMsg = String(e?.message || '').toUpperCase();
                     const isAuthError =
@@ -3188,11 +3214,11 @@
                         errMsg.includes('UNAUTHORIZED') ||
                         errMsg.includes('EXPIRED');
                     
-                    if (isAuthError) {
+                    if (token && isAuthError) {
                         const reason = this._isAuthErrorCode(errCode)
                             ? errCode
                             : (errMsg.includes('TOKEN_EXPIRED') || errMsg.includes('EXPIRED') ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN');
-                        this._handleAuthExpired(reason, { endpoint, source: 'api:exception' });
+                        this._handleAuthExpired(reason, { endpoint, source: 'api:exception' }, session);
                     }
                     throw e;
                 }
@@ -12145,6 +12171,7 @@ a:hover{text-decoration:underline;}
                 
                 // 订阅 Token 过期事件
                 EventBus.on('auth:expired', (payload = {}) => {
+                    if (this.oauth?.getToken() || (payload.generation && payload.generation !== this.storage.getGlobal('leaderboardAuthGeneration', null))) return;
                     const reason = String(payload?.reason || '').toUpperCase();
                     const reasonMessageMap = {
                         TOKEN_EXPIRED: I18n.t('panel.toasts.authExpired'),

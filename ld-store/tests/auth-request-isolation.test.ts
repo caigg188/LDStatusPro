@@ -49,6 +49,29 @@ it('expires the current account on a real current 401 but public requests cannot
   await api.get('/api/shop/orders')
   expect(authSession.value.token).toBeNull()
 })
+it.each([401, 200])('an image authentication failure inside HTTP %s preserves the storefront session', async status => {
+  const current = authSession.value.token
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ success: false, error: { code: 'AUTH_INVALID', message: 'Image authentication rejected' } }, status)))
+  expect(await api.get('/api/image/history')).toMatchObject({ success: false, errorCode: 'AUTH_INVALID' })
+  expect(authSession.value.token).toBe(current)
+  expect(authSession.value.user?.id).toBe('11')
+})
+it('authentication failures from API1 and unrelated origins cannot expire a store session', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockImplementation(() => Promise.resolve(json({ code: 'AUTH_INVALID' }, 401))))
+  for (const path of ['/api/auth/exchange', 'https://image.invalid/api/shop/history']) {
+    expect(await api.get(path)).toMatchObject({ status: 401 })
+    expect(authSession.value.token).toBeTruthy()
+  }
+})
+it('a late image authentication failure cannot affect a new account', async () => {
+  const pending = deferred<Response>()
+  vi.stubGlobal('fetch', vi.fn().mockReturnValue(pending.promise))
+  const response = api.get('/api/image/price-info')
+  setAuthSession(authToken('22'))
+  pending.resolve(json({ code: 'AUTH_INVALID' }, 401))
+  expect(await response).toMatchObject({ errorCode: 'SESSION_CHANGED' })
+  expect(authSession.value.user?.id).toBe('22')
+})
 it('blocks mutations when storage changed before the UI received its event', async () => {
   const fetch = vi.fn()
   vi.stubGlobal('fetch', fetch)

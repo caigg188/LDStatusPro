@@ -259,6 +259,18 @@ function hasAuthFailure(status: number, payload: unknown): boolean {
   return status === 401 || isAuthErrorCode(payload)
 }
 
+// Only the authority that owns the storefront JWT may expire its session.
+function ownsStoreSession(fullUrl: string): boolean {
+  try {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://local.invalid'
+    const requestUrl = new URL(fullUrl, origin)
+    const storeUrl = new URL(API_BASE || '/', origin)
+    return requestUrl.origin === storeUrl.origin
+      && !requestUrl.pathname.startsWith('/api/image')
+      && !requestUrl.pathname.startsWith('/api/auth')
+  } catch { return false }
+}
+
 function readPayloadStatus(payload: unknown, fallback: number): number {
   if (!isRecord(payload)) return fallback
   const parsed = Number(payload.status)
@@ -314,6 +326,7 @@ async function request<T = unknown>(url: string, options: ApiRequestOptions = {}
     ? IMAGE_API_BASE
     : (url.startsWith('/api/auth') ? AUTH_API_BASE : API_BASE)
   const fullUrl = url.startsWith('http') ? url : `${base}${url}`
+  const canExpireStoreSession = ownsStoreSession(fullUrl)
 
   const authMode = options.auth || 'required'
   const session = authMode === 'none' ? null : captureAuthSession()
@@ -361,7 +374,7 @@ async function request<T = unknown>(url: string, options: ApiRequestOptions = {}
 
     // 检查响应状态
     if (!response.ok) {
-      if (token && hasAuthFailure(response.status, data)) {
+      if (token && canExpireStoreSession && hasAuthFailure(response.status, data)) {
         emitAuthExpired({ source: 'request', url, method, reason: 'server_unauthorized', status: response.status }, session)
       }
       return failureResponse('http', response.status, normalizeServerErrorMessage(response.status, data), data)
@@ -369,7 +382,7 @@ async function request<T = unknown>(url: string, options: ApiRequestOptions = {}
 
     if (isRecord(data) && data.success === false) {
       const payloadStatus = readPayloadStatus(data, response.status)
-      if (token && hasAuthFailure(payloadStatus, data)) {
+      if (token && canExpireStoreSession && hasAuthFailure(payloadStatus, data)) {
         emitAuthExpired({ source: 'request', url, method, reason: 'payload_auth_error', status: payloadStatus }, session)
       }
       return failureResponse('http', payloadStatus, normalizeServerErrorMessage(payloadStatus, data), data)
@@ -421,7 +434,7 @@ async function openEventStream(url: string, { signal, headers: extraHeaders }: E
     if (!response.ok) {
       const data = await parseResponseBody(response)
       if (!isAuthSessionCurrent(session)) return sessionChangedResponse()
-      if (hasAuthFailure(response.status, data)) {
+      if (ownsStoreSession(fullUrl) && hasAuthFailure(response.status, data)) {
         emitAuthExpired({ source: 'event-stream', url, method: 'GET', reason: 'server_unauthorized', status: response.status }, session)
       }
       return failureResponse('http', response.status, normalizeServerErrorMessage(response.status, data), data)
