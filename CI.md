@@ -55,6 +55,8 @@ CI gate 拒绝失败、取消、缺少变更标记及受影响任务被跳过。
 
 依赖审计允许已有的明确公告豁免，但网络/工具失败、无效 JSON 或无效报告必须失败；合法的 npm audit 退出码 1 仍按具体漏洞和豁免判断。
 
+商城审计按锁文件显式包含开发依赖；每个 `via` 条目均须解析为规范 GHSA，未知条目、断开的依赖引用和环路单独保留为阻断项，不能被同一漏洞的已允许公告覆盖。临时开发依赖例外仍按当前时间与锁文件范围判断，原有部署入口继续在 `check:source` 中执行审计。
+
 ### 发布回执与回退
 
 两个入口在构建后调用 `scripts/pages-release.mjs`。发布器沿用 Wrangler OAuth 登录或 `CLOUDFLARE_API_TOKEN`，凭据只在内存中用于 API 请求，不写入回执或终端。未指定 `CLOUDFLARE_ACCOUNT_ID` 时仅自动选择唯一账户；多账户必须显式指定，Token 方式也建议同时设置账户 ID。不要使用全局 API Key。若本机依赖 HTTP(S) 代理，使用 Node 22.21+ 或 24+ 并在启动发布/复验命令前设置 `NODE_USE_ENV_PROXY=1`，使内置 fetch 沿用 `HTTP_PROXY`、`HTTPS_PROXY`、`NO_PROXY`；参见 [Node.js 代理配置](https://nodejs.org/learn/http/enterprise-network-configuration)。
