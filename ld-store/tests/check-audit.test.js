@@ -59,4 +59,18 @@ describe('check-audit', () => {
       { name: 'dompurify', severity: 'low', advisories: ['GHSA-p98j-92pf-mc4p'] }
     ])
   })
+  it('limits the approved picomatch exception to development dependencies and expires it automatically', () => {
+    const report = { vulnerabilities: { picomatch: { severity: 'high', nodes: ['node_modules/picomatch'], via: [{ url: 'https://github.com/advisories/GHSA-fc5q-39xc-vjpf' }] } } }
+    const options = { now: Date.parse('2026-11-18T00:00:00Z'), packageLock: { packages: { 'node_modules/picomatch': { dev: true } } } }
+    expect(leftoverVulnerabilities(report, new Set(), options)).toEqual([])
+    expect(leftoverVulnerabilities(report)).toHaveLength(1)
+    expect(leftoverVulnerabilities(report, new Set(), { ...options, now: Date.parse('2026-11-25T00:00:00Z') })).toHaveLength(1)
+    expect(leftoverVulnerabilities(report, new Set(), { ...options, packageLock: { packages: { 'node_modules/picomatch': { dev: false } } } })).toHaveLength(1)
+    const malformed = JSON.parse(JSON.stringify(report)); malformed.vulnerabilities.picomatch.via = [{}]
+    expect(leftoverVulnerabilities(malformed, new Set(), options)).toHaveLength(1)
+    const mixed = JSON.parse(JSON.stringify(report)); mixed.vulnerabilities.picomatch.nodes.push('node_modules/unknown-copy')
+    expect(leftoverVulnerabilities(mixed, new Set(), options)).toHaveLength(1)
+    const other = JSON.parse(JSON.stringify(report)); other.vulnerabilities.picomatch.via[0].url = 'https://github.com/advisories/GHSA-unknown'
+    expect(leftoverVulnerabilities(other, new Set(), options)).toHaveLength(1)
+  })
 })
