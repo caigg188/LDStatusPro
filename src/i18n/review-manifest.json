@@ -600,8 +600,8 @@
     "melon.truncated": "55cd8417643ab5d8",
     "melon.viewer.aiLabel": "7ad0ee5e585af82c",
     "melon.viewer.budgetExceeded": "61353acb7b748090",
-    "melon.viewer.chatHintPlain": "e000e929b4a3087b",
-    "melon.viewer.chatHintWithDigest": "9ea3e2323d985b90",
+    "melon.viewer.chatHintPlain": "b3b1bf91c6ef6697",
+    "melon.viewer.chatHintWithDigest": "14fe732eca8e33e3",
     "melon.viewer.chatPlaceholder": "1de74f5bc1520132",
     "melon.viewer.chatSendTitle": "d8b11b5d331cce8d",
     "melon.viewer.closeTitle": "a2c68be78608df12",
@@ -953,8 +953,8 @@
     "core.errors.modelRequired": "cfae2a38164d6b63",
     "melon.settings.modelPlaceholder": "d4019f31f942d95f",
     "melon.viewer.consultReplies": "bd6f439caf9653f7",
-    "melon.viewer.retrievalHint": "f1d7d1273c71944a",
-    "melon.viewer.retrievalUnavailable": "b0de3f054651ed2f",
+    "melon.viewer.retrievalHint": "16a7224b8c40dc46",
+    "melon.viewer.retrievalUnavailable": "8a073b7e2fc9c940",
     "melon.viewer.retrieving": "5894c9e789667f3a",
     "melon.viewer.retrieved": "f288bcccc0e8484f",
     "melon.viewer.retrievalBudget": "b6a059bd61ab4eea",
@@ -971,8 +971,9 @@
     "melon.sources.popular": "e90add24d6498f41",
     "melon.sources.hint": "c1c21879fd0bbe13",
     "melon.sources.unavailable": "d7894ed6c26a763f",
-    "melon.sources.prompt": "ec0e7941dd0e54ae",
-    "melon.sources.done": "8cca4548f8553d9e",
-    "core.errors.popularUnavailable": "7764b5ceb46b3228"
+    "melon.sources.prompt": "3d7fd8ad475fbea6",
+    "core.errors.popularUnavailable": "7764b5ceb46b3228",
+    "melon.viewer.clearChat": "dbfd32d712e261eb",
+    "melon.viewer.chatCleared": "63fe2511f2a240a7"
   }
 }

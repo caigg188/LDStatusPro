@@ -95,6 +95,10 @@ test('Chromium: summary controls, regeneration, history follow-ups and language 
                 await page.locator('#viewer-chat-content').getByText('Answer 6', { exact: false }).waitFor();
                 assert.match(await page.evaluate(() => requests.at(-1).messages[0].content), /Original reply excerpts[\s\S]*Source text/);
                 assert.equal(await page.locator('#viewer-chat-content .assistant').last().locator('a[href$="/t/42/1"]').count(), 1);
+                await page.locator('#viewer-close').click();
+                await page.locator('#melon-expand').click();
+                await page.locator('#viewer-chat-content').getByText('Explain [第1楼]', { exact: false }).waitFor();
+                assert.equal(await page.locator('#viewer-chat-clear').isVisible(), true);
                 if (width === 1280) {
                     await page.locator('#viewer-close').click();
                     await page.locator('#melon-source-mode').selectOption('popular');

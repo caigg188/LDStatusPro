@@ -49,8 +49,7 @@
     "popular": "Popular replies",
     "hint": "Uses the forum's Popular replies across the topic, limited to your range. Popularity is not relevance or consensus; corrections and minority views may be omitted.",
     "unavailable": "Popular replies are unavailable for this topic.",
-    "prompt": "Sources are only forum-selected popular replies in the requested range, not the whole discussion; state this scope. Popularity is not correctness or consensus; corrections and minority views may be missing.",
-    "done": "Complete: {count} forum-selected posts in floors {start}–{end}; other replies not summarized."
+    "prompt": "Sources are only forum-selected popular replies in the requested range, not the whole discussion; state this scope. Popularity is not correctness or consensus; corrections and dissent may be missing."
   },
   "outputPlaceholder": "Generate a summary to see it here.",
   "fetchingPosts": "Loading post content…",
@@ -122,7 +121,10 @@
     "goto": "🔗 Topic",
     "gotoTitle": "Jump to topic",
     "deleteTitle": "Delete this record",
-    "count": { "one": "{count} record", "other": "{count} records" },
+    "count": {
+      "one": "{count} record",
+      "other": "{count} records"
+    },
     "localBadge": "💾 Local storage",
     "clearAll": "🗑️ Clear all",
     "confirmClear": "Clear all history?<br>This cannot be undone.",
@@ -153,22 +155,24 @@
     "chatPlaceholder": "Ask a follow-up question...",
     "chatSendTitle": "Send",
     "consultReplies": "Consult original replies for this question",
-    "retrievalHint": "Reads up to 200 saved floors; sends up to 6 keyword-matched excerpts and author names to your AI. Mention [第N楼] to target a floor. Partial search only.",
-    "retrievalUnavailable": "Original replies require a saved range and a topic on this site.",
+    "retrievalHint": "Reads up to 200 saved floors; sends up to 6 keyword-matched excerpts and author names to your AI. Mention [第N楼] to target a floor.",
+    "retrievalUnavailable": "Requires a saved range and a topic on this site.",
     "retrieving": "Reading accessible floors {start}–{end}…",
     "retrieved": "Read floors {start}–{end}; sent {count} excerpts: {floors}. Other replies may matter.",
     "retrievalBudget": "Not enough input budget for replies. Raise it in Settings.",
-    "noReplyEvidence": "No accessible excerpts found; nothing was sent. Try a specific floor or turn off original replies.",
+    "noReplyEvidence": "No accessible excerpts found; nothing was sent. Try a specific floor or disable retrieval.",
     "unverifiedCitations": "Citations outside the supplied evidence: {floors}. Unverified.",
-    "chatHintWithDigest": "Answers use the summary and attached digests, not the original posts. Only recent complete exchanges that fit the budget are sent.",
-    "chatHintPlain": "Answers use the summary, not the original posts. Only recent complete exchanges that fit the budget are sent.",
+    "chatHintWithDigest": "Answers use the summary and attached digests, not the original posts. Only recent complete exchanges that fit the budget are sent. Saved on this device.",
+    "chatHintPlain": "Answers use the summary, not the original posts. Only recent complete exchanges that fit the budget are sent. Saved on this device.",
     "needApi": "Configure the API URL first",
     "budgetExceeded": "Summary plus question exceeds the input budget. Raise the budget in settings or shorten the question.",
     "thinking": "Thinking…",
     "partialReplyKept": " (partial reply kept)",
     "copyTopicPrefix": "Topic: ",
     "copySummaryHeader": "[AI Summary]",
-    "copyQuestionPrefix": "[Q]"
+    "copyQuestionPrefix": "[Q]",
+    "clearChat": "Clear chat",
+    "chatCleared": "Chat cleared"
   },
   "confirm": {
     "cancel": "Cancel",

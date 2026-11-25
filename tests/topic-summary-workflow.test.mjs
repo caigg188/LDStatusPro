@@ -101,6 +101,53 @@ test('popular summary reads late selected replies, preserves full range and rest
     assert.match(f.requests.at(-1).messages[0].content, /may omit corrections or minority views/);
 });
 
+test('follow-up conversations are saved with the summary, restored from history and cleared', async t => {
+    const f = workflow(t, { respond: n => answer(n === 1 ? 'Summary [第1楼]' : 'Chat reply [第1楼]') });
+    await f.open(); await f.generate();
+    f.click('#melon-expand');
+    let viewer = f.window.document.querySelector('.ldsp-melon-viewer-overlay');
+    viewer.querySelector('#viewer-chat-input').value = 'First question';
+    viewer.querySelector('#viewer-chat-send').click();
+    await waitFor(() => !viewer.querySelector('#viewer-chat-send').disabled);
+    assert.equal(f.helper().history[0].conversation.length, 2);
+    assert.equal(f.helper().history[0].conversation[0].content, 'First question');
+    viewer.querySelector('#viewer-close').click();
+    f.click('[data-tab="history"]'); f.click('[data-tab="home"]');
+    await waitFor(() => f.panel.querySelector('#melon-expand'));
+    f.click('#melon-expand');
+    viewer = f.window.document.querySelector('.ldsp-melon-viewer-overlay');
+    assert.match(viewer.querySelector('#viewer-chat-content').textContent, /First question/);
+    assert.match(viewer.querySelector('#viewer-chat-content').textContent, /Chat reply/);
+    const clear = viewer.querySelector('#viewer-chat-clear');
+    assert.equal(clear.hidden, false);
+    clear.click(); clear.click();
+    assert.equal(f.helper().history[0].conversation, undefined);
+    assert.doesNotMatch(viewer.querySelector('#viewer-chat-content').textContent, /First question/);
+});
+
+test('regenerating a different summary drops the stale conversation and keeps transcripts bounded', async t => {
+    const f = workflow(t, { respond: n => answer(n === 1 ? 'Summary one [第1楼]' : n === 2 ? 'Chat reply [第1楼]' : 'Summary two [第1楼]') });
+    await f.open(); await f.generate();
+    f.click('#melon-expand');
+    let viewer = f.window.document.querySelector('.ldsp-melon-viewer-overlay');
+    viewer.querySelector('#viewer-chat-input').value = 'Old question';
+    viewer.querySelector('#viewer-chat-send').click();
+    await waitFor(() => !viewer.querySelector('#viewer-chat-send').disabled);
+    viewer.querySelector('#viewer-close').click();
+    await f.generate();
+    assert.equal(f.helper().history[0].summary, 'Summary two [第1楼]');
+    assert.equal(f.helper().history[0].conversation, undefined);
+    f.click('#melon-expand');
+    viewer = f.window.document.querySelector('.ldsp-melon-viewer-overlay');
+    for (let i = 0; i < 7; i++) {
+        viewer.querySelector('#viewer-chat-input').value = `Question ${i}`;
+        viewer.querySelector('#viewer-chat-send').click();
+        await waitFor(() => !viewer.querySelector('#viewer-chat-send').disabled);
+    }
+    assert.equal(f.helper().history[0].conversation.length, 12);
+    assert.equal(f.helper().history[0].conversation[0].content, 'Question 1');
+});
+
 test('global continuation setting persists and completes summaries and follow-up replies', async t => {
     const f = workflow(t, { respond: n => ({ status: 200, responseText: JSON.stringify({ choices: [{ message: { content: n % 2 ? 'First ' : 'remainder [第1楼]' }, finish_reason: n % 2 ? 'length' : 'stop' }] }) }) });
     await f.open(); f.click('[data-tab="settings"]'); f.click('#melon-edit-settings');
