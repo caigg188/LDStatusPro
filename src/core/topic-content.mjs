@@ -135,6 +135,7 @@ export class TopicContentClient {
             id: key, title: data.title || tr(this.t, 'core.topic.untitled'), postsCount: data.posts_count || 0,
             highestPostNumber: data.highest_post_number || Math.max(1, ...data.post_stream.posts.map(p => p.post_number)),
             views: data.views || 0, likeCount: data.like_count || 0,
+            hasSummary: data.has_summary === true,
             tags: (data.tags || []).map(tag => typeof tag === 'string' ? tag : tag.name).filter(Boolean),
             createdAt: data.created_at, lastPostedAt: data.last_posted_at
         };
@@ -146,6 +147,40 @@ export class TopicContentClient {
         // Bound memory to the current few topics, without persisting forum bodies.
         if (this.cache.size > 3) this.cache.delete(this.cache.keys().next().value);
         return info;
+    }
+
+    /** Discourse's popular-reply stream is sparse: never use it as range coverage. */
+    async getPopularPosts(topicId, start, end, options = {}) {
+        if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) throw new Error(tr(this.t, 'core.errors.invalidRange'));
+        const topic = await this.getTopic(topicId, options);
+        const generation = this.generation;
+        const check = () => { checkAbort(options.signal); if (this._scope() !== generation) throw abortError(); };
+        check();
+        if (!topic.hasSummary) throw new Error(tr(this.t, 'core.errors.popularUnavailable'));
+        const data = await this._request(`/t/${encodeURIComponent(topicId)}.json?filter=summary`, options);
+        check();
+        const stream = data.post_stream?.stream;
+        if (String(data.id) !== String(topicId) || !Array.isArray(data.post_stream?.posts)
+            || !Array.isArray(stream) || stream.some(id => !Number.isSafeInteger(id) || id < 1)) throw new Error(tr(this.t, 'core.errors.popularUnavailable'));
+        const ids = [...new Set(stream)];
+        const selected = new Set(ids);
+        const entry = { info: topic, posts: new Map() };
+        const merge = posts => this._merge(entry, posts.filter(post => selected.has(post.id)));
+        merge(data.post_stream.posts);
+        const missing = ids.filter(id => !entry.posts.has(id));
+        for (let offset = 0; offset < missing.length; offset += 20) {
+            check();
+            const query = new URLSearchParams({ include_suggested: 'false', include_related: 'false' });
+            missing.slice(offset, offset + 20).forEach(id => query.append('post_ids[]', String(id)));
+            const batch = await this._request(`/t/${encodeURIComponent(topicId)}/posts.json?${query}`, options);
+            check();
+            if (!Array.isArray(batch.post_stream?.posts)) throw new Error(tr(this.t, 'core.errors.postStreamMalformed'));
+            merge(batch.post_stream.posts);
+        }
+        check();
+        const last = Math.min(end, topic.highestPostNumber);
+        const posts = [...entry.posts.values()].filter(post => post.post_number >= start && post.post_number <= last).sort((a, b) => a.post_number - b.post_number);
+        return { topic, posts, range: { start, end: last }, sourceMode: 'popular', warnings: posts.length ? [] : [tr(this.t, 'core.warnings.noVisiblePosts')] };
     }
 
     async getPosts(topicId, start, end, options = {}) {

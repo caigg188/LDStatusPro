@@ -60,7 +60,7 @@ test('actual summary component accepts no key, stores coverage and keeps old rec
 
 test('closing a running summary cancels GM and late callbacks cannot store a completed history', async t => {
     let callbacks, cancelled = 0;
-    const fixture = componentWindow({ fetchImpl: metadataFetch, config: { apiUrl: 'http://localhost' }, gm: options => { callbacks = options; return { abort() { cancelled++; options.onabort(); } }; } }); t.after(() => fixture.dom.window.close());
+    const fixture = componentWindow({ fetchImpl: metadataFetch, config: { apiUrl: 'http://localhost', model: 'fixture' }, gm: options => { callbacks = options; return { abort() { cancelled++; options.onabort(); } }; } }); t.after(() => fixture.dom.window.close());
     const helper = new fixture.window.MelonHelper(fixture.panel, fixture.renderer); helper.init(); helper.show(); t.after(() => helper.destroy());
     await waitFor(() => fixture.panel.querySelector('#melon-end')); fixture.panel.querySelector('#melon-end').value = '1';
     const running = helper._doSummarize({ id: '42', title: '测试', highestPostNumber: 10 });
@@ -71,7 +71,7 @@ test('closing a running summary cancels GM and late callbacks cannot store a com
 
 test('switching topics between segments prevents another AI request before the route watcher runs', async t => {
     let calls = 0, fixture;
-    fixture = componentWindow({ fetchImpl: metadataFetch, config: { apiUrl: 'http://localhost', inputBudget: 2000 }, gm: options => {
+    fixture = componentWindow({ fetchImpl: metadataFetch, config: { apiUrl: 'http://localhost', model: 'fixture', inputBudget: 2000 }, gm: options => {
         calls++;
         queueMicrotask(() => {
             fixture.window.history.pushState({}, '', '/t/43');

@@ -1,5 +1,6 @@
 {
   "errors": {
+    "modelRequired": "Choose a model or enter its exact ID before saving or testing.",
     "aborted": "Operation stopped",
     "urlScheme": "URL must start with http:// or https://, e.g. http://192.168.1.10:1234/v1",
     "urlInvalid": "Invalid API URL. Check the IP, port and path.",
@@ -16,11 +17,14 @@
     "sseInterrupted": "AI stream ended early; received content was kept and you can retry",
     "notSseOrJson": "AI did not return valid SSE or JSON. Check whether a web page URL was entered.",
     "emptyContent": "AI returned empty content. Check the model name and service logs.",
+    "popularUnavailable": "Popular replies are unavailable here. Select all posts in range and retry.",
+    "emptyAtLimit": "AI hit the output limit without an answer. A thinking model may have spent the allowance on reasoning. Raise the output limit or disable thinking at your service, then retry.",
+    "continuationBudget": "Original context plus the partial answer exceeds the input budget. Partial text was kept; raise the input budget and retry.",
     "gmMissing": "The script manager did not provide GM_xmlhttpRequest. Check the script's run permissions.",
     "idleTimeout": "No data from the AI service for two minutes; stopped. Check whether the model is still loading.",
     "totalTimeout": "AI request exceeded ten minutes; stopped",
     "discontinuousResponse": "The script manager returned a discontinuous response. Enable compatibility mode and retry.",
-    "connectFailed": "Cannot reach the AI service. Check that it is running, the address and port, Tampermonkey target-host permissions and browser local-network permission; this error alone cannot identify the exact cause",
+    "connectFailed": "Cannot reach the AI service. Check that it is running, the address and port, and the userscript manager's host permission (ScriptCat confirms each domain once); the cause is otherwise unknown.",
     "requestTimeout": "AI request timed out. Check that the service and model are ready.",
     "promptTooLong": "Custom prompt is too long. Shorten it or raise the input budget.",
     "noContent": "No content to summarize",
@@ -40,6 +44,7 @@
     "httpStatus": "HTTP {status}"
   },
   "progress": {
+    "continuation": "Continuing {current}/{total} (paid request)…",
     "segment": "Segment {current}/{total}{layer}; at least {calls} calls expected",
     "segmentLayer": " (layer {layer})",
     "finalMulti": "Generating the final summary…",

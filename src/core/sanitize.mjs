@@ -66,13 +66,17 @@ export function sanitizeHref(url) {
 }
 
 const markdown = new MarkdownIt({ html: false, breaks: true, linkify: false });
+const citationLink = (number, env, origin) => `<a class="ldsp-melon-link" href="${escapeHtml(new URL(`/t/${encodeURIComponent(env.topicId)}/${number}`, origin).href)}" target="_blank" rel="noopener noreferrer">第${number}楼</a>`;
+const citationGroup = /\[第((?:\s*第?\s*\d+\s*楼?[\s,，、]*)+)\]|【第((?:\s*第?\s*\d+\s*楼?[\s,，、]*)+)】/g;
 markdown.renderer.rules.text = (tokens, index, options, env) => {
     const text = escapeHtml(tokens[index].content);
     if (!env.topicId || !Array.isArray(env.postNumbers)) return text;
     const origin = sanitizeHref(env.site || '');
     if (!origin) return text;
-    return text.replace(/\[第(\d+)楼\]/g, (label, number) => env.postNumbers.includes(Number(number))
-        ? `<a class="ldsp-melon-link" href="${escapeHtml(new URL(`/t/${encodeURIComponent(env.topicId)}/${number}`, origin).href)}" target="_blank" rel="noopener noreferrer">${label}</a>` : label);
+    return text.replace(citationGroup, (label, square, wide) => {
+        const open = square ? '[' : '【', close = square ? ']' : '】';
+        return open + (square || wide).replace(/(?:第\s*)?(\d+)\s*楼?/g, (part, number) => env.postNumbers.includes(Number(number)) ? citationLink(number, env, origin) : part) + close;
+    });
 };
 const defaultOpen = markdown.renderer.rules.link_open || ((tokens, index, options, env, renderer) => renderer.renderToken(tokens, index, options));
 markdown.renderer.rules.link_open = (tokens, index, options, env, renderer) => {

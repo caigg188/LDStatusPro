@@ -1274,7 +1274,7 @@
     .ldsp-melon-output{flex:1;min-height:120px;max-height:200px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;overflow-y:auto;font-size:calc(12px * var(--ldsp-font-scale,1));line-height:1.6;color:var(--txt);transition:max-height .3s ease}
     .ldsp-melon-output.expanded{max-height:400px}
     .ldsp-melon-output-header+.ldsp-melon-output{border-radius:0 0 var(--r-md) var(--r-md)}
-    .ldsp-melon-output:empty::before{content:'点击「立即吃瓜」获取帖子摘要...';color:var(--txt-mut);font-style:italic}
+    .ldsp-melon-output:empty::before{content:attr(data-placeholder);color:var(--txt-mut);font-style:italic}
     .ldsp-melon-output-content{min-height:20px}
     .ldsp-melon-cursor{display:inline-block;color:var(--accent);animation:ldsp-blink 1s infinite}
     @keyframes ldsp-blink{0%,50%{opacity:1}51%,100%{opacity:0}}
@@ -1421,6 +1421,7 @@
     .ldsp-melon-viewer-mode{padding:2px 6px;border-radius:8px;font-weight:600;font-size:calc(9px * var(--ldsp-font-scale,1))}
     .ldsp-melon-viewer-mode.brief{background:rgba(34,197,94,.15);color:#22c55e}
     .ldsp-melon-viewer-mode.detailed{background:rgba(107,140,239,.15);color:#6b8cef}
+    .ldsp-melon-viewer-mode.popular{background:rgba(229,161,27,.16);color:#a87400}
     .ldsp-melon-viewer-content{flex:1;overflow-y:auto;padding:16px;background:var(--bg-card);color:var(--txt);--viewer-font-size:calc(16px * var(--ldsp-font-scale,1))}
     .ldsp-melon-viewer-content.font-xs{--viewer-font-size:calc(12px * var(--ldsp-font-scale,1))}
     .ldsp-melon-viewer-content.font-sm{--viewer-font-size:calc(14px * var(--ldsp-font-scale,1))}

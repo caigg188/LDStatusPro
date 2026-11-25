@@ -218,7 +218,7 @@ test('topic tools (AI summary + export) render localized UI and documents while 
         assert.equal(report['en-US'].originalContent, report['zh-CN'].originalContent);
     });
 
-    await t.test('AI prompt and citation sentinels stay Chinese in both locales (parser compatibility)', async () => {
+    await t.test('default AI prompts follow the app locale while citation sentinels remain compatible', async () => {
         const report = await page.evaluate(() => {
             const results = {};
             for (const locale of ['zh-CN', 'en-US']) {
@@ -234,8 +234,10 @@ test('topic tools (AI summary + export) render localized UI and documents while 
             assert.match(report[locale].brief, /\[第N楼\]/);
             assert.match(report[locale].detailed, /\[第N楼\]/);
         }
-        assert.equal(report['en-US'].brief, report['zh-CN'].brief);
-        assert.equal(report['en-US'].detailed, report['zh-CN'].detailed);
+        assert.match(report['en-US'].brief, /^Answer in English\. Summarize the selected discussion/);
+        assert.match(report['en-US'].detailed, /^Answer in English\. Provide a structured summary/);
+        assert.match(report['zh-CN'].brief, /^请用简体中文回答。概括所选讨论/);
+        assert.match(report['zh-CN'].detailed, /^请用简体中文回答。结构化总结所选讨论/);
     });
 
     await t.test('history plurals, dates and invalid export dates use the selected locale', async () => {
