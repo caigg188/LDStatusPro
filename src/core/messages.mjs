@@ -4,6 +4,7 @@
 // selected UI locale. When no translator is injected — standalone use or the existing unit
 // tests — the original Chinese text is used, keeping the core modules usable on their own.
 export const CORE_TEXT = Object.freeze({
+    'core.errors.modelRequired': '保存或测试前，请选择模型或输入准确的模型 ID。',
     'core.errors.aborted': '已停止',
     'core.errors.urlScheme': '地址须以 http:// 或 https:// 开头，例如 http://192.168.1.10:1234/v1',
     'core.errors.urlInvalid': 'API 地址无效，请检查 IP、端口和路径',
@@ -20,11 +21,15 @@ export const CORE_TEXT = Object.freeze({
     'core.errors.sseInterrupted': 'AI 流式连接在结束前中断，已保留收到的内容，可手动重试',
     'core.errors.notSseOrJson': 'AI 未返回有效的 SSE 或 JSON，请检查是否填入了网页地址',
     'core.errors.emptyContent': 'AI 返回了空内容，请检查模型名称及服务日志',
+    'core.errors.popularUnavailable': '此话题无法使用热门回复筛选。请选择范围内全部帖子后重试。',
+    'core.errors.emptyAtLimit': 'AI 达到输出上限但未返回答案。思考模型可能已将额度用于推理；请提高输出上限或在服务端关闭思考后重试。',
+    'core.errors.continuationBudget': '上下文与部分答案超出输入预算。已保留部分内容；请提高输入预算后重试。',
+    'core.progress.continuation': '正在续写 {current}/{total}（付费请求）…',
     'core.errors.gmMissing': '脚本管理器未提供 GM_xmlhttpRequest，请检查脚本是否获得运行权限',
     'core.errors.idleTimeout': 'AI 服务两分钟未返回数据，已停止；可检查模型加载状态后重试',
     'core.errors.totalTimeout': 'AI 请求超过十分钟，已停止',
     'core.errors.discontinuousResponse': '脚本管理器返回了不连续的响应，请启用“兼容模式”后重试',
-    'core.errors.connectFailed': '无法连接 AI 服务。请检查服务是否启动、地址与端口、篡改猴目标主机授权及浏览器本地网络权限；此错误无法单独判断具体原因',
+    'core.errors.connectFailed': '无法连接 AI 服务。请检查服务是否启动、地址与端口，以及脚本管理器的域名授权（ScriptCat 会逐个确认域名）；具体原因无法仅凭此错误判断。',
     'core.errors.requestTimeout': 'AI 请求超时，请检查服务与模型是否已就绪',
     'core.errors.promptTooLong': '自定义提示词过长，请缩短提示词或提高输入预算',
     'core.errors.noContent': '没有可总结的内容',

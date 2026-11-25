@@ -6,6 +6,38 @@ import { createTranslator } from '../src/i18n/index.mjs';
 const origin = 'https://forum.invalid';
 const post = number => ({ id: 1000 + number, topic_id: 42, post_number: number, cooked: `<p>第${number}楼</p>` });
 const response = (data, status = 200, headers = {}) => new Response(typeof data === 'string' ? data : JSON.stringify(data), { status, headers });
+
+test('popular replies follow the sparse server stream across a long topic without poisoning full-range coverage', async () => {
+    const calls = [];
+    const { client } = fixture(async url => {
+        calls.push(url);
+        if (url.includes('filter=summary')) return response({ id: 42, highest_post_number: 3, post_stream: { stream: [1001, 1003, 1900], posts: [post(1), post(3)] } });
+        if (url.includes('post_ids')) return response({ post_stream: { posts: [post(900), post(899)] } });
+        if (url.includes('post_number')) return response({ post_stream: { posts: [post(2), post(3)] } });
+        return response({ id: 42, has_summary: true, highest_post_number: 1000, post_stream: { posts: [post(1)] } });
+    });
+    const selected = await client.getPopularPosts(42, 1, 1000);
+    assert.deepEqual(selected.posts.map(p => p.post_number), [1, 3, 900]);
+    assert.equal(selected.range.end, 1000);
+    assert.equal(selected.topic.highestPostNumber, 1000);
+    assert.deepEqual((await client.getPosts(42, 1, 3)).posts.map(p => p.post_number), [1, 2, 3]);
+    assert.ok(calls.some(url => url.includes('post_number')));
+});
+
+test('popular replies reject unsupported streams, exclude hidden/deleted posts and honor account changes', async () => {
+    let account = 'alice', phase = 'valid';
+    const { client } = fixture(async url => {
+        if (!url.includes('filter=summary') && !url.includes('post_ids')) return response({ id: 42, has_summary: true, highest_post_number: 1000, post_stream: { posts: [post(1)] } });
+        // Switch identity mid-request so the scoped reader must abort instead of leaking posts.
+        if (phase === 'account' && url.includes('filter=summary')) account = 'carol';
+        return response({ id: 42, post_stream: { ...(phase === 'unsupported' ? {} : { stream: [1001, 1002, 1003] }), posts: [post(1), { ...post(2), hidden: true }, { ...post(3), deleted_at: 'today' }] } });
+    }, { identity: () => account });
+    assert.deepEqual((await client.getPopularPosts(42, 1, 1000)).posts.map(p => p.post_number), [1]);
+    phase = 'unsupported';
+    await assert.rejects(client.getPopularPosts(42, 1, 1000), /热门回复/);
+    phase = 'account';
+    await assert.rejects(client.getPopularPosts(42, 1, 1000), { name: 'AbortError' });
+});
 function fixture(fetchImpl, options = {}) {
     let clock = 10000;
     const waits = [];

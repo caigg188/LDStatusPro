@@ -223,14 +223,14 @@ test('core modules accept an injected translator and keep Chinese fallbacks with
 
     // Transport failures localize through the injected translator.
     await assert.rejects(
-        requestCompletion({ apiUrl: 'https://ai.example.invalid/v1' }, {
+        requestCompletion({ apiUrl: 'https://ai.example.invalid/v1', model: 'fixture' }, {
             messages: [], t: en.t,
             gm: options => { queueMicrotask(() => options.onerror({})); return { abort() {} }; }
         }),
         error => /Cannot reach the AI service/.test(error.message)
     );
     await assert.rejects(
-        requestCompletion({ apiUrl: 'https://ai.example.invalid/v1' }, {
+        requestCompletion({ apiUrl: 'https://ai.example.invalid/v1', model: 'fixture' }, {
             messages: [],
             gm: options => { queueMicrotask(() => options.onerror({})); return { abort() {} }; }
         }),
@@ -239,7 +239,7 @@ test('core modules accept an injected translator and keep Chinese fallbacks with
 
     // HTTP error labels and decoder messages localize too.
     await assert.rejects(
-        requestCompletion({ apiUrl: 'https://ai.example.invalid/v1' }, {
+        requestCompletion({ apiUrl: 'https://ai.example.invalid/v1', model: 'fixture' }, {
             messages: [], t: en.t,
             gm: options => { queueMicrotask(() => options.onload({ status: 401, responseText: '{}' })); return { abort() {} }; }
         }),

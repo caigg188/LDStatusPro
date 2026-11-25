@@ -57,6 +57,16 @@ test('model Markdown formats tables and nested lists without loading remote mode
     assert.ok(!cleanExportHTML('<img src=x onerror=alert(1)><svg onload=alert(1)></svg>', document).includes('onerror'));
 });
 
+test('grouped and full-width floor citations link every supplied floor and leave unknown ones plain', () => {
+    const env = { site: origin, topicId: 42, postNumbers: [2, 7, 8, 12, 14] };
+    const html = renderMarkdown('[第7楼,8楼,13楼] 【第12楼】 [第2, 第14楼]', env);
+    assert.match(html, /t\/42\/7/); assert.match(html, /t\/42\/8/); assert.match(html, /t\/42\/12/);
+    assert.match(html, /t\/42\/2"/); assert.match(html, /t\/42\/14/);
+    assert.ok(!html.includes('/42/13'));
+    assert.equal((html.match(/<a /g) || []).length, 5);
+    assert.match(html, /\[<a[^>]*>第2楼<\/a>, <a[^>]*>第14楼<\/a>\]/);
+});
+
 test('assets are deduplicated, bounded and visibly reported when they cannot be embedded', async () => {
     let calls = 0;
     const resources = new ExportResources({ document, origin, interval: 0, maxImage: 4, gm: options => {
