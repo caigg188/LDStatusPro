@@ -13,6 +13,7 @@ export type Scenario = {
   fulfillmentHistory: Record<string, unknown>[]
   quotes: number; submissions: Record<string, unknown>[]; reads: string[]
   order: null | { orderId: number; orderNo: string; paymentUrl: string; status: string }
+  accountStatus?: { suspended: boolean; scopes: string[]; reason?: string; until?: number | null }
 }
 export async function signIn(page: Page) {
   await page.addInitScript(({ user, token }) => {
@@ -25,7 +26,7 @@ export const test = base.extend<{ scenario: Scenario }>({
     const state: Scenario = {
       lostResponse: false, lookupAvailable: true, priceChanged: false, failFilter: false, sellingDisabled: false,
       fulfillmentAccepted: false, fulfillmentAckCount: 0, fulfillmentOrderBlocked: false,
-      fulfillmentHistory: [], quotes: 0, submissions: [], reads: [], order: null
+      fulfillmentHistory: [], quotes: 0, submissions: [], reads: [], order: null, accountStatus: undefined
     }
     const oauthGrants = new Map<string, { state: string; challenge: string; origin: string; expiresAt: number }>()
     const unexpected: string[] = []
@@ -60,6 +61,7 @@ export const test = base.extend<{ scenario: Scenario }>({
       }
       if (path === '/api/shop/auth/verify') return ok({ authenticated: true, user })
       if (path === '/api/shop/system-status') return ok({ mode: 'normal', enabled: false })
+      if (path === '/api/shop/account/status') return ok({ accountStatus: state.accountStatus ?? { suspended: false, scopes: [] } })
       if (path === '/api/shop/announcements/states') return ok({ items: [] })
       if (path === '/api/shop/announcements') return ok({ items: [], timestamp: Date.now() })
       if (path === '/api/shop/notifications/stream') return route.fulfill({ status: 204, body: '' })
