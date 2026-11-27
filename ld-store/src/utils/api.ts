@@ -1,6 +1,7 @@
 import { getMaintenanceRequestBlock } from '@/config/maintenance'
 import { captureAuthSession, isAuthSessionCurrent, emitAuthExpired, isAuthErrorCode } from './auth'
 import { getDiscoveryRequestHeaders } from './discovery'
+import { applyAccountSanctionFromPayload } from './accountSanction'
 
 export type JsonPrimitive = string | number | boolean | null
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue }
@@ -371,6 +372,9 @@ async function request<T = unknown>(url: string, options: ApiRequestOptions = {}
     const data = await parseResponseBody(response)
 
     if (session && !isAuthSessionCurrent(session)) return sessionChangedResponse()
+
+    // 账号级封禁：403 不是会话失效，只更新限制态并交给调用方展示
+    applyAccountSanctionFromPayload(data)
 
     // 检查响应状态
     if (!response.ok) {

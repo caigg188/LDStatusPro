@@ -1,6 +1,13 @@
 <template>
   <div class="search-page">
     <div class="search-shell">
+      <div v-if="searchLocked" class="search-login-gate" role="status">
+        <p class="search-login-gate__title">登录后才能搜索商品</p>
+        <p class="search-login-gate__hint">未登录可以浏览首页与商品详情，搜索需要先登录。</p>
+        <router-link class="search-login-gate__action" :to="{ path: '/login', query: { redirect: route.fullPath } }">
+          去登录
+        </router-link>
+      </div>
       <div class="search-header-area">
         <!-- 搜索框 -->
         <div class="search-header">
@@ -11,8 +18,9 @@
               v-model="keyword"
               type="text"
               class="search-input"
-              placeholder="搜索物品..."
               role="combobox"
+              :disabled="searchLocked"
+              :placeholder="searchLocked ? '登录后可搜索' : '搜索物品...'"
               aria-autocomplete="list"
               :aria-expanded="showSuggestions"
               aria-controls="search-suggestion-list"
@@ -202,6 +210,7 @@
 import { computed, ref, nextTick, onMounted, onActivated, onDeactivated, onBeforeUnmount, watch } from 'vue'
 import { useRoute, onBeforeRouteLeave } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
+import { useUserStore } from '@/stores/user'
 import { useToast } from '@/composables/useToast'
 import { storage } from '@/utils/storage'
 import { loadSearchHistory, saveSearchHistory, clearSearchHistory as clearStoredSearchHistory } from '@/utils/search'
@@ -216,6 +225,9 @@ defineOptions({ name: 'SearchResults' })
 
 const route = useRoute()
 const shopStore = useCatalogStore()
+const userStore = useUserStore()
+// 搜索对未登录关闭（后端同样返回 401 AUTH_REQUIRED）
+const searchLocked = computed(() => !userStore.isLoggedIn)
 const toast = useToast()
 
 const searchInput = ref(null)
@@ -373,6 +385,11 @@ async function doSearch(options = {}) {
   clearTimeout(searchTimer)
   const trimmedKeyword = keyword.value.trim()
   if (!trimmedKeyword) {
+    resetSearchState()
+    return
+  }
+  if (searchLocked.value) {
+    closeSuggestions()
     resetSearchState()
     return
   }
@@ -690,6 +707,61 @@ onBeforeUnmount(stopSearch)
 </script>
 
 <style scoped>
+.search-login-gate {
+  max-width: 1200px;
+  margin: 16px auto 0;
+  padding: 18px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  box-shadow: var(--elevation-sm);
+}
+
+.search-login-gate__title {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.search-login-gate__hint {
+  margin: 0;
+  flex: 1 1 260px;
+  font-size: var(--text-secondary-size, 13px);
+  color: var(--text-secondary);
+}
+
+.search-login-gate__action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  background: var(--action-primary);
+  color: var(--text-inverse);
+  font-size: var(--text-secondary-size, 13px);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.search-login-gate__action:hover {
+  background: var(--action-primary-hover, var(--action-primary));
+}
+
+.search-page .search-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.search-login-gate__action:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .search-page {
   min-height: 100vh;
   padding-bottom: 80px;

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         LDStatus Pro
 // @namespace    http://tampermonkey.net/
-// @version      3.9.0.12
+// @version      3.9.0.13
 // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
 // @author       JackLiii
 // @license      MIT
@@ -1495,6 +1495,12 @@
                 const code = error.code || '';
                 const status = this.extractStatus(error);
                 
+                // 账号级封禁：原因比 403 的通用文案更有用
+                if (code === 'ACCOUNT_SUSPENDED') {
+                    const reason = error?.details?.reason;
+                    return reason ? `账号已被平台封禁：${reason}` : '账号已被平台封禁';
+                }
+
                 // 1. 优先匹配错误码（保留 HTTP 状态，避免 401/403 被收成过于笼统的文案）
                 if (status) {
                     const statusMsg = this.fromStatus(status);
@@ -2064,6 +2070,8 @@
                                     const err = new Error(errorCode ? `${errorCode}: ${errorMsg}` : errorMsg);
                                     if (errorCode) err.code = errorCode;
                                     err.status = res.status;
+                                    // 账号级封禁需要原因与到期时间，随错误一起抛出
+                                    if (data.error?.details) err.details = data.error.details;
                                     reject(err);
                                 }
                             } catch (e) {
@@ -2967,6 +2975,15 @@
                 EventBus.emit('auth:expired', payload);
             }
 
+            _handleAccountSuspended(details = {}) {
+                EventBus.emit('account:suspended', {
+                    reasonCode: String(details?.reasonCode || ''),
+                    reason: String(details?.reason || ''),
+                    until: Number.isFinite(Number(details?.until)) && Number(details?.until) > 0 ? Number(details.until) : null,
+                    scopes: Array.isArray(details?.scopes) ? details.scopes.map(String) : []
+                });
+            }
+
             _handleAuthExpired(reason = 'TOKEN_EXPIRED', payload = {}, session = this._captureAuthSession()) {
                 if (!session.token || !this._isAuthSessionCurrent(session)) return false;
                 const generation = this.logout();
@@ -3167,6 +3184,11 @@
                     if (!this._isAuthSessionCurrent(session)) return this._sessionChangedResult();
                     const errCode = String(e?.code || '').trim().toUpperCase();
                     const errMsg = String(e?.message || '').toUpperCase();
+                    // 账号被封禁不是会话过期：保留 token，交给 UI 展示封禁页
+                    if (errCode === 'ACCOUNT_SUSPENDED') {
+                        this._handleAccountSuspended(e?.details);
+                        throw e;
+                    }
                     const isAuthError =
                         this._isAuthErrorCode(errCode) ||
                         (e instanceof NetworkError && e.isAuth) ||
@@ -10992,6 +11014,18 @@ a:hover{text-decoration:underline;}
             renderLeaderboardLogin() { return `<div class="ldsp-lb-login"><div class="ldsp-lb-login-icon">🔐</div><div class="ldsp-lb-login-title">${I18n.tHtml('leaderboard.login.title')}</div><div class="ldsp-lb-login-desc">${I18n.tHtml('leaderboard.login.descLine1')}<br>${I18n.tHtml('leaderboard.login.descLine2')}<br>${I18n.tHtml('leaderboard.login.descLine3')}</div><button class="ldsp-lb-btn primary" id="ldsp-lb-login">${I18n.tHtml('leaderboard.login.btn')}</button><div class="ldsp-privacy-note"><span>🔒</span><span>${I18n.tHtml('leaderboard.login.privacy')}</span></div></div>`; }
             renderLeaderboardJoin() { return `<div class="ldsp-join-prompt"><div class="ldsp-join-prompt-icon">🏆</div><div class="ldsp-join-prompt-title">${I18n.tHtml('leaderboard.join.title')}</div><div class="ldsp-join-prompt-desc">${I18n.tHtml('leaderboard.join.descLine1')}<br>${I18n.tHtml('leaderboard.join.descLine2')}</div><button class="ldsp-lb-btn primary" id="ldsp-lb-join">${I18n.tHtml('leaderboard.join.btn')}</button><div class="ldsp-privacy-note"><span>🔒</span><span>${I18n.tHtml('leaderboard.join.privacy')}</span></div></div>`; }
             renderRegistrationPaused() { return `<div class="ldsp-join-prompt paused"><div class="ldsp-join-prompt-icon">🚧</div><div class="ldsp-join-prompt-title">${I18n.tHtml('leaderboard.paused.title')}</div><div class="ldsp-join-prompt-desc">${I18n.tHtml('leaderboard.paused.desc')}</div></div>`; }
+            renderAccountSuspended(status = {}) {
+                const untilText = status?.until
+                    ? new Date(Number(status.until) * 1000).toLocaleString('zh-CN', { hour12: false, timeZone: 'Asia/Shanghai' }).replace(/\//g, '-')
+                    : '长期';
+                const reason = status?.reason ? String(status.reason) : '违反平台规则';
+                return `<div class="ldsp-join-prompt paused ldsp-account-suspended" role="alert">
+                    <div class="ldsp-join-prompt-icon">🔒</div>
+                    <div class="ldsp-join-prompt-title">账号已被平台封禁</div>
+                    <div class="ldsp-join-prompt-desc">原因：${Utils.escapeHtml(reason)}<br>到期：${Utils.escapeHtml(untilText)}（北京时间）<br>封禁期间无法登录 LDStatusPro 与 LD 士多，阅读同步暂停；历史数据不会删除。</div>
+                    <div class="ldsp-join-prompt-desc">如需申诉，请联系平台管理员。</div>
+                </div>`;
+            }
 
             renderLeaderboardData(data, uid, joined, type = 'daily') {
                 const fmtInt = ms => {
@@ -11910,6 +11944,7 @@ a:hover{text-decoration:underline;}
                 this._cloudReqsFailUntil = 0;
                 this.loading = false;
                 this.registrationPaused = false;  // 后端暂停新用户注册开关（通过 /api/user/status 透出）
+                this.accountSuspended = null;      // 账号级封禁状态（ACCOUNT_SUSPENDED）
                 this.hasJoinedBefore = false;    // 后端 hasJoinedBefore 字段（用于判断老用户）
                 this._readingTimer = null;
                 this._ssoHandled = false;
@@ -12163,6 +12198,16 @@ a:hover{text-decoration:underline;}
                     this._renderLeaderboardContent().catch(() => {});
                 });
                 
+                // 订阅账号封禁事件：不清 token、不跳登录，只切换面板内容
+                EventBus.on('account:suspended', (details = {}) => {
+                    const changed = !this.accountSuspended
+                        || this.accountSuspended.reason !== details.reason
+                        || this.accountSuspended.until !== details.until;
+                    this.accountSuspended = details;
+                    this.leaderboard?.stopSync();
+                    if (changed) this._renderLeaderboardContent().catch(() => {});
+                });
+
                 // 订阅阅读数据同步完成事件
                 EventBus.on('reading:synced', ({ merged, source }) => {
                     Logger.log(`阅读数据已同步: ${merged} 天, 来源: ${source}`);
@@ -16473,6 +16518,16 @@ a:hover{text-decoration:underline;}
                     if (result.success && result.data) {
                         const prevPaused = this.registrationPaused;
                         const prevJoinedBefore = this.hasJoinedBefore;
+                        const prevSuspended = this.accountSuspended;
+                        const accountStatus = result.data.accountStatus;
+                        this.accountSuspended = accountStatus && accountStatus.suspended
+                            ? {
+                                reasonCode: String(accountStatus.reasonCode || ''),
+                                reason: String(accountStatus.reason || ''),
+                                until: Number(accountStatus.until) || null,
+                                scopes: Array.isArray(accountStatus.scopes) ? accountStatus.scopes.map(String) : []
+                            }
+                            : null;
                         this.registrationPaused = !!result.data.registrationPaused;
                         this.hasJoinedBefore = typeof result.data.hasJoinedBefore === 'boolean'
                             ? result.data.hasJoinedBefore
@@ -16480,7 +16535,9 @@ a:hover{text-decoration:underline;}
                         this.oauth.setJoined(result.data.isJoined || false);
                         if (this.oauth.isJoined()) {
                             this.leaderboard.startSync();
-                        } else if (prevPaused !== this.registrationPaused || prevJoinedBefore !== this.hasJoinedBefore) {
+                        } else if (prevPaused !== this.registrationPaused
+                            || prevJoinedBefore !== this.hasJoinedBefore
+                            || Boolean(prevSuspended) !== Boolean(this.accountSuspended)) {
                             await this._renderLeaderboardContent();
                         }
                     }
@@ -17674,6 +17731,11 @@ a:hover{text-decoration:underline;}
 
                 const logged = this.oauth.isLoggedIn();
                 const joined = this.oauth.isJoined();
+
+                if (logged && this.accountSuspended) {
+                    container.innerHTML = this.renderer.renderAccountSuspended(this.accountSuspended);
+                    return;
+                }
 
                 if (!logged) {
                     container.innerHTML = this.renderer.renderLeaderboardLogin();
