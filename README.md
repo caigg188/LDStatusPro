@@ -8,7 +8,7 @@
 
 > **Linux.do & IDCFlare 社区增强工具** - 信任级别追踪 · 阅读统计 · 云同步 · 排行榜 · LD 士多入口
 
-![Version](https://img.shields.io/badge/version-v3.9.0.8-blue)
+![Version](https://img.shields.io/badge/version-v3.9.0.13-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-✓-brightgreen)
 ![Multi-Site](https://img.shields.io/badge/Multi--Site-✓-brightgreen)
@@ -297,6 +297,11 @@ LDStatusPro/
 ---
 
 ## 📋 更新日志
+
+### v3.9.0.13
+
+- 账号被平台封禁时不再被当成"登录失效"：保留登录态，面板直接说明封禁原因与到期时间，历史阅读数据不受影响。
+- 封禁解除后无需重新登录或刷新页面，面板会自动恢复。
 
 ### v3.9.0.12
 

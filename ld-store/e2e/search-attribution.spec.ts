@@ -1,6 +1,8 @@
-import { test, expect, product } from './fixtures'
+import { test, expect, product, signIn } from './fixtures'
 test('search transports empty and nonempty response contexts without static hot guidance', async ({ page, scenario }) => {
   void scenario
+  // 搜索需要登录（未登录只显示登录引导）
+  await signIn(page)
   const events: Array<Record<string, unknown>> = []
   await page.route('**/api/shop/search/suggestions*', route => route.fulfill({json:{success:true,data:{normalizedQuery:'',suggestions:[],source:'fallback'}}}))
   await page.route('**/api/shop/discovery/events', route => {

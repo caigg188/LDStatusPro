@@ -58,6 +58,7 @@ test('shop append failure preserves results and retries the failed page', async 
 })
 
 test('search retries append failures and preserves loaded results after visiting a detail', async ({ page }) => {
+  await signIn(page) // 搜索需要登录
   const reads: number[] = []
   let failed = false
   await page.route('**/api/shop/products?*', route => {

@@ -428,6 +428,9 @@
                       回复需要登录后发布
                       <button class="comment-login-btn" @click="goLogin">去登录</button>
                     </div>
+                    <div v-else-if="commentRestricted" class="comment-reply-login-tip">
+                      账号受限，暂时无法回复
+                    </div>
                     <template v-else>
                       <textarea
                         v-model="commentReplyDraftMap[item.id]"
@@ -483,6 +486,9 @@
               <div v-if="!userStore.isLoggedIn" class="comment-login-tip">
                 评论需要登录后发布
                 <button class="comment-login-btn" @click="goLogin">去登录</button>
+              </div>
+              <div v-else-if="commentRestricted" class="comment-login-tip">
+                账号受限，暂时无法发布评论、回复或点赞
               </div>
               <template v-else>
                 <div v-if="viewerHasPurchased && !viewerHasRated" class="comment-rating-field">
@@ -617,6 +623,7 @@ import {
 } from '@lucide/vue'
 import { useProductStore } from '@/stores/product'
 import { useUserStore } from '@/stores/user'
+import { isCommentRestricted } from '@/utils/accountSanction'
 import { useCheckoutStore } from '@/stores/checkout'
 import { useToast } from '@/composables/useToast'
 import { useDialog } from '@/composables/useDialog'
@@ -753,6 +760,8 @@ const {
   userId: computed(() => userStore.user?.id),
   trustLevel: computed(() => userStore.trustLevel)
 })
+
+const commentRestricted = computed(() => isCommentRestricted())
 
 // 物品类型
 const renderedDescription = computed(() => renderProductDescription(product.value?.description))

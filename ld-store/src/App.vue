@@ -8,6 +8,7 @@
     <!-- 顶部导航栏 -->
     <AppHeader v-if="showHeader" />
     <AnnouncementBar v-if="showAnnouncementBar" />
+    <AccountSanctionBanner v-if="!isBareRoute && !isMaintenanceRoute" />
     <AnnouncementPopup v-if="!isMaintenanceRoute && !isBareRoute && announcementLoaded" />
 
     <!-- 主内容区域 -->
@@ -71,6 +72,9 @@ import { announcementIdentity } from '@/utils/announcementPreferences'
 import { useAnnouncement } from '@/composables/useAnnouncement'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AnnouncementBar from '@/components/common/AnnouncementBar.vue'
+import AccountSanctionBanner from '@/components/common/AccountSanctionBanner.vue'
+import { refreshAccountStatus } from '@/utils/accountStatus'
+import { clearAccountSanction } from '@/utils/accountSanction'
 import AnnouncementPopup from '@/components/common/AnnouncementPopup.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import Toast from '@/components/common/Toast.vue'
@@ -156,8 +160,10 @@ watch(
     notificationSummaryStore.stopRealtime()
     if (sessionReady && loggedIn) {
       notificationSummaryStore.startRealtime()
+      refreshAccountStatus()
     } else {
       notificationSummaryStore.stopRealtime()
+      clearAccountSanction()
     }
   },
   { immediate: true, flush: 'sync' }
