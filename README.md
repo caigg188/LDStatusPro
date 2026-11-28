@@ -8,7 +8,7 @@
 
 > **Linux.do & IDCFlare 社区增强工具** - 信任级别追踪 · 阅读统计 · 云同步 · 排行榜 · LD 士多入口
 
-![Version](https://img.shields.io/badge/version-v3.9.0.13-blue)
+![Version](https://img.shields.io/badge/version-v3.9.0.14-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Tampermonkey](https://img.shields.io/badge/Tampermonkey-✓-brightgreen)
 ![Multi-Site](https://img.shields.io/badge/Multi--Site-✓-brightgreen)
@@ -18,7 +18,7 @@
 
 🌐 **[官网](https://ldspro.qzz.io/)** | 🏪 **[LD 士多](https://ldcstore.com/)** | 📖 **[脚本说明](./DOCS.md)**
 
-脚本版本以 `LDStatusPro.user.js` 头部 `@version` 为准（当前 **3.9.0.12**）。`update_log.md` 停在 v3.5.4.10，后续变更看 git 与下方近期条目。
+脚本版本以 `LDStatusPro.user.js` 头部 `@version` 为准（当前 **v3.9.0.14**）。`update_log.md` 停在 v3.5.4.10，后续变更看 git 与下方近期条目。
 
 **简体中文** | [English](./README_EN.md) | [繁體中文](./README_TW.md)
 
@@ -297,6 +297,11 @@ LDStatusPro/
 ---
 
 ## 📋 更新日志
+
+### v3.9.0.14
+
+- 插件只在登录受限时显示封禁卡，并在页面恢复可见或处罚到期时重新核对账号状态。
+- 士多同步各项限制的独立期限，切换账号时清除上一会话的限制提示。
 
 ### v3.9.0.13
 

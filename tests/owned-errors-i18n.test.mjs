@@ -20,6 +20,7 @@ function walk(node) {
 }
 walk(parse(source, { ecmaVersion: 'latest' }));
 const code = node => source.slice(node.start, node.end);
+const setAccountSuspension = classes.get('Panel').body.body.find(node => node.key.name === '_setAccountSuspension');
 function fixture(locale) {
     const dom = new JSDOM('', { url: 'https://linux.do/', runScripts: 'outside-only' });
     const w = dom.window;
@@ -31,7 +32,11 @@ function fixture(locale) {
         const GM_info = { script: { version: 'test' } };
         ${code(oauthValidator)}
         ${['NetworkError', 'Network', 'ActivityManager', 'OAuthManager', 'LDCManager', 'CDKManager'].map(name => code(classes.get(name))).join('\n')}
-        Object.assign(globalThis, { I18n, Network, ActivityManager, OAuthManager, LDCManager, CDKManager, authHandler: function(payload) { return (${code(authHandler)})(payload); } });`);
+        Object.assign(globalThis, {
+            I18n, Network, ActivityManager, OAuthManager, LDCManager, CDKManager,
+            authHandler: function(payload) { return (${code(authHandler)})(payload); },
+            setAccountSuspension: ({ ${code(setAccountSuspension)} })._setAccountSuspension
+        });`);
     w.I18n.setLocale(locale);
     return { dom, w, t: w.I18n.t };
 }
@@ -122,10 +127,17 @@ test('authentication reasons and authorization-link fallback translate without c
         try {
             for (const [reason, key] of Object.entries({ TOKEN_EXPIRED: 'authExpired', AUTH_EXPIRED: 'authExpired', INVALID_TOKEN: 'authInvalid', AUTH_INVALID: 'authInvalid', AUTH_REQUIRED: 'authRequired', NOT_LOGGED_IN: 'authLost', UNAUTHORIZED: 'authRequired', UNKNOWN: 'authRequired' })) {
                 const toasts = [];
-                const host = { renderer: { showToast: text => toasts.push(text) }, _updateLoginUI() {}, _renderLeaderboardContent: async () => {} };
+                const host = {
+                    accountSuspended: { reason: 'fixture' },
+                    _setAccountSuspension: w.setAccountSuspension,
+                    renderer: { showToast: text => toasts.push(text) },
+                    _updateLoginUI() {},
+                    _renderLeaderboardContent: async () => {}
+                };
                 w.authHandler.call(host, { reason });
                 assert.deepEqual(toasts, [t(`panel.toasts.${key}`)]);
                 assert.equal(host.registrationPaused, false);
+                assert.equal(host.accountSuspended, null);
             }
             const oauth = new w.OAuthManager(null, { api: async () => ({ success: false }) });
             oauth._checkUrlHashLogin = () => null;

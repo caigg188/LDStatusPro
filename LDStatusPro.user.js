@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         LDStatus Pro
 // @namespace    http://tampermonkey.net/
-// @version      3.9.0.13
+// @version      3.9.0.14
 // @description  在 Linux.do 和 IDCFlare 页面显示信任级别进度，支持历史趋势、里程碑通知、阅读时间统计、排行榜系统、我的活动查看。两站点均支持排行榜和云同步功能
 // @author       JackLiii
 // @license      MIT
@@ -11945,6 +11945,7 @@ a:hover{text-decoration:underline;}
                 this.loading = false;
                 this.registrationPaused = false;  // 后端暂停新用户注册开关（通过 /api/user/status 透出）
                 this.accountSuspended = null;      // 账号级封禁状态（ACCOUNT_SUSPENDED）
+                this._accountStatusRequest = 0;
                 this.hasJoinedBefore = false;    // 后端 hasJoinedBefore 字段（用于判断老用户）
                 this._readingTimer = null;
                 this._ssoHandled = false;
@@ -12172,6 +12173,10 @@ a:hover{text-decoration:underline;}
                 // iOS bfcache 恢复后强制重算布局
                 this._pageShowResizeHandler = () => requestAnimationFrame(() => this._onResize());
                 window.addEventListener('pageshow', this._pageShowResizeHandler);
+                this._accountStatusVisibilityHandler = () => {
+                    if (document.visibilityState === 'visible') this._syncPrefs();
+                };
+                document.addEventListener('visibilitychange', this._accountStatusVisibilityHandler);
 
                 // 监听面板自身尺寸变化，保证液态玻璃指示器在容器尺寸变化后及时校准
                 this._initIndicatorResizeObserver();
@@ -12191,6 +12196,7 @@ a:hover{text-decoration:underline;}
                     };
                     this.leaderboard?.stopSync();
                     this.oauth?.setJoined(false);
+                    this._setAccountSuspension(null);
                     this.registrationPaused = false;
                     this.hasJoinedBefore = false;
                     this.renderer?.showToast(reasonMessageMap[reason] || I18n.t('panel.toasts.authRequired'));
@@ -12200,10 +12206,8 @@ a:hover{text-decoration:underline;}
                 
                 // 订阅账号封禁事件：不清 token、不跳登录，只切换面板内容
                 EventBus.on('account:suspended', (details = {}) => {
-                    const changed = !this.accountSuspended
-                        || this.accountSuspended.reason !== details.reason
-                        || this.accountSuspended.until !== details.until;
-                    this.accountSuspended = details;
+                    this._accountStatusRequest += 1;
+                    const changed = this._setAccountSuspension(details);
                     this.leaderboard?.stopSync();
                     if (changed) this._renderLeaderboardContent().catch(() => {});
                 });
@@ -12906,6 +12910,7 @@ a:hover{text-decoration:underline;}
                 const doLogout = () => {
                     hideLogoutConfirm();
                     this.oauth.logout();
+                    this._setAccountSuspension(null);
                     this.leaderboard?.stopSync();
                     this.registrationPaused = false;
                     this.hasJoinedBefore = false;
@@ -16402,6 +16407,7 @@ a:hover{text-decoration:underline;}
             // 处理待处理的登录结果（登录信息已在 _checkPendingOAuthLogin 中同步保存）
             async _handlePendingLoginResult(result) {
                 try {
+                    this._setAccountSuspension(null);
                     this.renderer.showToast(I18n.t('panel.toasts.loginSuccess'));
                     
                     // 同步用户名到 storage
@@ -16511,33 +16517,55 @@ a:hover{text-decoration:underline;}
                 overlay.addEventListener('click', e => e.target === overlay && close(true));
             }
 
+            _setAccountSuspension(status) {
+                const previous = this.accountSuspended;
+                this.accountSuspended = status;
+                clearTimeout(this._accountStatusExpiryTimer);
+                if (status?.until * 1000 > Date.now()) {
+                    const schedule = () => {
+                        const remaining = status.until * 1000 - Date.now();
+                        if (remaining > 0) {
+                            this._accountStatusExpiryTimer = setTimeout(schedule, Math.min(remaining, 2147483647));
+                        } else {
+                            this._syncPrefs();
+                        }
+                    };
+                    schedule();
+                }
+                return Boolean(previous) !== Boolean(status)
+                    || previous?.reasonCode !== status?.reasonCode
+                    || previous?.reason !== status?.reason
+                    || previous?.until !== status?.until;
+            }
+
             async _syncPrefs() {
                 if (!this.hasLeaderboard || !this.oauth.isLoggedIn()) return;
+                const request = ++this._accountStatusRequest;
+                const session = this.oauth._captureAuthSession();
                 try {
                     const result = await this.oauth.api('/api/user/status');
+                    if (this._destroyed || request !== this._accountStatusRequest || !this.oauth._isAuthSessionCurrent(session)) return;
                     if (result.success && result.data) {
                         const prevPaused = this.registrationPaused;
                         const prevJoinedBefore = this.hasJoinedBefore;
-                        const prevSuspended = this.accountSuspended;
                         const accountStatus = result.data.accountStatus;
-                        this.accountSuspended = accountStatus && accountStatus.suspended
+                        const suspensionChanged = this._setAccountSuspension(accountStatus?.suspended && accountStatus.scopes?.includes('login')
                             ? {
                                 reasonCode: String(accountStatus.reasonCode || ''),
                                 reason: String(accountStatus.reason || ''),
-                                until: Number(accountStatus.until) || null,
-                                scopes: Array.isArray(accountStatus.scopes) ? accountStatus.scopes.map(String) : []
+                                until: Number(accountStatus.until) || null
                             }
-                            : null;
+                            : null);
                         this.registrationPaused = !!result.data.registrationPaused;
                         this.hasJoinedBefore = typeof result.data.hasJoinedBefore === 'boolean'
                             ? result.data.hasJoinedBefore
                             : !!result.data.joinedAt;
                         this.oauth.setJoined(result.data.isJoined || false);
-                        if (this.oauth.isJoined()) {
-                            this.leaderboard.startSync();
-                        } else if (prevPaused !== this.registrationPaused
-                            || prevJoinedBefore !== this.hasJoinedBefore
-                            || Boolean(prevSuspended) !== Boolean(this.accountSuspended)) {
+                        const joined = this.oauth.isJoined();
+                        if (this.accountSuspended) this.leaderboard.stopSync();
+                        else if (joined) this.leaderboard.startSync();
+                        const preferencesChanged = prevPaused !== this.registrationPaused || prevJoinedBefore !== this.hasJoinedBefore;
+                        if (suspensionChanged || (!joined && preferencesChanged)) {
                             await this._renderLeaderboardContent();
                         }
                     }
@@ -17902,6 +17930,8 @@ a:hover{text-decoration:underline;}
                     window.removeEventListener('pageshow', this._pageShowResizeHandler);
                     this._pageShowResizeHandler = null;
                 }
+                document.removeEventListener('visibilitychange', this._accountStatusVisibilityHandler);
+                clearTimeout(this._accountStatusExpiryTimer);
                 if (this._docClickHandler) {
                     document.removeEventListener('mousedown', this._docClickHandler);
                     this._docClickHandler = null;

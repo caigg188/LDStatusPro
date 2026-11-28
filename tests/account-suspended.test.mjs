@@ -48,8 +48,9 @@ test('the panel replaces its content with the suspension card and escapes operat
 test('the status endpoint keeps the panel in sync without a hard refresh', () => {
     const prefs = sliceBetween('async _syncPrefs() {', '// ========== 我的活动 ==========');
     assert.match(prefs, /result\.data\.accountStatus/);
-    assert.match(prefs, /accountStatus\.suspended/);
-    assert.match(prefs, /prevSuspended/);
+    assert.match(prefs, /accountStatus\.scopes\?\.includes\('login'\)/);
+    assert.match(prefs, /suspensionChanged/);
+    assert.match(prefs, /request !== this\._accountStatusRequest/);
 });
 
 test('the suspension error is formatted with the operator reason instead of a generic 403', () => {
