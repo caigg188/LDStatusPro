@@ -21,12 +21,12 @@ it('reads normalized dates and private screenshot references without losing the 
     expect(result.data.evidence[0].id).toBe(1);
   }
 });
-it('requests subject evidence through a separate authenticated boundary', async () => {
+it('requests the reporter’s evidence with authentication', async () => {
   const blob = new Blob(['isolated-evidence'], { type: 'image/jpeg' });
   client.get.mockResolvedValue({ success: true, status: 200, data: { blob, disposition: 'inline' } });
-  const result = await readReportEvidence('product', 383, 1, true);
+  const result = await readReportEvidence('product', 383, 1);
   expect(result.success && result.data).toBe(blob);
-  expect(client.get).toHaveBeenCalledWith('/api/shop/report-decisions/product/383/evidence/1', {
+  expect(client.get).toHaveBeenCalledWith('/api/shop/reports/product/383/evidence/1', {
     auth: 'required',
     responseType: 'blob'
   });
