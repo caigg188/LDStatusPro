@@ -2,7 +2,6 @@
 import { onBeforeUnmount, ref, watch } from 'vue';
 import { supplementReport, attachReportEvidence, readReportEvidence } from '@/services/shop/reportService';
 const props = defineProps({
-  subject: Boolean,
   report: { type: Object, required: true },
   evidence: { type: Array, default: () => [] }
 });
@@ -27,7 +26,7 @@ watch(
     const current = ++generation;
     clearImages();
     for (const file of props.evidence) {
-      const result = await readReportEvidence(props.report.targetType, props.report.id, file.id, props.subject);
+      const result = await readReportEvidence(props.report.targetType, props.report.id, file.id);
       if (current !== generation) return;
       if (result.success) images.value[file.id] = URL.createObjectURL(result.data);
     }
@@ -52,8 +51,7 @@ async function send() {
     const result = await supplementReport(
       props.report.targetType,
       props.report.id,
-      { operationId: operation, note: note.value.trim(), review },
-      props.subject
+      { operationId: operation, note: note.value.trim(), review }
     );
     if (!result.success) {
       error.value = result.error;
@@ -90,8 +88,7 @@ async function upload(event) {
     const result = await attachReportEvidence(
       props.report.targetType,
       props.report.id,
-      { operationId: fileReceipt.operationId, data },
-      props.subject
+      { operationId: fileReceipt.operationId, data }
     );
     if (!result.success) {
       error.value = result.error;

@@ -189,19 +189,12 @@ test('real browser → HTTP → PostgreSQL: product report with linked order, pr
     await expect(page.getByText('确认违规', { exact: true }).first()).toBeVisible();
     expect(await page.textContent('body')).not.toContain('ACCEPTANCE_INTERNAL_ONLY');
     const subjectPath = '/api/shop/report-decisions/product/' + id;
-    const subjectDetail = (await api(subjectPath, undefined, f.sellerToken)).json.data;
-    expect(JSON.stringify(subjectDetail)).not.toContain(f.buyer.id);
-    expect(subjectDetail.evidence).toHaveLength(0);
-    expect(subjectDetail).not.toHaveProperty('participants');
+    expect((await api(subjectPath, undefined, f.sellerToken)).status).toBe(404);
     await seller.goto('http://127.0.0.1:4198/user/reports/product/' + id + '?party=subject');
-    await seller.getByLabel('问题说明或新证据').fill('卖家已更新说明，提供新的事实申请复核');
-    await seller.getByRole('button', { name: '提交复核申请' }).click();
-    await expect(seller.getByText('复核正在进行，请在此补充原记录。')).toBeVisible();
-    await admin.reload();
-    await act(admin, 'start', '已开始核查卖家补充的新事实，原处置仍保留');
-    expect((await api(detailPath)).json.data.report.governance_action).toBe('offline');
-    await act(admin, 'confirm', '复核已完成，原问题成立，继续维持物品下架', 'offline');
-    await page.reload();
+    await expect(seller).toHaveURL(/\/user\/messages$/);
+    const notice = seller.locator('.system-card').filter({ hasText: '已确认物品说明误导，平台已下架该物品' });
+    await expect(notice).toBeVisible();
+    await expect(notice.getByRole('button', { name: '查看详情' })).toHaveCount(0);
     await page.getByLabel('问题说明或新证据').fill('举报人提供新报错记录，申请一次复核');
     await page.getByRole('button', { name: '提交复核申请' }).click();
     await expect(page.getByText('复核正在进行，请在此补充原记录。')).toBeVisible();
@@ -268,8 +261,12 @@ test('real browser → HTTP → PostgreSQL: product report with linked order, pr
       await sql`SELECT status FROM shop_product_reports WHERE id=${f.historicalProductReportId} UNION ALL SELECT status FROM shop_product_comment_reports WHERE id=${f.historicalCommentReportId}`;
     expect(history.map((r: Record<string, unknown>) => r.status)).toEqual(['pending', 'pending']);
     const notices =
-      await sql`SELECT dedupe_key FROM shop_user_messages WHERE related_type IN ('report','report_decision') AND related_id IN (${'product:' + id},${'comment:' + commentId})`;
-    expect(notices.length).toBeGreaterThanOrEqual(10);
+      await sql`SELECT dedupe_key,related_type,related_id FROM shop_user_messages WHERE related_type IN ('report','report_decision') AND related_id IN (${'product:' + id},${'comment:' + commentId})`;
+    const governance = notices.filter((n: Record<string, unknown>) => n.related_type === 'report_decision');
+    expect(governance.map((n: Record<string, unknown>) => n.related_id).sort()).toEqual(
+      ['product:' + id, 'product:' + id, 'comment:' + commentId].sort()
+    );
+    expect(notices.filter((n: Record<string, unknown>) => n.related_type === 'report').length).toBeGreaterThanOrEqual(7);
     expect(new Set(notices.map((n: Record<string, unknown>) => n.dedupe_key)).size).toBe(notices.length);
     expect(errors).toEqual([]);
     for (const [name, p] of [

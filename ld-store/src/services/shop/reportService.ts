@@ -14,8 +14,8 @@ const detailSchema = looseObject({
   evidence: array(looseObject({ id: union([number(), string()]) }))
 });
 const receiptSchema = looseObject({ reportId: union([number(), string()]), targetType: string() });
-export async function listReports(query: Record<string, string>, subject = false) {
-  const endpoint = subject ? '/api/shop/report-decisions' : '/api/shop/reports';
+export async function listReports(query: Record<string, string>) {
+  const endpoint = '/api/shop/reports';
   const params = new URLSearchParams(Object.entries(query).filter(([, value]) => value));
   return validateApiResult(
     await api.get(endpoint + '?' + params, { auth: 'required' }),
@@ -23,9 +23,9 @@ export async function listReports(query: Record<string, string>, subject = false
     { endpoint, schemaName: 'ReportList' }
   );
 }
-export async function reportDetail(type: string, id: string | number, subject = false) {
+export async function reportDetail(type: string, id: string | number) {
   return validateApiResult(
-    await api.get(`/api/shop/${subject ? 'report-decisions' : 'reports'}/${type}/${id}`, { auth: 'required' }),
+    await api.get(`/api/shop/reports/${type}/${id}`, { auth: 'required' }),
     detailSchema,
     { endpoint: '/api/shop/reports/:type/:id', schemaName: 'ReportDetail' }
   );
@@ -41,21 +41,21 @@ export async function submitReport(type: string, objectId: string | number, body
     { endpoint: '/api/shop/report', schemaName: 'ReportReceipt' }
   );
 }
-export function supplementReport(type: string, id: string | number, body: JsonValue, subject = false) {
+export function supplementReport(type: string, id: string | number, body: JsonValue) {
   return api.post(
-    `/api/shop/${subject ? 'report-decisions' : 'reports'}/${type}/${id}/${subject ? 'review' : 'supplements'}`,
+    `/api/shop/reports/${type}/${id}/supplements`,
     body,
     { auth: 'required' }
   );
 }
-export function attachReportEvidence(type: string, id: string | number, body: JsonValue, subject = false) {
-  return api.post(`/api/shop/${subject ? 'report-decisions' : 'reports'}/${type}/${id}/evidence`, body, {
+export function attachReportEvidence(type: string, id: string | number, body: JsonValue) {
+  return api.post(`/api/shop/reports/${type}/${id}/evidence`, body, {
     auth: 'required',
     timeout: 60000
   });
 }
-export async function readReportEvidence(type: string, id: string | number, fileId: string | number, subject = false) {
-  const result = await api.get<{ blob: Blob; disposition: string }>(`/api/shop/${subject ? 'report-decisions' : 'reports'}/${type}/${id}/evidence/${fileId}`, {
+export async function readReportEvidence(type: string, id: string | number, fileId: string | number) {
+  const result = await api.get<{ blob: Blob; disposition: string }>(`/api/shop/reports/${type}/${id}/evidence/${fileId}`, {
     auth: 'required',
     responseType: 'blob'
   });

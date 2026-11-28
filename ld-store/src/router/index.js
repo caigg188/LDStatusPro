@@ -109,9 +109,7 @@ const routes = [
   },
   {
     path: '/user/report-decisions',
-    name: 'MyReportDecisions',
-    component: () => import('@/views/MyReports.vue'),
-    meta: { title: '我的处置 - LD士多', requiresAuth: true, reportParty: 'subject' }
+    redirect: { name: 'MyMessages', query: {} }
   },
   {
     path: '/user/reports/:type/:id',
@@ -384,6 +382,10 @@ function refreshMaintenanceStatus() {
 
 // 路由守卫
 router.beforeEach(async (to) => {
+  if (['ReportCaseDetail', 'MyReportDetail'].includes(to.name) && to.query.party === 'subject') {
+    return { name: 'MyMessages', replace: true }
+  }
+
   if (to.name === 'Orders' && String(to.query.tab || '').toLowerCase() === 'seller') {
     const query = { ...to.query }
     delete query.tab

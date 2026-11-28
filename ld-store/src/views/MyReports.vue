@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch, onBeforeUnmount } from 'vue';
+import { ref, watch, onBeforeUnmount } from 'vue';
 import { useUserStore } from '@/stores/user';
 import { useRoute, useRouter } from 'vue-router';
 import { listReports, reportStates, reportDecisions } from '@/services/shop/reportService';
@@ -11,7 +11,6 @@ const route = useRoute(),
   pagination = ref({ total: 0, totalPages: 0 });
 const loading = ref(false),
   error = ref('');
-const subject = computed(() => route.meta.reportParty === 'subject');
 let generation = 0;
 async function load() {
   const current = ++generation;
@@ -23,7 +22,7 @@ async function load() {
       targetType: String(route.query.type || ''),
       page: String(route.query.page || 1),
       pageSize: '20'
-    }, subject.value);
+    });
     if (current !== generation) return;
     if (!result.success) {
       error.value = result.error;
@@ -53,9 +52,8 @@ onBeforeUnmount(() => generation++);
 <template>
   <main class="my-reports page-container">
     <header class="report-card">
-      <h1>{{ subject ? '我的处置' : '我的举报' }}</h1>
-      <p>{{ subject ? '查看与你有关的商品或评论处置，并跟进复核。' : '跟进商品与评论举报，补充证据或申请复核。' }}</p>
-      <router-link :to="subject ? '/user/reports' : '/user/report-decisions'">{{ subject ? '查看我的举报' : '查看我的处置' }}</router-link>
+      <h1>我的举报</h1>
+      <p>跟进商品与评论举报，补充证据或申请复核。</p>
       <div class="summary">
         <span
           >待跟进 <strong>{{ stats.open || 0 }}</strong></span
@@ -84,19 +82,19 @@ onBeforeUnmount(() => generation++);
     </div>
     <p v-if="loading" role="status">正在加载举报记录…</p>
     <div v-else-if="error" role="alert" class="report-card">{{ error }} <button @click="load">重试</button></div>
-    <p v-else-if="!reports.length" class="report-card">{{ subject ? '当前筛选下暂无处置记录。' : '当前筛选下暂无举报记录。' }}</p>
+    <p v-else-if="!reports.length" class="report-card">当前筛选下暂无举报记录。</p>
     <router-link
       v-for="item in reports"
       v-else
       :key="item.targetType + ':' + item.id"
       class="report-card"
-      :to="{ path: '/user/reports/' + item.targetType + '/' + item.id, query: { ...route.query, party: subject ? 'subject' : undefined } }"
+      :to="{ path: '/user/reports/' + item.targetType + '/' + item.id, query: route.query }"
       ><div class="card-header">
         <h2>{{ item.currentProductName || item.productName || '商品 #' + item.productId }}</h2>
         <span>{{ reportStates[item.status] }}{{ item.reviewPending ? ' · 复核中' : '' }}</span>
       </div>
-      <p>{{ item.targetType === 'comment' ? '评论' : '商品' }}{{ subject ? '处置' : '举报' }} #{{ item.id }} · {{ item.reportCategoryLabel }}</p>
-      <p v-if="!subject" class="reason">{{ item.reportReason }}</p>
+      <p>{{ item.targetType === 'comment' ? '评论' : '商品' }}举报 #{{ item.id }} · {{ item.reportCategoryLabel }}</p>
+      <p class="reason">{{ item.reportReason }}</p>
       <p v-if="item.decision">{{ reportDecisions[item.decision] }} · {{ item.adminNote }}</p>
       <small
         >提交于 {{ new Date(item.createdAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) }} · 查看进度与结果
