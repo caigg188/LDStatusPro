@@ -35,6 +35,14 @@ it('respects privacy preferences and does not emit diagnostics with DNT', async 
   await telemetry.initializeStorefrontTelemetry()
   expect(mocks.pushEvent).not.toHaveBeenCalled()
 })
+it('records account suspension as an exchange outcome without account details', async () => {
+  const telemetry = await import('./faro')
+  telemetry.captureOAuthEvent('exchange', 'account_suspended', { status: 403, message: 'private-upstream-message' })
+  await telemetry.initializeStorefrontTelemetry()
+  expect(mocks.pushEvent).toHaveBeenCalledExactlyOnceWith('oauth_handoff', {
+    stage: 'exchange', reason: 'account_suspended', http_status: '403', client_build: expect.any(String)
+  }, 'auth')
+})
 it('never interrupts login when the telemetry SDK throws', async () => {
   const telemetry = await import('./faro')
   await telemetry.initializeStorefrontTelemetry()

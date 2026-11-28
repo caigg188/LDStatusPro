@@ -114,7 +114,7 @@ async function flushDiscoveryEvents(retry = true): Promise<void> {
       DiscoveryEventResponseSchema,
       { endpoint: '/api/shop/discovery/events', schemaName: 'DiscoveryEventResponse' }
     )
-    if (!result?.success && retry) {
+    if (!result.success && result.status !== 429 && retry) {
       eventQueue = [...events, ...eventQueue].slice(0, 200)
       window.setTimeout(() => void flushDiscoveryEvents(false), 1000)
     }

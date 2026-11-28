@@ -4,6 +4,7 @@ import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import AuthCallback from '../src/views/AuthCallback.vue'
 import { authSession, clearAuthSession, setAuthSession } from '../src/utils/auth'
+import { accountSanction, applyAccountSanction, clearAccountSanction } from '../src/utils/accountSanction'
 import { authToken } from './helpers/auth'
 import { Buffer } from 'node:buffer'
 import { rememberOAuthState } from '../src/utils/oauthHandoff'
@@ -167,6 +168,37 @@ it('lets the server reject an expired grant even if the client clock says it is 
   expect(authSession.value.token).toBeNull()
   expect(wrapper!.text()).toContain('已失效')
   expect(wrapper!.find('button').exists()).toBe(false)
+})
+
+it.each([
+  [403, 'ACCOUNT_SUSPENDED', '账号受限，暂时无法登录', 'account_suspended'],
+  [403, 'FORBIDDEN', '登录校验已失效，请重新登录', 'invalid_grant'],
+  [503, 'ACCOUNT_SUSPENDED', '登录服务暂时不可用，请重新发起登录', 'unavailable'],
+])('handles exchange HTTP %s with %s without changing the current session', async (status, code, message, reason) => {
+  const existingToken = authToken('22')
+  setAuthSession(existingToken)
+  applyAccountSanction({ reason: 'existing comment restriction', scopes: ['comment'] })
+  rememberOAuthState('v'.repeat(64), 'signed-state')
+  const grant = Buffer.from(JSON.stringify({ c: 'c'.repeat(43), s: 'signed-state', exp: Date.now() + 60000 })).toString('base64')
+  history.replaceState(null, '', `/auth/callback#ldsp_oauth=${grant}`)
+  const fetch = vi.fn().mockResolvedValue(json({ success: false, error: { code, message: 'private-upstream-message' } }, status))
+  vi.stubGlobal('fetch', fetch)
+  wrapper = mount(AuthCallback, { global: { stubs: { RouterLink: true } } })
+  try {
+    await flushPromises()
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(fetch.mock.calls[0][0]).toContain('/api/shop/auth/exchange')
+    expect(wrapper!.get('.error-text').text()).toBe(message)
+    expect(wrapper!.find('button').exists()).toBe(false)
+    expect(authSession.value.token).toBe(existingToken)
+    expect(accountSanction).toMatchObject({ reason: 'existing comment restriction', scopes: ['comment'] })
+    expect(sessionStorage.getItem('ldstore.oauth.pkce')).toBeNull()
+    expect(mocks.success).not.toHaveBeenCalled()
+    expect(mocks.replace).not.toHaveBeenCalled()
+    expect(mocks.event).toHaveBeenCalledWith('exchange', reason, { status, requestId: null })
+  } finally {
+    clearAccountSanction()
+  }
 })
 
 it('requires a new login after a lost exchange response instead of retrying a possibly consumed code', async () => {
