@@ -108,6 +108,12 @@ const routes = [
     meta: { title: '我的举报 - LD士多', requiresAuth: true }
   },
   {
+    path: '/user/report-decisions',
+    name: 'MyReportDecisions',
+    component: () => import('@/views/MyReports.vue'),
+    meta: { title: '我的处置 - LD士多', requiresAuth: true, reportParty: 'subject' }
+  },
+  {
     path: '/user/reports/:type/:id',
     name: 'ReportCaseDetail',
     component: () => import('@/views/MyReportDetail.vue'),

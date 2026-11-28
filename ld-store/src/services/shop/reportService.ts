@@ -14,11 +14,13 @@ const detailSchema = looseObject({
   evidence: array(looseObject({ id: union([number(), string()]) }))
 });
 const receiptSchema = looseObject({ reportId: union([number(), string()]), targetType: string() });
-export async function listReports(query: Record<string, string>) {
+export async function listReports(query: Record<string, string>, subject = false) {
+  const endpoint = subject ? '/api/shop/report-decisions' : '/api/shop/reports';
+  const params = new URLSearchParams(Object.entries(query).filter(([, value]) => value));
   return validateApiResult(
-    await api.get('/api/shop/reports?' + new URLSearchParams(query), { auth: 'required' }),
+    await api.get(endpoint + '?' + params, { auth: 'required' }),
     listSchema,
-    { endpoint: '/api/shop/reports', schemaName: 'ReportList' }
+    { endpoint, schemaName: 'ReportList' }
   );
 }
 export async function reportDetail(type: string, id: string | number, subject = false) {
@@ -64,12 +66,12 @@ export const reportStates: Record<string, string> = {
   processing: '核查中',
   awaiting_info: '待补充',
   resolved: '已结案',
-  rejected: '已结案'
+  rejected: '未采纳'
 };
 export const reportDecisions: Record<string, string> = {
-  confirmed_issue: '已确认问题',
+  confirmed_issue: '确认违规',
   no_violation: '未确认违规',
-  referred: '已转交售后'
+  referred: '已引导订单售后'
 };
 export const reportCategories: Record<string, string> = {
   delivery_issue: '无法使用或交付异常',

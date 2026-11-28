@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useUserStore } from '@/stores/user';
 import { useRoute } from 'vue-router';
 import { reportDetail, reportStates, reportDecisions } from '@/services/shop/reportService';
@@ -10,6 +10,12 @@ const route = useRoute(),
   loading = ref(false),
   error = ref('');
 let generation = 0;
+const subject = computed(() => route.query.party === 'subject');
+const backQuery = computed(() => {
+  const query = { ...route.query };
+  delete query.party;
+  return query;
+});
 async function load() {
   const current = ++generation;
   loading.value = true;
@@ -18,7 +24,7 @@ async function load() {
     const result = await reportDetail(
       String(route.params.type || 'product'),
       String(route.params.id),
-      route.query.party === 'subject'
+      subject.value
     );
     if (current !== generation) return;
     if (!result.success) {
@@ -46,20 +52,26 @@ onBeforeUnmount(() => generation++);
 </script>
 <template>
   <main class="report-detail page-container">
-    <router-link :to="{ path: '/user/reports', query: { ...route.query } }" class="back">← 返回举报列表</router-link>
-    <p v-if="loading" role="status">正在加载举报进度…</p>
+    <router-link :to="{ path: subject ? '/user/report-decisions' : '/user/reports', query: backQuery }" class="back">
+      {{ subject ? '← 返回我的处置' : '← 返回我的举报' }}
+    </router-link>
+    <p v-if="loading" role="status">正在加载记录…</p>
     <div v-else-if="error" role="alert" class="report-card">{{ error }} <button @click="load">重试</button></div>
     <template v-else-if="detail">
       <header class="report-card">
-        <h1>举报 #{{ detail.report.id }}</h1>
+        <h1>{{ subject ? '处置记录' : '举报' }} #{{ detail.report.id }}</h1>
         <p>
-          {{ detail.report.targetType === 'comment' ? '评论' : '商品' }}举报 · 商品 #{{ detail.report.productId }} ·
+          {{ detail.report.targetType === 'comment' ? '评论' : '商品' }}{{ subject ? '处置' : '举报' }} ·
+          {{ detail.report.currentProductName || detail.report.productName || '商品 #' + detail.report.productId }} ·
           {{ detail.report.reportCategoryLabel }}
         </p>
         <strong>{{ reportStates[detail.report.status] }}{{ detail.report.reviewPending ? ' · 复核中' : '' }}</strong>
-        <p>提交 {{ date(detail.report.createdAt) }} · 最近更新 {{ date(detail.report.updatedAt) }}</p>
+        <p v-if="!subject">提交 {{ date(detail.report.createdAt) }} · 最近更新 {{ date(detail.report.updatedAt) }}</p>
+        <p v-else>处理 {{ date(detail.report.handledAt) }} · 最近更新 {{ date(detail.report.updatedAt) }}</p>
+        <p v-if="!subject && detail.report.status === 'awaiting_info'">平台在等你补充材料。</p>
+        <p v-else-if="!subject && detail.report.slaDueAt">预计跟进期限 {{ date(detail.report.slaDueAt) }}</p>
       </header>
-      <section class="report-card">
+      <section v-if="!subject" class="report-card">
         <h2>原始问题说明</h2>
         <p class="content">{{ detail.report.reportReason }}</p>
         <details class="snapshot">
@@ -120,7 +132,7 @@ onBeforeUnmount(() => generation++);
         <ReportFollowup
           :report="detail.report"
           :evidence="detail.evidence"
-          :subject="route.query.party === 'subject'"
+          :subject="subject"
           @updated="load"
         />
       </section>

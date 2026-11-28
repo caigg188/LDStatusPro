@@ -37,6 +37,7 @@ export function buildUserDropdownMenuGroups({
       item('/user/orders', ClipboardList, '我的订单'),
       item('/user/coupons', TicketPercent, '我的优惠券'),
       item('/user/reports', Flag, '我的举报'),
+      item('/user/report-decisions', Flag, '我的处置'),
       item('/user/buy-requests', ClipboardPenLine, '我的求购')
     ],
     [item('/ld-image', ImageIcon, '士多图床')],
