@@ -33,12 +33,13 @@ describe('买卖功能分区', () => {
     })
     expect(groups.map(group => group.map(item => item.label))).toEqual([
       ['我的消息', '收藏与拉黑'],
-      ['我的物品', '我的订单', '我的优惠券', '我的举报', '我的求购'],
+      ['我的物品', '我的订单', '我的优惠券', '我的举报', '我的处置', '我的求购'],
       ['士多图床'],
       ['卖家后台']
     ])
     expect(groups[1][0]).toMatchObject({ path: '/seller/products', badge: '', withUnread: false })
     expect(groups[1][1]).toMatchObject({ path: '/user/orders', badge: '' })
+    expect(groups[1].find(item => item.label === '我的处置')?.path).toBe('/user/report-decisions')
     expect(groups[3][0].badge).toBe('9')
   })
 

@@ -37,10 +37,35 @@ test('distinguishes loading failure from empty records and preserves pagination 
   failed = false; await page.getByRole('button', { name: '重试', exact: true }).click()
   await expect(page.getByText('2 / 4 · 共 61 条')).toBeVisible()
   await page.getByRole('link').filter({ hasText: '评论举报 #23' }).click()
-  await page.getByRole('link', { name: '← 返回举报列表' }).click()
+  await page.getByRole('link', { name: '← 返回我的举报' }).click()
   await expect(page).toHaveURL(/page=2/)
   await expect(page.getByText('2 / 4 · 共 61 条')).toBeVisible()
   await page.screenshot({ path: 'test-results/report-list-'+info.project.name+'.png', fullPage: true })
+})
+test('opens the default report list and returns governed users to their decision list', async ({ page, scenario }) => {
+  void scenario
+  await signIn(page)
+  const entry = { id: 71, target_type: 'product', product_id: 7, current_product_name: '处置关联商品', status: 'rejected', created_at: Date.now() }
+  const list = { reports: [entry], stats: { closed: 1 }, pagination: { total: 1, totalPages: 1 } }
+  await page.route('**/api/shop/reports?*', route => {
+    expect(new URL(route.request().url()).searchParams.has('targetType')).toBe(false)
+    return route.fulfill({ json: list })
+  })
+  await page.route('**/api/shop/report-decisions?*', route => route.fulfill({ json: list }))
+  await page.route('**/api/shop/report-decisions/product/71', route =>
+    route.fulfill({ json: { report: entry, events: [], evidence: [] } })
+  )
+  await page.goto('/user/reports')
+  await expect(page.getByRole('link', { name: /处置关联商品.*未采纳/ })).toBeVisible()
+  await page.getByRole('link', { name: '查看我的处置' }).click()
+  await expect(page.getByRole('heading', { name: '我的处置' })).toBeVisible()
+  const decision = page.getByRole('link', { name: /处置关联商品/ })
+  await expect(decision).toHaveAttribute('href', '/user/reports/product/71?party=subject')
+  await decision.click()
+  await expect(page.getByRole('heading', { name: '处置记录 #71' })).toBeVisible()
+  await expect(page.getByText('原始问题说明')).toHaveCount(0)
+  await page.getByRole('link', { name: '← 返回我的处置' }).click()
+  await expect(page).toHaveURL(/\/user\/report-decisions$/)
 })
 test('keeps an uncertain submission and retry token, with keyboard focus restored on close', async ({ page, scenario }) => {
   void scenario
