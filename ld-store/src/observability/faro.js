@@ -135,7 +135,7 @@ export function captureStorefrontError(error, context = {}) {
 // Explicit allowlist: no callback URL, code, state, verifier, identity or token.
 const OAUTH_STAGES = new Set(['init', 'callback', 'exchange', 'verify', 'session'])
 const OAUTH_REASONS = new Set(['started', 'accepted', 'malformed', 'state_missing', 'state_mismatch',
-  'storage_blocked', 'invalid_grant', 'unavailable', 'network_error', 'session_changed',
+  'storage_blocked', 'invalid_grant', 'account_suspended', 'unavailable', 'network_error', 'session_changed',
   'invalid_identity', 'persist_failed', 'success', 'update_required'])
 export function captureOAuthEvent(stage, reason, details = {}) {
   try {

@@ -22,7 +22,7 @@ function createMemoryStorage() {
 describe('商城发现会话与归因', () => {
   beforeEach(() => {
     vi.useFakeTimers()
-    post.mockResolvedValue({ success: true, data: { accepted: 3, rejected: 0 } })
+    post.mockReset().mockResolvedValue({ success: true, data: { accepted: 3, rejected: 0 } })
     vi.stubGlobal('window', {
       sessionStorage: createMemoryStorage(),
       setTimeout: globalThis.setTimeout,
@@ -53,6 +53,25 @@ describe('商城发现会话与归因', () => {
       'X-Discovery-Session': '9ec0bb58-d9eb-4e53-9dc7-a9c4c0a54a26',
     })
     expect(getDiscoveryRequestHeaders('/api/auth/me')).toEqual({})
+  })
+
+  it('收到 429 后不重发该批次，后续事件照常上报', async () => {
+    post.mockResolvedValueOnce({ success: false, status: 429 })
+    recordSearchOutcome({ query: 'limited' })
+    await vi.runAllTimersAsync()
+    expect(post).toHaveBeenCalledTimes(1)
+
+    recordSearchOutcome({ query: 'later' })
+    await vi.runAllTimersAsync()
+    expect(post.mock.calls.map(([, { events }]) => events.map(event => event.query))).toEqual([['limited'], ['later']])
+  })
+
+  it('收到 503 后仍重发原批次', async () => {
+    post.mockResolvedValueOnce({ success: false, status: 503 })
+    recordSearchOutcome({ query: 'transient' })
+    await vi.runAllTimersAsync()
+    expect(post).toHaveBeenCalledTimes(2)
+    expect(post.mock.calls[1][1]).toEqual(post.mock.calls[0][1])
   })
 
   it('GPC/DNT 开启时不创建会话，只发送退出标记', () => {

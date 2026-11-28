@@ -28,6 +28,7 @@ import { useToast } from '@/composables/useToast'
 import { sanitizePostLoginRedirect } from '@/utils/navigation'
 import { api } from '@/utils/api'
 import { captureAuthSession, getAuthUser, isAuthSessionCurrent } from '@/utils/auth'
+import { ACCOUNT_SUSPENDED_CODE } from '@/utils/accountSanction'
 
 const route = useRoute()
 const router = useRouter()
@@ -113,16 +114,21 @@ async function completeLogin() {
         body: JSON.stringify({ ...oauthData, origin: location.origin }), signal: controller.signal
       })
       const exchanged = await exchange.json().catch(() => null)
+      const diagnostics = { status: exchange.status, requestId: exchange.headers.get('x-request-id') }
+      if (exchange.status === 403 && exchanged?.error?.code === ACCOUNT_SUSPENDED_CODE) {
+        oauthData = null
+        captureOAuthEvent('exchange', 'account_suspended', diagnostics)
+        error.value = '账号受限，暂时无法登录'
+        return
+      }
       if (!exchange.ok || !exchanged?.data?.token || !getAuthUser(exchanged.data.token, exchanged.data.user)) {
-        captureOAuthEvent('exchange', exchange.status >= 500 ? 'unavailable' : 'invalid_grant', {
-          status: exchange.status, requestId: exchange.headers.get('x-request-id')
-        })
+        captureOAuthEvent('exchange', exchange.status >= 500 ? 'unavailable' : 'invalid_grant', diagnostics)
         error.value = exchange.status >= 500 ? '登录服务暂时不可用，请重新发起登录' : '登录校验已失效，请重新登录'
         return
       }
       if (!active) return
       oauthData = exchanged.data
-      captureOAuthEvent('exchange', 'success', { status: exchange.status, requestId: exchange.headers.get('x-request-id') })
+      captureOAuthEvent('exchange', 'success', diagnostics)
     }
     // 候选凭据只用于服务端校验，成功之前不写入当前会话。
     captureOAuthEvent('verify', 'started')
