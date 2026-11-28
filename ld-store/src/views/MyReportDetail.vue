@@ -62,7 +62,12 @@ onBeforeUnmount(() => generation++);
         <h1>{{ subject ? '处置记录' : '举报' }} #{{ detail.report.id }}</h1>
         <p>
           {{ detail.report.targetType === 'comment' ? '评论' : '商品' }}{{ subject ? '处置' : '举报' }} ·
-          {{ detail.report.currentProductName || detail.report.productName || '商品 #' + detail.report.productId }} ·
+          {{
+            detail.report.currentProductName ||
+            detail.currentProduct?.name ||
+            detail.report.productName ||
+            '商品 #' + detail.report.productId
+          }} ·
           {{ detail.report.reportCategoryLabel }}
         </p>
         <strong>{{ reportStates[detail.report.status] }}{{ detail.report.reviewPending ? ' · 复核中' : '' }}</strong>
