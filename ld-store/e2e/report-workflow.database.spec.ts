@@ -24,65 +24,61 @@ async function isolate(context: BrowserContext) {
   });
 }
 async function act(page: Page, action: string, note: string, disposition = 'none') {
-  const dialog = page.getByRole('dialog', { name: /^(商品|评论)举报处理$/ });
-  const materialPane = dialog.getByRole('button', { name: '核查材料', exact: true });
-  if (await materialPane.isVisible()) await materialPane.click();
-  await expect(dialog.getByText(/处置对象：商品 #/)).toBeVisible();
-  const decisionPane = dialog.getByRole('button', { name: '处理结果', exact: true });
-  if (await decisionPane.isVisible()) await decisionPane.click();
-  const actions: Record<string, string> = {
-    start: '开始核查',
-    request_info: '需要补充',
-    confirm: '确认问题',
-    reject: '未确认违规',
-    refer: '转交售后',
-    reopen: '重开复核'
+  const workbench = page.locator('[data-report-workbench]');
+  const materialTab = workbench.getByRole('button', { name: '核查材料', exact: true });
+  if (await materialTab.isVisible()) await materialTab.click();
+  await expect(workbench.getByRole('region', { name: '举报核查材料' })).toContainText('商品编号');
+  const decisionTab = workbench.getByRole('button', { name: '处理结果', exact: true });
+  if (await decisionTab.isVisible()) await decisionTab.click();
+  const panel = workbench.getByRole('complementary', { name: '举报处理结果' });
+  const actions: Record<string, RegExp> = {
+    start: /^开始核查/,
+    request_info: /^需要补充/,
+    confirm: /^确认违规/,
+    reject: /^未确认违规/,
+    refer: /^引导订单售后/,
+    reopen: /^重开复核/
   };
-  await dialog.getByRole('button', { name: actions[action] }).first().click();
-  await dialog.getByLabel('给用户的核查说明（必填）').fill(note);
-  if (!(await dialog.getByLabel('用户下一步').isVisible()))
-    await dialog.locator('summary').filter({ hasText: '用户下一步' }).click();
-  await dialog.getByLabel('用户下一步').fill('请在原记录补充证据，订单退款继续使用现有售后入口');
-  await dialog.locator('summary').filter({ hasText: '内部备注' }).click();
-  await dialog.getByLabel('内部备注（不会向举报人返回）').fill('ACCEPTANCE_INTERNAL_ONLY');
+  await panel.locator('.report-outcomes').getByRole('button', { name: actions[action] }).click();
+  await panel.getByLabel('给用户的核查说明').fill(note);
+  await panel.getByLabel('用户下一步').fill('请在原记录补充证据，订单退款继续使用现有售后入口');
+  await panel.locator('summary').filter({ hasText: '内部备注' }).click();
+  await panel.getByLabel('内部备注', { exact: true }).fill('ACCEPTANCE_INTERNAL_ONLY');
   if (['confirm', 'reject', 'refer'].includes(action))
-    await dialog.getByLabel('处理依据', { exact: true }).fill('acceptance-rule-v1');
+    await panel.getByLabel('处理依据').fill('acceptance-rule-v1');
   if (action === 'confirm' && disposition !== 'none') {
-    const dispositions: Record<string, string> = {
-      offline: '下架商品并结案',
-      hide_comment: '隐藏评论并结案',
-      delete: '删除商品并结案'
-    };
-    if (disposition === 'delete') await dialog.getByText('更多处置', { exact: true }).click();
-    await dialog.getByLabel(dispositions[disposition], { exact: true }).check();
-    await dialog.getByLabel('已核对处置对象和依据').check();
+    await panel.locator(`input[type="radio"][value="${disposition}"]`).check();
+    await panel.getByLabel('已核对处置对象和依据').check();
   }
   const saves: Record<string, string> = {
     start: '保存核查进展',
-    request_info: '请求补充信息',
-    confirm: '确认问题并结案',
+    request_info: '请求补充并保留待办',
+    confirm: '确认并结案',
     reject: '不予采纳并结案',
-    refer: '转交售后并结案',
+    refer: '引导订单售后并结案',
     reopen: '重开复核'
   };
-  await dialog.getByRole('button', { name: saves[action], exact: true }).click();
-  await expect(dialog.getByRole('status')).toContainText('站内通知已记录');
+  await panel.locator('.report-decision-foot').getByRole('button', { name: saves[action], exact: true }).click();
+  await expect(panel.locator('.report-save-status')).toContainText('站内通知已记录');
 }
 
 async function inspectReportContext(page: Page, reporter: { id: string; username: string }, subjectId: string, productId: number) {
   await expect(page).toHaveURL(/\/shop(?:-comments)?\?.*reportPage=1/);
-  const originalUrl = page.url(), dialog = page.getByRole('dialog', { name: /^(商品|评论)举报处理$/ });
-  const materials = dialog.getByRole('button', { name: '核查材料', exact: true });
-  if (await materials.isVisible()) await materials.click();
-  const submission = dialog.locator('[aria-label="举报人提交内容"]');
+  const originalUrl = page.url();
+  const workbench = page.locator('[data-report-workbench]');
+  const materialTab = workbench.getByRole('button', { name: '核查材料', exact: true });
+  if (await materialTab.isVisible()) await materialTab.click();
+  const materials = workbench.getByRole('region', { name: '举报核查材料' });
+  const submission = materials.locator('.report-card--submission').filter({ hasText: '待核实陈述' });
+  const platform = materials.locator('.report-card--platform').filter({ hasText: '当前处置对象' });
   await expect(submission).toContainText('UID ' + reporter.id);
-  await expect(dialog.locator('[aria-label="平台对象信息"]')).toContainText('UID ' + subjectId);
+  await expect(platform).toContainText('UID ' + subjectId);
   await submission.getByRole('button', { name: reporter.username, exact: true }).click();
   const identity = page.getByRole('dialog', { name: '举报人信息', exact: true });
   await expect(identity).toContainText(reporter.username);
   await expect(identity).toContainText(reporter.id);
   await identity.getByRole('button', { name: '关闭弹窗', exact: true }).click();
-  await dialog.locator('[aria-label="平台对象信息"] .report-object-link').click();
+  await platform.locator('.report-object-link').click();
   const product = page.getByRole('dialog', { name: '商品详情 · #' + productId, exact: true });
   await expect(product.getByRole('heading', { name: /举报贯通验收物品/ })).toBeVisible();
   await product.getByRole('button', { name: '关闭弹窗', exact: true }).click();
@@ -190,7 +186,7 @@ test('real browser → HTTP → PostgreSQL: product report with linked order, pr
       await sql`SELECT id,status,is_deleted FROM shop_products WHERE id IN (${f.productId},${f.commentProductId}) ORDER BY id`;
     expect(products.map((p: Record<string, unknown>) => p.status)).toEqual(['offline_manual', 'approved']);
     await page.reload();
-    await expect(page.getByText('已确认问题', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('确认违规', { exact: true }).first()).toBeVisible();
     expect(await page.textContent('body')).not.toContain('ACCEPTANCE_INTERNAL_ONLY');
     const subjectPath = '/api/shop/report-decisions/product/' + id;
     const subjectDetail = (await api(subjectPath, undefined, f.sellerToken)).json.data;
@@ -204,7 +200,7 @@ test('real browser → HTTP → PostgreSQL: product report with linked order, pr
     await admin.reload();
     await act(admin, 'start', '已开始核查卖家补充的新事实，原处置仍保留');
     expect((await api(detailPath)).json.data.report.governance_action).toBe('offline');
-    await act(admin, 'confirm', '复核已完成，原问题成立，继续维持物品下架');
+    await act(admin, 'confirm', '复核已完成，原问题成立，继续维持物品下架', 'offline');
     await page.reload();
     await page.getByLabel('问题说明或新证据').fill('举报人提供新报错记录，申请一次复核');
     await page.getByRole('button', { name: '提交复核申请' }).click();
