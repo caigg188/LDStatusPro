@@ -373,8 +373,7 @@ async function request<T = unknown>(url: string, options: ApiRequestOptions = {}
 
     if (session && !isAuthSessionCurrent(session)) return sessionChangedResponse()
 
-    // 账号级封禁：403 不是会话失效，只更新限制态并交给调用方展示
-    applyAccountSanctionFromPayload(data)
+    if (token && canExpireStoreSession && response.status === 403) applyAccountSanctionFromPayload(data)
 
     // 检查响应状态
     if (!response.ok) {

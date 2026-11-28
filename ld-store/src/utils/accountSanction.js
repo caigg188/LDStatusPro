@@ -4,7 +4,7 @@ export const ACCOUNT_SUSPENDED_CODE = 'ACCOUNT_SUSPENDED'
 export const COMMENT_RESTRICTED_CODE = 'COMMENT_RESTRICTED'
 export const ACCOUNT_SANCTION_EVENT = 'ld-store:account-suspended'
 
-const EMPTY = { active: false, reasonCode: '', reason: '', until: null, scopes: [], source: '' }
+const EMPTY = { active: false, reasonCode: '', reason: '', until: null, scopes: [], measures: [], source: '' }
 
 /** 账号级限制的全局状态：由 403 响应或状态接口写入，供横幅与写操作共用。 */
 export const accountSanction = reactive({ ...EMPTY })
@@ -12,7 +12,12 @@ export const accountSanction = reactive({ ...EMPTY })
 let lastKey = ''
 
 function normalizeScopes(value) {
-  return Array.isArray(value) ? value.filter((item) => typeof item === 'string' && item).map(String) : []
+  return Array.isArray(value) ? value.filter((item) => item === 'login' || item === 'comment') : []
+}
+
+function normalizeUntil(value) {
+  const time = Number(value)
+  return Number.isFinite(time) && time > 0 ? time : null
 }
 
 function dispatch(next) {
@@ -21,13 +26,24 @@ function dispatch(next) {
 }
 
 export function applyAccountSanction(details = {}, source = 'request') {
-  const until = Number(details.until)
+  const hasMeasures = Array.isArray(details.measures)
+  const now = Math.floor(Date.now() / 1000)
+  const measures = hasMeasures ? details.measures.filter((item) =>
+    item && (item.scope === 'login' || item.scope === 'comment')
+    && (normalizeUntil(item.until) === null || normalizeUntil(item.until) > now)
+  ) : []
+  const primary = measures.find((item) => item.scope === 'login') || measures[0]
+  if (hasMeasures && !primary) return clearAccountSanction()
+  const display = primary || details
+  const until = normalizeUntil(display.until)
+  if (until !== null && until <= now) return clearAccountSanction()
   const next = {
     active: true,
-    reasonCode: String(details.reasonCode || ''),
-    reason: String(details.reason || ''),
-    until: Number.isFinite(until) && until > 0 ? until : null,
-    scopes: normalizeScopes(details.scopes),
+    reasonCode: String(display.reasonCode || ''),
+    reason: String(display.reason || ''),
+    until,
+    scopes: hasMeasures ? measures.map((item) => item.scope) : normalizeScopes(details.scopes),
+    measures,
     source
   }
   const key = JSON.stringify(next)
@@ -51,14 +67,30 @@ export function applyAccountSanctionFromPayload(payload, source = 'request') {
   if (!payload || typeof payload !== 'object') return false
   const error = payload.error
   if (!error || typeof error !== 'object') return false
-  if (error.code !== ACCOUNT_SUSPENDED_CODE) return false
+  if (error.code !== ACCOUNT_SUSPENDED_CODE && error.code !== COMMENT_RESTRICTED_CODE) return false
   const details = error.details && typeof error.details === 'object' ? error.details : {}
+  const scopes = normalizeScopes(details.scopes)
   return applyAccountSanction({
     reasonCode: details.reasonCode,
     reason: details.reason || error.message,
     until: details.until,
-    scopes: details.scopes
+    scopes: scopes.length ? scopes : [error.code === COMMENT_RESTRICTED_CODE ? 'comment' : 'login'],
+    measures: details.measures
   }, source)
+}
+
+export function nextAccountSanctionExpiry() {
+  const limits = accountSanction.measures.length
+    ? accountSanction.measures.map((item) => normalizeUntil(item.until))
+    : [accountSanction.until]
+  const finite = limits.filter((until) => until !== null)
+  return finite.length ? Math.min(...finite) : null
+}
+
+export function pruneExpiredAccountSanctions() {
+  const { measures, until, source } = accountSanction
+  if (measures.length) applyAccountSanction({ measures }, source)
+  else if (until !== null && until * 1000 <= Date.now()) clearAccountSanction()
 }
 
 /** 登录被封禁（login scope 生效）时整站受限。 */

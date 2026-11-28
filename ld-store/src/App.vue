@@ -74,7 +74,7 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import AnnouncementBar from '@/components/common/AnnouncementBar.vue'
 import AccountSanctionBanner from '@/components/common/AccountSanctionBanner.vue'
 import { refreshAccountStatus } from '@/utils/accountStatus'
-import { clearAccountSanction } from '@/utils/accountSanction'
+import { clearAccountSanction, nextAccountSanctionExpiry, pruneExpiredAccountSanctions } from '@/utils/accountSanction'
 import AnnouncementPopup from '@/components/common/AnnouncementPopup.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import Toast from '@/components/common/Toast.vue'
@@ -147,29 +147,52 @@ watch(showDoodleBg, (value) => {
 onUnmounted(stopAnnouncements)
 
 // 初始化
+function refreshVisibleAccountStatus() {
+  if (document.visibilityState !== 'visible' || !userStore.sessionReady || !userStore.isLoggedIn) return
+  pruneExpiredAccountSanctions()
+  void refreshAccountStatus()
+}
+
 onMounted(() => {
   // 全站维护时避免触发额外初始化链路
   if (!isFullMaintenanceMode()) {
     startAnnouncements()
   }
+  document.addEventListener('visibilitychange', refreshVisibleAccountStatus)
+  window.addEventListener('pageshow', refreshVisibleAccountStatus)
 })
 
 watch(
   [() => userStore.sessionReady, () => userStore.isLoggedIn, () => userStore.sessionKey],
   ([sessionReady, loggedIn]) => {
     notificationSummaryStore.stopRealtime()
+    clearAccountSanction()
     if (sessionReady && loggedIn) {
       notificationSummaryStore.startRealtime()
-      refreshAccountStatus()
-    } else {
-      notificationSummaryStore.stopRealtime()
-      clearAccountSanction()
+      void refreshAccountStatus()
     }
   },
   { immediate: true, flush: 'sync' }
 )
 
+watch(nextAccountSanctionExpiry, (until, _, onCleanup) => {
+  if (until === null) return
+  function schedule() {
+    const remaining = until * 1000 - Date.now()
+    if (remaining > 0) timer = setTimeout(schedule, Math.min(remaining, 2_147_483_647))
+    else {
+      pruneExpiredAccountSanctions()
+      void refreshAccountStatus()
+    }
+  }
+  let timer
+  schedule()
+  onCleanup(() => clearTimeout(timer))
+})
+
 onUnmounted(() => {
+  document.removeEventListener('visibilitychange', refreshVisibleAccountStatus)
+  window.removeEventListener('pageshow', refreshVisibleAccountStatus)
   notificationSummaryStore.stopRealtime({ clear: false })
 })
 </script>
